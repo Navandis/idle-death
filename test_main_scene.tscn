@@ -1,0 +1,7 @@
+[gd_scene format=3 uid="uid://d0x0mxue5j464"]
+
+[node name="Node2D" type="Node2D" unique_id=502649419]
+
+[node name="PanelContainer" type="PanelContainer" parent="." unique_id=1123420212]
+offset_right = 532.0
+offset_bottom = 456.0
