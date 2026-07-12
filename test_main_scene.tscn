@@ -1,7 +1,19 @@
 [gd_scene format=3 uid="uid://d0x0mxue5j464"]
 
+[ext_resource type="Texture2D" uid="uid://v6d07ov8ceon" path="res://assets/art/characters/death_v1 - cutscenes - no_bg.png" id="1_qub46"]
+[ext_resource type="Texture2D" uid="uid://dhijo6j3gy61q" path="res://assets/art/characters/Eustace - v1 - cutscenes - no_bg.png" id="2_oxmvl"]
+
 [node name="Node2D" type="Node2D" unique_id=502649419]
 
-[node name="PanelContainer" type="PanelContainer" parent="." unique_id=1123420212]
-offset_right = 532.0
-offset_bottom = 456.0
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1512407124]
+
+[node name="DeathV1CutscenesNoBg" type="Sprite2D" parent="." unique_id=1353393794]
+position = Vector2(259, 746)
+scale = Vector2(0.4579546, 0.46032518)
+texture = ExtResource("1_qub46")
+
+[node name="EustaceV1CutscenesNoBg" type="Sprite2D" parent="." unique_id=614815925]
+position = Vector2(1688, 837)
+scale = Vector2(0.43080357, 0.43080357)
+texture = ExtResource("2_oxmvl")
+flip_h = true
