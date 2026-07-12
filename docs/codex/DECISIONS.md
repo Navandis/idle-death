@@ -2,8 +2,8 @@
 
 **Document role:** Durable record of approved and proposed design and architecture decisions  
 **Repository path:** `docs/codex/DECISIONS.md`  
-**Document status:** Phase 6 proposal  
-**Revision:** 1  
+**Document status:** Approved architecture and active decision record  
+**Revision:** 2  
 **Last updated:** 2026-07-12
 
 ## 1. How to use this file
@@ -24,7 +24,7 @@ Rules:
 - A replacement entry names the decision it supersedes.
 - Update the applicable source-of-truth, architecture, contracts, and tests when a decision changes behavior.
 - Ordinary balance tuning does not require a decision entry unless it changes ownership, semantics, compatibility, or a protected invariant.
-- Phase 6 proposals become Accepted only after explicit owner approval.
+- Architecture proposals become Accepted only after explicit owner approval. Phase 6 approval was recorded on 12 July 2026.
 
 ## 2. Index
 
@@ -36,20 +36,22 @@ Rules:
 | `DEC-0004` | Scribe awakening remains a player action | Accepted | 2026-07-12 |
 | `DEC-0005` | Scripted opening four are excluded from Reaping counters | Accepted | 2026-07-12 |
 | `DEC-0006` | Godot, platform, and storefront boundary | Accepted | 2026-07-12 |
-| `DEC-0007` | Authoritative state is scene-tree independent | Proposed | 2026-07-12 |
-| `DEC-0008` | Persistent `GameApp` root without a gameplay autoload | Proposed | 2026-07-12 |
-| `DEC-0009` | Typed Resource definitions in an explicit content catalog | Proposed | 2026-07-12 |
-| `DEC-0010` | One deterministic global resolver and fixed-point numeric model | Proposed | 2026-07-12 |
-| `DEC-0011` | Versioned JSON snapshot with exact integer strings and atomic replacement | Proposed | 2026-07-12 |
-| `DEC-0012` | Commands mutate state; queries and events expose committed results | Proposed | 2026-07-12 |
-| `DEC-0013` | One inventory total plus an explicit reservation ledger | Proposed | 2026-07-12 |
-| `DEC-0014` | Small modifier and progression-effect grammars | Proposed | 2026-07-12 |
-| `DEC-0015` | Tutorial orchestrates presentation and never executes skipped cost-bearing choices | Proposed | 2026-07-12 |
-| `DEC-0016` | Reports store already-applied deltas; forecasts simulate a clone | Proposed | 2026-07-12 |
-| `DEC-0017` | GUT 9.7.1 is the planned Godot 4.7 test framework | Proposed | 2026-07-12 |
-| `DEC-0018` | Single-threaded prototype and local-only playtest telemetry | Proposed | 2026-07-12 |
-| `DEC-0019` | Threshold knowledge, lifecycle, availability, and activity are orthogonal | Proposed | 2026-07-12 |
-| `DEC-0020` | One active Reaping per Threshold and one tether per Reaping | Proposed | 2026-07-12 |
+| `DEC-0007` | Authoritative state is scene-tree independent | Accepted | 2026-07-12 |
+| `DEC-0008` | Persistent `GameApp` root without a gameplay autoload | Accepted | 2026-07-12 |
+| `DEC-0009` | Typed Resource definitions in an explicit content catalog | Accepted | 2026-07-12 |
+| `DEC-0010` | One deterministic global resolver and fixed-point numeric model | Accepted | 2026-07-12 |
+| `DEC-0011` | Codec-independent versioned snapshot with JSON as the prototype codec | Accepted | 2026-07-12 |
+| `DEC-0012` | Commands mutate state; queries and events expose committed results | Accepted | 2026-07-12 |
+| `DEC-0013` | One inventory total plus an explicit reservation ledger | Accepted | 2026-07-12 |
+| `DEC-0014` | Small modifier and progression-effect grammars | Accepted | 2026-07-12 |
+| `DEC-0015` | Tutorial orchestrates presentation and never executes skipped cost-bearing choices | Accepted | 2026-07-12 |
+| `DEC-0016` | Reports store already-applied deltas; forecasts simulate a clone | Accepted | 2026-07-12 |
+| `DEC-0017` | GUT 9.7.1 is the planned Godot 4.7 test framework | Accepted | 2026-07-12 |
+| `DEC-0018` | Single-threaded prototype and local-only playtest telemetry | Accepted | 2026-07-12 |
+| `DEC-0019` | Threshold knowledge, lifecycle, availability, and activity are orthogonal | Accepted | 2026-07-12 |
+| `DEC-0020` | One active Reaping per Threshold and one tether per Reaping | Accepted | 2026-07-12 |
+| `DEC-0021` | Trusted external time governs closed-session progress | Accepted | 2026-07-12 |
+| `DEC-0022` | Prototype save resilience and release-format security gate | Accepted | 2026-07-12 |
 
 ---
 
@@ -225,12 +227,12 @@ The owner develops on Windows, uses Godot, intends a Steam-first commercial rele
 - Use Godot 4.7 and GDScript only.
 - Target Windows PC first.
 - Use a 1920 × 1080 reference viewport with ordinary resizing and stretching.
-- Keep authoritative simulation, saves, and content independent of Steamworks or any storefront SDK.
-- Defer Steam integration, achievements, cloud saves, depots, DRM, release packaging, and speculative multi-store adapters beyond the prototype.
+- Keep authoritative simulation, save-schema meaning, and content independent of Steamworks or any storefront SDK.
+- Defer achievements, cloud saves, depots, DRM, release packaging, and speculative multi-store adapters beyond the prototype. A narrowly scoped trusted-time platform adapter is the only currently approved exception and is governed by `DEC-0021`.
 
 ### Consequences
 
-- No C#, .NET project, GDExtension, native library, or storefront dependency is part of the prototype architecture.
+- No C#, .NET project, or unrelated storefront dependency is part of the prototype architecture. A Godot-to-Steam binding may be added only by the approved trusted-time milestone after the exact dependency is reviewed.
 - Headless verification may run on Linux without changing game rules.
 
 ### Affected documents
@@ -243,7 +245,7 @@ The owner develops on Windows, uses Godot, intends a Steam-first commercial rele
 
 ## `DEC-0007` — Authoritative state is scene-tree independent
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-07-12  
 **Decision type:** State architecture
 
@@ -277,7 +279,7 @@ Nodes own Godot lifecycle and presentation adapters. They are not the sole owner
 
 ## `DEC-0008` — Persistent `GameApp` root without a gameplay autoload
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-07-12  
 **Decision type:** Godot composition
 
@@ -312,7 +314,7 @@ Do not add a gameplay autoload initially.
 
 ## `DEC-0009` — Typed Resource definitions in an explicit content catalog
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-07-12  
 **Decision type:** Content architecture
 
@@ -347,20 +349,21 @@ Do not discover authoritative content through recursive directory scanning, and 
 
 ## `DEC-0010` — One deterministic global resolver and fixed-point numeric model
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-07-12  
 **Decision type:** Simulation and time
 
 ### Context
 
-Reapings and Halls share Stores and can cross milestones, discovery changes, support transitions, and settlement during one elapsed interval. Independent timers or float-per-frame accumulation would create order and chunking differences.
+Reapings and Halls share Stores and can cross milestones, discovery changes, support transitions, and settlement during one elapsed interval. Independent timers or float-per-frame accumulation would create order and chunking differences. Closed-session progress also requires a time source whose trust policy is separate from simulation.
 
 ### Decision
 
 - Use one `SimulationEngine` to advance all active Reapings and Halls over a shared integer-millisecond interval.
 - Segment at the earliest meaningful global state boundary.
 - Use the same resolver and normalized content for live, offline, forecast, and debug modes; forecast runs on a deep clone.
-- Use a monotonic clock for foreground elapsed time and a persisted UTC wall-clock timestamp for offline elapsed time.
+- Use a monotonic process clock for foreground elapsed time.
+- Obtain closed-session elapsed time only through the trusted-time policy in `DEC-0021`; the simulation engine receives a duration and never reads a clock.
 - Use centralized 64-bit fixed-point arithmetic and persisted residuals for authoritative fractional progress.
 - Use stable same-time ordering and sorted canonical IDs.
 - Do not use authoritative randomness in the first-session prototype.
@@ -370,13 +373,14 @@ Reapings and Halls share Stores and can cross milestones, discovery changes, sup
 - Online/offline/forecast equivalence is directly testable.
 - A Larder completion and support depletion at the same timestamp have one documented order.
 - The exact fixed-point scale remains a foundation-milestone choice, but it cannot differ by subsystem.
-- Simulation services receive elapsed durations and do not read clocks, scene state, or frame delta directly.
+- Simulation services receive elapsed durations and do not read clocks, scene state, frame delta, Steam APIs, or device wall time directly.
 
 ### Alternatives considered
 
 - **One timer per Reaping/Hall:** rejected because shared Stores make results order-dependent.
 - **Replay every elapsed second:** rejected because long absences should resolve analytically.
 - **Ordinary float accumulation without saved residuals:** rejected because chunking can change results.
+- **Device wall clock for offline elapsed:** rejected because players, operating-system changes, time synchronization, timezone changes, or clock faults can alter it.
 
 ### Affected documents
 
@@ -386,19 +390,19 @@ Reapings and Halls share Stores and can cross milestones, discovery changes, sup
 
 ---
 
-## `DEC-0011` — Versioned JSON snapshot with exact integer strings and atomic replacement
+## `DEC-0011` — Codec-independent versioned snapshot with JSON as the prototype codec
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-07-12  
 **Decision type:** Persistence
 
 ### Context
 
-Save integrity and offline idempotency are foundational. Godot JSON converts numerical Variant values to JSON numbers/floats, so directly encoding 64-bit counters, fixed-point values, residuals, revisions, or timestamps would not provide a reliable exact-integer contract.
+Save integrity and offline idempotency are foundational. Godot JSON converts numerical Variant values to JSON numbers/floats, so directly encoding 64-bit counters, fixed-point values, residuals, revisions, or trusted-time fields would not provide a reliable exact-integer contract. At the same time, choosing JSON for inspectability during the prototype must not permanently couple the full game to a text wire format.
 
 ### Decision
 
-Use a custom versioned JSON snapshot under `user://saves/` with:
+Define a schema-controlled snapshot model and a project-owned `SaveCodec` boundary. The prototype implementation uses a custom versioned JSON codec under `user://saves/` with:
 
 - explicit state-to-dictionary conversion;
 - canonical base-10 strings for every schema field typed as an authoritative integer;
@@ -409,18 +413,22 @@ Use a custom versioned JSON snapshot under `user://saves/` with:
 - sequential dictionary migrations;
 - working-clone offline resolution followed by atomic commit.
 
+The runtime schema, migrations, validation, and storage transaction must not depend on JSON-specific code outside the codec. A later compressed or binary codec may replace JSON after profiling without changing domain ownership or the conceptual save schema.
+
 ### Consequences
 
-- The save remains human-readable and exact.
-- The codec must validate integer strings and 64-bit ranges.
+- The prototype save remains human-readable, exact, and easy to diagnose.
+- The JSON codec must validate integer strings and signed-64-bit ranges.
 - Schema changes require migrations or an explicit prototype reset decision.
 - File replacement behavior must be tested on Windows and the Linux headless environment.
+- JSON is not approved as an anti-tamper mechanism, and binary encoding alone would not improve the trust boundary.
+- Commercial-release codec and integrity policy are reviewed at the gate defined by `DEC-0022`.
 
 ### Alternatives considered
 
 - **Direct `JSON.stringify()` of runtime integers:** rejected because JSON number conversion does not preserve the intended integer type contract.
 - **Scene or Resource serialization:** rejected because mutable state would be coupled to Godot objects and migrations.
-- **Opaque binary-only saves:** viable later, but less inspectable for the prototype and unnecessary if the explicit JSON codec remains small.
+- **Commit to opaque binary saves now:** rejected because no measured size or performance problem exists and binary representation would reduce prototype diagnosability without making local saves tamper-proof.
 - **Event sourcing:** rejected as excessive.
 
 ### Affected documents
@@ -433,7 +441,7 @@ Use a custom versioned JSON snapshot under `user://saves/` with:
 
 ## `DEC-0012` — Commands mutate state; queries and events expose committed results
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-07-12  
 **Decision type:** Application flow
 
@@ -464,7 +472,7 @@ UI and tutorial code need to request actions and react to changes without partia
 
 ## `DEC-0013` — One inventory total plus an explicit reservation ledger
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-07-12  
 **Decision type:** Inventory and Retinues
 
@@ -494,7 +502,7 @@ Soldier Company creates and releases a twelve-Soldier reservation; it does not c
 
 ## `DEC-0014` — Small modifier and progression-effect grammars
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-07-12  
 **Decision type:** Data-driven rules
 
@@ -526,7 +534,7 @@ Do not store arbitrary Callables, expression strings, or script execution paths 
 
 ## `DEC-0015` — Tutorial orchestrates presentation and never executes skipped cost-bearing choices
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-07-12  
 **Decision type:** Tutorial architecture
 
@@ -561,7 +569,7 @@ Skipping mechanical guidance dismisses the instructional presentation and create
 
 ## `DEC-0016` — Reports store already-applied deltas; forecasts simulate a clone
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-07-12  
 **Decision type:** Reports and forecasts
 
@@ -590,7 +598,7 @@ Reports need a review moment without reintroducing claim-gated output, and forec
 
 ## `DEC-0017` — GUT 9.7.1 is the planned Godot 4.7 test framework
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-07-12  
 **Decision type:** Test tooling
 
@@ -624,7 +632,7 @@ M00 must verify actual execution under Godot 4.7 on Windows and the Codex Cloud 
 
 ## `DEC-0018` — Single-threaded prototype and local-only playtest telemetry
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-07-12  
 **Decision type:** Scope and diagnostics
 
@@ -654,7 +662,7 @@ Two Reapings, one Hall, tutorial progression, UI, and report aggregation do not 
 
 ## `DEC-0019` — Threshold knowledge, lifecycle, availability, and activity are orthogonal
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-07-12  
 **Decision type:** Domain modeling
 
@@ -689,7 +697,7 @@ Presentation composes those facts into player-facing labels.
 
 ## `DEC-0020` — One active Reaping per Threshold and one tether per Reaping
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-07-12  
 **Decision type:** Prototype capacity model
 
@@ -717,14 +725,113 @@ For the prototype:
 - `docs/codex/ARCHITECTURE.md`
 - `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`
 
+
 ---
 
-## 3. Approval action
+## `DEC-0021` — Trusted external time governs closed-session progress
 
-When the project owner approves Phase 6:
+**Status:** Accepted  
+**Date:** 2026-07-12  
+**Decision type:** Time authority and platform boundary  
+**Refines:** `DEC-0006`, `DEC-0010`
 
-1. change `DEC-0007` through `DEC-0020` from **Proposed** to **Accepted**, except any specifically revised or rejected entry;
-2. change the Phase 6 architecture documents from draft/proposal to approved status;
-3. record the approval date or revision;
-4. do not change decision IDs when only wording is clarified.
+### Context
 
+The project owner requires authoritative progress to be independent of the player's local calendar, timezone, and device wall clock. Foreground production can use a monotonic process clock, but the application cannot know how long it was closed without an external trusted reference. The initial commercial target is Steam, whose utility API exposes Steam server time.
+
+### Decision
+
+- Foreground elapsed time uses an injected monotonic process clock and is credited immediately.
+- Closed-session elapsed time uses an injected `TrustedTimeProvider`; no authoritative code may fall back to the device wall clock.
+- The planned Steam production adapter obtains server time through `ISteamUtils::GetServerRealTime`; the approved binding must also define the connection/session checks that make a sample acceptable.
+- If trusted time is unavailable, load the save without closed-session credit, mark the gap pending, and continue foreground production normally.
+- Persist the last trusted anchor and the amount of foreground monotonic time already credited since that anchor. When trusted time later becomes available, subtract already-credited foreground time before resolving the remaining closed-session gap, then apply any configured offline cap.
+- Never move the trusted anchor backwards. A negative, stale, contradictory, or implausible sample grants no progress and produces a diagnostic event.
+- The Steam adapter remains at the platform/application boundary. Domain, simulation, save-schema meaning, and tests depend only on the project-owned interface.
+- The exact Godot-to-Steam binding is a dependency decision for the trusted-time milestone and requires owner approval before adding a GDExtension or native library.
+
+### Consequences
+
+- Changing Windows date, time, timezone, daylight-saving settings, or clock synchronization does not create or remove offline production.
+- A player may continue playing without trusted time, but pending closed-session progress is not granted until a trusted sample is available.
+- Headless tests use a fake trusted-time source and require no Steam client.
+- This prevents ordinary local-clock abuse and accidental clock faults. It does not make a fully client-side single-player executable secure against a determined user who patches the process or spoofs platform calls; strong resistance to that threat requires a server-controlled authority.
+- This is the sole currently approved prototype exception to the broader Steam-integration deferral in `DEC-0006`.
+
+### Alternatives considered
+
+- **Local UTC wall clock with rollback detection:** rejected because forward jumps remain exploitable and legitimate synchronization can create false behavior.
+- **No offline progress:** secure against clock changes but contradicts the core product promise.
+- **Always-online custom backend:** stronger authority, but disproportionate for the prototype and solo-development scope.
+- **Signed local timestamps only:** cannot prove elapsed closed time without a trusted signer available after the interval.
+
+### Affected documents
+
+- `AGENTS.md`
+- `docs/design/IDLE_FORK_SOURCE_OF_TRUTH.md`
+- `docs/design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md`
+- `docs/codex/ARCHITECTURE.md`
+- `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`
+- `docs/codex/IMPLEMENTATION_RULES.md`
+- `docs/codex/TESTING_AND_VALIDATION.md`
+- `docs/codex/MILESTONES.md`
+
+---
+
+## `DEC-0022` — Prototype save resilience and release-format security gate
+
+**Status:** Accepted  
+**Date:** 2026-07-12  
+**Decision type:** Persistence security and release planning  
+**Refines:** `DEC-0011`
+
+### Context
+
+The prototype needs exact, recoverable saves and easy diagnostics. The full game may eventually have larger state, Steam Cloud synchronization, achievements, or other incentives to edit saves. Plain JSON is readable and editable, but replacing it with an opaque binary file does not by itself create security because the game client must still contain every local decoding and validation rule.
+
+### Decision
+
+For the prototype:
+
+- prioritize schema validation, exact numeric round trips, atomic replacement, backup recovery, migration fixtures, and idempotent offline transactions;
+- keep JSON behind `SaveCodec` and do not add encryption or obfuscation solely to create an appearance of security;
+- an optional unkeyed digest may detect accidental corruption but must not be described as tamper protection.
+
+Before commercial release, run the dedicated `RG01` save-format and threat-model gate that:
+
+1. profiles realistic worst-case save size, parse time, write time, memory use, and Steam Cloud transfer behavior;
+2. decides whether JSON remains sufficient or whether a compressed or binary codec is justified;
+3. states whether the product only needs corruption resilience, also wants casual-edit deterrence, or requires server-backed authority for protected outcomes;
+4. treats local encryption, obfuscation, or a locally stored HMAC key as deterrence only;
+5. requires a server-held signing key or server-authoritative state for any outcome that must be strongly protected from a determined client owner.
+
+### Consequences
+
+- JSON is sufficient for the prototype and may also be sufficient for the full game if aggregate saves remain small and profiling meets release budgets.
+- The project can change the wire codec without rewriting domain state or migrations.
+- Steam Cloud may synchronize save files later, but synchronization is not integrity verification.
+- No milestone may claim that a local save is tamper-proof.
+- Achievement, leaderboard, economy, or other protected-state policy remains a later product decision rather than an accidental property of the file extension.
+
+### Alternatives considered
+
+- **Encrypt JSON immediately:** rejected as prototype scope with weak protection when the key is shipped in the client.
+- **Use binary solely to hide values:** rejected as security through obscurity.
+- **Add a backend now:** rejected as unnecessary for the current single-player prototype.
+
+### Affected documents
+
+- `AGENTS.md`
+- `docs/codex/ARCHITECTURE.md`
+- `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`
+- `docs/codex/IMPLEMENTATION_RULES.md`
+- `docs/codex/TESTING_AND_VALIDATION.md`
+- `docs/codex/MILESTONES.md`
+
+---
+
+## 3. Current approval state
+
+- `DEC-0001` through `DEC-0022` are Accepted.
+- The Phase 6 architecture is approved with the trusted-time and save-format refinements recorded in `DEC-0021` and `DEC-0022`.
+- Future changes preserve decision IDs for wording clarifications and create a new decision only when semantics, ownership, compatibility, or security posture changes.

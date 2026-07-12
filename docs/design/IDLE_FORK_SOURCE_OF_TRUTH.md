@@ -2,7 +2,7 @@
 
 **Document role:** Maintained implementation context for the idle/incremental branch  
 **Repository path:** `docs/design/IDLE_FORK_SOURCE_OF_TRUTH.md`  
-**Markdown revision:** 1  
+**Markdown revision:** 2  
 **Last updated:** 2026-07-12  
 **Primary source:** *Death Idle - Idle & Incremental Fork - Design Direction v0.1* (12 July 2026)  
 **Companion prototype contract:** [PROTOTYPE_0_90_SOURCE_OF_TRUTH.md](PROTOTYPE_0_90_SOURCE_OF_TRUTH.md)
@@ -39,7 +39,7 @@ Do not silently resolve a conflict. Check the decision record, state the practic
 
 Death Idle is a 2D, UI-led idle and incremental management game for Windows PC. The player is Death, newly awakened after roughly three thousand years of absence and restricted by ancient chains and seals. The mortal world has accumulated impossible soul debts. The player restores the machinery of mortality by opening Thresholds, assigning Forms, fielding Retinues, rebuilding Halls, recovering Recollections, settling finite backlogs, and weakening the seals that limit Death's authority.
 
-The initial commercial storefront target is Steam. Steamworks integration, achievements, cloud saves, depot configuration, DRM, and release packaging are not part of the current prototype. Core game state, simulation, saves, and content must remain independent of a storefront SDK. Epic Games Store, GOG, or other storefronts are possible later only when demand and return on implementation effort justify them.
+The initial commercial storefront target is Steam. Broad Steamworks integration, achievements, cloud saves, depot configuration, DRM, and release packaging are not part of the current prototype. The sole approved exception is a narrowly scoped external trusted-time adapter required to prevent local-wall-clock offline credit; it remains behind a project-owned interface at the platform boundary. Core game state, simulation, saves, and content remain independent of a storefront SDK. Epic Games Store, GOG, or other storefronts are possible later only when demand and return on implementation effort justify them.
 
 ### Design thesis
 
@@ -156,7 +156,8 @@ The identifiers below are stable requirement references for later architecture a
 - **IF-REQ-13 - Reserved Calling Souls:** Retinue assignment reserves the complete required cohort; it does not silently consume or destroy those Souls.
 - **IF-REQ-14 - Domain ownership:** Tutorial and UI code may request actions or present results, but they do not own duplicate resource, Reaping, Form, Retinue, Hall, or save rules.
 - **IF-REQ-15 - Save integrity:** Active operations, accumulated state, guarantees, unlocks, reservations, Hall state, tutorial state, reports, and timestamps must reconstruct correctly after load.
-- **IF-REQ-16 - Storefront independence:** Authoritative gameplay systems must not depend on Steamworks or any other storefront SDK.
+- **IF-REQ-16 - Storefront independence:** Authoritative gameplay rules, save-schema meaning, and content must not depend on Steamworks or another storefront SDK. A narrowly approved platform adapter may supply trusted time through the project-owned interface, but domain and simulation code remain storefront-independent.
+- **IF-REQ-17 - Trusted time authority:** Foreground elapsed time uses a monotonic process clock. Closed-session elapsed time is credited only from an approved external trusted-time provider; the player's local wall clock, timezone, calendar, file timestamps, and manually supplied time are never authoritative fallbacks. If trusted time is unavailable, unresolved closed-session progress remains pending rather than being guessed.
 
 ## 7. Incremental progression architecture
 
@@ -263,7 +264,9 @@ Stable Runtime must state the likely bottleneck and the post-bottleneck behavior
 
 **Status: Confirmed architecture; exact rates and caps open**
 
-Use one authoritative resolver for online, forecast, and offline calculation. Split elapsed time at meaningful state boundaries, including:
+Use one authoritative resolver for online, forecast, and offline calculation. The resolver accepts an elapsed duration; it does not read clocks directly. Foreground duration comes from an injected monotonic process clock. Closed-session duration comes only from an approved external trusted-time provider. Do not derive authoritative offline progress from the player's local date, time, timezone, calendar, file modification times, or a manually entered timestamp. If the trusted provider is unavailable, load committed state, continue foreground production, and leave closed-session reconciliation pending until trust returns.
+
+Split elapsed time at meaningful state boundaries, including:
 
 - support depletion or recovery;
 - milestone grants;
@@ -465,7 +468,7 @@ Opening, dismissing, clearing, or losing a report accumulator must never remove 
 - Engine: Godot 4.7.
 - Language: GDScript only.
 - Primary development platform and product target: Windows PC.
-- Initial storefront target: Steam, without prototype Steam integration.
+- Initial storefront target: Steam. Prototype integration is limited to the separately approved trusted-time adapter; other Steam features remain deferred.
 - Presentation: 2D and UI-led, using static or lightly animated art.
 - Simulation: data-driven and deterministic, with analytical elapsed-time resolution.
 - Save integrity and idempotent resolution take priority over combat AI or animation systems.
@@ -511,7 +514,7 @@ The detailed sequence, content IDs, guarantees, screen disclosure, and acceptanc
 
 ### Out of scope for the current prototype
 
-- Steamworks or other storefront SDK integration.
+- Steamworks or other storefront SDK integration beyond the separately approved trusted-time adapter.
 - Achievements, cloud-save integration, depot/release configuration, DRM, and launch packaging.
 - Launch telemetry services, accounts, servers, or backend services.
 - Final voice acting, final art, final animation, or final release balance.
@@ -572,3 +575,4 @@ When changing a confirmed rule:
 | Status, risks, and open questions | Section 19, page 23. |
 | Prototype Thresholds and guarantees | Appendices C-E, pages 25-26. |
 | Emergency-to-Standard transition, two prototype resonances, manual Scribe awakening, Godot 4.7/GDScript, and Steam-first distribution | Project-owner decisions recorded during the 2026-07-12 planning session. |
+| External trusted-time authority and prohibition on local wall-clock offline credit | Project-owner clarification recorded during the 2026-07-12 planning session; implemented by `DEC-0021`. |

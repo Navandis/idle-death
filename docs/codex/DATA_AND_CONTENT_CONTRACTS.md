@@ -2,8 +2,8 @@
 
 **Document role:** Canonical prototype data, runtime-state, ID, and serialization contracts  
 **Repository path:** `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`  
-**Document status:** Draft for Phase 6 approval  
-**Revision:** 1  
+**Document status:** Approved architecture contract  
+**Revision:** 2  
 **Last updated:** 2026-07-12
 
 ## 1. Purpose
@@ -493,16 +493,34 @@ Runtime classes use typed fields and explicit `to_save_data()` / `from_save_data
 | Field | Type | Rule |
 |---|---|---|
 | `schema_version` | runtime `int` | Current prototype begins at 1; JSON wire value is a canonical decimal string |
+| `codec_id` | `StringName` | Identifies the byte codec, initially `JSON_V1` |
 | `content_revision` | `String` | Identifies the validated content catalog revision used by this snapshot |
 | `save_revision` | runtime `int` | Increases on each successful snapshot; JSON wire value is a decimal string |
-| `created_utc_msec` | runtime `int` | Original game creation time; JSON wire value is a decimal string |
-| `committed_utc_msec` | runtime `int` | Successful snapshot wall time; JSON wire value is a decimal string |
-| `last_resolved_utc_msec` | runtime `int` | Offline cursor represented by the snapshot; JSON wire value is a decimal string |
+| `time_authority` | `TimeAuthorityState` | Trusted external anchor and already-credited foreground accounting |
 | `last_offline_resolution_id` | `String` | Stable diagnostic/idempotency identity for the last committed offline resolution |
 | `game_state` | dictionary | Complete authoritative state |
-| `metadata` | dictionary | Minimal diagnostics; no secrets or machine paths |
+| `metadata` | dictionary | Minimal diagnostics; no secrets, machine paths, or device-clock values used for progress |
 
-### 9.2 GameState
+### 9.2 TimeAuthorityState
+
+| Field | Type | Rule |
+|---|---|---|
+| `trusted_source_id` | `StringName` | Empty before the first trusted sample; empty until the approved production provider is installed; the Steam server-time adapter is the current candidate |
+| `has_trusted_anchor` | `bool` | False until a trusted sample establishes the first anchor |
+| `trusted_anchor_utc_msec` | runtime `int` | Last accepted external trusted epoch; canonical decimal string in JSON |
+| `foreground_credited_since_anchor_msec` | runtime `int` | Non-negative active-session time already simulated since the anchor |
+| `pending_trusted_reconciliation` | `bool` | True when the game loaded or resumed without a usable trusted sample |
+| `last_sample_diagnostic_code` | `StringName` | Diagnostic only; never changes production by itself |
+
+Rules:
+
+- no authoritative field is populated from the player's local wall clock, timezone, calendar, or file timestamp;
+- when `has_trusted_anchor` is false, `trusted_anchor_utc_msec` must be zero and no retroactive closed-session credit is granted before the first trusted sample;
+- a newly accepted trusted sample may not move the anchor backwards;
+- `foreground_credited_since_anchor_msec` is reset only in the same successful transaction that commits a new trusted anchor;
+- trusted-time source details remain outside domain state; only the normalized sample and accounting state are persisted.
+
+### 9.3 GameState
 
 | Field | Type | Source of truth |
 |---|---|---|
@@ -517,11 +535,12 @@ Runtime classes use typed fields and explicit `to_save_data()` / `from_save_data
 | `tutorial` | `TutorialState` | State, completion, skip, Help/presentation checkpoint |
 | `report_accumulator` | `ReportAccumulatorState` | Pending already-applied deltas and events |
 | `report_history` | ordered list of `ReportSnapshot` | Bounded presentation history; never the source of inventory |
+| `simulation_time_msec` | runtime `int` | Monotonic credited gameplay timeline for authoritative event/report ordering |
 | `session_playtime_msec` | runtime `int` | Active playtime for local analysis; JSON wire value is a decimal string |
 
-`schema_version`, content revision, save revision, and wall-clock cursors belong to the save envelope, not duplicated inside each substate.
+`schema_version`, codec ID, content revision, save revision, and trusted-time accounting belong to the save envelope, not duplicated inside each substate. `simulation_time_msec` belongs to `GameState` and advances only when simulation time is committed.
 
-### 9.3 InventoryState and reservations
+### 9.4 InventoryState and reservations
 
 Inventory is keyed by item ID.
 
@@ -541,7 +560,7 @@ available = total - reserved
 
 A reservation ID is stable and identifies its owner, for example a Retinue assignment. Do not persist a second independently mutable `reserved_total`.
 
-### 9.4 FormState
+### 9.5 FormState
 
 | Field | Type | Rule |
 |---|---|---|
@@ -552,7 +571,7 @@ A reservation ID is stable and identifies its owner, for example a Retinue assig
 
 No Art state is required beyond optional locked placeholders.
 
-### 9.5 ThresholdState
+### 9.6 ThresholdState
 
 | Field | Type | Rule |
 |---|---|---|
@@ -566,7 +585,7 @@ No Art state is required beyond optional locked placeholders.
 
 The opening action modifies `remaining_backlog` and story state but does not modify `persistent_returns_total`.
 
-### 9.6 DiscoveryChannelState
+### 9.7 DiscoveryChannelState
 
 | Field | Type | Rule |
 |---|---|---|
@@ -577,7 +596,7 @@ The opening action modifies `remaining_backlog` and story state but does not mod
 
 The inventory total exists independently. Identification does not grant historical output again. Production residuals belong to the active Reaping flow that produces the item, not to this disclosure record.
 
-### 9.7 ReapingState
+### 9.8 ReapingState
 
 | Field | Type | Rule |
 |---|---|---|
@@ -592,12 +611,12 @@ The inventory total exists independently. Identification does not grant historic
 | `support_buffer_amounts` | item-ID-to-int | Per-Reaping allocated/support amount where the Writ uses a buffer |
 | `active_fallback_id` | `StringName` | Empty in the prototype unless an approved fallback is active |
 | `support_state` | enum | Full, low, depleted/reduced as implemented |
-| `started_utc_msec` | `int` | Diagnostic/report context |
-| `last_configuration_change_utc_msec` | `int` | Diagnostic/forecast context |
+| `started_simulation_msec` | `int` | Authoritative simulation-timeline context |
+| `last_configuration_change_simulation_msec` | `int` | Authoritative simulation-timeline context |
 
-There is one global last-resolved cursor in the save envelope. Per-Reaping cursors must not independently drift.
+There is one global trusted-time accounting record in the save envelope and one `simulation_time_msec` in `GameState`. Per-Reaping wall-clock or trusted-time cursors must not independently drift.
 
-### 9.8 HallState
+### 9.9 HallState
 
 | Field | Type | Rule |
 |---|---|---|
@@ -608,7 +627,7 @@ There is one global last-resolved cursor in the save envelope. Per-Reaping curso
 | `production_phase_msec` | `int` | Runtime continuity if cycle-based |
 | `flow_residuals` | flow-ID-to-residual data | The sole persisted remainder owner for Hall input, output, and cycle/rate flows |
 
-### 9.9 ProgressionState
+### 9.10 ProgressionState
 
 | Field | Type | Rule |
 |---|---|---|
@@ -621,7 +640,7 @@ There is one global last-resolved cursor in the save envelope. Per-Reaping curso
 
 A milestone completion flag and its reward-completion flag are distinct enough to recover safely if a future migration or interrupted transaction requires diagnosis. The atomic snapshot normally commits them together.
 
-### 9.10 StoryState
+### 9.11 StoryState
 
 Minimum fields as required by milestones:
 
@@ -635,7 +654,7 @@ Minimum fields as required by milestones:
 - Sanctum/window reveal state;
 - active narrative sequence ID and checkpoint when resume is required.
 
-### 9.11 TutorialState
+### 9.12 TutorialState
 
 | Field | Type | Rule |
 |---|---|---|
@@ -648,12 +667,12 @@ Minimum fields as required by milestones:
 
 Do not duplicate resource totals, Form awakening, Hall activity, or milestone completion inside tutorial state.
 
-### 9.12 ReportAccumulatorState
+### 9.13 ReportAccumulatorState
 
 | Field | Type | Rule |
 |---|---|---|
-| `window_started_utc_msec` | runtime `int` | Start of accumulated report period; decimal string in JSON |
-| `last_event_utc_msec` | runtime `int` | Ordering/summary; decimal string in JSON |
+| `window_started_simulation_msec` | runtime `int` | Start of accumulated report period on the simulation timeline |
+| `last_event_simulation_msec` | runtime `int` | Authoritative ordering/summary on the simulation timeline |
 | `souls_by_threshold` | ID-to-int | Already banked |
 | `backlog_reduction_by_threshold` | ID-to-int | Already applied |
 | `resource_deltas` | item-ID-to-int | Already applied whole-unit inventory changes |
@@ -667,7 +686,7 @@ Do not duplicate resource totals, Form awakening, Hall activity, or milestone co
 Clearing or archiving this state never mutates inventory, backlog, Mastery, milestones, or Hall output.
 
 
-### 9.13 ReportSnapshot
+### 9.14 ReportSnapshot
 
 A report snapshot is created when the current accumulator is opened, archived, or rolled over by an approved report policy.
 
@@ -676,8 +695,8 @@ Minimum fields:
 | Field | Type | Rule |
 |---|---|---|
 | `report_id` | `String` | Stable within the save; not a gameplay content ID |
-| `created_utc_msec` | runtime `int` | Snapshot time; decimal string in JSON |
-| `window_started_utc_msec` / `window_ended_utc_msec` | runtime `int` | Covered interval; decimal strings in JSON |
+| `created_simulation_msec` | runtime `int` | Snapshot point on the simulation timeline |
+| `window_started_simulation_msec` / `window_ended_simulation_msec` | runtime `int` | Covered simulation interval |
 | `summary` | save-safe dictionary | Copy of applicable already-applied deltas and ordered events |
 | `acknowledged` | `bool` | Presentation state only |
 
@@ -692,7 +711,7 @@ Minimum event fields:
 | Field | Type | Rule |
 |---|---|---|
 | `event_type` | `StringName` | Approved event type or canonical `REPORT_EVENT_...` ID when persistence requires it |
-| `occurred_utc_msec` | runtime `int` | Effective boundary time; decimal string if persisted |
+| `occurred_simulation_msec` | runtime `int` | Effective boundary on the authoritative simulation timeline |
 | `priority` | `int` | Central same-time transition priority |
 | `subject_id` | `StringName` | Primary Threshold, Form, Hall, milestone, or other affected entity |
 | `source_id` | `StringName` | Optional rule, Trait, Retinue, Recollection, or command source |
@@ -702,7 +721,7 @@ Minimum event fields:
 
 Ordering rules:
 
-1. order by effective boundary time;
+1. order by effective `occurred_simulation_msec`;
 2. order by documented transition priority;
 3. order by stable subject/source IDs when priorities are equal;
 4. preserve a sequence number only when the preceding rules cannot express a meaningful distinction.
@@ -735,12 +754,20 @@ Save failure occurs after an in-memory command and is reported separately by the
 
 Use:
 
-- UTC Unix milliseconds for persisted absolute timestamps;
-- integer milliseconds for elapsed durations;
-- a monotonic clock adapter for active-session elapsed time;
-- explicit `_msec`, `_per_second`, `_per_cycle`, or `_utc_msec` suffixes in code and serialized keys.
+- integer milliseconds for every simulation duration;
+- `GameState.simulation_time_msec` as the monotonic authoritative timeline for events, reports, assignments, and diagnostics;
+- a monotonic process clock adapter only to measure foreground elapsed duration;
+- `TimeAuthorityState.trusted_anchor_utc_msec` only for externally trusted closed-session reconciliation;
+- explicit `_msec`, `_simulation_msec`, or `_trusted_utc_msec` suffixes in code and serialized keys.
 
-Do not serialize rendered frame counts as gameplay time.
+Do not:
+
+- use the device wall clock, timezone, calendar, daylight-saving state, file modification time, or user input to award progress;
+- serialize rendered frame counts as gameplay time;
+- let simulation or domain services read any clock directly;
+- confuse active playtime, simulation time, trusted epoch, and report-window duration.
+
+When trusted time is unavailable, closed-session credit is deferred rather than estimated from an untrusted source. Foreground monotonic production continues.
 
 ### 12.2 Discrete quantities
 
@@ -785,7 +812,7 @@ Presentation may format derived values with decimals, abbreviations, or uncertai
 
 ### 12.5 JSON integer wire representation
 
-Every schema field that is an authoritative runtime integer is encoded in JSON as a canonical base-10 string. This includes timestamps, revisions, quantities, backlog, counters, fixed-point values, residuals, and durations.
+Every schema field that is an authoritative runtime integer is encoded in JSON as a canonical base-10 string. This includes trusted timestamps, simulation time, revisions, quantities, backlog, counters, fixed-point values, residuals, and durations.
 
 The save codec must:
 
@@ -802,9 +829,17 @@ Example:
 ```json
 {
   "schema_version": "1",
+  "codec_id": "JSON_V1",
   "save_revision": "42",
-  "last_resolved_utc_msec": "1783872000000",
+  "time_authority": {
+    "trusted_source_id": "STEAM_SERVER_TIME",
+    "has_trusted_anchor": true,
+    "trusted_anchor_utc_msec": "1783872000000",
+    "foreground_credited_since_anchor_msec": "125000",
+    "pending_trusted_reconciliation": false
+  },
   "game_state": {
+    "simulation_time_msec": "3485000",
     "thresholds": {
       "THR_GLOAMWOOD": {
         "remaining_backlog": "998996",
@@ -816,6 +851,20 @@ Example:
 ```
 
 Do not pass exact runtime integers directly to `JSON.stringify()` and assume integer type or precision will survive parsing.
+
+### 12.6 Save codec and integrity boundary
+
+The primitive snapshot schema is independent from its byte representation. `SaveCodec` owns encoding and decoding; domain state, migrations, and validation do not call JSON APIs directly.
+
+Prototype rules:
+
+- use codec ID `JSON_V1`;
+- prefer inspectability and exactness over opacity;
+- optional unkeyed digests may detect accidental corruption only;
+- do not describe JSON, binary encoding, compression, local encryption, obfuscation, or a locally stored key as tamper-proof;
+- reject unknown codec IDs without overwriting the last valid save.
+
+Before commercial release, profile realistic worst-case state and decide whether JSON remains adequate or a compressed/binary codec is justified. A wire-format change requires codec compatibility and migration tests, not a rewrite of authoritative state.
 
 ## 13. Enumeration contracts
 
@@ -890,14 +939,20 @@ The initial JSON structure should follow this conceptual shape:
 ```text
 SaveEnvelope
 ├── schema_version
+├── codec_id
 ├── content_revision
 ├── save_revision
-├── created_utc_msec
-├── committed_utc_msec
-├── last_resolved_utc_msec
+├── time_authority
+│   ├── trusted_source_id
+│   ├── has_trusted_anchor
+│   ├── trusted_anchor_utc_msec
+│   ├── foreground_credited_since_anchor_msec
+│   ├── pending_trusted_reconciliation
+│   └── last_sample_diagnostic_code
 ├── last_offline_resolution_id
 ├── metadata
 └── game_state
+    ├── simulation_time_msec
     ├── inventory
     ├── forms
     ├── thresholds
@@ -912,7 +967,7 @@ SaveEnvelope
     └── session_playtime_msec
 ```
 
-The M01 persistence milestone must document the exact key spelling and add representative save fixtures before another system depends on the schema.
+The M02 persistence milestone must document the exact key spelling and add representative save fixtures before another system depends on the schema.
 
 All fields typed as authoritative runtime integers use the canonical decimal-string wire representation from §12.5. The tree above describes semantic fields, not JSON primitive types.
 
@@ -923,7 +978,8 @@ Do not save:
 - cached rate plans or forecast results that can be derived;
 - content-definition fields already supplied by the catalog;
 - absolute local filesystem paths;
-- Steam user IDs or storefront state;
+- device wall-clock values used to calculate production;
+- Steam user IDs or unrelated storefront state;
 - signal connections, Callables, script instances, or arbitrary object dumps;
 - the complete lifetime domain-event log.
 
@@ -992,7 +1048,11 @@ Before simulation and before committing a save candidate, validate at least:
 - tutorial state is one approved `TUT_...` value;
 - Scribe is not marked awakened merely because `TUT_08_SCRIBE` was presented or skipped;
 - report data is explanatory and does not exceed configured history bounds;
-- `last_resolved_utc_msec <= committed_utc_msec` unless an explicitly tested clock policy says otherwise;
+- `simulation_time_msec` and `foreground_credited_since_anchor_msec` are non-negative;
+- when no trusted anchor exists, its epoch field is zero and no closed-session credit is applied;
+- an accepted trusted sample never moves the persisted anchor backwards;
+- pending trusted reconciliation does not itself grant production;
+- no save field sourced from local wall-clock, timezone, calendar, or file timestamps affects production;
 - schema and content revisions are supported.
 
 A corrupted or unsupported snapshot must not be partially loaded into the live session.
@@ -1018,6 +1078,8 @@ The following values remain configurable authored data or focused settings. They
 - Settled Passage rates/multipliers;
 - report aggregation cadence and retained-history count;
 - any offline cap beyond the required eight-hour path.
+- trusted-time retry cadence and anomaly tolerance that do not weaken the no-local-clock rule;
+- commercial-release save codec, compression, and integrity policy after profiling and threat-model review.
 
 Pacing goals such as “first automated Reaping within seven minutes” are playtest targets. Do not implement them as wall-clock unlock timers unless an approved requirement explicitly calls for time-based behavior.
 

@@ -91,7 +91,7 @@ The following decisions supersede ambiguous shorthand in the design documents:
 - Reference viewport: 1920 x 1080.
 - Support ordinary window resizing and sensible stretch behavior.
 - Preserve the current renderer unless a scoped task demonstrates and documents a reason to change it.
-- Do not add C#, .NET project files, GDExtensions, native libraries, or another scripting language.
+- Do not add C#, .NET project files, native libraries, GDExtensions, or another scripting language except for a narrowly scoped trusted-time platform adapter introduced by its approved milestone after the exact dependency is explicitly approved. That exception does not authorize other Steam features or move time authority into domain code.
 - Do not commit machine-specific executable paths.
 
 The prototype targets eventual Steam distribution, but Steam integration is not part of the current prototype unless an approved milestone explicitly includes it.
@@ -165,7 +165,7 @@ Do not implement unless a later approved milestone explicitly includes them:
 - a complete region or production-scale content quantity;
 - final balance;
 - final narrative dialogue, voice acting, art, animation, or audio;
-- Steamworks or other storefront SDK integration;
+- Steamworks or other storefront SDK integration beyond the separately approved trusted-time adapter;
 - achievements, cloud saves, depot or release configuration, DRM, or launch packaging;
 - launch telemetry, accounts, servers, or backend services.
 
@@ -238,7 +238,7 @@ The tutorial must not own duplicate versions of inventory, Reaping, Form, Retinu
 
 ### Persistence
 
-The persistence layer owns save representation, schema versioning, validation, migration, transaction markers, and last-resolved timestamps.
+The persistence layer owns save representation, schema versioning, validation, migration, transaction markers, the relative simulation timeline, and trusted-time reconciliation metadata.
 
 Changing serialized data is an architectural change. Update tests, migrations or compatibility handling, and the data contract in the same task.
 
@@ -259,6 +259,8 @@ Treat the following as protected architecture rules:
 - Online, offline, and forecast calculations use the same authoritative simulation rules.
 - UI animation timing is never authoritative simulation timing.
 - Elapsed-time resolution is deterministic from committed state and elapsed time.
+- Foreground elapsed time uses an injected monotonic clock. Authoritative offline elapsed time must never be calculated from the player device wall clock, timezone, file timestamps, registry values, or another locally adjustable absolute-time source.
+- Offline rewards require an approved external `TrustedTimeProvider`. If trusted time is unavailable, reversed, or inconsistent, record the reconciliation as pending and grant no closed-session progress until trust is restored; never fall back silently to local wall time. Foreground monotonic progress may continue.
 - Resolve elapsed time analytically or in meaningful deterministic segments rather than simulating every rendered frame.
 - Segment at state boundaries such as support depletion, milestone grants, discovery changes, Hall targets, backlog zero, and fallback transitions.
 - Parallel output channels resolve independently unless an approved content rule explicitly links them.
@@ -290,7 +292,7 @@ Persist all state required to reconstruct gameplay, including:
 - tutorial state, skip state, and completed guarantees;
 - unlock and milestone flags;
 - report accumulators;
-- last-resolved timestamps;
+- the authoritative simulation timeline and trusted-time cursor state;
 - schema version and transaction state where applicable.
 
 Requirements:
@@ -298,10 +300,13 @@ Requirements:
 - Re-loading the same committed state must not duplicate output, grants, unlocks, reports, or milestone rewards.
 - Save after meaningful irreversible actions and tutorial state changes.
 - Offline resolution must be safe across interruption or repeated load attempts.
-- Record units explicitly. Do not leave it ambiguous whether a value is seconds, milliseconds, cycles, per-second rate, per-cycle yield, or an absolute timestamp.
+- Record units explicitly. Do not leave it ambiguous whether a value is seconds, milliseconds, cycles, per-second rate, per-cycle yield, simulation time, or a trusted absolute timestamp.
+- Do not call Godot system-clock methods to award gameplay progress. Local calendar time may be used only for clearly non-authoritative display or diagnostics.
 - Do not use rendered frame count as elapsed gameplay time.
 - Save data must not depend on a scene currently being open.
 - Test round trips and relevant boundary transitions whenever persisted state changes.
+- The prototype JSON representation is a schema-controlled payload, not a permanent promise about the full-game file container and not a security boundary. Keep runtime-state serialization, payload encoding, container framing, integrity checks, and storage as separate responsibilities.
+- Do not claim that JSON, binary encoding, compression, encryption, obfuscation, or a client-held HMAC key makes a local single-player save tamper-proof. Strong prevention requires an external authority. Preserve invalid or suspect files for diagnosis and recovery rather than deleting or overwriting them.
 
 ## Data-driven content
 

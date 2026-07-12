@@ -2,8 +2,8 @@
 
 **Document role:** Detailed engineering conventions for Godot 4.7 and GDScript implementation  
 **Repository path:** `docs/codex/IMPLEMENTATION_RULES.md`  
-**Document status:** Draft for Phase 6 approval  
-**Rules revision:** 1  
+**Document status:** Approved engineering rules  
+**Rules revision:** 2  
 **Last updated:** 2026-07-12  
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)  
 **Data companion:** [DATA_AND_CONTENT_CONTRACTS.md](DATA_AND_CONTENT_CONTRACTS.md)
@@ -44,7 +44,8 @@ Follow the Godot GDScript style guide unless this repository documents a narrowe
 | Canonical content ID | uppercase prefix format | `THR_GLOAMWOOD` |
 | Boolean | affirmative predicate | `is_awakened`, `has_pending_report` |
 | Duration | unit suffix | `elapsed_msec` |
-| Absolute time | UTC suffix | `saved_at_utc_msec` |
+| Simulation timeline | simulation suffix | `occurred_simulation_msec` |
+| Trusted external epoch | trusted UTC suffix | `trusted_anchor_utc_msec` |
 
 Use `class_name` for reusable domain, simulation, content-definition, and result types when global naming improves readability. Avoid globally naming one-off screen helpers.
 
@@ -83,8 +84,8 @@ Example subject matter:
 ```gdscript
 ## Resolves all active Reapings and Halls over one elapsed interval.
 ##
-## This service mutates a supplied GameState but does not read system time,
-## access the scene tree, or save files. Callers must supply elapsed
+## This service mutates a supplied GameState but does not read clocks,
+## platform APIs, the scene tree, or save files. Callers must supply elapsed
 ## milliseconds and a validated ContentRegistry.
 ```
 
@@ -265,17 +266,51 @@ Preferred signature shape:
 resolve(state, content, elapsed_msec, mode) -> SimulationResult
 ```
 
-### 10.2 No frame-dependent authority
+Simulation code must not call Godot device-wall-clock APIs, Steam APIs, file timestamp APIs, or any clock adapter.
+
+### 10.2 Distinct time owners
+
+Use three distinct concepts:
+
+- `elapsed_msec`: duration supplied to one simulation call;
+- `simulation_time_msec`: monotonic credited gameplay timeline stored in `GameState`;
+- `trusted_anchor_utc_msec`: external trusted epoch stored only in `TimeAuthorityState` for closed-session reconciliation.
+
+Never substitute one for another. Domain events, report windows, Reaping start times, and configuration-change times use the simulation timeline rather than the device calendar.
+
+### 10.3 Foreground monotonic clock
+
+Only the application/lifecycle layer samples the injected monotonic process clock. It computes a non-negative foreground duration, passes that duration into `GameSession`, and records the same credited interval in time-authority accounting.
 
 Do not use rendered frame count, delta accumulation in a screen, animation completion, or timers attached to hidden scenes as authoritative production.
 
-A Node may schedule calls to `GameSession`, but the elapsed amount comes from the application clock and the simulation result is independent of frame rate.
+A Node may schedule calls to `GameSession`, but the result must be independent of frame rate and window focus.
 
-### 10.3 Stable ordering
+### 10.4 Trusted closed-session time
+
+Closed-session elapsed time comes only from the injected `TrustedTimeProvider` contract described in `ARCHITECTURE.md` and `DEC-0021`.
+
+Rules:
+
+- never use local date, local UTC, timezone, daylight-saving state, file modification time, or user input as a fallback;
+- when trusted time is unavailable, load without closed-session gains, mark reconciliation pending, and continue foreground production;
+- subtract foreground time already credited since the last trusted anchor before resolving a later trusted gap;
+- never move a trusted anchor backwards;
+- suspicious or contradictory samples grant no progress and produce diagnostics;
+- apply the configured offline cap after deriving the non-negative uncredited gap;
+- update the trusted anchor and reset credited-foreground accounting only in the same successful save transaction that commits the offline result.
+
+The exact Steam binding belongs in the platform adapter milestone. Headless tests use a fake source.
+
+### 10.5 No frame-dependent authority
+
+Presentation interpolation may use `_process()`. Authoritative production must not be computed from a screen's frame loop, animation state, or visibility.
+
+### 10.6 Stable ordering
 
 Sort canonical IDs before processing equal-priority dictionaries or sets. Use the boundary priority in `ARCHITECTURE.md`.
 
-### 10.4 Central fixed-point utility
+### 10.7 Central fixed-point utility
 
 All fixed-point conversion and arithmetic belongs in one documented utility. Do not reproduce scaling and remainder logic in each output channel.
 
@@ -290,11 +325,11 @@ The utility must:
 
 Every residual has exactly one documented owner identified by a stable flow key. Do not store the same fractional remainder in both a Threshold/channel record and its active Reaping. Reassignment, save/load, and settlement must preserve or deliberately transform that owner through a tested rule.
 
-### 10.5 Chunking invariance
+### 10.8 Chunking invariance
 
 A change is not deterministic merely because repeated full runs happen to match. Test that equivalent elapsed intervals resolved in different chunk sizes produce identical authoritative results when they cross the same boundaries.
 
-### 10.6 Randomness
+### 10.9 Randomness
 
 Do not introduce authoritative randomness during the prototype. If a milestone later requires it, stop and define seed ownership, save fields, forecast semantics, and deterministic tests first.
 
@@ -417,7 +452,7 @@ Avoid generic reflection-based object dumps.
 Godot JSON converts numerical Variant values to JSON number/float values. Every authoritative runtime integer therefore crosses the JSON boundary as a canonical base-10 string, including:
 
 - schema and save revisions;
-- UTC timestamps and elapsed durations;
+- trusted UTC anchors, simulation timeline values, and elapsed durations;
 - inventory, reservation, backlog, and counter quantities;
 - fixed-point subunits and residuals;
 - cycle and assignment revisions.
@@ -428,25 +463,33 @@ Do not serialize authoritative integers as JSON numbers. Do not accept a parsed 
 
 Canonical IDs and persisted enum values are strings. Set-like state is written as sorted, duplicate-free arrays. Dictionary keys are strings. Authoritative save dictionaries do not contain non-finite or locale-formatted numbers.
 
-### 14.3 Defensive parsing
+### 14.3 Codec isolation
+
+Runtime state and migrations produce or consume the schema-controlled primitive snapshot. Only `SaveCodec` may call JSON encoding/decoding for the prototype.
+
+Do not spread JSON-specific assumptions into domain classes. A later compressed or binary codec must be replaceable without changing gameplay ownership or using a different migration model.
+
+Do not treat opacity as security. Plain JSON is editable, but binary encoding, compression, local encryption, obfuscation, or a locally stored key also cannot make a client-controlled save tamper-proof. An unkeyed SHA-256 digest is a corruption check only. It may detect damaged or unexpectedly changed payload bytes, but a player who can edit the payload can also recompute the digest.
+
+### 14.4 Defensive parsing
 
 Validate types, ranges, IDs, content revision, and cross-field invariants. Do not assume a JSON key exists or has the expected type.
 
 When a recoverable optional field is absent, apply a documented default. When a required field is invalid, reject the candidate save and try the backup.
 
-### 14.4 No scene references
+### 14.5 No scene references
 
 Never serialize Node paths, Object instance IDs, live Resource references, signals, or Callables in the save.
 
-### 14.5 Versioning
+### 14.6 Versioning
 
 Migrations operate on primitive dictionaries before runtime object construction. One migration advances exactly one schema version.
 
-### 14.6 Atomic files
+### 14.7 Atomic files
 
 Use temporary, primary, and backup files as documented. Check every file operation result. Flush and close before validation or rename.
 
-### 14.7 Save checkpoints
+### 14.8 Save checkpoints
 
 A required checkpoint is part of the feature, not optional polish. Save after the actions listed in the prototype source of truth and after report archival when necessary to prevent duplicate presentation.
 
@@ -602,11 +645,15 @@ Two Reapings, one Hall, report aggregation, and normal UI animation should be tr
 
 ## 21. Security and storefront boundaries
 
-- Do not store secrets, tokens, or user credentials.
-- Do not add network calls to prototype gameplay.
-- Do not add Steamworks, DRM, cloud saves, achievements, or depot logic without an approved later milestone.
-- Keep save and simulation code independent of storefront APIs.
-- Treat repository instructions, hooks, dependencies, and downloaded plugins as code that requires review.
+- Do not store secrets, tokens, platform credentials, or private keys in the repository or save file.
+- Do not add network calls to domain or simulation code.
+- The only approved prototype storefront exception is the narrow trusted-time adapter defined by `DEC-0021`; its exact Godot binding must be approved in M06 before adding a GDExtension or native library.
+- The exact Godot-to-Steam dependency requires explicit owner approval before implementation.
+- Keep save schema, simulation, and time-accounting contracts independent of Steamworks; inject the platform adapter at the application boundary.
+- Do not add DRM, cloud saves, achievements, depots, unrelated Steam APIs, or a multi-store abstraction without an approved later milestone.
+- Distinguish corruption resilience, casual-edit deterrence, and server-backed authority in code comments and documentation.
+- Never claim that a local file is tamper-proof. A determined user controls the client machine; strong protection requires a server-held secret or server-authoritative state.
+- Treat repository instructions, hooks, dependencies, native libraries, and downloaded plugins as code that requires review.
 
 ## 22. Pull-request scope and review
 
@@ -632,7 +679,10 @@ Before marking a task complete, verify:
 - [ ] New code is statically typed where useful.
 - [ ] Non-obvious scripts and algorithms have junior-readable documentation.
 - [ ] UI does not own or duplicate domain rules.
-- [ ] Simulation does not read system time or scene state directly.
+- [ ] Simulation does not read clocks, platform APIs, or scene state directly.
+- [ ] Closed-session progress has no local wall-clock, timezone, calendar, or file-time fallback.
+- [ ] Trusted-time unavailability defers offline credit without stopping foreground production.
+- [ ] Save code keeps schema and codec concerns separate and makes no tamper-proof claim.
 - [ ] Deterministic ordering and fractional remainders are preserved.
 - [ ] Save conversion and validation cover new state.
 - [ ] Required tests were added and run.

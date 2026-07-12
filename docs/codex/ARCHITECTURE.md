@@ -2,8 +2,8 @@
 
 **Document role:** Maintained implementation architecture for the 0-90 minute prototype  
 **Repository path:** `docs/codex/ARCHITECTURE.md`  
-**Document status:** Draft for Phase 6 approval  
-**Architecture revision:** 1  
+**Document status:** Approved architecture  
+**Architecture revision:** 2  
 **Last updated:** 2026-07-12  
 **Engine target:** Godot 4.7, GDScript only  
 **Primary design context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md) and [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md)
@@ -28,13 +28,14 @@ The prototype architecture must make the following properties straightforward to
 1. One authoritative game state survives screen changes and save/load.
 2. Online progress, offline progress, debug time advancement, and forecasts use the same simulation rules.
 3. Simulation is deterministic for the same committed state, content revision, and elapsed interval.
-4. Reapings and Halls continue while menus, dialogue, reports, and tutorial overlays are open.
-5. Output is banked immediately; reports never gate claims.
-6. Support depletion changes rates or effects without normally stopping valid base production.
-7. Milestones and tutorial guarantees are exactly-once, additive, resumable, and testable.
-8. Calling Soul reservations remain visible and reversible instead of consuming the underlying Souls.
-9. Content and prototype balance remain editable without rewriting tutorial or UI scripts.
-10. A future junior engineer can find system ownership, state flow, and invariants without reconstructing them from scenes.
+4. Authoritative closed-session elapsed time never depends on the player's local wall clock, timezone, or calendar.
+5. Reapings and Halls continue while menus, dialogue, reports, and tutorial overlays are open.
+6. Output is banked immediately; reports never gate claims.
+7. Support depletion changes rates or effects without normally stopping valid base production.
+8. Milestones and tutorial guarantees are exactly-once, additive, resumable, and testable.
+9. Calling Soul reservations remain visible and reversible instead of consuming the underlying Souls.
+10. Content and prototype balance remain editable without rewriting tutorial or UI scripts.
+11. A future junior engineer can find system ownership, state flow, and invariants without reconstructing them from scenes.
 
 ## 3. Deliberate non-goals
 
@@ -45,7 +46,7 @@ The prototype does not need:
 - dependency-injection or service-locator frameworks;
 - multithreaded simulation;
 - networked authority, accounts, or a backend;
-- Steamworks or another storefront SDK;
+- Steamworks features other than the approved narrow trusted-time adapter;
 - a generic visual scripting language for rules;
 - arbitrary script callbacks embedded in content Resources;
 - per-cycle object histories or one saved object per returned soul;
@@ -77,6 +78,7 @@ GameApp (persistent root scene and Godot lifecycle owner)
         |      |      observes state and requests domain actions
         |      +--> ReportService / ForecastService
         |      +--> SaveService
+        |      +--> MonotonicClock / TrustedTimeProvider adapters
         |
         +--> screen router, HUD, dialogue/tutorial overlays, effects
                   |
@@ -103,8 +105,10 @@ Domain and simulation code must not depend on:
 - dialogue nodes;
 - input devices;
 - Steam APIs;
-- actual system time;
+- device wall-clock or calendar time;
 - implicit global gameplay singletons.
+
+A platform adapter may implement the approved `TrustedTimeProvider` interface by calling Steamworks. That dependency remains outside domain and simulation code, is injected by `GameApp`, and is replaced by a fake in headless tests. No other Steam feature is implied by this exception.
 
 ## 5. Three data bands
 
@@ -217,6 +221,7 @@ Tests construct `GameState`, `ContentRegistry`, clocks, services, `SimulationEng
 | Story | Scripted opening state, narrative entities, Brand state, and resumable narrative checkpoints. |
 | Tutorial | Current state, completed presentation steps, skip/help flags, and presented notification IDs. |
 | Reports | Current accumulator and bounded report history. |
+| Simulation timeline | Monotonic `simulation_time_msec` used for authoritative event ordering and report windows. |
 
 ### 7.1 Stored versus derived values
 
@@ -306,57 +311,111 @@ The save file remains a state snapshot. It is not rebuilt by replaying the entir
 
 ## 9. Time model
 
-### 9.1 Units
+### 9.1 Three distinct time concepts
 
-All authoritative elapsed and timestamp fields use integer milliseconds and end in `_msec` or `_utc_msec`.
+The architecture separates three concepts that must never be substituted for one another:
 
-Do not mix:
+| Concept | Representation | Purpose |
+|---|---|---|
+| Simulation elapsed time | integer milliseconds | Duration passed into `SimulationEngine` for live, offline, forecast, and debug resolution. |
+| Simulation timeline | `GameState.simulation_time_msec` | Monotonic authoritative ordering for domain events, reports, assignments, and tutorial diagnostics. |
+| Trusted external epoch | integer UTC milliseconds from `TrustedTimeProvider` | Determines uncredited duration while the application was not running. It is not read by simulation rules. |
 
-- seconds and milliseconds;
-- elapsed durations and absolute timestamps;
-- wall-clock time and monotonic active-session time;
-- simulation time and UI animation time.
+The player's device wall clock, timezone, calendar, and daylight-saving settings are not authoritative inputs.
 
-### 9.2 Online clock
+### 9.2 Foreground elapsed time
 
-Online play uses a monotonic clock source. The production loop advances at a configurable application cadence, not once per rendered frame as an authoritative rule.
+Foreground play uses an injected monotonic process clock. The production loop advances at a configurable application cadence, not once per rendered frame as an authoritative rule.
 
 Recommended behavior:
 
-1. `GameApp` samples the injected monotonic clock and tracks the application cursor.
-2. At each application simulation update, it computes elapsed monotonic milliseconds.
-3. It passes the elapsed interval to `GameSession`, which invokes `SimulationEngine`.
-4. UI may interpolate committed values between updates.
+1. `GameApp` samples the monotonic clock and tracks an application cursor.
+2. At each application simulation update, it computes non-negative elapsed monotonic milliseconds.
+3. It passes that interval to `GameSession`, which invokes `SimulationEngine`.
+4. `SimulationEngine` increments `GameState.simulation_time_msec` by the committed interval.
+5. The time-accounting service increments `foreground_credited_since_anchor_msec` by the same interval when a trusted anchor exists.
+6. UI may interpolate committed values between updates.
 
-The simulation cadence is a prototype tuning value. Changing it must not change the final result for a fixed interval.
+Changing the simulation cadence must not change the final result for a fixed elapsed interval.
 
-### 9.3 Offline clock
+### 9.3 Trusted-time source
 
-Offline elapsed time uses a UTC wall-clock timestamp saved with the committed snapshot.
-
-On load or focus regain:
+Closed-session elapsed time is supplied by a project-owned interface:
 
 ```text
-elapsed_msec = now_utc_msec - last_resolved_utc_msec
+TrustedTimeProvider.sample() -> TrustedTimeSample
+
+TrustedTimeSample:
+    status
+    source_id
+    utc_msec
+    diagnostic_code
 ```
 
-Rules:
+Required statuses include at least `TRUSTED` and `UNAVAILABLE`. A stale, contradictory, or failed platform result is not silently promoted to trusted.
 
-- clamp a negative result to zero and record a warning;
-- apply any configured offline cap explicitly and report reduced or unprocessed time;
-- the cap remains configurable and must permit the required eight-hour prototype path;
-- do not attempt production-grade anti-cheat during the prototype;
-- do not mix an online monotonic cursor into a persisted wall-clock calculation.
+The planned Steam production adapter uses Steam server time. The approved binding must define the connection or session checks that make a sample acceptable. The exact binding is selected in milestone `M06` and requires owner approval before adding a GDExtension or native dependency.
 
-### 9.4 Focus changes
+Tests and Codex Cloud use `FakeTrustedTimeProvider`; they never require Steam.
 
-On focus loss, resolve online time to the current monotonic cursor and save. While unfocused, treat the interval as offline rather than allowing a second live loop to resolve the same time. On focus regain, resolve the wall-clock gap once, save the result, then restart the monotonic cursor.
+### 9.4 Persisted time-authority state
 
-Menus, dialogue, and tutorial overlays are not focus loss and never pause simulation.
+The save envelope owns one `TimeAuthorityState` containing:
 
-### 9.5 Clock injection
+- `trusted_source_id`;
+- `trusted_anchor_utc_msec` when an anchor exists;
+- `foreground_credited_since_anchor_msec`;
+- `pending_trusted_reconciliation`;
+- `last_offline_resolution_id`;
+- optional diagnostic codes that do not affect production.
 
-Application lifecycle code receives clock adapters through construction. Simulation and domain services receive elapsed durations, not clocks, except where a narrowly scoped timestamp service is explicitly required. They do not call system time directly. Tests use a `FakeClock`.
+The authoritative game state separately owns `simulation_time_msec`. Per-Reaping and per-Hall wall-clock cursors are forbidden.
+
+### 9.5 Closed-session reconciliation
+
+When a trusted sample is available and a previous trusted anchor exists:
+
+```text
+gross_gap_msec = trusted_now_utc_msec - trusted_anchor_utc_msec
+uncredited_gap_msec = gross_gap_msec - foreground_credited_since_anchor_msec
+```
+
+Then:
+
+1. reject a trusted sample that would move the anchor backwards;
+2. clamp a small negative `uncredited_gap_msec` caused only by documented rounding to zero;
+3. treat a materially negative or implausible result as an anomaly and grant no closed-session progress;
+4. apply the configured offline cap to the non-negative uncredited gap;
+5. resolve the credited interval transactionally on a working clone;
+6. commit the trusted sample as the new anchor and reset `foreground_credited_since_anchor_msec` to zero only in the same successful save transaction;
+7. report capped, deferred, or rejected time explicitly.
+
+If no prior trusted anchor exists, establish the anchor and grant no retroactive closed-session progress before that first trusted sample.
+
+### 9.6 Trusted time unavailable
+
+When trusted time is unavailable:
+
+- load the last committed game state without awarding closed-session time;
+- set or retain `pending_trusted_reconciliation`;
+- continue normal foreground production using the monotonic process clock;
+- keep adding foreground intervals to `foreground_credited_since_anchor_msec` when an older anchor exists;
+- retry through the platform adapter at controlled lifecycle points;
+- never fall back to local UTC, file modification time, timezone, network time from an unapproved service, or user input.
+
+When trust returns, reconciliation subtracts foreground time already credited so the interval is not counted twice.
+
+### 9.7 Focus, suspend, and quit
+
+Opening menus, dialogue, reports, or tutorial overlays is not focus loss and never pauses production.
+
+On focus loss or graceful quit, resolve foreground monotonic time to the current cursor and request a save. The process may continue advancing while merely unfocused. If the operating system suspends the process and the monotonic clock does not advance through the suspension, the next trusted reconciliation supplies the uncredited gap. If the monotonic clock does advance, that credited foreground interval is subtracted from the trusted gap.
+
+### 9.8 Trust boundary
+
+This policy prevents ordinary abuse or faults based on changing the system date, time, timezone, daylight-saving setting, or clock synchronization. It cannot make a fully client-controlled executable cryptographically authoritative against a determined user who patches the process or spoofs platform calls. Strong protection against that threat requires server-held authority and remains outside the prototype.
+
+Simulation and domain services receive elapsed durations only. They do not read monotonic clocks, trusted epoch sources, Steam APIs, scene state, or frame delta directly.
 
 ## 10. Deterministic simulation architecture
 
@@ -367,7 +426,7 @@ Application lifecycle code receives clock adapters through construction. Simulat
 | Mode | Mutates authoritative state | Purpose |
 |---|---:|---|
 | Live | Yes | Normal foreground progress. |
-| Offline | Yes, through a transactional load flow | Elapsed time since the last committed timestamp. |
+| Offline | Yes, through a transactional load flow | Trusted, previously uncredited closed-session interval. |
 | Forecast | No; runs on a deep clone | Future output, stable runtime, bottlenecks, and comparisons. |
 | Debug advance | Yes, through explicit debug commands | Pacing and state-boundary testing. |
 
@@ -763,21 +822,35 @@ Before/after comparisons run from the same baseline snapshot and content revisio
 
 ## 20. Persistence and save versioning
 
-### 20.1 Save format
+### 20.1 Schema and codec are separate
 
-Use an explicit versioned JSON snapshot under `user://saves/` for the prototype. Runtime objects are converted to schema-controlled dictionaries and arrays before encoding.
+The save system has three layers:
 
-Godot JSON represents all JSON numbers as floating-point values. To preserve 64-bit counters, fixed-point values, residuals, save revisions, and timestamps exactly, the save codec serializes every schema field typed as an authoritative integer as a canonical base-10 string. It decodes that string with range and format validation before constructing runtime state. Small enums and booleans remain ordinary JSON values; canonical IDs are strings; sets are sorted arrays.
+1. typed runtime state;
+2. a schema-controlled primitive snapshot;
+3. a replaceable `SaveCodec` that converts the snapshot to and from bytes.
+
+The prototype codec is versioned JSON under `user://saves/`. JSON is selected for inspectability and debugging, not as a permanent full-game commitment or a security feature.
+
+Runtime objects are converted to schema-controlled dictionaries and arrays before encoding. Godot JSON represents JSON numbers as floating-point values. To preserve 64-bit counters, fixed-point values, residuals, revisions, durations, simulation time, and trusted-time fields exactly, the JSON codec serializes every schema field typed as an authoritative integer as a canonical base-10 string. It decodes that string with format and signed-64-bit range validation before constructing runtime state.
 
 Example wire representation:
 
 ```json
 {
   "schema_version": "1",
+  "codec_id": "JSON_V1",
+  "content_revision": "prototype-r1",
   "save_revision": "42",
-  "last_resolved_utc_msec": "1783872000000",
-  "remaining_backlog": "998996",
-  "mastery_subunits": "1250000"
+  "time_authority": {
+    "trusted_source_id": "STEAM_SERVER_TIME",
+    "trusted_anchor_utc_msec": "1783872000000",
+    "foreground_credited_since_anchor_msec": "125000",
+    "pending_trusted_reconciliation": false
+  },
+  "game_state": {
+    "simulation_time_msec": "3485000"
+  }
 }
 ```
 
@@ -786,19 +859,22 @@ Do not pass runtime dictionaries containing exact integers directly to `JSON.str
 The top-level envelope includes:
 
 - schema version;
+- codec ID;
 - content revision;
 - save revision;
-- creation, commit, and last-resolved UTC milliseconds;
-- optional last offline-resolution ID for diagnostics;
+- `TimeAuthorityState`;
+- optional last offline-resolution ID and non-authoritative diagnostics;
 - authoritative `GameState` data.
+
+No field derived from the device wall clock is used to calculate progress.
 
 ### 20.2 Atomic write pattern
 
 `SaveService` should:
 
-1. serialize the complete candidate snapshot to a temporary file;
+1. serialize the complete candidate snapshot through `SaveCodec` to a temporary file;
 2. flush and close it;
-3. reopen, parse, and validate the temporary snapshot;
+3. reopen, decode, and fully validate the temporary snapshot;
 4. retain the previous valid primary as a backup;
 5. replace the primary with the validated candidate;
 6. report failure without deleting the last valid save.
@@ -809,31 +885,49 @@ The exact file-rename sequence must be tested on Windows and in the Codex Cloud 
 
 On load:
 
-- validate primary and backup independently;
+- decode and validate primary and backup independently;
 - choose the valid snapshot with the highest save revision;
-- reject an unsupported future schema with a clear error;
+- reject an unsupported future schema or codec with a clear error;
 - apply sequential migrations for older supported schemas;
-- validate IDs and invariants before simulation begins.
+- validate IDs, fixed-point ranges, time-authority state, and cross-field invariants before simulation begins.
 
 ### 20.4 Offline resolution transaction
 
-Offline resolution uses a working clone:
+Trusted closed-session resolution uses a working clone:
 
 1. load, migrate, and validate a committed snapshot;
-2. calculate the target UTC time and elapsed interval;
-3. resolve the interval on the clone;
-4. assign a stable offline resolution ID;
-5. update the last-resolved timestamp;
-6. atomically save the resolved clone while retaining the pre-resolution file as backup;
-7. only then expose the resolved state and welcome-back report to presentation.
+2. request a trusted sample from `TrustedTimeProvider`;
+3. if unavailable, expose the loaded state without closed-session gains, preserve pending reconciliation, and continue foreground play;
+4. if trusted, calculate the uncredited gap using the trusted anchor and already-credited foreground interval;
+5. apply anomaly checks and the configured cap;
+6. resolve the accepted interval on the clone through `SimulationEngine`;
+7. assign a stable offline-resolution ID;
+8. update the trusted anchor and reset credited foreground time on the clone;
+9. atomically save the resolved clone while retaining the pre-resolution file as backup;
+10. only then expose the resolved state and welcome-back report to presentation.
 
-If the application stops before step 6, the old committed snapshot resolves again on next load. If it stops after step 6, the new timestamp and resolution ID prevent duplicate gains.
+If the application stops before step 9, the old committed snapshot is still authoritative. If it stops after step 9, the new anchor, save revision, and resolution ID prevent duplicate gains.
 
 ### 20.5 Migrations
 
-Migrations are explicit functions from schema N to N+1. They operate on save dictionaries before runtime objects are constructed. Every migration has fixtures and tests.
+Migrations are explicit functions from schema N to N+1. They operate on primitive dictionaries before runtime objects are constructed. Every migration has fixtures and tests.
 
-Changing the meaning of a canonical ID, removing a persisted field, or changing reservation semantics requires a migration or a deliberate prototype save reset documented in the decision log.
+Changing the meaning of a canonical ID, removing a persisted field, changing reservation semantics, changing the time-authority accounting contract, or replacing the codec envelope requires a migration or a deliberate prototype save reset documented in the decision log.
+
+### 20.6 Resilience versus tamper resistance
+
+The prototype save design provides:
+
+- exact round trips;
+- strict validation;
+- atomic replacement;
+- backup recovery;
+- schema migration;
+- idempotent trusted-time reconciliation.
+
+Plain JSON is editable. A binary codec would be less readable but would not make the save trustworthy. Local encryption, obfuscation, or a locally stored HMAC key can deter casual editing but cannot protect against a determined user who controls the executable and machine. An unkeyed digest can detect accidental corruption, not malicious replacement.
+
+Before commercial release, profile realistic worst-case save size and load/write time, then choose whether JSON remains adequate or a compressed/binary codec is justified. Separately decide whether the product needs only corruption resilience, casual-edit deterrence, or server-backed authority for protected outcomes. Steam Cloud is a future synchronization mechanism, not an integrity authority.
 
 ## 21. UI and scene flow
 
@@ -888,7 +982,8 @@ The architecture provides the following replaceable seams:
 
 | Seam | Production implementation | Test implementation |
 |---|---|---|
-| Clock | monotonic plus UTC system clock adapter | `FakeClock` with explicit values |
+| Foreground clock | monotonic process clock adapter | `FakeMonotonicClock` with explicit values |
+| Trusted time | platform-backed `TrustedTimeProvider`; planned Steam server-time adapter | `FakeTrustedTimeProvider` or unavailable source |
 | Content | checked-in `ContentCatalog` and `.tres` definitions | minimal fixture catalog/registry |
 | Save storage | `FileSaveStorage` using `user://` | in-memory or temporary-directory storage |
 | Simulation | `SimulationEngine` | same engine with fixture state and trace enabled |
@@ -921,10 +1016,18 @@ src/
     fixed_point.gd
     forecast_service.gd
   persistence/
+    state_codec.gd
+    save_codec.gd
+    json_save_codec.gd
+    save_container.gd
     save_service.gd
     save_storage.gd
     file_save_storage.gd
     save_migrations.gd
+  time/
+    monotonic_clock.gd
+    trusted_time_provider.gd
+    trusted_time_sample.gd
   tutorial/
     tutorial_coordinator.gd
   presentation/
@@ -972,6 +1075,9 @@ A pull request affecting core behavior should be rejected or revised when it doe
 - uses unsorted dictionary iteration for authoritative transition order;
 - rounds production independently in multiple systems;
 - commits a save before validating it while deleting the last valid copy;
+- reads device wall-clock, timezone, calendar, or file timestamps to award authoritative progress;
+- grants pending closed-session time when no trusted sample is available;
+- describes JSON, binary encoding, local encryption, or a local checksum as tamper-proof;
 - adds an autoload, plugin, dependency, or framework without scoped approval;
 - introduces a content rule that cannot be explained through the shared modifier or effect grammar;
 - makes a UI animation or tutorial callback the only trigger for a required state change.
@@ -985,6 +1091,10 @@ The following remain deliberately open until a later approved milestone or playt
 - general offline cap beyond the required eight-hour path;
 - report-history retention count;
 - final save-file naming and number of player slots;
+- final digest/container framing details after M02 implements and tests the smallest useful version;
+- exact Godot-to-Steam binding for the trusted-time adapter, subject to owner approval before adding a dependency;
+- commercial-release save codec after profiling realistic state size and Steam Cloud behavior;
+- commercial-release threat model: resilience only, casual-edit deterrence, or server-backed protection for selected outcomes;
 - exact mechanical-tutorial skip behavior, especially whether any future Help-assisted shortcut may execute a normal domain command after explicit confirmation;
 - final modifier stacking coefficients and balance;
 - whether GitHub Actions is added after the local and Codex Cloud harness is stable.
@@ -1015,6 +1125,7 @@ This table maps protected design requirements to their primary architecture sect
 | `IF-REQ-14` — Domain ownership | Sections 5, 8, 18, and 21 |
 | `IF-REQ-15` — Save integrity | Section 20 |
 | `IF-REQ-16` — Storefront independence | Sections 3 and 24 |
+| `IF-REQ-17` — Trusted time authority | Sections 9.3–9.6 and 20.5 |
 
 ### 27.2 Prototype safeguards
 
@@ -1033,4 +1144,4 @@ This table maps protected design requirements to their primary architecture sect
 | `P90-SAFE-11` — Informational reports | Section 19 |
 | `P90-SAFE-12` — Save-safe exactly-once events | Sections 17 and 20 |
 | `P90-SAFE-13` — Scripted four excluded from Reaping counters | Section 11.4 |
-
+| `P90-SAFE-14` — No local wall-clock offline credit | Sections 9.3–9.6 and 20.5 |

@@ -2,8 +2,8 @@
 
 **Document role:** Canonical test strategy, commands, fixture rules, and manual validation flows  
 **Repository path:** `docs/codex/TESTING_AND_VALIDATION.md`  
-**Document status:** Draft for Phase 6 approval  
-**Validation revision:** 1  
+**Document status:** Approved architecture validation plan  
+**Validation revision:** 2  
 **Last updated:** 2026-07-12  
 **Engine target:** Godot 4.7 standard build, GDScript only  
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)
@@ -117,7 +117,7 @@ Purpose:
 - catch startup parser, composition-root, and resource errors;
 - quit after a small engine-iteration count.
 
-A later M00 or M03 task may replace this with a dedicated smoke runner that exits after a clear ready-state assertion. The documented command must be updated in the same pull request.
+A later M00 or M05 task may replace this with a dedicated smoke runner that exits after a clear ready-state assertion. The documented command must be updated in the same pull request.
 
 ### 4.4 Focused test execution
 
@@ -154,7 +154,8 @@ tests/
     saves/
     states/
   support/
-    fake_clock.gd
+    fake_monotonic_clock.gd
+    fake_trusted_time_provider.gd
     fixture_factory.gd
     assertion_helpers.gd
     memory_save_storage.gd
@@ -192,7 +193,7 @@ Do not use full production tuning values when a small fixture proves the rule mo
 
 ### 6.3 No real waiting
 
-Never use real-world sleeps to test progression. Pass elapsed milliseconds directly or advance `FakeClock`.
+Never use real-world sleeps to test progression. Pass elapsed milliseconds directly or advance `FakeMonotonicClock` or supply a `FakeTrustedTimeProvider` sample.
 
 ### 6.4 One reason per test
 
@@ -212,25 +213,27 @@ Every test controls:
 - content definitions;
 - initial state;
 - elapsed time;
-- clock values;
+- monotonic clock values and trusted-time samples;
 - content revision;
 - random source, if one is ever introduced.
 
 ## 7. Required unit-test groups
 
-### 7.1 Fixed-point and time utilities
+### 7.1 Fixed-point and time-authority utilities
 
 Test:
 
-- scale conversion;
-- multiplication and division;
-- fractional remainder preservation;
-- floor behavior;
-- zero elapsed time;
-- large but supported eight-hour intervals;
-- invalid negative values;
-- no overflow under maximum prototype fixture rates;
-- exact signed 64-bit integer-string encode/decode at `0`, ordinary values, `2^53 - 1`, `2^53`, signed 64-bit limits, and representative UTC timestamps;
+- fixed-point conversion and canonical rounding;
+- multiply/divide and residual preservation;
+- overflow and invalid negative handling;
+- equivalent interval chunking;
+- monotonic foreground clock behavior;
+- trusted sample statuses, source IDs, and normalization to integer milliseconds;
+- first trusted anchor establishes a baseline without retroactive credit;
+- already-credited foreground time is subtracted from a later trusted gap;
+- unavailable trusted time grants no closed-session progress and preserves pending reconciliation;
+- backward, stale, contradictory, and implausible trusted samples grant no progress and emit diagnostics;
+- exact signed 64-bit integer-string encode/decode at `0`, ordinary values, `2^53 - 1`, `2^53`, signed 64-bit limits, and representative trusted UTC timestamps;
 - rejection of JSON numeric values, leading plus signs, non-canonical leading zeroes, decimal strings, exponent notation, whitespace, non-digits, and out-of-range integer strings for authoritative integer fields;
 - proof that authoritative save dictionaries contain no JSON numeric values for integer fields.
 
@@ -442,12 +445,13 @@ Produce Provisions while its channel is Unknown, then identify it. Assert:
 
 ## 9. Persistence and offline tests
 
-### 9.1 State round trip
+### 9.1 State and codec round trip
 
-Every saved runtime class needs a round-trip test:
+Every saved runtime class needs a primitive-schema round trip. The prototype JSON codec also needs a byte-codec round trip:
 
 ```text
-state -> save dictionary -> JSON -> save dictionary -> state
+state -> primitive snapshot -> state
+primitive snapshot -> JSON bytes -> primitive snapshot
 ```
 
 Compare all authoritative fields and invariants. Include fixture values above `2^53` so the test fails if the codec accidentally emits JSON numbers and recovers them through floating-point conversion.
@@ -455,9 +459,12 @@ Compare all authoritative fields and invariants. Include fixture values above `2
 Also assert that:
 
 - authoritative integers are written as canonical decimal strings and reconstruct exactly as runtime integers;
+- `codec_id` is validated and an unknown codec never overwrites a valid save;
+- `TimeAuthorityState` reconstructs exactly;
 - set-like arrays are sorted and duplicate-free;
 - persisted enum values and IDs are stable strings;
-- malformed integer strings reject the candidate save rather than being clamped or cast.
+- malformed integer strings reject the candidate save rather than being clamped or cast;
+- domain-state tests do not require JSON and remain valid if a later codec changes the byte representation.
 
 ### 9.2 Primary and backup selection
 
@@ -468,6 +475,7 @@ Test:
 - valid snapshot with highest save revision selected;
 - both invalid produce a clear recoverable failure;
 - unsupported future schema is rejected without overwriting files.
+- a payload digest mismatch rejects that candidate and preserves both files for diagnosis;
 
 ### 9.3 Atomic-write failure points
 
@@ -492,15 +500,34 @@ Test two failure windows:
 - failure before resolved state is committed: next load resolves from the old cursor once;
 - failure after resolved state is committed: next load begins at the new cursor and does not duplicate output.
 
-### 9.6 Clock anomalies
+### 9.6 Trusted-time anomalies and clock manipulation
 
 Test:
 
-- zero elapsed time;
-- negative wall-clock delta clamps to zero and warns;
-- elapsed time beyond configured cap reports the cap;
-- exact eight-hour path;
-- focus-loss and focus-regain do not double count.
+- zero trusted gap;
+- first trusted anchor establishes a baseline without retroactive production;
+- trusted time unavailable at load, during play, and at quit;
+- foreground progress continues while closed-session credit remains pending;
+- reconnecting later resolves only `trusted gap - already credited foreground time`;
+- a trusted sample earlier than the anchor grants zero and does not move the anchor;
+- a materially negative or implausible reconciliation is rejected and reported;
+- elapsed time beyond the configured cap reports both credited and capped/unprocessed time;
+- exact one-hour and eight-hour paths;
+- focus loss, simulated suspend, regain, quit, and repeated load do not double count;
+- changing a fake local wall clock, timezone, or calendar has no effect because no authoritative code reads it;
+- release builds cannot select a debug or manual trusted-time provider.
+
+Also maintain a focused source-ownership check or review rule that rejects authoritative calls to device-time APIs such as Godot system Unix-time methods or file modification timestamps. Non-authoritative display code may use local calendar time only when it is clearly isolated from progression and documented.
+
+### 9.7 Save corruption and tamper-posture tests
+
+Test the promises the project actually makes:
+
+- malformed or truncated files are rejected and fall back to the last valid backup;
+- an optional unkeyed digest mismatch is treated as corruption, not as proof of malicious editing;
+- hand-editing a JSON payload to violate an invariant is rejected by schema or domain validation;
+- replacing both local copies with an older but internally valid snapshot is documented as outside strong client-only prevention unless a future server-backed high-water mark is added;
+- a binary or compressed test codec, if introduced later, must pass the same schema, migration, and atomic-storage suite.
 
 ## 10. Report and forecast tests
 
@@ -527,7 +554,7 @@ Developer-visible path:
 2. dispatch one dummy Reaping;
 3. resolve online time;
 4. save and reload;
-5. resolve offline time;
+5. provide a trusted-time sample and resolve the uncredited closed-session interval;
 6. compare final state and report totals.
 
 ### 11.2 Opening through first Reaping
@@ -570,7 +597,20 @@ Developer-visible path:
 6. verify graceful degradation and recovery behavior;
 7. save/reload during an incomplete Hall cycle.
 
-### 11.6 Full tutorial path
+### 11.6 Trusted-time and offline-return path
+
+1. create or load a save without a trusted anchor and prove no retroactive offline credit is granted;
+2. establish a fake trusted anchor and save;
+3. credit foreground monotonic time and save again;
+4. advance trusted time by a larger interval;
+5. resolve only the trusted span minus already-credited foreground time;
+6. repeat with trusted time unavailable and confirm the closed-session interval remains pending;
+7. restore trusted time and prove the pending interval resolves once;
+8. change a fake local calendar by large forward and backward amounts and prove results are unchanged;
+9. interrupt before and after atomic commit and prove no duplicate offline reward;
+10. generate the welcome-back report from already-committed gains.
+
+### 11.7 Full tutorial path
 
 The final integration suite should cover:
 
@@ -603,7 +643,34 @@ For any presentation change:
 6. confirm no authoritative production pauses while navigating applicable screens;
 7. record what was observed and what was not checked.
 
-### 12.2 Resolution and scaling targets
+### 12.2 Trusted-time manual checks
+
+In a debug or test build with an explicit fake trusted-time source:
+
+1. save with a known trusted anchor;
+2. close or reload through the test harness;
+3. advance the fake trusted source by one hour and verify the expected return;
+4. repeat while advancing a fake device wall clock only and verify that no additional progress appears;
+5. load with trusted time unavailable and verify that the game continues foreground production while the closed-session interval remains pending;
+6. restore trusted time and verify that already-credited foreground time is subtracted exactly once.
+
+Do not expose fake-time controls in release exports.
+
+### 12.3 Windows Steam trusted-time adapter checks
+
+When the approved production adapter exists, perform these checks on a Windows test environment with the Steam client. Use an isolated test account or disposable save where changing operating-system clock settings is part of the check.
+
+1. Launch through Steam while the approved binding reports an acceptable connected/session state and confirm that the adapter accepts a trusted server-time sample under its documented connection/session checks.
+2. Save with a known trusted anchor, close the game for a short measured interval, relaunch, and confirm that the credited gap comes from the trusted source.
+3. Change the Windows clock and timezone without changing the trusted source; confirm that the credited gap, pending state, and simulation result do not change.
+4. Start with Steam disconnected or in Offline Mode; confirm that the save loads, foreground production continues, no closed-session reward is granted, and reconciliation is marked pending.
+5. Restore the live connection; confirm that reconciliation subtracts foreground time already credited since the trusted anchor and commits the remaining eligible gap exactly once.
+6. Repeat load after the resolved save is committed and confirm that the same gap is not credited again.
+7. Confirm that release exports cannot select the fake trusted-time provider or any debug time controls.
+
+The test report must name the Steam binding and version used. A Codex Cloud run cannot substitute for this Windows/Steam manual check because the cloud environment intentionally uses the fake provider.
+
+### 12.4 Resolution and scaling targets
 
 When the application shell exists, validate at minimum:
 
@@ -616,7 +683,7 @@ When the application shell exists, validate at minimum:
 
 This is a practical prototype check, not a promise of final support for every aspect ratio.
 
-### 12.3 Full prototype demonstration
+### 12.5 Full prototype demonstration
 
 The final manual path must demonstrate:
 
@@ -633,7 +700,8 @@ The final manual path must demonstrate:
 - Ration depletion behavior;
 - report banking;
 - eight-hour forecast;
-- actual offline return;
+- actual offline return from the trusted-time path;
+- trusted-time unavailable and later-reconciliation behavior;
 - save/quit/resume deviations.
 
 ## 13. Codex Cloud environment
@@ -699,7 +767,20 @@ State environment, asset, platform, or timing checks that were not performed.
 
 Include pre-existing and new failures separately. A new failing required test blocks completion.
 
-## 17. Definition of validated
+## 17. Commercial-release persistence gate
+
+Before a public Steam release, execute `RG01` from `MILESTONES.md` and the release gate defined in `DEC-0022`:
+
+- profile worst-case JSON save size, parse time, write time, memory use, and cloud transfer behavior;
+- validate the selected Steam trusted-time binding and its unavailable/reconnect behavior;
+- test Steam Cloud conflicts and multi-machine synchronization separately from local save validity;
+- decide whether JSON, compressed JSON, or a binary codec meets measured budgets;
+- document whether the product promises corruption resilience, casual-edit deterrence, or server-backed protection for selected outcomes;
+- never report client-only encryption, obfuscation, or local HMAC as absolute tamper prevention.
+
+M17 may record representative prototype baselines, but the shipping codec, Steam Cloud conflict policy, and final threat model remain RG01 work.
+
+## 18. Definition of validated
 
 A milestone is validated only when:
 
@@ -708,6 +789,7 @@ A milestone is validated only when:
 - the main scene has no new parser or resource errors;
 - save/load is exercised when authoritative state changes;
 - deterministic equivalence is tested when simulation changes;
+- trusted-time accounting, unavailable behavior, and duplicate-prevention are tested when offline resolution changes;
 - exactly-once behavior is tested when progression changes;
 - the exact manual demonstration path is recorded;
 - limitations are disclosed rather than inferred away.

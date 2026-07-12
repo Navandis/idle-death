@@ -2,7 +2,7 @@
 
 **Document role:** Maintained implementation contract for the playable first-session prototype  
 **Repository path:** `docs/design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md`  
-**Markdown revision:** 2  
+**Markdown revision:** 3  
 **Last updated:** 2026-07-12  
 **Primary source:** *Death Idle - Prototype 0-90 Minute Beat Sheet & Implementation Brief v0.1* (12 July 2026)  
 **Broader design companion:** [IDLE_FORK_SOURCE_OF_TRUTH.md](IDLE_FORK_SOURCE_OF_TRUTH.md)
@@ -74,6 +74,7 @@ Every milestone must preserve the [architecture-level idle-fork invariants](IDLE
 | `P90-SAFE-11` | Reports are informational. All gains shown in a report were already applied to authoritative state. |
 | `P90-SAFE-12` | All one-time grants, unlocks, resonance events, and tutorial transitions are save-safe and idempotent. |
 | `P90-SAFE-13` | The scripted opening four reduce Gloamwood backlog and are recorded separately, but never increment persistent-Reaping Threshold or regional counters and never advance later Reaping milestones. |
+| `P90-SAFE-14` | Authoritative closed-session progress never uses the player's local wall clock, timezone, calendar, file timestamps, or manually supplied time. It is credited only from an approved external trusted-time provider; when trust is unavailable, the unresolved interval remains pending while foreground production continues from a monotonic process clock. |
 
 ## 4. Pacing and guidance phases
 
@@ -976,8 +977,11 @@ Do not treat this multiplication order, coefficient naming, or channel frequency
 
 ### Online and offline behavior
 
-- Online play uses a fixed simulation tick or event-driven interval; rendered frames are presentation only.
-- Save/load computes elapsed wall-clock time using a trusted timestamp strategy and a last-resolved cursor.
+- Online play uses a fixed simulation tick or event-driven interval; rendered frames are presentation only. Foreground elapsed time comes from an injected monotonic process clock.
+- Simulation and domain services receive elapsed durations and never read clocks, Steam APIs, scene state, or frame delta directly.
+- Closed-session progress uses an approved external `TrustedTimeProvider` and a persisted trusted anchor. The player's local wall clock, timezone, calendar, file timestamps, and manually supplied time are not authoritative inputs and are not fallback sources.
+- If trusted time is unavailable, load the last committed state, continue foreground production, and retain a pending reconciliation marker. Grant no guessed closed-session progress. When trust returns, subtract foreground time already credited since the last trusted anchor before resolving the remaining non-negative gap exactly once.
+- Debug and automated tests may use an explicit fake trusted-time provider. Release builds must not expose a manual or debug provider. The production Steam-compatible adapter is a narrowly scoped platform dependency milestone and does not move time authority into domain code.
 - Resolve time analytically and split at support, milestone, discovery, backlog-zero, Hall-target, Writ-transition, and guarantee boundaries.
 - Store aggregate report deltas and explanatory events rather than every cycle.
 - Forecast mode must call the same rules without committing authoritative state.
@@ -1144,7 +1148,7 @@ Suggested local events:
 | `P90-AC04` | No softlocks | Tested save, quit, skip, early-completion, and non-recommended-assignment paths still reach the required end state. |
 | `P90-AC05` | Form differentiation | Players can explain why Scribe and Man-at-Arms may be assigned differently. |
 | `P90-AC06` | Supply behavior | Players understand that Ration depletion weakens the Retinue but does not stop the Reaping. |
-| `P90-AC07` | Technical integrity | Offline resolution is deterministic and does not duplicate or lose rewards across repeated loads. |
+| `P90-AC07` | Technical integrity | Offline resolution is deterministic, uses an approved external trusted-time source rather than the local device wall clock, and does not duplicate or lose rewards across repeated loads or delayed trusted-time reconciliation. |
 | `P90-AC08` | Performance | The prototype remains responsive with two Reapings, one Hall, UI animation, and report aggregation active. |
 
 ### Comprehension questions
@@ -1174,7 +1178,7 @@ Do not implement in the 0–90 minute prototype:
 - Frayed Thresholds, anchoring, or Deep Incursion;
 - final balance or release-scale content;
 - final narrative script, final voice acting, final art, or final animation;
-- Steamworks, achievements, cloud saves, release packaging, or other storefront integration;
+- Steamworks or other storefront integration beyond the separately approved trusted-time adapter; achievements, cloud saves, and release packaging remain out of scope;
 - launch telemetry, accounts, servers, or backend services.
 
 Small interfaces may anticipate later systems only where doing so is necessary to avoid clear near-term rework. A speculative generic framework is not justified by future possibility alone.
@@ -1229,6 +1233,7 @@ A prototype build is not complete until all applicable items are demonstrably tr
 | Soulweave topology and Form identity | Idle Fork §§11–12, pp. 14–16 |
 | Retinue reservation and Hall ownership | Idle Fork §§13–14, pp. 17–18 |
 | Emergency-to-Standard transition, two distinct resonances, player-driven Scribe awakening, and exclusion of the scripted four from persistent-Reaping counters | Project-owner decisions in this planning session, 12 July 2026 |
+| External trusted-time authority, pending reconciliation when unavailable, and no local wall-clock fallback | Project-owner clarification in this planning session, 12 July 2026; implemented by `DEC-0021` |
 
 ## 20. Provisional values and unresolved details
 
