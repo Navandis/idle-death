@@ -2,7 +2,7 @@
 
 **Document role:** Maintained implementation contract for the playable first-session prototype  
 **Repository path:** `docs/design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md`  
-**Markdown revision:** 1  
+**Markdown revision:** 2  
 **Last updated:** 2026-07-12  
 **Primary source:** *Death Idle - Prototype 0-90 Minute Beat Sheet & Implementation Brief v0.1* (12 July 2026)  
 **Broader design companion:** [IDLE_FORK_SOURCE_OF_TRUTH.md](IDLE_FORK_SOURCE_OF_TRUTH.md)
@@ -26,6 +26,8 @@ Follow the source precedence in the root `AGENTS.md`. For the 0–90 minute prot
 | **Open** | Requires a later decision; do not invent a permanent rule. |
 
 Requirement labels such as `P90-B04`, `P90-G02`, and `P90-AC05` are traceability references for milestone definitions, tests, and pull-request acceptance criteria. They are not runtime content IDs.
+
+Revision 2 incorporates the approved counter rule: the four scripted opening returns are excluded from all persistent-Reaping Threshold and regional milestone counters.
 
 ## 2. Prototype thesis and required end state
 
@@ -71,6 +73,7 @@ Every milestone must preserve the [architecture-level idle-fork invariants](IDLE
 | `P90-SAFE-10` | Ration depletion weakens the Soldier Company or premium effects but never stops base backlog, Essence, or Mastery production. |
 | `P90-SAFE-11` | Reports are informational. All gains shown in a report were already applied to authoritative state. |
 | `P90-SAFE-12` | All one-time grants, unlocks, resonance events, and tutorial transitions are save-safe and idempotent. |
+| `P90-SAFE-13` | The scripted opening four reduce Gloamwood backlog and are recorded separately, but never increment persistent-Reaping Threshold or regional counters and never advance later Reaping milestones. |
 
 ## 4. Pacing and guidance phases
 
@@ -168,6 +171,9 @@ Pacing values are playtest targets, not hard-coded timers. Progression remains s
 - `TUT_01_WINDOW` → `TUT_02_DIRECT_REAP`.
 - Exactly four souls are returned.
 - Gloamwood backlog changes from `1,000,000` to `999,996`.
+- The four are recorded in a separate scripted-return counter or audit event.
+- Persistent Gloamwood Reaping returns and regional Reaping returns remain at zero.
+- The four do not advance the 1,000, 2,500, 5,000, 10,000, or 25,000 Reaping milestones.
 - A one-time completion flag permanently disables the direct action.
 
 **Fail-safe**
@@ -266,6 +272,7 @@ Retinues, Rations, support buffers, advanced forecasts, and supply policies rema
 - Command tether 1 becomes occupied.
 - `WRIT_EMERGENCY_FIRST_RETURN` is active.
 - The Emergency objective tracks 1,000 returns produced by the active Gloamwood Reaping after dispatch. The scripted opening four are a separate transaction.
+- Gloamwood and regional persistent-Reaping counters start at zero for this dispatch; they are not reconstructed from backlog already removed.
 - Backlog, Corrupted Essence, and Man-at-Arms Mastery begin resolving continuously.
 
 **Fail-safe**
@@ -687,9 +694,11 @@ Until a separate owner decision defines mechanical-tutorial skip behavior, skipp
 
 All guarantees are evaluated against current authoritative state after ordinary simulated output is applied. Each uses an exactly-once completion flag plus a current-state check.
 
+Milestones in this section use persistent-Reaping counters. The scripted opening four affect Gloamwood backlog and the separate opening audit counter only. They are excluded from Gloamwood Reaping-return and regional Reaping-return totals.
+
 | ID | Trigger | Guaranteed result | Status |
 |---|---|---|---|
-| `P90-G01` | Scripted opening attempt | Exactly four souls returned; Gloamwood becomes `999,996`. | Required and fixed. |
+| `P90-G01` | Scripted opening attempt | Exactly four souls returned; Gloamwood becomes `999,996`; persistent-Reaping Threshold and regional counters remain zero. | Required and fixed. |
 | `P90-G02` | Emergency Gloamwood Reaping produces 1,000 returns after dispatch | Emergency Writ milestone completes; active operation transitions to Standard; at least twelve Soldier Souls; required Essence floor. | Required. Exact Essence floor is configurable. |
 | `P90-G03` | First 2,500 Gloamwood returns | At least one Scribe Form Soul; required awakening Essence secured. | Required. Player still presses Awaken. |
 | `P90-G04` | First 5,000 Gloamwood returns **and** Scribe awakened | Minor first resonance; Broken Watch revealed/charted; command tether 2. | Required and exactly once. |
@@ -985,7 +994,7 @@ Do not treat this multiplication order, coefficient naming, or channel frequency
 | Retinue definition/state | ID, category, anchor Soul ID, requirement, modifiers, support pressure, active/reduced effect, assignment. |
 | Hall definition/state | ID, recipe, rate, input rule, output target, active state, last-resolved time. |
 | Tutorial state | Current state ID, completed state/actions, guarantee flags, skip flags, pending-notice derivation data. |
-| Milestone/resonance state | Trigger progress, completed flags, reward-completion flags. |
+| Milestone/resonance state | Separate scripted-return, Threshold persistent-Reaping, and regional persistent-Reaping counters; completed flags; reward-completion flags. |
 | Report accumulator | Elapsed time, souls, resources, Whole Souls, Mastery, discoveries, milestones, support transitions, forecast deltas. |
 
 The detailed serialization schema belongs in `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`, not in this design file.
@@ -1175,6 +1184,7 @@ Small interfaces may anticipate later systems only where doing so is necessary t
 A prototype build is not complete until all applicable items are demonstrably true:
 
 - [ ] New game reaches the opening narrative and exact `1,000,000 → 999,996` transaction.
+- [ ] The scripted four are recorded separately and leave all persistent-Reaping milestone counters at zero.
 - [ ] The one-time direct Reap action cannot repeat after save/load.
 - [ ] The first persistent Reaping continues while other screens are open.
 - [ ] Archive restoration and Recollection purchase survive save/load.
@@ -1218,7 +1228,7 @@ A prototype build is not complete until all applicable items are demonstrably tr
 | Persistent Reaping, settlement, support, and offline invariants | Idle Fork §§3–4 and §§9–10, pp. 5–6 and 11–13 |
 | Soulweave topology and Form identity | Idle Fork §§11–12, pp. 14–16 |
 | Retinue reservation and Hall ownership | Idle Fork §§13–14, pp. 17–18 |
-| Emergency-to-Standard transition, two distinct resonances, and player-driven Scribe awakening | Project-owner decisions in this planning session, 12 July 2026 |
+| Emergency-to-Standard transition, two distinct resonances, player-driven Scribe awakening, and exclusion of the scripted four from persistent-Reaping counters | Project-owner decisions in this planning session, 12 July 2026 |
 
 ## 20. Provisional values and unresolved details
 
@@ -1240,7 +1250,6 @@ The following remain configurable or open and must not be treated as permanent h
 - Settled Passage rates;
 - report cadence and retained history;
 - exact 25,000-regional reward;
-- whether the scripted opening four count toward later cumulative 2,500, 5,000, and 10,000 milestone counters; the Emergency Writ itself still requires 1,000 post-dispatch Reaping returns;
 - general offline cap beyond required support for the eight-hour prototype path;
 - final tutorial behavior when a mechanical guidance step is explicitly skipped, especially Scribe awakening, beyond the conservative no-auto-awaken rule in this document.
 
