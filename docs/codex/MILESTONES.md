@@ -3,13 +3,13 @@
 **Document role:** Approved implementation sequence and acceptance map for the 0–90 minute prototype  
 **Repository path:** `docs/codex/MILESTONES.md`  
 **Document status:** Phase 7 approved  
-**Milestone-map revision:** 2  
-**Last updated:** 2026-07-12  
+**Milestone-map revision:** 3  
+**Last updated:** 2026-07-13  
 **Primary context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md), [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md), [Architecture](ARCHITECTURE.md), [Data contracts](DATA_AND_CONTENT_CONTRACTS.md), [Testing](TESTING_AND_VALIDATION.md), and [Decisions](DECISIONS.md)
 
 ## 1. Purpose and authority
 
-This file divides the approved prototype architecture and first-session sequence into reviewable Codex tasks. It defines scope and acceptance, not the implementation prompt text. The owner approved this map in Phase 7. Phase 8 creates the reusable prompt template; Phase 9 creates one versioned milestone prompt at a time.
+This file divides the approved prototype architecture and first-session sequence into reviewable Codex tasks. It defines scope and acceptance, not the implementation prompt text. The owner approved this map in Phase 7. Phase 8 created the approved reusable prompt template. Phase 9 creates one versioned milestone prompt at a time.
 
 Use the source hierarchy in `AGENTS.md`. A milestone definition cannot weaken a protected design invariant or accepted decision. When repository state later differs from an assumption here, update this file and record any architecture/design decision before drafting that milestone's prompt.
 
@@ -18,7 +18,7 @@ Use the source hierarchy in `AGENTS.md`. A milestone definition cannot weaken a 
 At Phase 7 approval:
 
 - Godot 4.7, GDScript, the 1920 × 1080 reference viewport, resizing/stretch settings, and a temporary dry-run main scene exist.
-- `AGENTS.md`, project Codex configuration, the maintained design sources, and the architecture documents are present in the repository; this approved package supersedes their earlier draft/status wording where applicable.
+- `AGENTS.md`, project Codex configuration, the maintained design sources, the architecture documents, and the approved `PROMPT_TEMPLATE.md` are present in the repository.
 - GUT 9.7.1 is committed under `addons/gut/`.
 - GodotSteam GDExtension 4.20 is committed under `addons/godotsteam/`.
 - Development App ID `480` is configured in `project.godot`; automatic Steam initialization is disabled.
@@ -70,7 +70,7 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 
 | ID | Milestone | Definition | Prompt | Implementation | Verification |
 |---|---|---|---|---|---|
-| M00 | Repository, Godot, GUT, and Codex Cloud harness | Approved | Not drafted | Not started | — |
+| M00 | Repository, Godot, GUT, and Codex Cloud harness | Approved | Drafted | Not started | — |
 | M01 | Deterministic numeric and time-authority foundation | Approved | Not drafted | Not started | — |
 | M02 | Versioned save codec and atomic storage | Approved | Not drafted | Not started | — |
 | M03 | Content catalog, canonical IDs, and configurable prototype data | Approved | Not drafted | Not started | — |
@@ -132,7 +132,7 @@ The starting M00–M13 hypothesis was useful, but this map makes several deliber
 ### M00 — Repository, Godot, GUT, and Codex Cloud harness
 
 **Definition status:** Approved  
-**Prompt status:** Not drafted  
+**Prompt status:** Drafted  
 **Implementation status:** Not started  
 **Recommended Codex task size:** Medium; one infrastructure pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M00-repository-test-harness.md`

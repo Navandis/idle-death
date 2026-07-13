@@ -2,7 +2,7 @@
 
 **Document role:** Reusable authoring template for one bounded Codex implementation milestone  
 **Repository path:** `docs/codex/PROMPT_TEMPLATE.md`  
-**Document status:** Phase 8 revision 2 draft awaiting owner approval  
+**Document status:** Phase 8 approved  
 **Template revision:** 2  
 **Last updated:** 2026-07-13  
 **Companion documents:** [Milestones](MILESTONES.md), [Architecture](ARCHITECTURE.md), [Data and content contracts](DATA_AND_CONTENT_CONTRACTS.md), [Implementation rules](IMPLEMENTATION_RULES.md), [Testing and validation](TESTING_AND_VALIDATION.md), [Decisions](DECISIONS.md), [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md), and [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md)
