@@ -3,7 +3,7 @@
 **Document role:** Canonical prototype data, runtime-state, ID, and serialization contracts  
 **Repository path:** `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`  
 **Document status:** Approved architecture contract  
-**Revision:** 2  
+**Revision:** 3  
 **Last updated:** 2026-07-12
 
 ## 1. Purpose
@@ -505,7 +505,7 @@ Runtime classes use typed fields and explicit `to_save_data()` / `from_save_data
 
 | Field | Type | Rule |
 |---|---|---|
-| `trusted_source_id` | `StringName` | Empty before the first trusted sample; empty until the approved production provider is installed; the Steam server-time adapter is the current candidate |
+| `trusted_source_id` | `StringName` | Empty before the first trusted sample; production uses stable source ID `STEAM_SERVER_TIME` through the approved GodotSteam 4.20 adapter |
 | `has_trusted_anchor` | `bool` | False until a trusted sample establishes the first anchor |
 | `trusted_anchor_utc_msec` | runtime `int` | Last accepted external trusted epoch; canonical decimal string in JSON |
 | `foreground_credited_since_anchor_msec` | runtime `int` | Non-negative active-session time already simulated since the anchor |
@@ -518,7 +518,9 @@ Rules:
 - when `has_trusted_anchor` is false, `trusted_anchor_utc_msec` must be zero and no retroactive closed-session credit is granted before the first trusted sample;
 - a newly accepted trusted sample may not move the anchor backwards;
 - `foreground_credited_since_anchor_msec` is reset only in the same successful transaction that commits a new trusted anchor;
-- trusted-time source details remain outside domain state; only the normalized sample and accounting state are persisted.
+- trusted-time source details remain outside domain state; only the normalized sample and accounting state are persisted;
+- GodotSteam version, App ID, connection state, and wrapper-specific callback details are diagnostics or configuration, not authoritative save fields;
+- changing the binding implementation must not change the meaning of `STEAM_SERVER_TIME` or invalidate otherwise compatible saves.
 
 ### 9.3 GameState
 
@@ -979,7 +981,7 @@ Do not save:
 - content-definition fields already supplied by the catalog;
 - absolute local filesystem paths;
 - device wall-clock values used to calculate production;
-- Steam user IDs or unrelated storefront state;
+- Steam user IDs, development App IDs, GodotSteam configuration, or unrelated storefront state;
 - signal connections, Callables, script instances, or arbitrary object dumps;
 - the complete lifetime domain-event log.
 

@@ -91,7 +91,9 @@ The following decisions supersede ambiguous shorthand in the design documents:
 - Reference viewport: 1920 x 1080.
 - Support ordinary window resizing and sensible stretch behavior.
 - Preserve the current renderer unless a scoped task demonstrates and documents a reason to change it.
-- Do not add C#, .NET project files, native libraries, GDExtensions, or another scripting language except for a narrowly scoped trusted-time platform adapter introduced by its approved milestone after the exact dependency is explicitly approved. That exception does not authorize other Steam features or move time authority into domain code.
+- Do not add C#, .NET project files, native libraries, GDExtensions, or another scripting language beyond the already approved GodotSteam 4.20 GDExtension used only by the trusted-time platform adapter. Updating or replacing that dependency requires explicit approval. The exception does not authorize other Steam features or move time authority into domain code.
+- GUT 9.7.1 and GodotSteam 4.20 are pinned repository dependencies. Do not update, replace, auto-download, or re-vendor either dependency during unrelated work.
+- Development Steam App ID `480` is configured in `project.godot`; automatic Steam initialization remains disabled until M06 explicitly wires the adapter. Do not add `steam_appid.txt` by default. Add one only if a verified launch path requires it, and never include it in a shipped build.
 - Do not commit machine-specific executable paths.
 
 The prototype targets eventual Steam distribution, but Steam integration is not part of the current prototype unless an approved milestone explicitly includes it.
@@ -102,7 +104,10 @@ Keep authoritative game rules, simulation, save data, and content independent of
 
 The intended repository responsibilities are:
 
-- `project.godot`: Godot project configuration.
+- `project.godot`: Godot project configuration, including the development Steam App ID and disabled automatic Steam initialization.
+- `addons/gut/`: pinned GUT 9.7.1 test dependency; M00 owns harness validation, not dependency acquisition.
+- `addons/godotsteam/`: pinned GodotSteam 4.20 GDExtension; only M06 may introduce trusted-time behavior through it.
+- `tools/test/`: cross-platform repository test wrappers created and maintained by M00.
 - `test_main_scene.tscn`: current temporary editor and asset dry-run scene. It is not final application architecture.
 - `src/app/`: application startup, composition, and high-level coordination.
 - `src/domain/`: authoritative game-state concepts and domain rules.
@@ -446,7 +451,9 @@ Do not leave large blocks of commented-out code. Use version control instead.
 
 The canonical test commands and manual flows belong in `docs/codex/TESTING_AND_VALIDATION.md`.
 
-Until the automated harness is established, minimum verification for a Godot change is:
+GUT 9.7.1 is already committed, but the repository-wide harness is not established until M00 creates and verifies `.gutconfig.json`, `tools/test/run_gut.sh`, `tools/test/run_gut.ps1`, and the first test suite.
+
+Until M00 merges, minimum verification for a Godot change is:
 
 - import or open the project using Godot 4.7;
 - run the configured main scene;
@@ -454,7 +461,15 @@ Until the automated harness is established, minimum verification for a Godot cha
 - exercise the exact manual path changed by the task;
 - report the exact verification that was and was not performed.
 
-Once tests exist, run the relevant documented commands before marking work complete.
+After M00:
+
+- Codex Cloud and other Linux environments run `tools/test/run_gut.sh`;
+- the project owner runs `tools/test/run_gut.ps1` on the separate Windows machine that has Godot 4.7;
+- both wrappers use the same checked-in GUT configuration and must propagate the real process exit code;
+- a Codex task may report the Windows check as pending, but must never report it as passed unless the owner actually ran it;
+- required Windows, visual, or Steam checks must pass before merge when the milestone says they are merge gates.
+
+Codex does not need to be installed on the Windows Godot machine. Git transfers the branch; the owner executes the committed PowerShell wrapper and manual checklist there.
 
 Simulation and persistence changes normally require tests for applicable cases such as:
 
@@ -483,7 +498,7 @@ Never commit a local absolute path to a Godot executable.
 - Do not rename large groups of files as cleanup during feature work.
 - Do not reformat unrelated files.
 - Do not change the engine version, renderer, save format, central architecture, or directory structure without explicit task scope.
-- Do not add plugins, test frameworks, third-party libraries, services, storefront SDKs, or network dependencies without approval.
+- Do not add plugins, test frameworks, third-party libraries, services, storefront SDKs, or network dependencies without approval. GUT 9.7.1 and GodotSteam 4.20 are the only currently approved repository dependencies; their presence does not broaden task scope.
 - Do not add production backends, analytics providers, or telemetry services during the prototype.
 - Do not replace a simple working solution with a more abstract system solely to anticipate hypothetical future scale.
 - Refactoring is appropriate when it is required to preserve a documented boundary, remove duplication in the current task, or make the required behavior safely testable. Explain the reason in the pull request.

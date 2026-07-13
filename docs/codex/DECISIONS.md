@@ -3,7 +3,7 @@
 **Document role:** Durable record of approved and proposed design and architecture decisions  
 **Repository path:** `docs/codex/DECISIONS.md`  
 **Document status:** Approved architecture and active decision record  
-**Revision:** 2  
+**Revision:** 3  
 **Last updated:** 2026-07-12
 
 ## 1. How to use this file
@@ -46,12 +46,14 @@ Rules:
 | `DEC-0014` | Small modifier and progression-effect grammars | Accepted | 2026-07-12 |
 | `DEC-0015` | Tutorial orchestrates presentation and never executes skipped cost-bearing choices | Accepted | 2026-07-12 |
 | `DEC-0016` | Reports store already-applied deltas; forecasts simulate a clone | Accepted | 2026-07-12 |
-| `DEC-0017` | GUT 9.7.1 is the planned Godot 4.7 test framework | Accepted | 2026-07-12 |
+| `DEC-0017` | GUT 9.7.1 is the pinned Godot 4.7 test framework | Accepted | 2026-07-12 |
 | `DEC-0018` | Single-threaded prototype and local-only playtest telemetry | Accepted | 2026-07-12 |
 | `DEC-0019` | Threshold knowledge, lifecycle, availability, and activity are orthogonal | Accepted | 2026-07-12 |
 | `DEC-0020` | One active Reaping per Threshold and one tether per Reaping | Accepted | 2026-07-12 |
 | `DEC-0021` | Trusted external time governs closed-session progress | Accepted | 2026-07-12 |
 | `DEC-0022` | Prototype save resilience and release-format security gate | Accepted | 2026-07-12 |
+| `DEC-0023` | Required Linux and Windows test wrappers with split execution responsibility | Accepted | 2026-07-12 |
+| `DEC-0024` | GodotSteam 4.20 and project-setting App ID 480 are the approved prototype bridge | Accepted | 2026-07-12 |
 
 ---
 
@@ -596,7 +598,7 @@ Reports need a review moment without reintroducing claim-gated output, and forec
 
 ---
 
-## `DEC-0017` — GUT 9.7.1 is the planned Godot 4.7 test framework
+## `DEC-0017` — GUT 9.7.1 is the pinned Godot 4.7 test framework
 
 **Status:** Accepted  
 **Date:** 2026-07-12  
@@ -604,19 +606,18 @@ Reports need a review moment without reintroducing claim-gated output, and forec
 
 ### Context
 
-The repository has no automated harness. The prototype needs GDScript unit and integration tests that run locally and headlessly in Codex Cloud.
+The prototype needs GDScript unit and integration tests that run locally and headlessly in Codex Cloud. The project owner has now committed GUT 9.7.1 under `addons/gut/`.
 
 ### Decision
 
-Plan to vendor the version-pinned GUT 9.7.1 `addons/gut` directory during M00, retain its MIT license, and use its CLI with a checked-in configuration.
-
-M00 must verify actual execution under Godot 4.7 on Windows and the Codex Cloud Linux environment before later milestones rely on it.
+Use the repository-pinned GUT 9.7.1 CLI with a checked-in configuration. M00 does not download or replace the dependency; it verifies the committed version and retained license, creates the project harness and wrappers, and proves execution under Godot 4.7 in both the Codex Cloud Linux environment and the owner's Windows Godot environment.
 
 ### Consequences
 
-- No floating test dependency version.
+- No floating test dependency version or test-time network download.
 - GUT remains a test-only dependency.
-- Phase 6 documentation does not install the addon.
+- Updating or replacing GUT requires explicit scope and re-validation of both wrappers.
+- Later milestones may treat the canonical commands as mandatory only after M00 passes `GATE-GUT`.
 
 ### Alternatives considered
 
@@ -626,6 +627,7 @@ M00 must verify actual execution under Godot 4.7 on Windows and the Codex Cloud 
 ### Affected documents
 
 - `docs/codex/TESTING_AND_VALIDATION.md`
+- `docs/codex/MILESTONES.md`
 - future M00 prompt and pull request
 
 ---
@@ -748,7 +750,7 @@ The project owner requires authoritative progress to be independent of the playe
 - Persist the last trusted anchor and the amount of foreground monotonic time already credited since that anchor. When trusted time later becomes available, subtract already-credited foreground time before resolving the remaining closed-session gap, then apply any configured offline cap.
 - Never move the trusted anchor backwards. A negative, stale, contradictory, or implausible sample grants no progress and produces a diagnostic event.
 - The Steam adapter remains at the platform/application boundary. Domain, simulation, save-schema meaning, and tests depend only on the project-owned interface.
-- The exact Godot-to-Steam binding is a dependency decision for the trusted-time milestone and requires owner approval before adding a GDExtension or native library.
+- The approved Godot-to-Steam binding is recorded in `DEC-0024`. Replacing or upgrading that GDExtension or its repository footprint requires new owner approval.
 
 ### Consequences
 
@@ -830,8 +832,94 @@ Before commercial release, run the dedicated `RG01` save-format and threat-model
 
 ---
 
+## `DEC-0023` — Required Linux and Windows test wrappers with split execution responsibility
+
+**Status:** Accepted  
+**Date:** 2026-07-12  
+**Decision type:** Test execution and review workflow  
+**Refines:** `DEC-0017`
+
+### Context
+
+Codex Cloud runs in a Linux environment, while the Godot editor is installed on a separate Windows machine. Git synchronizes repository changes between them, but it does not allow Codex to execute commands on the Windows machine. The project needs one test contract without requiring Codex App or CLI on the Godot machine.
+
+### Decision
+
+M00 creates and maintains both:
+
+- `tools/test/run_gut.sh` for Codex Cloud, Linux, and later Linux CI;
+- `tools/test/run_gut.ps1` for the owner's Windows Godot machine and later Windows CI.
+
+Both wrappers:
+
+- resolve the repository root from their own location;
+- locate Godot through an explicit argument, then `GODOT_BIN`, then a documented executable on `PATH`;
+- require Godot 4.7.x;
+- use the same checked-in `.gutconfig.json` and test directories;
+- run the default clean import and full GUT suite unless a documented focused mode is requested;
+- forward the real process exit code;
+- contain no committed machine-specific path.
+
+Codex runs the shell wrapper in its environment. The owner pulls the branch and runs the PowerShell wrapper on the Windows Godot machine. Windows, visual, editor, and Steam checks are reported separately. A pull request may be opened while a Windows check is pending, but no task may report that check as passed until the owner actually runs it, and a milestone-defined Windows merge gate must pass before merge.
+
+### Consequences
+
+- Codex does not need to be installed on the Windows Godot machine.
+- The owner normally executes one repository command for automated Windows validation, then the milestone's manual editor checklist.
+- Wrapper defects are fixed in the branch rather than patched privately on one machine.
+- Git remains the transfer mechanism, not a remote execution channel.
+
+### Affected documents
+
+- `AGENTS.md`
+- `docs/codex/IMPLEMENTATION_RULES.md`
+- `docs/codex/TESTING_AND_VALIDATION.md`
+- `docs/codex/MILESTONES.md`
+
+---
+
+## `DEC-0024` — GodotSteam 4.20 and project-setting App ID 480 are the approved prototype bridge
+
+**Status:** Accepted  
+**Date:** 2026-07-12  
+**Decision type:** Platform dependency and development configuration  
+**Refines:** `DEC-0006`, `DEC-0021`
+
+### Context
+
+The project owner committed GodotSteam GDExtension 4.20 under `addons/godotsteam/` and configured development App ID `480` in `project.godot`. The project setting disables automatic Steam initialization. This resolves the previously open choice of Godot-to-Steam bridge for the prototype.
+
+### Decision
+
+- Use the pinned GodotSteam 4.20 GDExtension as the sole prototype Steam bridge.
+- Use App ID `480` for internal development and technical smoke tests until Death Idle receives its own App ID.
+- Keep automatic Steam initialization disabled. M06 initializes Steam explicitly inside the platform adapter and uses no Steam feature beyond the trusted-time contract.
+- M00 verifies that the project imports and tests headlessly with the extension present and Steam uninitialized.
+- M06 verifies the pinned wrapper API and maps it to live-connection semantics equivalent to `ISteamUser::BLoggedOn()` and server-time semantics equivalent to `ISteamUtils::GetServerRealTime()`.
+- Do not add `steam_appid.txt` by default. Add one only when a specific verified launch path requires it; keep it local or ignored and exclude it from shipped builds.
+- Updating, replacing, or auto-updating GodotSteam requires explicit owner approval, license/footprint review, and Windows plus headless re-validation.
+
+### Consequences
+
+- `GATE-STEAM-TIME` is satisfied for M06 prompt drafting with GodotSteam 4.20 as the selected dependency.
+- Live Steam testing remains a Windows responsibility; cloud tests use fakes and must not require a Steam client or account.
+- App ID `480` proves bridge behavior only. Death Idle's own App ID, package ownership, launch-through-Steam behavior, and external distribution remain later validation.
+- The addon remains isolated from domain, simulation, save-schema meaning, and non-Steam tests.
+
+### Affected documents
+
+- `AGENTS.md`
+- `project.godot`
+- `docs/codex/ARCHITECTURE.md`
+- `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`
+- `docs/codex/IMPLEMENTATION_RULES.md`
+- `docs/codex/TESTING_AND_VALIDATION.md`
+- `docs/codex/MILESTONES.md`
+
+---
+
 ## 3. Current approval state
 
-- `DEC-0001` through `DEC-0022` are Accepted.
-- The Phase 6 architecture is approved with the trusted-time and save-format refinements recorded in `DEC-0021` and `DEC-0022`.
+- `DEC-0001` through `DEC-0024` are Accepted.
+- The Phase 6 architecture is approved with trusted-time, save-format, cross-machine testing, and GodotSteam dependency refinements recorded in `DEC-0021` through `DEC-0024`.
 - Future changes preserve decision IDs for wording clarifications and create a new decision only when semantics, ownership, compatibility, or security posture changes.

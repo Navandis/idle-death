@@ -3,137 +3,160 @@
 **Document role:** Canonical test strategy, commands, fixture rules, and manual validation flows  
 **Repository path:** `docs/codex/TESTING_AND_VALIDATION.md`  
 **Document status:** Approved architecture validation plan  
-**Validation revision:** 2  
+**Validation revision:** 3  
 **Last updated:** 2026-07-12  
 **Engine target:** Godot 4.7 standard build, GDScript only  
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)
 
 ## 1. Current status
 
-The repository does not yet contain an automated test harness. The commands marked **Target after M00** become mandatory only after the repository-foundation milestone installs and validates the test dependency and scripts.
+The repository already contains:
 
-Until then, a Godot change must at minimum be imported and run in Godot 4.7, and the exact manual behavior changed by the task must be exercised and reported.
+- GUT 9.7.1 under `addons/gut/`;
+- GodotSteam GDExtension 4.20 under `addons/godotsteam/`;
+- development Steam App ID `480` in `project.godot`;
+- disabled automatic Steam initialization.
 
-Do not claim a command passed when the dependency or command does not yet exist.
+The repository does **not** yet have the approved automated harness. M00 must create and validate:
 
-## 2. Recommended test framework
+- `.gutconfig.json`;
+- `tools/test/run_gut.sh`;
+- `tools/test/run_gut.ps1`;
+- the initial `tests/` structure and passing harness test;
+- canonical import, focused-test, full-test, and smoke documentation.
 
-### 2.1 Recommendation
+Until M00 merges, do not claim the canonical wrappers or automated suite exist. A Godot change must at minimum be imported and run in Godot 4.7 on the Windows Godot machine, and the exact manual behavior changed by the task must be exercised and reported.
 
-Plan to use **GUT 9.7.1** as the GDScript test framework for the prototype, subject to the M00 verification described below.
+## 2. Pinned test and platform dependencies
 
-Reasons:
+### 2.1 GUT 9.7.1
 
-- it is written for GDScript tests;
-- the GUT 9.7 release line adds Godot 4.7 compatibility, and 9.7.1 is the pinned patch release for that line;
-- it supports command-line execution and JUnit XML output;
-- it is small enough for a solo project;
-- its MIT license is compatible with repository use;
-- it can test `RefCounted` domain and simulation services without loading the full application scene.
+GUT 9.7.1 is the approved GDScript test framework for Godot 4.7.x. It is already committed and is not downloaded by M00 or at test time.
+
+M00 must:
+
+1. verify the committed version from the addon metadata;
+2. verify that the applicable GUT license file is retained in the repository;
+3. add a checked-in `.gutconfig.json` with repository-relative test directories and deterministic exit behavior;
+4. prove command-line execution and nonzero failure propagation in Linux and Windows;
+5. avoid the addon updater, floating versions, and runtime network downloads.
 
 Official project references:
 
 - [GUT repository and version table](https://github.com/bitwes/Gut/tree/v9.7.1)
 - [GUT 9.7.1 release](https://github.com/bitwes/Gut/releases/tag/v9.7.1)
-- [GUT command-line documentation](https://gut.readthedocs.io/en/latest/Command-Line.html) — maintained command reference; M00 must verify the commands against the pinned 9.7.1 files
+- [GUT command-line documentation](https://gut.readthedocs.io/en/latest/Command-Line.html)
 
-### 2.2 Installation contract for M00
+### 2.2 GodotSteam 4.20 during M00
 
-The approved M00 task should:
+GodotSteam is present so the project can later implement the trusted-time adapter. M00 does not initialize Steam or call a Steam API.
 
-1. copy only the version-pinned `addons/gut` directory from GUT 9.7.1;
-2. retain its license file;
-3. enable the plugin if editor execution requires it;
-4. add a checked-in `.gutconfig.json` with repository-relative test directories and exit behavior;
-5. document the exact installed version and source;
-6. prove local and headless command execution;
-7. avoid floating dependency versions or runtime downloads during tests.
+M00 verifies only that:
 
-Do not install GUT before the owner approves the test-harness milestone.
+- the pinned GDExtension loads under Godot 4.7 in supported headless and Windows environments;
+- ordinary import and GUT execution work when Steam is absent or not initialized;
+- development App ID `480` remains in `project.godot` and automatic initialization remains disabled;
+- the dependency and applicable license/notice footprint are documented;
+- no `steam_appid.txt` file is required as a standard repository prerequisite.
 
-## 3. Godot executable contract
+Live Steam behavior belongs to M06.
 
-Use a Godot 4.7 editor binary available as `godot` on `PATH`.
+## 3. Execution environments and Godot executable contract
 
-Do not commit:
+### 3.1 Separate execution environments
 
-- a Windows absolute path;
-- a user-specific alias;
-- a downloaded executable inside the repository;
-- credentials or environment-specific package-manager state.
+The project uses two required execution environments:
 
-Local Windows setup may use a user-level PATH entry or PowerShell profile. Codex Cloud setup should install or expose the Linux Godot 4.7 editor binary during environment setup.
+| Environment | Executor | Required automated entry point | Additional responsibility |
+|---|---|---|---|
+| Codex Cloud or Linux | Codex | `tools/test/run_gut.sh` | Headless import, GUT, and safe smoke checks |
+| Windows Godot machine | Project owner | `tools/test/run_gut.ps1` | Windows test run, editor/manual checks, and later Steam integration checks |
 
-First diagnostic command:
+Git transfers the branch between machines. It does not allow Codex to run commands on the Windows Godot machine. Codex App or CLI does not need to be installed there.
+
+A pull request may be opened while the owner-run Windows check is pending. The result must be labelled **Pending**, not **Passed**. Any milestone that makes Windows or Steam a merge gate cannot merge until that check is recorded as passed.
+
+### 3.2 Godot executable discovery
+
+Both wrappers must locate the Godot executable in this order:
+
+1. an explicit wrapper argument;
+2. the local `GODOT_BIN` environment variable;
+3. a documented executable name on `PATH`.
+
+They must:
+
+- print the detected executable and `godot --version` output;
+- require Godot 4.7.x;
+- fail clearly when Godot cannot be found or is the wrong version;
+- contain no committed user-specific absolute path.
+
+The owner may set `GODOT_BIN` or `PATH` locally on Windows. That configuration is never committed.
+
+## 4. Canonical commands after M00
+
+### 4.1 Full automated suite
+
+Linux or Codex Cloud:
 
 ```text
-godot --version
+./tools/test/run_gut.sh
 ```
 
-The output must identify Godot 4.7.x. Do not silently test with 4.6, a 4.8 development snapshot, or a .NET-only workflow.
+Windows PowerShell:
 
-## 4. Canonical commands
+```text
+.\tools\test\run_gut.ps1
+```
 
-### 4.1 Import and resource validation
+Default full mode must:
 
-**Target after M00:**
+1. resolve the repository root from the wrapper location;
+2. print and validate Godot 4.7.x;
+3. run a headless project import;
+4. run the full GUT suite using `.gutconfig.json`;
+5. return the real failing or successful process exit code.
+
+A documented iteration option may skip the import or select focused tests, but the final milestone verification uses the default full mode.
+
+### 4.2 Underlying import fallback
+
+If a wrapper itself is being diagnosed, the repository-relative import command is:
 
 ```text
 godot --headless --path . --import
 ```
 
-Purpose:
+### 4.3 Underlying GUT fallback
 
-- wait for Godot to import project resources;
-- catch invalid paths, resources, scripts, and import failures before tests;
-- provide a reproducible clean-clone check.
-
-### 4.2 Automated GUT suite
-
-**Target after M00:**
+The pinned GUT runner is:
 
 ```text
-godot --headless -d -s --path . addons/gut/gut_cmdln.gd -gdir=res://tests -ginclude_subdirs -gexit
+godot --headless -d -s --path . addons/gut/gut_cmdln.gd -gexit
 ```
 
-Expected process exit:
+`.gutconfig.json` supplies test directories and other stable options. Command-line arguments may override it for focused execution.
 
-- `0` when all tests pass;
-- `1` when one or more tests fail.
+### 4.4 Focused tests
 
-Once `.gutconfig.json` is proven, the command may be shortened, but this complete form remains the documented fallback.
+M00 must document how each wrapper forwards GUT selectors such as:
 
-### 4.3 Main-scene smoke run
+```text
+-gtest=res://tests/unit/path/to/test_file.gd
+-gunit_test_name=test_name_fragment
+```
 
-**Target after the application shell exists:**
+Codex may run focused tests while iterating, but it must run the applicable broader suite before marking a task complete.
+
+### 4.5 Main-scene smoke
+
+Until a dedicated smoke wrapper exists, the repository-relative fallback is:
 
 ```text
 godot --headless --path . --quit-after 5
 ```
 
-Purpose:
-
-- start the configured main scene;
-- catch startup parser, composition-root, and resource errors;
-- quit after a small engine-iteration count.
-
-A later M00 or M05 task may replace this with a dedicated smoke runner that exits after a clear ready-state assertion. The documented command must be updated in the same pull request.
-
-### 4.4 Focused test execution
-
-For one test script:
-
-```text
-godot --headless -d -s --path . addons/gut/gut_cmdln.gd -gtest=res://tests/unit/path/to/test_file.gd -gexit
-```
-
-For one named test:
-
-```text
-godot --headless -d -s --path . addons/gut/gut_cmdln.gd -gtest=res://tests/unit/path/to/test_file.gd -gunit_test_name=test_name_fragment -gexit
-```
-
-Codex may run focused tests while iterating, but it must run the applicable broader suite before marking the task complete.
+M00 validates the current dry-run scene without redesigning it. M05 may replace this with a dedicated ready-state smoke runner and must update this document in the same pull request.
 
 ## 5. Planned test layout
 
@@ -629,95 +652,113 @@ The final integration suite should cover:
 
 ## 12. Manual validation
 
-Automated tests do not replace player-facing checks.
+Automated tests do not replace player-facing, Windows-specific, or Steam-specific checks.
 
-### 12.1 Current minimum manual check
+### 12.1 Verification ownership matrix
 
-For any presentation change:
+| Check | Normal executor | May be completed by Codex Cloud? | Merge treatment |
+|---|---|---:|---|
+| Linux import and GUT | Codex | Yes | Required after M00 |
+| Windows GUT wrapper | Project owner | No | Required for milestones that change executable Godot behavior |
+| Godot editor and visual flow | Project owner | No | Required when presentation or resources change |
+| Windows file-replacement behavior | Project owner | No | Required for persistence milestones |
+| Live GodotSteam behavior | Project owner | No | Required for M06, M16, and relevant release checks |
+| Fake trusted-time behavior | Codex or owner | Yes | Required for time/offline milestones |
 
-1. open the project in Godot 4.7;
-2. confirm no new parser, import, or resource errors;
-3. run the configured main scene;
-4. exercise the exact changed flow;
-5. resize the window to at least two common smaller sizes;
-6. confirm no authoritative production pauses while navigating applicable screens;
-7. record what was observed and what was not checked.
+The pull-request report records these categories separately. An unperformed category remains pending.
 
-### 12.2 Trusted-time manual checks
+### 12.2 Current minimum Windows check
 
-In a debug or test build with an explicit fake trusted-time source:
+For a presentation or executable Godot change:
+
+1. pull the branch on the Windows Godot machine;
+2. run `tools/test/run_gut.ps1` after M00, or perform the documented temporary checks before M00;
+3. open the project in Godot 4.7 and allow imports to complete;
+4. confirm no new parser, import, GDExtension, or resource errors;
+5. run the configured main scene;
+6. exercise the exact changed flow;
+7. resize the window to at least two common smaller sizes when UI changed;
+8. confirm no authoritative production pauses while navigating applicable screens;
+9. record what was observed and what was not checked.
+
+### 12.3 Fake trusted-time checks
+
+In an automated or debug-only test environment with an explicit fake trusted-time source:
 
 1. save with a known trusted anchor;
-2. close or reload through the test harness;
+2. reload through the test harness;
 3. advance the fake trusted source by one hour and verify the expected return;
-4. repeat while advancing a fake device wall clock only and verify that no additional progress appears;
-5. load with trusted time unavailable and verify that the game continues foreground production while the closed-session interval remains pending;
+4. advance only a fake device wall clock and verify that no additional progress appears;
+5. load with trusted time unavailable and verify that foreground production continues while the closed-session interval remains pending;
 6. restore trusted time and verify that already-credited foreground time is subtracted exactly once.
 
 Do not expose fake-time controls in release exports.
 
-### 12.3 Windows Steam trusted-time adapter checks
+### 12.4 Windows GodotSteam trusted-time checks
 
-When the approved production adapter exists, perform these checks on a Windows test environment with the Steam client. Use an isolated test account or disposable save where changing operating-system clock settings is part of the check.
+When M06 implements the adapter, run these checks on the Windows Godot machine with the pinned GodotSteam 4.20 addon and Steam client.
 
-1. Launch through Steam while the approved binding reports an acceptable connected/session state and confirm that the adapter accepts a trusted server-time sample under its documented connection/session checks.
-2. Save with a known trusted anchor, close the game for a short measured interval, relaunch, and confirm that the credited gap comes from the trusted source.
-3. Change the Windows clock and timezone without changing the trusted source; confirm that the credited gap, pending state, and simulation result do not change.
-4. Start with Steam disconnected or in Offline Mode; confirm that the save loads, foreground production continues, no closed-session reward is granted, and reconciliation is marked pending.
-5. Restore the live connection; confirm that reconciliation subtracts foreground time already credited since the trusted anchor and commits the remaining eligible gap exactly once.
-6. Repeat load after the resolved save is committed and confirm that the same gap is not credited again.
-7. Confirm that release exports cannot select the fake trusted-time provider or any debug time controls.
+Development configuration:
 
-The test report must name the Steam binding and version used. A Codex Cloud run cannot substitute for this Windows/Steam manual check because the cloud environment intentionally uses the fake provider.
+- App ID `480` comes from `project.godot`;
+- automatic Steam initialization is disabled;
+- the adapter initializes Steam explicitly;
+- `steam_appid.txt` is not a standard prerequisite and must not be added merely as a precaution.
 
-### 12.4 Resolution and scaling targets
+Required checks:
 
-When the application shell exists, validate at minimum:
+1. Confirm GodotSteam loads under Godot 4.7 without extension errors.
+2. Initialize through the M06 adapter and confirm the active development App ID and initialization result.
+3. Confirm the adapter accepts a sample only when the pinned wrapper reports semantics equivalent to a live `ISteamUser::BLoggedOn()` connection.
+4. Confirm the accepted epoch is obtained through semantics equivalent to `ISteamUtils::GetServerRealTime()` and normalized to integer milliseconds.
+5. Save an active Reaping, close for a short controlled interval with Steam connected, relaunch, and verify one credited result.
+6. Repeat while Steam is unavailable or in a disconnected state; verify no guessed closed-session credit and a pending reconciliation state.
+7. Reconnect and verify reconciliation commits once after subtracting already-credited foreground time.
+8. Change Windows date, time, and timezone without changing the Steam source; verify credited progress does not change.
+9. Reload repeatedly after the committed result and verify no duplicate reward or welcome-back record.
+10. Record the Godot version, GodotSteam version, App ID, connection scenario, and outcome.
 
-- 1920 x 1080 reference size;
-- 1600 x 900;
-- 1366 x 768;
-- one manually resized non-16:9 window;
-- windowed mode;
-- fullscreen mode when the applicable milestone introduces it.
+The underlying Steamworks semantics are documented by [ISteamUser::BLoggedOn](https://partner.steamgames.com/doc/api/ISteamUser#BLoggedOn) and [ISteamUtils::GetServerRealTime](https://partner.steamgames.com/doc/api/ISteamUtils#GetServerRealTime). M06 must still inspect the pinned GodotSteam wrapper names rather than assume a direct one-to-one method name.
 
-This is a practical prototype check, not a promise of final support for every aspect ratio.
+App ID `480` proves the bridge and adapter behavior only. Death Idle's own App ID, package ownership, launch-through-Steam behavior, external Playtest distribution, and final export configuration remain later validation.
 
-### 12.5 Full prototype demonstration
+If a specific launch method proves that `steam_appid.txt` is required despite the project setting, record the exact method and evidence before adding a local ignored file. Do not commit or ship it by default.
 
-The final manual path must demonstrate:
+### 12.5 Pull-request evidence handoff
 
-- opening narrative interaction;
-- exact four-soul backlog change;
-- first Reaping while another screen is open;
-- Archive and Soulweave;
-- Soldier reservation;
-- player-driven Scribe awakening;
-- two resonances at their separate counters;
-- two concurrent Reapings;
-- Scribe discovery and fallback;
-- Larder chain;
-- Ration depletion behavior;
-- report banking;
-- eight-hour forecast;
-- actual offline return from the trusted-time path;
-- trusted-time unavailable and later-reconciliation behavior;
-- save/quit/resume deviations.
+A Codex pull request should leave a concise owner checklist when Windows work is required. The owner records:
+
+```text
+Windows Godot version:
+run_gut.ps1 result:
+Editor/manual flow result:
+Steam result, when applicable:
+Observed failures or warnings:
+```
+
+Do not modify a wrapper privately to bypass a failure. Fix the repository script in the branch so both environments keep one contract.
 
 ## 13. Codex Cloud environment
 
-The Codex Cloud environment should eventually provide:
+The Codex Cloud environment must provide:
 
-- Godot 4.7 standard Linux editor binary on `PATH` as `godot`;
-- the repository-pinned GUT files already in the checkout;
+- a pinned Godot 4.7 standard Linux editor binary;
+- `godot` on `PATH` or `GODOT_BIN` configured in the environment;
+- the repository-pinned GUT and GodotSteam files from the checkout;
 - no required GUI session;
-- no machine-specific paths in repository commands;
-- setup-time installation only, with tests running without network access;
+- no machine-specific path committed to the repository;
+- setup-time installation only, with import and tests able to run without network access;
 - enough time for import and the full headless suite.
 
-The setup script should print `godot --version` and fail when the expected major/minor version is unavailable.
+M00 configures or documents the environment so Codex can run:
 
-Do not require Steam, export templates, or storefront credentials for prototype unit and integration tests.
+```text
+./tools/test/run_gut.sh
+```
+
+The wrapper prints the Godot version, imports the project, and runs GUT. M00 also proves that a deliberately failing temporary test returns a nonzero status before removing that test from the final diff.
+
+GodotSteam may be present as a loadable GDExtension, but M00 and ordinary cloud tests keep automatic initialization disabled and do not require Steam, a Steam account, storefront credentials, or `steam_appid.txt`. M06 cloud tests use a fake provider or fake bridge. A cloud result never substitutes for the owner-run Windows Steam checklist.
 
 ## 14. GitHub Actions
 
@@ -749,7 +790,7 @@ Every Codex pull request reports:
 
 ### Automated commands run
 
-List each exact command and result.
+List each exact command and result, grouped as Codex Cloud/Linux and owner-run Windows. Do not merge the categories or infer one from the other.
 
 ### Focused assertions covered
 

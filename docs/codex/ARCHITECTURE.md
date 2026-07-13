@@ -3,7 +3,7 @@
 **Document role:** Maintained implementation architecture for the 0-90 minute prototype  
 **Repository path:** `docs/codex/ARCHITECTURE.md`  
 **Document status:** Approved architecture  
-**Architecture revision:** 2  
+**Architecture revision:** 3  
 **Last updated:** 2026-07-12  
 **Engine target:** Godot 4.7, GDScript only  
 **Primary design context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md) and [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md)
@@ -108,7 +108,7 @@ Domain and simulation code must not depend on:
 - device wall-clock or calendar time;
 - implicit global gameplay singletons.
 
-A platform adapter may implement the approved `TrustedTimeProvider` interface by calling Steamworks. That dependency remains outside domain and simulation code, is injected by `GameApp`, and is replaced by a fake in headless tests. No other Steam feature is implied by this exception.
+The approved production bridge for the prototype is the pinned GodotSteam 4.20 GDExtension. M06 may use it only to implement `TrustedTimeProvider` at the platform/application boundary. The adapter is injected by `GameApp`, replaced by fakes in automated tests, and never imported by domain or simulation code. No other Steam feature is implied by this exception.
 
 ## 5. Three data bands
 
@@ -352,11 +352,26 @@ TrustedTimeSample:
     diagnostic_code
 ```
 
-Required statuses include at least `TRUSTED` and `UNAVAILABLE`. A stale, contradictory, or failed platform result is not silently promoted to trusted.
+Required statuses include at least `TRUSTED` and `UNAVAILABLE`. A stale, contradictory, disconnected, or failed platform result is never silently promoted to trusted.
 
-The planned Steam production adapter uses Steam server time. The approved binding must define the connection or session checks that make a sample acceptable. The exact binding is selected in milestone `M06` and requires owner approval before adding a GDExtension or native dependency.
+The selected prototype bridge is **GodotSteam GDExtension 4.20**, committed under `addons/godotsteam/`. The development App ID is `480`, stored in `project.godot`. Automatic Steam initialization is disabled in project settings so ordinary imports, GUT runs, and non-platform code do not connect to Steam implicitly.
 
-Tests and Codex Cloud use `FakeTrustedTimeProvider`; they never require Steam.
+M06 owns the production adapter and must:
+
+1. initialize Steam explicitly through the pinned GodotSteam API;
+2. confirm a live server connection with behavior equivalent to Steamworks `ISteamUser::BLoggedOn()` before accepting a sample;
+3. obtain the server epoch with behavior equivalent to `ISteamUtils::GetServerRealTime()`;
+4. normalize the result to integer UTC milliseconds and return it through `TrustedTimeSample`;
+5. return `UNAVAILABLE` rather than a guessed value when initialization, connectivity, or sampling fails;
+6. keep all GodotSteam method names and callbacks inside the platform adapter.
+
+Steamworks references for the required semantics are [ISteamUser::BLoggedOn](https://partner.steamgames.com/doc/api/ISteamUser#BLoggedOn) and [ISteamUtils::GetServerRealTime](https://partner.steamgames.com/doc/api/ISteamUtils#GetServerRealTime).
+
+The exact GDScript wrapper method names must be inspected in the pinned 4.20 package during M06; prompts and implementation must not guess them from another GodotSteam release. The stable domain-facing source ID remains `STEAM_SERVER_TIME`, while binding version and diagnostics remain platform metadata rather than save-schema semantics.
+
+The App ID project setting is the normal development configuration. Do not add `steam_appid.txt` by default. If a specific executable or debugger launch path later proves that the file is required, document that evidence, keep the file local or ignored, and exclude it from shipped builds.
+
+M00 verifies that Godot 4.7 can import the project and load the extension binaries without initializing Steam. Tests and Codex Cloud use `FakeTrustedTimeProvider`; they never require a Steam client, Steam account, or live platform session.
 
 ### 9.4 Persisted time-authority state
 
@@ -983,7 +998,7 @@ The architecture provides the following replaceable seams:
 | Seam | Production implementation | Test implementation |
 |---|---|---|
 | Foreground clock | monotonic process clock adapter | `FakeMonotonicClock` with explicit values |
-| Trusted time | platform-backed `TrustedTimeProvider`; planned Steam server-time adapter | `FakeTrustedTimeProvider` or unavailable source |
+| Trusted time | GodotSteam 4.20-backed `TrustedTimeProvider` implemented in M06 | `FakeTrustedTimeProvider`, fake Steam bridge, or unavailable source |
 | Content | checked-in `ContentCatalog` and `.tres` definitions | minimal fixture catalog/registry |
 | Save storage | `FileSaveStorage` using `user://` | in-memory or temporary-directory storage |
 | Simulation | `SimulationEngine` | same engine with fixture state and trace enabled |
@@ -1028,6 +1043,10 @@ src/
     monotonic_clock.gd
     trusted_time_provider.gd
     trusted_time_sample.gd
+  platform/
+    steam/
+      godot_steam_trusted_time_provider.gd
+      godot_steam_bridge.gd
   tutorial/
     tutorial_coordinator.gd
   presentation/
@@ -1092,7 +1111,8 @@ The following remain deliberately open until a later approved milestone or playt
 - report-history retention count;
 - final save-file naming and number of player slots;
 - final digest/container framing details after M02 implements and tests the smallest useful version;
-- exact Godot-to-Steam binding for the trusted-time adapter, subject to owner approval before adding a dependency;
+- exact GodotSteam 4.20 wrapper method mapping, initialization sequence, callback pumping requirements, and failure diagnostics, to be verified against the pinned addon during M06;
+- replacement of development App ID `480` with Death Idle's production App ID and package configuration before external Steam distribution;
 - commercial-release save codec after profiling realistic state size and Steam Cloud behavior;
 - commercial-release threat model: resilience only, casual-edit deterrence, or server-backed protection for selected outcomes;
 - exact mechanical-tutorial skip behavior, especially whether any future Help-assisted shortcut may execute a normal domain command after explicit confirmation;

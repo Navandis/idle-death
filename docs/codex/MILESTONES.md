@@ -1,25 +1,28 @@
 # Death Idle Prototype Milestones
 
-**Document role:** Proposed Phase 7 implementation sequence and acceptance map for the 0–90 minute prototype  
+**Document role:** Approved implementation sequence and acceptance map for the 0–90 minute prototype  
 **Repository path:** `docs/codex/MILESTONES.md`  
-**Document status:** Phase 7 proposal awaiting owner approval  
-**Milestone-map revision:** 1  
+**Document status:** Phase 7 approved  
+**Milestone-map revision:** 2  
 **Last updated:** 2026-07-12  
 **Primary context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md), [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md), [Architecture](ARCHITECTURE.md), [Data contracts](DATA_AND_CONTENT_CONTRACTS.md), [Testing](TESTING_AND_VALIDATION.md), and [Decisions](DECISIONS.md)
 
 ## 1. Purpose and authority
 
-This file divides the approved prototype architecture and first-session sequence into reviewable Codex tasks. It defines scope and acceptance, not the implementation prompt text. Phase 8 will create the reusable prompt template; Phase 9 will create one versioned milestone prompt at a time after this map is approved.
+This file divides the approved prototype architecture and first-session sequence into reviewable Codex tasks. It defines scope and acceptance, not the implementation prompt text. The owner approved this map in Phase 7. Phase 8 creates the reusable prompt template; Phase 9 creates one versioned milestone prompt at a time.
 
 Use the source hierarchy in `AGENTS.md`. A milestone definition cannot weaken a protected design invariant or accepted decision. When repository state later differs from an assumption here, update this file and record any architecture/design decision before drafting that milestone's prompt.
 
 ## 2. Current repository baseline
 
-At the time of this proposal:
+At Phase 7 approval:
 
 - Godot 4.7, GDScript, the 1920 × 1080 reference viewport, resizing/stretch settings, and a temporary dry-run main scene exist.
-- `AGENTS.md`, project Codex configuration, the two maintained design sources, and the Phase 6 architecture documents are committed.
-- The repository has no approved automated test harness, production game-state model, content registry, simulation, persistence implementation, or gameplay UI.
+- `AGENTS.md`, project Codex configuration, the maintained design sources, and the architecture documents are present in the repository; this approved package supersedes their earlier draft/status wording where applicable.
+- GUT 9.7.1 is committed under `addons/gut/`.
+- GodotSteam GDExtension 4.20 is committed under `addons/godotsteam/`.
+- Development App ID `480` is configured in `project.godot`; automatic Steam initialization is disabled.
+- The repository still has no approved `.gutconfig.json`, test wrappers, initial test suite, production game-state model, content registry, simulation, persistence implementation, or gameplay UI.
 - Existing dry-run assets and scene work are preserved unless a scoped milestone explicitly replaces or integrates them.
 
 ## 3. Milestone rules
@@ -52,11 +55,13 @@ A milestone may be split after implementation begins only when the split preserv
 
 | Gate | Required before | Rule |
 |---|---|---|
-| `GATE-GUT` | M00 merge | Verify GUT 9.7.1 and Godot 4.7 locally and in Codex Cloud before later prompts treat the commands as mandatory. |
+| `GATE-GUT` | M00 merge | Verify the committed GUT 9.7.1 dependency, retained license, `.gutconfig.json`, required Linux and Windows wrappers, Godot 4.7 execution, and real failure exit codes. |
+| `GATE-WINDOWS-HARNESS` | M00 merge | The owner runs `tools/test/run_gut.ps1` on the separate Windows Godot machine and records the result; Codex Cloud cannot satisfy this gate. |
 | `GATE-FIXED-POINT` | M01 merge | Record the centralized scale and tested numeric bounds; do not let subsystems choose different scales. |
 | `GATE-SAVE-SCHEMA` | M02 merge | Freeze schema-version-1 key spelling and representative fixtures before gameplay state depends on it. |
-| `GATE-STEAM-TIME` | M06 prompt/implementation | The owner must approve the exact Godot-to-Steam binding, version, license, and repository footprint. Only trusted server time is authorized; no other Steam feature is implied. |
-| `GATE-PRODUCTION-OFFLINE` | M16 merge | Windows/Steam manual checks must pass in addition to fake-provider automated tests. |
+| `GATE-STEAM-TIME` | M06 prompt/implementation | Satisfied for prompt drafting by `DEC-0024`: use pinned GodotSteam 4.20 and development App ID `480`. M06 must still verify license footprint, wrapper API, explicit initialization, and live Windows behavior. |
+| `GATE-PRODUCTION-OFFLINE` | M16 merge | Fake-provider automation plus the owner-run Windows/GodotSteam connected, unavailable, reconnect, clock-change, and repeated-load checks must pass. |
+| `RELEASE-GATE-STEAM-APP` | Before external Steam Playtest or commercial distribution | Replace development App ID `480` with Death Idle's assigned App ID and validate package ownership, launch-through-Steam behavior, export contents, and absence of development-only App ID aids. |
 | `RELEASE-GATE-SAVE` | Before commercial release, not this prototype map | Profile realistic full-game saves and choose the final codec/threat model under `DEC-0022`. JSON may remain; binary/compression/encryption are not assumed security. |
 
 When trusted time is unavailable, the approved behavior is to grant no guessed closed-session progress, retain pending reconciliation, and continue monotonic foreground production. No milestone may introduce a local-device-time fallback.
@@ -65,24 +70,24 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 
 | ID | Milestone | Definition | Prompt | Implementation | Verification |
 |---|---|---|---|---|---|
-| M00 | Repository, Godot, GUT, and Codex Cloud harness | Proposed | Not drafted | Not started | — |
-| M01 | Deterministic numeric and time-authority foundation | Proposed | Not drafted | Not started | — |
-| M02 | Versioned save codec and atomic storage | Proposed | Not drafted | Not started | — |
-| M03 | Content catalog, canonical IDs, and configurable prototype data | Proposed | Not drafted | Not started | — |
-| M04 | Persistent Reaping simulation vertical slice | Proposed | Not drafted | Not started | — |
-| M05 | Persistent application shell, navigation, and debug access | Proposed | Not drafted | Not started | — |
-| M06 | Steam trusted-time adapter and transactional offline resolution | Proposed | Not drafted | Not started | — |
-| M07 | Dialogue and save-safe tutorial orchestration framework | Proposed | Not drafted | Not started | — |
-| M08 | Opening sequence, scripted four returns, Brand, and first dispatch | Proposed | Not drafted | Not started | — |
-| M09 | Archive, Recollections, and Soulweave horizon | Proposed | Not drafted | Not started | — |
-| M10 | First report, Emergency-to-Standard transition, and Soldier Company | Proposed | Not drafted | Not started | — |
-| M11 | Scribe guarantee, player-driven awakening, and Form comparison | Proposed | Not drafted | Not started | — |
-| M12 | Broken Watch, minor resonance, second tether, and concurrent Reapings | Proposed | Not drafted | Not started | — |
-| M13 | Discovery states, hidden Provisions, and forecast confidence | Proposed | Not drafted | Not started | — |
-| M14 | Larder, Rations, support pressure, and graceful degradation | Proposed | Not drafted | Not started | — |
-| M15 | Regional 10,000 resonance, optional Recollection choice, and objectives | Proposed | Not drafted | Not started | — |
-| M16 | Offline forecast, welcome-back report, and guided-opening completion | Proposed | Not drafted | Not started | — |
-| M17 | Complete 0–90 minute integration, resilience, pacing, and acceptance pass | Proposed | Not drafted | Not started | — |
+| M00 | Repository, Godot, GUT, and Codex Cloud harness | Approved | Not drafted | Not started | — |
+| M01 | Deterministic numeric and time-authority foundation | Approved | Not drafted | Not started | — |
+| M02 | Versioned save codec and atomic storage | Approved | Not drafted | Not started | — |
+| M03 | Content catalog, canonical IDs, and configurable prototype data | Approved | Not drafted | Not started | — |
+| M04 | Persistent Reaping simulation vertical slice | Approved | Not drafted | Not started | — |
+| M05 | Persistent application shell, navigation, and debug access | Approved | Not drafted | Not started | — |
+| M06 | Steam trusted-time adapter and transactional offline resolution | Approved | Not drafted | Not started | — |
+| M07 | Dialogue and save-safe tutorial orchestration framework | Approved | Not drafted | Not started | — |
+| M08 | Opening sequence, scripted four returns, Brand, and first dispatch | Approved | Not drafted | Not started | — |
+| M09 | Archive, Recollections, and Soulweave horizon | Approved | Not drafted | Not started | — |
+| M10 | First report, Emergency-to-Standard transition, and Soldier Company | Approved | Not drafted | Not started | — |
+| M11 | Scribe guarantee, player-driven awakening, and Form comparison | Approved | Not drafted | Not started | — |
+| M12 | Broken Watch, minor resonance, second tether, and concurrent Reapings | Approved | Not drafted | Not started | — |
+| M13 | Discovery states, hidden Provisions, and forecast confidence | Approved | Not drafted | Not started | — |
+| M14 | Larder, Rations, support pressure, and graceful degradation | Approved | Not drafted | Not started | — |
+| M15 | Regional 10,000 resonance, optional Recollection choice, and objectives | Approved | Not drafted | Not started | — |
+| M16 | Offline forecast, welcome-back report, and guided-opening completion | Approved | Not drafted | Not started | — |
+| M17 | Complete 0–90 minute integration, resilience, pacing, and acceptance pass | Approved | Not drafted | Not started | — |
 
 ## 7. Dependency sequence
 
@@ -107,7 +112,7 @@ M00
                                                              └─ M17
 ```
 
-M06 is intentionally implemented early enough to retire the trusted-time/platform risk before the final offline-return UX. M07–M15 can continue using fake trusted-time sources if the owner has not yet authorized the production binding, but M16 cannot merge until M06 and its Windows verification are complete.
+M06 is intentionally implemented early enough to retire the trusted-time/platform risk before the final offline-return UX. The owner has selected GodotSteam 4.20 and App ID `480` for development, so M06 prompt drafting is no longer blocked by dependency choice. M07–M15 may still use fake trusted-time sources, but M16 cannot merge until M06 and its owner-run Windows verification are complete.
 
 ## 8. Changes from the starting hypothesis
 
@@ -126,78 +131,113 @@ The starting M00–M13 hypothesis was useful, but this map makes several deliber
 
 ### M00 — Repository, Godot, GUT, and Codex Cloud harness
 
-**Definition status:** Proposed  
+**Definition status:** Approved  
 **Prompt status:** Not drafted  
 **Implementation status:** Not started  
 **Recommended Codex task size:** Medium; one infrastructure pull request.  
-**Proposed prompt file:** `docs/codex/milestone-prompts/M00-repository-test-harness.md`
+**Planned prompt file:** `docs/codex/milestone-prompts/M00-repository-test-harness.md`
 
 #### Purpose
 
-Establish one repeatable verification path before gameplay code begins.
+Establish one repeatable cross-platform verification path before gameplay code begins.
 
 #### Player or developer outcome
 
-From a clean checkout, a developer or Codex task can import the Godot 4.7 project, run the pinned GDScript test suite headlessly, run a main-scene smoke check, and obtain a meaningful nonzero exit code on failure.
+From a clean checkout, Codex can run the pinned suite in its Linux cloud environment, and the project owner can run the same suite on the separate Windows Godot machine through one PowerShell command. Both receive meaningful exit codes and use the same checked-in configuration.
 
 #### Dependencies
 
 - Approved repository guidance and architecture documents
 - Existing Godot 4.7 dry-run project
+- GUT 9.7.1 already committed under `addons/gut/`
+- GodotSteam 4.20 already committed under `addons/godotsteam/`
+- Development App ID `480` configured with automatic Steam initialization disabled
 
 #### Included scope
 
-- Vendor and pin GUT 9.7.1 under `addons/gut/`, retaining its license.
-- Add `.gutconfig.json`, one passing harness test, shared test support only where immediately needed, and repository-relative commands.
-- Document Windows and Codex Cloud setup, including `godot --version`, clean import, full test, focused test, and smoke commands.
+- Verify and preserve the committed GUT 9.7.1 version and applicable license; do not download or replace it.
+- Verify and document the committed GodotSteam 4.20 footprint and applicable license/notice files; do not initialize Steam or call Steam APIs.
+- Add `.gutconfig.json`, one passing harness test, and only the shared test support immediately required.
+- Create required repository wrappers:
+  - `tools/test/run_gut.sh`;
+  - `tools/test/run_gut.ps1`.
+- Make both wrappers resolve the repository root, locate Godot through explicit argument then `GODOT_BIN` then `PATH`, require Godot 4.7.x, run clean import plus the full GUT suite by default, support documented focused execution, and propagate the real process exit code.
+- Document Codex Cloud setup, Windows setup, import, full test, focused test, smoke checks, and result handoff.
 - Update `.gitignore` for generated test output and logs without ignoring fixtures.
-- Verify the existing dry-run main scene rather than redesigning application architecture in this milestone.
+- Verify the current dry-run main scene rather than redesigning application architecture.
+- Verify that the GodotSteam extension can be present during headless import and GUT runs while automatic initialization remains disabled and no Steam client is required.
 
 #### Explicit non-goals
 
 - Gameplay state, simulation, saves, content definitions, or production UI.
 - GitHub Actions.
-- Steam or another platform SDK.
+- Steam initialization, trusted-time calls, achievements, Steam Cloud, or any M06 behavior.
+- Adding `steam_appid.txt` as a standard prerequisite.
 - Replacing the temporary main scene with `GameApp`.
+- Updating GUT or GodotSteam.
 
 #### Expected files or subsystems
 
 The exact file list remains subject to repository inspection. Expected areas are:
 
-- `addons/gut/` and license
 - `.gutconfig.json`
+- `tools/test/run_gut.sh`
+- `tools/test/run_gut.ps1`
 - `tests/` harness and minimal support
-- `README.md` and `docs/codex/TESTING_AND_VALIDATION.md`
-- Optional repository-relative test wrapper scripts when they reduce Windows/Linux command drift
+- `.gitignore`
+- `README.md`
+- `docs/codex/TESTING_AND_VALIDATION.md`
+- `docs/codex/MILESTONES.md`
+- third-party license/notice documentation only when the committed addon footprint is incomplete or unclear
 
 #### Data and content required
 
-- Pinned GUT version and Godot 4.7 executable contract only.
+- Pinned GUT 9.7.1 and GodotSteam 4.20 metadata
+- Godot 4.7 executable contract
+- Development App ID `480` and disabled automatic initialization as existing configuration only
 
 #### Acceptance criteria
 
-- `godot --headless --path . --import` completes without new parser or resource errors.
-- The documented GUT command passes from the repository root and a deliberately failing local test produces a nonzero process exit.
-- The main-scene smoke command starts and exits without new errors.
+- `tools/test/run_gut.sh` runs from Codex Cloud or Linux and succeeds with Godot 4.7.x.
+- The owner runs `tools/test/run_gut.ps1` on the separate Windows Godot machine and records a passing result before merge.
+- Both wrappers can be invoked from outside the repository root and still locate the project correctly.
+- Both wrappers use the same `.gutconfig.json` and default test directories.
+- The default wrapper path runs headless import and the full GUT suite.
+- A deliberately failing temporary test causes a nonzero wrapper exit in Linux; the failing file is removed before final commit. Windows failure propagation is also verified or explicitly demonstrated with a safe temporary method before merge.
+- A focused-test invocation is documented and works.
+- The configured main scene starts and exits in a headless smoke check without new parser or resource errors.
 - Commands contain no developer-specific absolute paths.
-- Codex Cloud can run the same import and test commands without Steam, a GUI session, or network access during the test phase.
+- GodotSteam remains uninitialized during M00 import and tests; no Steam client, account, network access during the test phase, or `steam_appid.txt` is required.
+- The addon versions and applicable license/notice footprint are documented.
 
 #### Automated verification
 
-- Run the canonical import command.
-- Run the full GUT suite.
+Codex Cloud or Linux:
+
+- Run `tools/test/run_gut.sh`.
+- Run the documented focused-test example.
 - Run the main-scene smoke command.
-- Record `godot --version`.
+- Record the detected Godot version.
+- Prove nonzero failure propagation with a temporary failing test, then remove it and rerun cleanly.
+
+Owner-run Windows:
+
+- Run `tools/test/run_gut.ps1`.
+- Record the Godot version and final exit result in the pull request.
 
 #### Manual verification
 
-- Open the project in the Windows Godot 4.7 editor, let resources import, and run the current dry-run scene once.
+On the Windows Godot machine:
+
+- Open the project in Godot 4.7, let resources and GDExtensions import, and confirm no new errors.
+- Run the current dry-run scene once.
+- Confirm Steam is not initialized merely by importing or running GUT.
 
 #### Demonstration path
 
-- Clone or reset to a clean working tree.
-- Run import, tests, and smoke commands.
-- Show the passing test summary and clean `git status` apart from intended changes.
+- Clone or reset to a clean working tree in Codex Cloud and run the shell wrapper.
+- Pull the same branch on the Windows Godot machine and run the PowerShell wrapper.
+- Show matching test discovery, passing summaries, real exit codes, and a clean `git status` apart from intended changes.
 
 #### Save/load expectations
 
@@ -205,12 +245,17 @@ No gameplay save format is introduced. Test fixtures must not write persistent u
 
 #### Documentation updates
 
-- `README.md`, `TESTING_AND_VALIDATION.md`, and `MILESTONES.md`.
+- `README.md`
+- `TESTING_AND_VALIDATION.md`
+- `IMPLEMENTATION_RULES.md` only if the realized wrapper interface differs from the approved contract
+- `MILESTONES.md`
 
 #### Known risks
 
-- GUT 9.7.1 command-line behavior may differ from documentation and must be verified against the vendored version.
-- Codex Cloud setup may need a pinned Godot installation step.
+- Codex Cloud setup may need a pinned Godot installation step outside the repository.
+- GUT 9.7.1 CLI behavior must be verified against the committed files rather than assumed from another version.
+- GodotSteam native libraries may expose environment-specific load failures even when Steam is not initialized.
+- The Windows gate depends on timely owner execution and cannot be completed by Codex Cloud.
 
 #### Follow-on dependencies
 
@@ -220,11 +265,11 @@ No gameplay save format is introduced. Test fixtures must not write persistent u
 
 ### M01 — Deterministic numeric and time-authority foundation
 
-**Definition status:** Proposed  
+**Definition status:** Approved  
 **Prompt status:** Not drafted  
 **Implementation status:** Not started  
 **Recommended Codex task size:** Medium; one pure-foundation pull request.  
-**Proposed prompt file:** `docs/codex/milestone-prompts/M01-deterministic-time-foundation.md`
+**Planned prompt file:** `docs/codex/milestone-prompts/M01-deterministic-time-foundation.md`
 
 #### Purpose
 
@@ -317,11 +362,11 @@ State classes expose explicit primitive conversion hooks where useful, but no fi
 
 ### M02 — Versioned save codec and atomic storage
 
-**Definition status:** Proposed  
+**Definition status:** Approved  
 **Prompt status:** Not drafted  
 **Implementation status:** Not started  
 **Recommended Codex task size:** Medium; one persistence pull request.  
-**Proposed prompt file:** `docs/codex/milestone-prompts/M02-save-codec-atomic-storage.md`
+**Planned prompt file:** `docs/codex/milestone-prompts/M02-save-codec-atomic-storage.md`
 
 #### Purpose
 
@@ -417,11 +462,11 @@ This milestone establishes schema version 1, codec ID, transaction rules, and ba
 
 ### M03 — Content catalog, canonical IDs, and configurable prototype data
 
-**Definition status:** Proposed  
+**Definition status:** Approved  
 **Prompt status:** Not drafted  
 **Implementation status:** Not started  
 **Recommended Codex task size:** Medium; one content-foundation pull request.  
-**Proposed prompt file:** `docs/codex/milestone-prompts/M03-content-catalog-prototype-data.md`
+**Planned prompt file:** `docs/codex/milestone-prompts/M03-content-catalog-prototype-data.md`
 
 #### Purpose
 
@@ -511,11 +556,11 @@ Saves reference definitions only by canonical ID and record content revision. Un
 
 ### M04 — Persistent Reaping simulation vertical slice
 
-**Definition status:** Proposed  
+**Definition status:** Approved  
 **Prompt status:** Not drafted  
 **Implementation status:** Not started  
 **Recommended Codex task size:** Medium-large but bounded to one operation and three core streams.  
-**Proposed prompt file:** `docs/codex/milestone-prompts/M04-persistent-reaping-simulation.md`
+**Planned prompt file:** `docs/codex/milestone-prompts/M04-persistent-reaping-simulation.md`
 
 #### Purpose
 
@@ -612,11 +657,11 @@ Schema version 1 gains Reaping, Threshold, inventory, progression, and report fi
 
 ### M05 — Persistent application shell, navigation, and debug access
 
-**Definition status:** Proposed  
+**Definition status:** Approved  
 **Prompt status:** Not drafted  
 **Implementation status:** Not started  
 **Recommended Codex task size:** Medium; one application-shell pull request.  
-**Proposed prompt file:** `docs/codex/milestone-prompts/M05-application-shell-navigation-debug.md`
+**Planned prompt file:** `docs/codex/milestone-prompts/M05-application-shell-navigation-debug.md`
 
 #### Purpose
 
@@ -710,76 +755,114 @@ Startup and shutdown use M02 storage. Current screen, hover, and animation state
 
 ### M06 — Steam trusted-time adapter and transactional offline resolution
 
-**Definition status:** Proposed  
+**Definition status:** Approved  
 **Prompt status:** Not drafted  
 **Implementation status:** Not started  
-**Recommended Codex task size:** Medium with a mandatory owner dependency gate and Windows manual check.  
-**Proposed prompt file:** `docs/codex/milestone-prompts/M06-steam-trusted-time-adapter.md`
+**Recommended Codex task size:** Medium with mandatory owner-run Windows integration checks.  
+**Planned prompt file:** `docs/codex/milestone-prompts/M06-steam-trusted-time-adapter.md`
 
 #### Purpose
 
-Retire the external-time dependency risk early and prove that closed-session rewards do not depend on the local device clock.
+Implement the selected Steam-backed trusted-time boundary and prove safe transactional closed-session reconciliation without allowing platform code into simulation.
 
 #### Player or developer outcome
 
-On Windows through the approved Steam binding, the application obtains Steam server time only with a live connection, resolves one pending closed-session interval transactionally, ignores local clock changes, and defers rewards safely when trust is unavailable. Headless tests continue to use a fake provider.
+On Windows through the pinned GodotSteam 4.20 bridge, the application accepts Steam server time only when an appropriate live connection exists, resolves one pending closed-session interval transactionally, ignores local clock changes, and defers rewards safely when trust is unavailable. Headless tests continue to use fakes.
 
 #### Dependencies
 
+- M00
 - M05
-- Owner approval of the exact Godot-to-Steam dependency and version
+- `DEC-0021`, `DEC-0023`, and `DEC-0024`
+- GodotSteam 4.20 already committed under `addons/godotsteam/`
+- Development App ID `480` already configured with automatic initialization disabled
 
 #### Included scope
 
-- Add only the approved Steam binding files, license/attribution, and build/import configuration required for trusted time.
-- Implement the production `TrustedTimeProvider` adapter using Steam server time and live-connection status.
-- Inject the adapter at the application/platform boundary; keep simulation, schema meaning, and domain services platform-independent.
-- Integrate startup, focus regain, and graceful quit with working-clone offline resolution and atomic commit.
-- Expose minimal diagnostic/pending status in the debug UI.
+- Inspect the pinned GodotSteam 4.20 API and document the exact GDScript methods and callbacks used; do not guess from another release.
+- Implement a narrow project-owned Steam bridge and `TrustedTimeProvider` adapter at the platform/application boundary.
+- Initialize Steam explicitly through that adapter; keep project-wide automatic initialization disabled.
+- Require live-connection behavior equivalent to `ISteamUser::BLoggedOn()` before accepting a sample.
+- Obtain server epoch behavior equivalent to `ISteamUtils::GetServerRealTime()` and normalize it to integer milliseconds.
+- Keep domain, simulation, save-schema meaning, and fake-provider tests platform-independent.
+- Integrate startup, controlled reconnect, focus regain, and graceful quit with working-clone offline resolution and atomic commit.
+- Expose minimal diagnostic and pending status in the debug UI.
 - Implement unavailable, reconnect, stale/backward sample, cap, and repeated-load behavior.
-- Document the exact Windows/Steam manual validation procedure and the cloud fake-provider path.
+- Add a fake Steam bridge so adapter logic can be automated without Steam.
+- Document the exact owner-run Windows validation procedure and the Codex Cloud fake-provider path.
+- Verify the applicable GodotSteam license/notice footprint and record version `4.20` in third-party documentation.
 
 #### Explicit non-goals
 
-- Achievements, Steam Cloud, DRM, depots, rich presence, leaderboards, Workshop, or other Steam APIs.
+- Achievements, Steam Cloud, DRM, depots, rich presence, leaderboards, Workshop, networking, or other Steam APIs.
 - Custom backend or always-online requirement.
 - Player-facing welcome-back presentation; M16 owns that UX.
+- Death Idle's production App ID, package ownership, external Playtest distribution, or launch-through-Steam validation.
+- Adding `steam_appid.txt` by default.
 - Claims of protection against a patched client or spoofed platform calls.
 
 #### Expected files or subsystems
 
 The exact file list remains subject to repository inspection. Expected areas are:
 
-- Approved third-party/native dependency and license files
-- Steam trusted-time adapter under a platform/application boundary
+- Platform Steam bridge and trusted-time adapter
 - Composition and lifecycle wiring
 - Debug trusted-time status
-- Fake-provider automated tests and Windows manual-test documentation
+- Fake provider and fake bridge tests
+- Persistence/offline transaction integration tests
+- Windows manual-test documentation
+- Third-party notice or dependency documentation when needed
 
 #### Data and content required
 
-- Trusted source ID, sample status/diagnostic codes, persisted anchor fields, configurable offline cap that supports at least eight hours.
+- Stable source ID `STEAM_SERVER_TIME`
+- Trusted sample status and diagnostic codes
+- Persisted anchor fields
+- Configurable offline cap supporting at least eight hours
+- Existing development App ID `480` configuration
 
 #### Acceptance criteria
 
-- No authoritative offline calculation reads the device wall clock, timezone, calendar, registry, or file timestamps.
-- A trusted sample is accepted only when the Steam client reports a live server connection.
+- No authoritative offline calculation reads the device wall clock, timezone, calendar, registry, file timestamps, or manually supplied time.
+- The adapter uses the pinned GodotSteam 4.20 API and records the exact wrapper methods used.
+- Steam is initialized explicitly by the adapter; automatic project initialization remains disabled.
+- A trusted sample is accepted only when initialization succeeds and the bridge reports live-connection semantics equivalent to `ISteamUser::BLoggedOn()`.
+- Accepted server time uses semantics equivalent to `ISteamUtils::GetServerRealTime()` and is normalized deterministically.
 - Without a trusted sample, the last committed save loads, foreground production continues, and no guessed closed-session reward is granted.
 - On reconnect, already-credited foreground time is subtracted and the remaining eligible interval commits exactly once.
-- Changing Windows date/time or timezone does not change credited progress.
-- A backward, stale, contradictory, or failed sample moves no anchor and grants no progress.
-- Codex Cloud and unit tests require neither Steam nor the production dependency at runtime.
+- Changing Windows date, time, timezone, or daylight-saving configuration does not change credited progress.
+- A backward, stale, contradictory, disconnected, or failed sample moves no anchor and grants no progress.
+- Codex Cloud and unit tests require neither Steam nor a live platform session.
+- Development testing works from the project App ID setting without a committed `steam_appid.txt`. If one specific launch path requires a local file, that exception is documented, ignored, and excluded from exports.
 
 #### Automated verification
 
+Codex Cloud/Linux:
+
 - Provider-contract tests with fake samples.
+- Adapter tests against a fake Steam bridge covering init, connected, disconnected, sample failure, and method-result normalization.
 - Interrupted offline transaction tests.
 - Unavailable/reconnect/rollback/cap/duplicate tests.
-- Build/import tests proving non-Steam headless paths remain usable.
+- Headless import and GUT checks proving Steam is not initialized or required.
+
+Owner-run Windows automation:
+
+- Run `tools/test/run_gut.ps1` before the live checklist.
 
 #### Manual verification
 
-- Run the Windows Steam checks in `TESTING_AND_VALIDATION.md`, including connected, Offline Mode, reconnect, local-clock change, and repeated-load cases. Record the exact binding/version.
+On the Windows Godot machine, run the M06 checklist in `TESTING_AND_VALIDATION.md`:
+
+- GodotSteam load under Godot 4.7;
+- App ID `480` initialization;
+- connected sample;
+- disconnected or Offline Mode behavior;
+- reconnect and exactly-once reconciliation;
+- local clock and timezone changes;
+- repeated loads;
+- explicit confirmation that no standard `steam_appid.txt` prerequisite was used.
+
+Record Godot version, GodotSteam version, App ID, connection state, and exact results.
 
 #### Demonstration path
 
@@ -787,6 +870,7 @@ The exact file list remains subject to repository inspection. Expected areas are
 - Close and relaunch after a short interval with Steam connected; show one credited result.
 - Repeat with Steam unavailable; show pending state and no closed credit.
 - Reconnect, reconcile once, then reload and show zero duplicate credit.
+- Change the local Windows clock and show no change in credited time.
 
 #### Save/load expectations
 
@@ -794,14 +878,23 @@ The trusted anchor, simulation time at anchor, foreground credited since anchor,
 
 #### Documentation updates
 
-- `AGENTS.md`, `ARCHITECTURE.md`, `IMPLEMENTATION_RULES.md`, `TESTING_AND_VALIDATION.md`, `DECISIONS.md` if the selected dependency changes the contract, third-party notices, and `MILESTONES.md`.
+- `AGENTS.md`
+- `ARCHITECTURE.md`
+- `DATA_AND_CONTENT_CONTRACTS.md`
+- `IMPLEMENTATION_RULES.md`
+- `TESTING_AND_VALIDATION.md`
+- `DECISIONS.md` only if the realized API requires a semantic change
+- third-party notices
+- `MILESTONES.md`
 
 #### Known risks
 
-- Third-party Godot/Steam compatibility and licensing.
-- Steam Offline Mode behavior.
+- Native library loading differences between Windows and Linux.
+- GodotSteam wrapper behavior or callback requirements differing from assumptions.
+- Steam Offline Mode and reconnect behavior.
 - Platform calls accidentally leaking into domain code.
 - Manual validation cannot be completed by Codex Cloud alone.
+- App ID `480` does not prove Death Idle package or distribution configuration.
 
 #### Follow-on dependencies
 
@@ -811,11 +904,11 @@ The trusted anchor, simulation time at anchor, foreground credited since anchor,
 
 ### M07 — Dialogue and save-safe tutorial orchestration framework
 
-**Definition status:** Proposed  
+**Definition status:** Approved  
 **Prompt status:** Not drafted  
 **Implementation status:** Not started  
 **Recommended Codex task size:** Medium; one orchestration-framework pull request.  
-**Proposed prompt file:** `docs/codex/milestone-prompts/M07-dialogue-tutorial-framework.md`
+**Planned prompt file:** `docs/codex/milestone-prompts/M07-dialogue-tutorial-framework.md`
 
 #### Purpose
 
@@ -907,11 +1000,11 @@ Tutorial, story checkpoint, skip/help, and presented-notice fields persist. Tran
 
 ### M08 — Opening sequence, scripted four returns, Brand, and first dispatch
 
-**Definition status:** Proposed  
+**Definition status:** Approved  
 **Prompt status:** Not drafted  
 **Implementation status:** Not started  
 **Recommended Codex task size:** Medium-large but limited to Beats 1–4.  
-**Proposed prompt file:** `docs/codex/milestone-prompts/M08-opening-first-dispatch.md`
+**Planned prompt file:** `docs/codex/milestone-prompts/M08-opening-first-dispatch.md`
 
 #### Purpose
 
@@ -1009,11 +1102,11 @@ Checkpoint after every tutorial transition, the four-return transaction, Brand c
 
 ### M09 — Archive, Recollections, and Soulweave horizon
 
-**Definition status:** Proposed  
+**Definition status:** Approved  
 **Prompt status:** Not drafted  
 **Implementation status:** Not started  
 **Recommended Codex task size:** Medium; one Beat-5 pull request.  
-**Proposed prompt file:** `docs/codex/milestone-prompts/M09-archive-recollections-soulweave.md`
+**Planned prompt file:** `docs/codex/milestone-prompts/M09-archive-recollections-soulweave.md`
 
 #### Purpose
 
@@ -1106,11 +1199,11 @@ Checkpoint after Archive restoration, Recollection purchase, tutorial transition
 
 ### M10 — First report, Emergency-to-Standard transition, and Soldier Company
 
-**Definition status:** Proposed  
+**Definition status:** Approved  
 **Prompt status:** Not drafted  
 **Implementation status:** Not started  
 **Recommended Codex task size:** Medium-large but bounded to Beat 6 and one Retinue.  
-**Proposed prompt file:** `docs/codex/milestone-prompts/M10-first-report-soldier-company.md`
+**Planned prompt file:** `docs/codex/milestone-prompts/M10-first-report-soldier-company.md`
 
 #### Purpose
 
@@ -1205,11 +1298,11 @@ Checkpoint at milestone, Writ transition, guarantee, report snapshot/archive, Re
 
 ### M11 — Scribe guarantee, player-driven awakening, and Form comparison
 
-**Definition status:** Proposed  
+**Definition status:** Approved  
 **Prompt status:** Not drafted  
 **Implementation status:** Not started  
 **Recommended Codex task size:** Small-medium; one Beat-7 pull request.  
-**Proposed prompt file:** `docs/codex/milestone-prompts/M11-scribe-awakening-form-comparison.md`
+**Planned prompt file:** `docs/codex/milestone-prompts/M11-scribe-awakening-form-comparison.md`
 
 #### Purpose
 
@@ -1302,11 +1395,11 @@ Checkpoint at milestone/top-ups, protection changes, awakening, tutorial present
 
 ### M12 — Broken Watch, minor resonance, second tether, and concurrent Reapings
 
-**Definition status:** Proposed  
+**Definition status:** Approved  
 **Prompt status:** Not drafted  
 **Implementation status:** Not started  
 **Recommended Codex task size:** Medium; one Beat-8 pull request.  
-**Proposed prompt file:** `docs/codex/milestone-prompts/M12-broken-watch-second-tether.md`
+**Planned prompt file:** `docs/codex/milestone-prompts/M12-broken-watch-second-tether.md`
 
 #### Purpose
 
@@ -1401,11 +1494,11 @@ Checkpoint at milestone/resonance, Threshold knowledge/availability, tether gran
 
 ### M13 — Discovery states, hidden Provisions, and forecast confidence
 
-**Definition status:** Proposed  
+**Definition status:** Approved  
 **Prompt status:** Not drafted  
 **Implementation status:** Not started  
 **Recommended Codex task size:** Medium; one Beat-9 pull request.  
-**Proposed prompt file:** `docs/codex/milestone-prompts/M13-discovery-provisions-forecasts.md`
+**Planned prompt file:** `docs/codex/milestone-prompts/M13-discovery-provisions-forecasts.md`
 
 #### Purpose
 
@@ -1498,11 +1591,11 @@ Checkpoint on discovery state transitions and tutorial progression; hidden resou
 
 ### M14 — Larder, Rations, support pressure, and graceful degradation
 
-**Definition status:** Proposed  
+**Definition status:** Approved  
 **Prompt status:** Not drafted  
 **Implementation status:** Not started  
 **Recommended Codex task size:** Medium-large but bounded to one Hall, one recipe, one Store, and one consumer.  
-**Proposed prompt file:** `docs/codex/milestone-prompts/M14-larder-rations-support.md`
+**Planned prompt file:** `docs/codex/milestone-prompts/M14-larder-rations-support.md`
 
 #### Purpose
 
@@ -1598,11 +1691,11 @@ Checkpoint at guarantee, Hall restoration/activation/target changes, support tra
 
 ### M15 — Regional 10,000 resonance, optional Recollection choice, and objectives
 
-**Definition status:** Proposed  
+**Definition status:** Approved  
 **Prompt status:** Not drafted  
 **Implementation status:** Not started  
 **Recommended Codex task size:** Small-medium; one Beat-11 pull request.  
-**Proposed prompt file:** `docs/codex/milestone-prompts/M15-second-resonance-recollection-choice.md`
+**Planned prompt file:** `docs/codex/milestone-prompts/M15-second-resonance-recollection-choice.md`
 
 #### Purpose
 
@@ -1694,11 +1787,11 @@ Checkpoint at milestone/resonance/reward, choice availability, purchase, objecti
 
 ### M16 — Offline forecast, welcome-back report, and guided-opening completion
 
-**Definition status:** Proposed  
+**Definition status:** Approved  
 **Prompt status:** Not drafted  
 **Implementation status:** Not started  
 **Recommended Codex task size:** Medium; one Beat-12/offline-UX pull request.  
-**Proposed prompt file:** `docs/codex/milestone-prompts/M16-offline-return-welcome-back.md`
+**Planned prompt file:** `docs/codex/milestone-prompts/M16-offline-return-welcome-back.md`
 
 #### Purpose
 
@@ -1718,22 +1811,23 @@ The player can view one-hour and eight-hour forecasts, close and return through 
 - Author `TUT_13_COMPLETE` and closing Eustace presentation.
 - Complete forecast UI for one-hour/eight-hour horizons, segment summaries, support degradation, milestones, and end state.
 - Implement welcome-back report creation from the committed offline transaction, bounded report history, archive/dismiss behavior, and changed-estimate summaries.
-- Implement player-facing trusted-time unavailable/pending/reconciled states without exposing technical secrets or guessing progress.
-- Ensure the actual committed return and unchanged-state forecast use the same engine/content.
-- Expose three objective horizons and Settled Passage explanatory tooltip.
-- Complete normal guided-flow exit when the forecast is shown/opened or dismissed as specified.
+- Implement player-facing trusted-time unavailable, pending, and reconciled states without exposing technical secrets or guessing progress.
+- Ensure the actual committed return and unchanged-state forecast use the same engine and content.
+- Expose three objective horizons and the Settled Passage explanatory tooltip.
+- Complete normal guided-flow exit when the forecast is shown, opened, or dismissed as specified.
 
 #### Explicit non-goals
 
 - Steam Cloud, achievements, release packaging, final offline cap, full Codex analytics, or backend authority.
 - Claim buttons for already-earned output.
 - Full-game Settled Passage tutorial before actual settlement.
+- Claiming Death Idle's production Steam configuration is validated from App ID `480`.
 
 #### Expected files or subsystems
 
 The exact file list remains subject to repository inspection. Expected areas are:
 
-- Forecast/offline-return screens and view models
+- Forecast and offline-return screens and view models
 - Report history/archive and welcome-back records
 - Trusted-time status presentation
 - Tutorial closing content
@@ -1741,44 +1835,66 @@ The exact file list remains subject to repository inspection. Expected areas are
 
 #### Data and content required
 
-- One-hour/eight-hour horizons, report-history limit, offline cap supporting eight hours, trusted-time player-facing status text, and objective metadata.
+- One-hour and eight-hour horizons
+- Report-history limit
+- Offline cap supporting eight hours
+- Trusted-time player-facing status text
+- Objective metadata
 
 #### Acceptance criteria
 
 - Forecasting mutates only a clone and does not create saves, reports, tutorial progress, or inventory gains.
-- Under unchanged state/content, actual trusted offline resolution matches the eight-hour forecast exactly for authoritative values.
+- Under unchanged state and content, actual trusted offline resolution matches the eight-hour forecast exactly for authoritative values.
 - Offline gains are committed before the welcome-back report is shown; dismissing it changes no inventory.
 - Unavailable trusted time shows a pending state, grants no guessed progress, permits foreground play, and later reconciles once.
 - Report history survives save/load and the same offline transaction is never reported or credited twice.
 - Opening or dismissing the required forecast transitions the tutorial to `TUT_13_COMPLETE` while both operations continue.
 - The screen explains post-depletion and milestone segments clearly enough for manual comprehension checks.
+- Automated equivalence tests use the fake provider and do not depend on Steam.
+- The owner-run Windows proof uses the M06 GodotSteam adapter and App ID `480`, and is labelled an internal technical proof rather than production App-ID validation.
 
 #### Automated verification
 
-- Forecast non-mutation and equivalence.
-- Offline transaction/report duplicate prevention.
-- Unavailable/reconnect presentation-state integration.
+Codex Cloud/Linux:
+
+- Forecast non-mutation and equivalence with controlled fake trusted-time samples.
+- Offline transaction and report duplicate prevention.
+- Unavailable and reconnect presentation-state integration.
 - Report clear/history save tests.
 - Tutorial completion and objective-state tests.
+- Full `tools/test/run_gut.sh` run.
+
+Owner-run Windows automation:
+
+- Full `tools/test/run_gut.ps1` run.
 
 #### Manual verification
 
-- Run connected and unavailable trusted-time flows; compare an eight-hour forecast to a controlled fake-provider result; on Windows repeat the short real Steam return; open/dismiss reports and reload.
+On the Windows Godot machine:
+
+- Run connected and unavailable trusted-time flows through the live GodotSteam adapter.
+- Compare an eight-hour forecast to a controlled fake-provider result.
+- Repeat a short real Steam return with App ID `480`.
+- Open and dismiss reports, reload, and verify no duplicate result.
+- Record clearly that Death Idle's own App ID and package configuration remain unverified.
 
 #### Demonstration path
 
 - View the eight-hour forecast.
-- Close/relaunch through a trusted sample and show already-banked segmented gains.
-- Repeat with trusted time unavailable and show pending state/foreground continuation.
+- Close and relaunch through a trusted sample and show already-banked segmented gains.
+- Repeat with trusted time unavailable and show pending state plus foreground continuation.
 - Reconnect, reconcile once, and complete guidance.
 
 #### Save/load expectations
 
-Before and after offline transaction, after report snapshot/archive/dismiss, trusted-status transitions, forecast-shown tutorial flag, and `TUT_13_COMPLETE`.
+Create checkpoints before and after the offline transaction, after report snapshot/archive/dismiss, at trusted-status transitions, after the forecast-shown tutorial flag, and at `TUT_13_COMPLETE`.
 
 #### Documentation updates
 
-- `TESTING_AND_VALIDATION.md`, content/data contracts for statuses, source-of-truth only for approved UX changes, and `MILESTONES.md`.
+- `TESTING_AND_VALIDATION.md`
+- content/data contracts for statuses
+- source of truth only for approved UX changes
+- `MILESTONES.md`
 
 #### Known risks
 
@@ -1786,6 +1902,7 @@ Before and after offline transaction, after report snapshot/archive/dismiss, tru
 - Forecast disclosure leaking unknown channels.
 - Report history growth.
 - Differences between fake and real Steam lifecycle behavior.
+- App ID `480` masking a later production package/configuration issue.
 
 #### Follow-on dependencies
 
@@ -1795,11 +1912,11 @@ Before and after offline transaction, after report snapshot/archive/dismiss, tru
 
 ### M17 — Complete 0–90 minute integration, resilience, pacing, and acceptance pass
 
-**Definition status:** Proposed  
+**Definition status:** Approved  
 **Prompt status:** Not drafted  
 **Implementation status:** Not started  
 **Recommended Codex task size:** Medium-large acceptance pass with no new major subsystem; split only when defects are independently reviewable.  
-**Proposed prompt file:** `docs/codex/milestone-prompts/M17-prototype-integration-acceptance.md`
+**Planned prompt file:** `docs/codex/milestone-prompts/M17-prototype-integration-acceptance.md`
 
 #### Purpose
 

@@ -3,7 +3,7 @@
 **Document role:** Detailed engineering conventions for Godot 4.7 and GDScript implementation  
 **Repository path:** `docs/codex/IMPLEMENTATION_RULES.md`  
 **Document status:** Approved engineering rules  
-**Rules revision:** 2  
+**Rules revision:** 3  
 **Last updated:** 2026-07-12  
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)  
 **Data companion:** [DATA_AND_CONTENT_CONTRACTS.md](DATA_AND_CONTENT_CONTRACTS.md)
@@ -300,7 +300,7 @@ Rules:
 - apply the configured offline cap after deriving the non-negative uncredited gap;
 - update the trusted anchor and reset credited-foreground accounting only in the same successful save transaction that commits the offline result.
 
-The exact Steam binding belongs in the platform adapter milestone. Headless tests use a fake source.
+The approved binding is GodotSteam 4.20 under `addons/godotsteam/`. Only M06 may call it, and all wrapper-specific methods remain inside the platform adapter. Headless tests use fake providers or a fake Steam bridge and never initialize Steam.
 
 ### 10.5 No frame-dependent authority
 
@@ -610,6 +610,13 @@ Minimum expectations for changed core code:
 - exactly-once tests for milestone or guarantee changes;
 - a manual flow when presentation changes.
 
+After M00, the canonical automated entry points are:
+
+- `tools/test/run_gut.sh` in Codex Cloud, Linux, and later Linux CI;
+- `tools/test/run_gut.ps1` on the owner's Windows Godot machine and later Windows CI.
+
+Both wrappers use the same `.gutconfig.json`, validate Godot 4.7.x, and propagate the real exit code. Do not replace them with private machine commands in milestone documentation. A Codex final response distinguishes cloud results, owner-run Windows results, manual editor results, and Steam results. Unperformed checks remain pending rather than passed.
+
 Do not use real sleeps to test simulation time. Advance a fake clock or pass elapsed milliseconds directly.
 
 Tests should use small explicit fixture values that let a junior reviewer calculate expected results by hand.
@@ -626,7 +633,7 @@ Do not add a plugin or library without:
 - a removal or upgrade path;
 - explicit task scope.
 
-The current recommended test dependency is GUT 9.7.1 for Godot 4.7.x, to be added only in the approved test-harness milestone.
+The repository already pins GUT 9.7.1 for Godot 4.7.x and GodotSteam 4.20. M00 verifies GUT, its retained license, and both test wrappers. M06 alone may implement behavior through GodotSteam. Do not use either add-on's updater or download a floating latest release during tests or ordinary implementation work.
 
 Do not use a dependency to solve a small problem that can be implemented clearly in a few project-owned scripts.
 
@@ -647,8 +654,9 @@ Two Reapings, one Hall, report aggregation, and normal UI animation should be tr
 
 - Do not store secrets, tokens, platform credentials, or private keys in the repository or save file.
 - Do not add network calls to domain or simulation code.
-- The only approved prototype storefront exception is the narrow trusted-time adapter defined by `DEC-0021`; its exact Godot binding must be approved in M06 before adding a GDExtension or native library.
-- The exact Godot-to-Steam dependency requires explicit owner approval before implementation.
+- The only approved prototype storefront exception is the narrow trusted-time adapter defined by `DEC-0021` and implemented through the owner-approved GodotSteam 4.20 dependency in `DEC-0024`.
+- Keep automatic Steam initialization disabled outside the M06 adapter. M00 and ordinary GUT runs must not require a Steam client or account.
+- Development App ID `480` belongs to project configuration, not domain state. Do not add `steam_appid.txt` unless a verified launch path requires a local ignored copy, and never ship it.
 - Keep save schema, simulation, and time-accounting contracts independent of Steamworks; inject the platform adapter at the application boundary.
 - Do not add DRM, cloud saves, achievements, depots, unrelated Steam APIs, or a multi-store abstraction without an approved later milestone.
 - Distinguish corruption resilience, casual-edit deterrence, and server-backed authority in code comments and documentation.
