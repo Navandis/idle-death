@@ -2,8 +2,8 @@
 
 **Document role:** Reusable authoring template for one bounded Codex implementation milestone  
 **Repository path:** `docs/codex/PROMPT_TEMPLATE.md`  
-**Document status:** Phase 8 draft awaiting owner approval  
-**Template revision:** 1  
+**Document status:** Phase 8 revision 2 draft awaiting owner approval  
+**Template revision:** 2  
 **Last updated:** 2026-07-13  
 **Companion documents:** [Milestones](MILESTONES.md), [Architecture](ARCHITECTURE.md), [Data and content contracts](DATA_AND_CONTENT_CONTRACTS.md), [Implementation rules](IMPLEMENTATION_RULES.md), [Testing and validation](TESTING_AND_VALIDATION.md), [Decisions](DECISIONS.md), [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md), and [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md)
 
@@ -37,6 +37,28 @@ Before drafting a milestone prompt:
 10. Update the prompt version and date whenever an approved prompt changes materially.
 
 Once implementation has started, do not silently rewrite the prompt. A material change requires a new prompt version, an explanation of what changed, and any necessary update to `MILESTONES.md` or `DECISIONS.md`.
+
+### 2.1 Prompt authorship boundary
+
+Milestone prompts are drafted through the project planning workflow, reviewed by the project owner, and explicitly approved before execution. The normal implementation Codex task executes that approved prompt. It does not author, materially rewrite, broaden, or replace its own prompt, and it does not create a future milestone prompt as part of implementation work.
+
+Codex may update milestone status or other documentation only when the approved implementation prompt explicitly includes that update. Documentation maintenance does not authorize Codex to redefine milestone scope, acceptance criteria, owner gates, design requirements, or architecture decisions.
+
+If implementation exposes a material prompt defect, contradiction, or missing decision, Codex must stop the affected work and report it. The planning workflow then produces a new prompt version for owner approval. Codex may describe a proposed clarification in its handoff, but it must not silently edit the prompt to make the task easier or to legitimize work already performed.
+
+A separate owner-authorized prompt-authoring task may ask Codex to help inspect repository facts or draft text, but that is not the default Death Idle implementation workflow and does not make Codex the approver of its own instructions.
+
+### 2.2 Owner verification evidence
+
+Owner-run Windows, editor, visual, audio, functional, A/B, and Steam checks use the following evidence policy:
+
+- Every owner-run check marked `Merge gate: Yes` requires an explicit owner result before merge. Silence or the passage of time is not evidence that the check was run or passed.
+- A non-merge-gate exploratory check may proceed without a formal result. In that case, record only `No blocking issue reported`; do not record `Passed`.
+- The owner does not need to edit a repository Markdown file manually for each validation cycle. A pull-request comment or another explicit project-owner message is sufficient evidence.
+- The minimum useful confirmation states the tested commit or branch, `PASS` or `FAIL`, the checks performed, and the date. Example: `Owner verification: PASS - commit abc1234 - Windows GUT and M00 manual smoke flow - 2026-07-13.`
+- Until explicit evidence exists, Codex and repository status documents must use `Pending owner verification` and keep milestone verification `Partial` when any pending item is a merge gate.
+- After explicit owner confirmation and merge, `MILESTONES.md` may be synchronized by the next planning package or a scoped documentation update. The owner is not required to hand-edit the file merely to communicate the result.
+- A reported failure returns to troubleshooting and triage. The planning workflow decides whether the correct response is a follow-up Codex fix prompt, more diagnostics, a prompt revision, or a design decision.
 
 ## 3. Placeholder and identifier rules
 
@@ -87,8 +109,9 @@ During implementation:
 - Add or update the tests needed to prove the behavior.
 - Run all Codex-executable verification listed in this prompt.
 - State honestly which owner-run Windows, visual, audio, or Steam checks remain pending.
+- Do not create, rewrite, or broaden the current milestone prompt or any future milestone prompt. Report a material prompt defect and wait for an owner-approved revision.
 
-Do not describe the milestone as complete when an acceptance criterion is failed, blocked, or unverified. A pull request may be ready for owner testing while verification remains `Partial`, but a listed merge gate must pass before merge.
+Do not describe the milestone as complete when an acceptance criterion is failed, blocked, or unverified. A pull request may be ready for owner testing while verification remains `Partial`, but a listed merge gate must receive explicit passing evidence before merge. Owner silence is not a passing result.
 
 ## Objective
 
@@ -285,7 +308,8 @@ Each criterion must be binary and observable. Map every criterion to evidence th
 Completion rules:
 
 - A criterion is `Passed` only when its listed evidence was actually produced.
-- A criterion that requires the owner-run Windows, visual, audio, or Steam environment is `Pending` until the owner records the result.
+- A criterion that requires the owner-run Windows, visual, audio, functional, A/B, or Steam environment is `Pending` until the owner records the result explicitly.
+- Owner silence is not evidence of a pass. For a non-merge-gate exploratory check, silence may be recorded only as `No blocking issue reported`.
 - A pending merge-gate criterion prevents merge and keeps milestone verification `Partial`.
 - A failed criterion prevents completion even when the main happy path appears to work.
 - Do not weaken or delete an acceptance criterion after implementation begins without owner approval and a prompt version update.
@@ -320,7 +344,7 @@ Do not leave deliberately failing tests, temporary saves, logs, generated result
 | `[[NORMALLY .\tools\test\run_gut.ps1 AFTER M00]]` | Run the same checked-in suite under Windows Godot 4.7 | Exit code 0 | [[Yes | No]] |
 | [[OPTIONAL WINDOWS-SPECIFIC COMMAND]] | [[PURPOSE]] | [[RESULT]] | [[Yes | No]] |
 
-Codex cannot mark an owner-run check as passed unless the owner actually reports the result. In the pull-request handoff, label it `Pending owner verification` when it has not been run. Do not modify the wrappers or tests to hide a platform-specific failure.
+Codex cannot mark an owner-run check as passed unless the owner explicitly reports the result for the tested commit or branch. In the pull-request handoff, label it `Pending owner verification` when it has not been run or no result has been reported. The owner may provide a lightweight pull-request comment or project-owner message; no manual Markdown edit is required. Do not modify the wrappers or tests to hide a platform-specific failure.
 
 For a documentation-only milestone, state which automated checks are intentionally not required and why.
 
@@ -336,7 +360,7 @@ Provide exact reproduction steps. Separate what Codex can observe from what requ
 
 Manual steps must identify required setup, starting state, inputs, expected state changes, and cleanup. Do not write only "test in editor."
 
-When a visual or Steam check cannot be performed by Codex, implementation may still be delivered for owner testing if the milestone permits it. The final response must call the check pending, not passed.
+When a visual, functional, A/B, audio, or Steam check cannot be performed by Codex, implementation may still be delivered for owner testing if the milestone permits it. The final response must call the check pending, not passed. A non-gating check with no reported issue may later be summarized as `No blocking issue reported`, but only an explicit owner result can satisfy a merge gate.
 
 ## Save/load verification
 
@@ -371,7 +395,9 @@ Rules:
 
 Do not create a new decision merely to justify an implementation shortcut. If implementation reveals a real design or architecture choice not settled by current sources, stop and request owner approval before recording it as Accepted.
 
-Do not mark a milestone `Merged` or verification `Passed` in `MILESTONES.md` before those facts are true. A Codex implementation task may set the state appropriate to its actual stage, such as `In progress`, `Pull request open`, or `Partial`, when the project workflow calls for that update.
+Do not mark a milestone `Merged` or verification `Passed` in `MILESTONES.md` before those facts are true. A Codex implementation task may set the state appropriate to its actual stage, such as `In progress`, `Pull request open`, or `Partial`, when the project workflow calls for that update. Owner-run merge gates remain `Pending owner verification` until an explicit owner result exists. The owner does not need to edit `MILESTONES.md` manually; the next planning package or a scoped documentation update may synchronize the recorded status after confirmation.
+
+Do not create or modify milestone-prompt files during ordinary implementation. If the current prompt is defective, report the defect and await a separately versioned, owner-approved replacement.
 
 ## Stop and ask conditions
 
@@ -427,7 +453,8 @@ Report separately:
 - Codex Cloud or Linux automated commands, exit codes, and results;
 - focused and negative checks;
 - owner-run Windows automated checks as passed, failed, or `Pending owner verification`;
-- manual editor, visual, audio, or Steam checks as performed, failed, or pending;
+- manual editor, visual, functional, A/B, audio, or Steam checks as performed, failed, pending, or `No blocking issue reported` for non-gating exploratory checks;
+- the tested commit or branch for every explicit owner result;
 - acceptance criteria that remain unverified.
 
 ### Assumptions
@@ -468,6 +495,8 @@ Do not approve or execute an instantiated prompt until all applicable items are 
 - [ ] Expected files are plausible but not treated as permission for broad edits.
 - [ ] Every acceptance criterion is binary and mapped to actual evidence.
 - [ ] Codex Cloud/Linux checks and owner-run Windows checks are separated.
+- [ ] Every owner-run merge gate requires explicit owner evidence; silence is not treated as a pass.
+- [ ] The prompt does not authorize Codex to author, rewrite, or broaden its own prompt or create future milestone prompts.
 - [ ] Exact commands match the current `TESTING_AND_VALIDATION.md`.
 - [ ] Manual steps specify setup, actions, expected results, and actor/environment.
 - [ ] Save/load verification is complete or explicitly not applicable for a valid reason.
