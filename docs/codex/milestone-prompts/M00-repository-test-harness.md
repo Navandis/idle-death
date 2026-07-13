@@ -2,7 +2,7 @@
 
 **Prompt version:** v0.1  
 **Prompt date:** 2026-07-13  
-**Prompt status:** Draft  
+**Prompt status:** Approved  
 **Milestone definition:** `docs/codex/MILESTONES.md` — `### M00 — Repository, Godot, GUT, and Codex Cloud harness`  
 **Recommended task size:** Medium; one infrastructure pull request  
 **Expected base branch or ref:** `main` after this approved prompt is committed; repository baseline was inspected at commit `749a3593073c39a7ddd0bc089e2b610ff6e28116`  
