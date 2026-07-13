@@ -70,7 +70,7 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 
 | ID | Milestone | Definition | Prompt | Implementation | Verification |
 |---|---|---|---|---|---|
-| M00 | Repository, Godot, GUT, and Codex Cloud harness | Approved | Approved | Not started | — |
+| M00 | Repository, Godot, GUT, and Codex Cloud harness | Approved | Approved | Pull request open | Partial |
 | M01 | Deterministic numeric and time-authority foundation | Approved | Not drafted | Not started | — |
 | M02 | Versioned save codec and atomic storage | Approved | Not drafted | Not started | — |
 | M03 | Content catalog, canonical IDs, and configurable prototype data | Approved | Not drafted | Not started | — |
@@ -133,7 +133,7 @@ The starting M00–M13 hypothesis was useful, but this map makes several deliber
 
 **Definition status:** Approved  
 **Prompt status:** Approved  
-**Implementation status:** Not started  
+**Implementation status:** Pull request open; verification remains partial until Linux Godot 4.7 and owner-run Windows checks are recorded.  
 **Recommended Codex task size:** Medium; one infrastructure pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M00-repository-test-harness.md`
 
@@ -155,8 +155,8 @@ From a clean checkout, Codex can run the pinned suite in its Linux cloud environ
 
 #### Included scope
 
-- Verify and preserve the committed GUT 9.7.1 version and applicable license; do not download or replace it.
-- Verify and document the committed GodotSteam 4.20 footprint and applicable license/notice files; do not initialize Steam or call Steam APIs.
+- Verified and preserved the committed GUT 9.7.1 version in `addons/gut/plugin.cfg` and applicable license in `addons/gut/LICENSE.md`; do not download or replace it.
+- Verified and documented the committed GodotSteam 4.20 footprint in `addons/godotsteam/`, version in `addons/godotsteam/plugin.cfg`, and license/notice files `addons/godotsteam/license.md` and `addons/godotsteam/readme.md`; do not initialize Steam or call Steam APIs.
 - Add `.gutconfig.json`, one passing harness test, and only the shared test support immediately required.
 - Create required repository wrappers:
   - `tools/test/run_gut.sh`;
@@ -198,7 +198,7 @@ The exact file list remains subject to repository inspection. Expected areas are
 
 #### Acceptance criteria
 
-- `tools/test/run_gut.sh` runs from Codex Cloud or Linux and succeeds with Godot 4.7.x.
+- `tools/test/run_gut.sh` runs from Codex Cloud or Linux and succeeds with Godot 4.7.x when that executable is available.
 - The owner runs `tools/test/run_gut.ps1` on the separate Windows Godot machine and records a passing result before merge.
 - Both wrappers can be invoked from outside the repository root and still locate the project correctly.
 - Both wrappers use the same `.gutconfig.json` and default test directories.

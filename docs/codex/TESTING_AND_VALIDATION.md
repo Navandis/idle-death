@@ -1,11 +1,11 @@
 # Death Idle Testing and Validation
 
-**Document role:** Canonical test strategy, commands, fixture rules, and manual validation flows  
-**Repository path:** `docs/codex/TESTING_AND_VALIDATION.md`  
-**Document status:** Approved architecture validation plan  
-**Validation revision:** 3  
-**Last updated:** 2026-07-12  
-**Engine target:** Godot 4.7 standard build, GDScript only  
+**Document role:** Canonical test strategy, commands, fixture rules, and manual validation flows
+**Repository path:** `docs/codex/TESTING_AND_VALIDATION.md`
+**Document status:** Approved architecture validation plan
+**Validation revision:** 5
+**Last updated:** 2026-07-13
+**Engine target:** Godot 4.7 standard build, GDScript only
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)
 
 ## 1. Current status
@@ -17,15 +17,15 @@ The repository already contains:
 - development Steam App ID `480` in `project.godot`;
 - disabled automatic Steam initialization.
 
-The repository does **not** yet have the approved automated harness. M00 must create and validate:
+M00 adds the approved automated harness:
 
 - `.gutconfig.json`;
 - `tools/test/run_gut.sh`;
 - `tools/test/run_gut.ps1`;
-- the initial `tests/` structure and passing harness test;
+- `tests/unit/infrastructure/test_project_harness.gd`;
 - canonical import, focused-test, full-test, and smoke documentation.
 
-Until M00 merges, do not claim the canonical wrappers or automated suite exist. A Godot change must at minimum be imported and run in Godot 4.7 on the Windows Godot machine, and the exact manual behavior changed by the task must be exercised and reported.
+After M00, Codex/Linux tasks run `tools/test/run_gut.sh` for automated regression coverage. The project owner runs `tools/test/run_gut.ps1` on the separate Windows Godot machine and reports that result explicitly; Codex must leave that check as **Pending owner verification** until the owner provides evidence for the tested branch or commit.
 
 ## 2. Pinned test and platform dependencies
 
@@ -33,13 +33,13 @@ Until M00 merges, do not claim the canonical wrappers or automated suite exist. 
 
 GUT 9.7.1 is the approved GDScript test framework for Godot 4.7.x. It is already committed and is not downloaded by M00 or at test time.
 
-M00 must:
+M00 verified and documented:
 
-1. verify the committed version from the addon metadata;
-2. verify that the applicable GUT license file is retained in the repository;
-3. add a checked-in `.gutconfig.json` with repository-relative test directories and deterministic exit behavior;
-4. prove command-line execution and nonzero failure propagation in Linux and Windows;
-5. avoid the addon updater, floating versions, and runtime network downloads.
+1. `addons/gut/plugin.cfg` declares version `9.7.1`;
+2. `addons/gut/LICENSE.md` is retained in the repository;
+3. `.gutconfig.json` uses `res://tests`, includes subdirectories, keeps the `test_`/`.gd` naming convention, and enables deterministic GUT exit options;
+4. wrapper execution and nonzero failure propagation are part of the Linux/Codex verification record, while Windows execution remains owner-run;
+5. the harness uses the committed addon only and performs no updater, floating-version, or runtime network download step.
 
 Official project references:
 
@@ -53,10 +53,11 @@ GodotSteam is present so the project can later implement the trusted-time adapte
 
 M00 verifies only that:
 
-- the pinned GDExtension loads under Godot 4.7 in supported headless and Windows environments;
-- ordinary import and GUT execution work when Steam is absent or not initialized;
+- the pinned GDExtension footprint is present under `addons/godotsteam/`;
+- ordinary import and GUT execution work when Steam is absent or not initialized in verified environments;
 - development App ID `480` remains in `project.godot` and automatic initialization remains disabled;
-- the dependency and applicable license/notice footprint are documented;
+- `addons/godotsteam/plugin.cfg` declares version `4.20`;
+- `addons/godotsteam/license.md` and `addons/godotsteam/readme.md` are retained as the applicable license/notice footprint;
 - no `steam_appid.txt` file is required as a standard repository prerequisite.
 
 Live Steam behavior belongs to M06.
@@ -91,7 +92,7 @@ They must:
 - fail clearly when Godot cannot be found or is the wrong version;
 - contain no committed user-specific absolute path.
 
-The owner may set `GODOT_BIN` or `PATH` locally on Windows. That configuration is never committed.
+The owner may set `GODOT_BIN` or `PATH` locally on Windows. That configuration is never committed. Windows command-line verification should use `Godot_v4.7-stable_win64_console.exe`. If the wrapper receives the sibling GUI executable, it attempts to resolve and print the matching `_console.exe`; if it cannot, or if the version probe returns a null exit status or blank output, the wrapper fails before import with a nonzero exit.
 
 ## 4. Canonical commands after M00
 
@@ -107,6 +108,7 @@ Windows PowerShell:
 
 ```text
 .\tools\test\run_gut.ps1
+.\tools\test\run_gut.ps1 -GodotBin "C:\Path\To\Godot_v4.7-stable_win64_console.exe"
 ```
 
 Default full mode must:
@@ -124,7 +126,7 @@ A documented iteration option may skip the import or select focused tests, but t
 If a wrapper itself is being diagnosed, the repository-relative import command is:
 
 ```text
-godot --headless --path . --import
+godot --headless --path . --editor --quit
 ```
 
 ### 4.3 Underlying GUT fallback
@@ -132,18 +134,20 @@ godot --headless --path . --import
 The pinned GUT runner is:
 
 ```text
-godot --headless -d -s --path . addons/gut/gut_cmdln.gd -gexit
+godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gconfig=res://.gutconfig.json -gexit
 ```
 
 `.gutconfig.json` supplies test directories and other stable options. Command-line arguments may override it for focused execution.
 
 ### 4.4 Focused tests
 
-M00 must document how each wrapper forwards GUT selectors such as:
+The wrappers forward GUT selectors after `--` on Linux and through `-GutArgs` on Windows. Windows examples name the console executable because the GUI executable may produce blank command-line output:
 
 ```text
--gtest=res://tests/unit/path/to/test_file.gd
--gunit_test_name=test_name_fragment
+./tools/test/run_gut.sh -- -gtest=res://tests/unit/infrastructure/test_project_harness.gd
+./tools/test/run_gut.sh -- -gunit_test_name=project_identity
+.\tools\test\run_gut.ps1 -GodotBin "C:\Path\To\Godot_v4.7-stable_win64_console.exe" -GutArgs "-gtest=res://tests/unit/infrastructure/test_project_harness.gd"
+.\tools\test\run_gut.ps1 -GodotBin "C:\Path\To\Godot_v4.7-stable_win64_console.exe" -GutArgs "-gunit_test_name=project_identity"
 ```
 
 Codex may run focused tests while iterating, but it must run the applicable broader suite before marking a task complete.
@@ -157,6 +161,43 @@ godot --headless --path . --quit-after 5
 ```
 
 M00 validates the current dry-run scene without redesigning it. M05 may replace this with a dedicated ready-state smoke runner and must update this document in the same pull request.
+
+### 4.6 Windows outside-root invocation
+
+From a PowerShell session currently at the repository root, this copy/paste check proves that `run_gut.ps1` locates the repository from its own path rather than the current directory:
+
+```powershell
+$repo = Resolve-Path .
+$tmp = New-Item -ItemType Directory -Path ([System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), [System.Guid]::NewGuid().ToString()))
+Push-Location $tmp.FullName
+& "$repo\tools\test\run_gut.ps1" -GodotBin "C:\Path\To\Godot_v4.7-stable_win64_console.exe"
+$exitCode = $LASTEXITCODE
+Pop-Location
+Remove-Item -Recurse -Force $tmp.FullName
+exit $exitCode
+```
+
+### 4.7 Safe one-time failure propagation check
+
+Use this temporary test only during verification. It must be removed immediately after proving a nonzero wrapper result, and the clean suite must pass afterward.
+
+```powershell
+$tempTest = "tests/unit/infrastructure/test_temporary_failure.gd"
+@'
+extends GutTest
+
+func test_temporary_failure() -> void:
+	assert_true(false, "temporary failure propagation check")
+'@ | Set-Content -NoNewline $tempTest
+.\tools\test\run_gut.ps1 -GodotBin "C:\Path\To\Godot_v4.7-stable_win64_console.exe"
+$failingExit = $LASTEXITCODE
+Remove-Item $tempTest
+.\tools\test\run_gut.ps1 -GodotBin "C:\Path\To\Godot_v4.7-stable_win64_console.exe"
+$cleanExit = $LASTEXITCODE
+if ($failingExit -eq 0 -or $cleanExit -ne 0) { exit 1 }
+```
+
+Blank version output, a missing native process exit code, a nonzero version-process exit, or a non-4.7 version is always a wrapper failure before import. These cases must not be reported as a pass.
 
 ## 5. Planned test layout
 

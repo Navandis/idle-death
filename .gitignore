@@ -1,3 +1,4 @@
 # Godot 4+ specific ignores
 .godot/
 /android/
+.gut_editor_config.json
