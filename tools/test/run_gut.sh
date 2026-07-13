@@ -54,7 +54,7 @@ if [[ ! -x "$GODOT_BIN_PATH" ]]; then
   exit 126
 fi
 
-VERSION_OUTPUT="$($GODOT_BIN_PATH --version 2>&1 || true)"
+VERSION_OUTPUT="$("$GODOT_BIN_PATH" --version 2>&1 || true)"
 if [[ ! "$VERSION_OUTPUT" =~ ^4\.7(\.|-|$) ]]; then
   echo "ERROR: Death Idle requires Godot 4.7.x for M00 tests; detected: $VERSION_OUTPUT" >&2
   exit 65
