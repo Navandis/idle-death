@@ -70,7 +70,7 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 
 | ID | Milestone | Definition | Prompt | Implementation | Verification |
 |---|---|---|---|---|---|
-| M00 | Repository, Godot, GUT, and Codex Cloud harness | Approved | Approved | Implemented; Linux verified; Windows owner gates pending | GATE-GUT partially satisfied; GATE-WINDOWS-HARNESS pending owner verification |
+| M00 | Repository, Godot, GUT, and Codex Cloud harness | Approved | Approved | Implemented in open PR; Linux verified; Windows owner checks mostly passed | Linux passed; owner Windows full/focused/outside-root/editor/no-Steam checks passed at `75a1752a09e2f326e11a51469c7efa2debfe269c`; Windows failure propagation pending |
 | M01 | Deterministic numeric and time-authority foundation | Approved | Not drafted | Not started | — |
 | M02 | Versioned save codec and atomic storage | Approved | Not drafted | Not started | — |
 | M03 | Content catalog, canonical IDs, and configurable prototype data | Approved | Not drafted | Not started | — |
@@ -133,7 +133,7 @@ The starting M00–M13 hypothesis was useful, but this map makes several deliber
 
 **Definition status:** Approved
 **Prompt status:** Approved
-**Implementation status:** Implemented; Linux verified; Windows owner verification pending
+**Implementation status:** Implemented in open PR; Linux verified; Windows owner checks mostly passed; Windows failure propagation pending
 **Recommended Codex task size:** Medium; one infrastructure pull request.
 **Planned prompt file:** `docs/codex/milestone-prompts/M00-repository-test-harness.md`
 
@@ -253,8 +253,9 @@ No gameplay save format is introduced. Test fixtures must not write persistent u
 #### Current verification state
 
 - Linux/Codex full wrapper, focused wrapper, outside-root invocation, main-scene smoke, missing/wrong Godot checks, and temporary failing-test propagation were implemented for M00 verification.
-- Windows full wrapper, focused wrapper, outside-root invocation, failure propagation, and editor dry-run scene smoke remain pending owner verification for the tested commit or branch.
-- M00 must not be marked merged or fully passed until the owner reports the Windows gate results.
+- Owner-run Windows full wrapper, focused wrapper, outside-root invocation, editor dry-run scene smoke, and no-Steam-initialization checks passed at PR head `75a1752a09e2f326e11a51469c7efa2debfe269c` with `Godot_v4.7-stable_win64_console.exe` / Godot `4.7.stable.official.5b4e0cb0f`.
+- Owner-run Windows temporary failing-test/recovery remains pending owner verification.
+- M00 remains implemented in the open pull request and must not be marked merged or fully passed until the Windows failure-propagation gate is reported.
 
 #### Known risks
 

@@ -85,7 +85,7 @@ They must:
 - fail clearly when Godot cannot be found or is the wrong version;
 - contain no committed user-specific absolute path.
 
-The owner may set `GODOT_BIN` or `PATH` locally on Windows. That configuration is never committed.
+The owner may set `GODOT_BIN` or `PATH` locally on Windows. That configuration is never committed. On Windows, `GODOT_BIN`, `-GodotBin`, or `PATH` should resolve to the console executable, for example `Godot_v4.7-stable_win64_console.exe`. The normal GUI executable is for editor launches and is not the documented harness path because command-line output and exit-code capture are less reliable through the GUI binary.
 
 ## 4. Canonical commands after M00
 
@@ -100,7 +100,7 @@ Linux or Codex Cloud:
 Windows PowerShell:
 
 ```powershell
-.\tools\test\run_gut.ps1
+.\tools\test\run_gut.ps1 -GodotBin 'C:\Path\To\Godot_v4.7-stable_win64_console.exe'
 ```
 
 Default full mode must:
@@ -141,8 +141,8 @@ The wrappers forward GUT selectors with these exact forms:
 ```
 
 ```powershell
-.\tools\test\run_gut.ps1 -GutArgs @('-gtest=res://tests/unit/infrastructure/test_project_harness.gd')
-.\tools\test\run_gut.ps1 -GutArgs @('-gunit_test_name=steam_development')
+.\tools\test\run_gut.ps1 -GodotBin 'C:\Path\To\Godot_v4.7-stable_win64_console.exe' -GutArgs @('-gtest=res://tests/unit/infrastructure/test_project_harness.gd')
+.\tools\test\run_gut.ps1 -GodotBin 'C:\Path\To\Godot_v4.7-stable_win64_console.exe' -GutArgs @('-gunit_test_name=steam_development')
 ```
 
 Codex may run focused tests while iterating, but it must run the applicable broader suite before marking a task complete.
@@ -170,7 +170,7 @@ Windows PowerShell:
 ```powershell
 $repoRoot = (Get-Location).Path
 Push-Location $env:TEMP
-& "$repoRoot\tools\test\run_gut.ps1"
+& "$repoRoot\tools\test\run_gut.ps1" -GodotBin "C:\Path\To\Godot_v4.7-stable_win64_console.exe"
 $result = $LASTEXITCODE
 Pop-Location
 exit $result
@@ -178,7 +178,47 @@ exit $result
 
 ### 4.7 M00 temporary failure-propagation check
 
-Create a temporary `tests/unit/infrastructure/test_m00_expected_failure.gd`, run it through the focused wrapper, confirm a nonzero exit, delete the file, and rerun the full wrapper. The temporary failure file must be absent from the final diff.
+Linux and Codex already proved failure propagation during the M00 implementation. The owner-run Windows failure-propagation gate remains **Pending owner verification** until the project owner runs the following copy/paste-complete PowerShell procedure on the Windows Godot machine. Use the console executable path for reliable output and exit-code capture.
+
+```powershell
+$godotBin = 'C:\Path\To\Godot_v4.7-stable_win64_console.exe'
+$temporaryTest = 'tests/unit/infrastructure/test_m00_expected_failure.gd'
+$temporaryUid = "$temporaryTest.uid"
+
+@'
+extends GutTest
+
+func test_expected_failure_propagates() -> void:
+	assert_true(false, "temporary M00 Windows failure-propagation check")
+'@ | Set-Content -Path $temporaryTest -Encoding utf8
+
+.\tools\test\run_gut.ps1 -GodotBin $godotBin -GutArgs @('-gtest=res://tests/unit/infrastructure/test_m00_expected_failure.gd')
+$failingExit = $LASTEXITCODE
+if ($failingExit -eq 0) {
+    throw "Expected the temporary failing GUT test to return a nonzero exit code."
+}
+Write-Host "Temporary failing-test exit code: $failingExit"
+
+Remove-Item -LiteralPath $temporaryTest -Force
+Remove-Item -LiteralPath $temporaryUid -Force -ErrorAction SilentlyContinue
+
+if (Test-Path -LiteralPath $temporaryTest) {
+    throw "Temporary failing test still exists: $temporaryTest"
+}
+if (Test-Path -LiteralPath $temporaryUid) {
+    throw "Temporary failing test UID still exists: $temporaryUid"
+}
+Write-Host "Temporary failing test and UID companion are absent."
+
+.\tools\test\run_gut.ps1 -GodotBin $godotBin
+$recoveryExit = $LASTEXITCODE
+if ($recoveryExit -ne 0) {
+    throw "Expected the clean full wrapper rerun to exit 0; got $recoveryExit."
+}
+Write-Host "Clean full wrapper recovery exit code: $recoveryExit"
+```
+
+Do not commit `test_m00_expected_failure.gd`, `test_m00_expected_failure.gd.uid`, generated logs, or machine-specific Godot paths.
 
 ## 5. Planned test layout
 

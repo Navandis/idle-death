@@ -8,6 +8,7 @@ Death Idle is a Godot 4.7, GDScript-only prototype for a 2D, UI-led idle and inc
   - `GODOT_BIN` environment variable;
   - `godot` or `godot4` on `PATH`; or
   - the wrapper's explicit Godot path argument.
+- On Windows, command-line harness examples should resolve to the console executable, such as `Godot_v4.7-stable_win64_console.exe`. The normal GUI executable is for editor use and is not the documented harness path because it is less reliable for console output and exit-code capture.
 - No Steam client, network access, or `steam_appid.txt` is required for the M00 harness.
 
 ## Run tests
@@ -62,7 +63,7 @@ exit $result
 Windows with an explicit Godot binary:
 
 ```powershell
-.\tools\test\run_gut.ps1 -GodotBin 'C:\Path\To\Godot_v4.7-stable_win64.exe'
+.\tools\test\run_gut.ps1 -GodotBin 'C:\Path\To\Godot_v4.7-stable_win64_console.exe'
 ```
 
 ## Main-scene smoke
