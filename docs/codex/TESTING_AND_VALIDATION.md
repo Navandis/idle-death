@@ -1,11 +1,11 @@
 # Death Idle Testing and Validation
 
-**Document role:** Canonical test strategy, commands, fixture rules, and manual validation flows  
-**Repository path:** `docs/codex/TESTING_AND_VALIDATION.md`  
-**Document status:** Approved architecture validation plan  
-**Validation revision:** 3  
-**Last updated:** 2026-07-12  
-**Engine target:** Godot 4.7 standard build, GDScript only  
+**Document role:** Canonical test strategy, commands, fixture rules, and manual validation flows
+**Repository path:** `docs/codex/TESTING_AND_VALIDATION.md`
+**Document status:** Approved architecture validation plan with M00 harness implemented
+**Validation revision:** 4
+**Last updated:** 2026-07-13
+**Engine target:** Godot 4.7 standard build, GDScript only
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)
 
 ## 1. Current status
@@ -17,15 +17,15 @@ The repository already contains:
 - development Steam App ID `480` in `project.godot`;
 - disabled automatic Steam initialization.
 
-The repository does **not** yet have the approved automated harness. M00 must create and validate:
+M00 has added the approved automated harness:
 
 - `.gutconfig.json`;
 - `tools/test/run_gut.sh`;
 - `tools/test/run_gut.ps1`;
-- the initial `tests/` structure and passing harness test;
-- canonical import, focused-test, full-test, and smoke documentation.
+- `tests/unit/infrastructure/test_project_harness.gd`;
+- canonical import, focused-test, full-test, outside-root, and smoke documentation.
 
-Until M00 merges, do not claim the canonical wrappers or automated suite exist. A Godot change must at minimum be imported and run in Godot 4.7 on the Windows Godot machine, and the exact manual behavior changed by the task must be exercised and reported.
+Codex/Linux verification may pass before merge, but owner-run Windows checks remain **Pending owner verification** until the project owner reports results for the tested commit or branch.
 
 ## 2. Pinned test and platform dependencies
 
@@ -33,13 +33,7 @@ Until M00 merges, do not claim the canonical wrappers or automated suite exist. 
 
 GUT 9.7.1 is the approved GDScript test framework for Godot 4.7.x. It is already committed and is not downloaded by M00 or at test time.
 
-M00 must:
-
-1. verify the committed version from the addon metadata;
-2. verify that the applicable GUT license file is retained in the repository;
-3. add a checked-in `.gutconfig.json` with repository-relative test directories and deterministic exit behavior;
-4. prove command-line execution and nonzero failure propagation in Linux and Windows;
-5. avoid the addon updater, floating versions, and runtime network downloads.
+M00 verified the committed version from `addons/gut/plugin.cfg`, retained `addons/gut/LICENSE.md`, and added `.gutconfig.json` with repository-relative recursive discovery under `res://tests`. The wrappers avoid addon updaters, floating versions, and runtime network downloads. Linux failure propagation is verified by Codex; Windows failure propagation remains pending owner verification until reported.
 
 Official project references:
 
@@ -91,7 +85,7 @@ They must:
 - fail clearly when Godot cannot be found or is the wrong version;
 - contain no committed user-specific absolute path.
 
-The owner may set `GODOT_BIN` or `PATH` locally on Windows. That configuration is never committed.
+The owner may set `GODOT_BIN` or `PATH` locally on Windows. That configuration is never committed. On Windows, `GODOT_BIN`, `-GodotBin`, or `PATH` should resolve to the console executable, for example `Godot_v4.7-stable_win64_console.exe`. The normal GUI executable is for editor launches and is not the documented harness path because command-line output and exit-code capture are less reliable through the GUI binary.
 
 ## 4. Canonical commands after M00
 
@@ -99,14 +93,14 @@ The owner may set `GODOT_BIN` or `PATH` locally on Windows. That configuration i
 
 Linux or Codex Cloud:
 
-```text
+```sh
 ./tools/test/run_gut.sh
 ```
 
 Windows PowerShell:
 
-```text
-.\tools\test\run_gut.ps1
+```powershell
+.\tools\test\run_gut.ps1 -GodotBin 'C:\Path\To\Godot_v4.7-stable_win64_console.exe'
 ```
 
 Default full mode must:
@@ -117,7 +111,7 @@ Default full mode must:
 4. run the full GUT suite using `.gutconfig.json`;
 5. return the real failing or successful process exit code.
 
-A documented iteration option may skip the import or select focused tests, but the final milestone verification uses the default full mode.
+Focused selectors are forwarded after `--` on Linux and through `-GutArgs` on Windows. The final milestone verification uses the default full mode.
 
 ### 4.2 Underlying import fallback
 
@@ -131,19 +125,24 @@ godot --headless --path . --import
 
 The pinned GUT runner is:
 
-```text
-godot --headless -d -s --path . addons/gut/gut_cmdln.gd -gexit
+```sh
+godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gconfig=res://.gutconfig.json
 ```
 
 `.gutconfig.json` supplies test directories and other stable options. Command-line arguments may override it for focused execution.
 
 ### 4.4 Focused tests
 
-M00 must document how each wrapper forwards GUT selectors such as:
+The wrappers forward GUT selectors with these exact forms:
 
-```text
--gtest=res://tests/unit/path/to/test_file.gd
--gunit_test_name=test_name_fragment
+```sh
+./tools/test/run_gut.sh -- -gtest=res://tests/unit/infrastructure/test_project_harness.gd
+./tools/test/run_gut.sh -- -gunit_test_name=steam_development
+```
+
+```powershell
+.\tools\test\run_gut.ps1 -GodotBin 'C:\Path\To\Godot_v4.7-stable_win64_console.exe' -GutArgs @('-gtest=res://tests/unit/infrastructure/test_project_harness.gd')
+.\tools\test\run_gut.ps1 -GodotBin 'C:\Path\To\Godot_v4.7-stable_win64_console.exe' -GutArgs @('-gunit_test_name=steam_development')
 ```
 
 Codex may run focused tests while iterating, but it must run the applicable broader suite before marking a task complete.
@@ -152,11 +151,74 @@ Codex may run focused tests while iterating, but it must run the applicable broa
 
 Until a dedicated smoke wrapper exists, the repository-relative fallback is:
 
-```text
+```sh
 godot --headless --path . --quit-after 5
 ```
 
 M00 validates the current dry-run scene without redesigning it. M05 may replace this with a dedicated ready-state smoke runner and must update this document in the same pull request.
+
+### 4.6 Outside-root wrapper checks
+
+Linux:
+
+```sh
+repo_root="$(pwd)"; tmp_dir="$(mktemp -d)"; (cd "$tmp_dir" && "$repo_root/tools/test/run_gut.sh"); result=$?; rmdir "$tmp_dir"; exit $result
+```
+
+Windows PowerShell:
+
+```powershell
+$repoRoot = (Get-Location).Path
+Push-Location $env:TEMP
+& "$repoRoot\tools\test\run_gut.ps1" -GodotBin "C:\Path\To\Godot_v4.7-stable_win64_console.exe"
+$result = $LASTEXITCODE
+Pop-Location
+exit $result
+```
+
+### 4.7 M00 temporary failure-propagation check
+
+Linux and Codex already proved failure propagation during the M00 implementation. The owner-run Windows failure-propagation gate remains **Pending owner verification** until the project owner runs the following copy/paste-complete PowerShell procedure on the Windows Godot machine. Use the console executable path for reliable output and exit-code capture.
+
+```powershell
+$godotBin = 'C:\Path\To\Godot_v4.7-stable_win64_console.exe'
+$temporaryTest = 'tests/unit/infrastructure/test_m00_expected_failure.gd'
+$temporaryUid = "$temporaryTest.uid"
+
+@'
+extends GutTest
+
+func test_expected_failure_propagates() -> void:
+	assert_true(false, "temporary M00 Windows failure-propagation check")
+'@ | Set-Content -Path $temporaryTest -Encoding utf8
+
+.\tools\test\run_gut.ps1 -GodotBin $godotBin -GutArgs @('-gtest=res://tests/unit/infrastructure/test_m00_expected_failure.gd')
+$failingExit = $LASTEXITCODE
+if ($failingExit -eq 0) {
+    throw "Expected the temporary failing GUT test to return a nonzero exit code."
+}
+Write-Host "Temporary failing-test exit code: $failingExit"
+
+Remove-Item -LiteralPath $temporaryTest -Force
+Remove-Item -LiteralPath $temporaryUid -Force -ErrorAction SilentlyContinue
+
+if (Test-Path -LiteralPath $temporaryTest) {
+    throw "Temporary failing test still exists: $temporaryTest"
+}
+if (Test-Path -LiteralPath $temporaryUid) {
+    throw "Temporary failing test UID still exists: $temporaryUid"
+}
+Write-Host "Temporary failing test and UID companion are absent."
+
+.\tools\test\run_gut.ps1 -GodotBin $godotBin
+$recoveryExit = $LASTEXITCODE
+if ($recoveryExit -ne 0) {
+    throw "Expected the clean full wrapper rerun to exit 0; got $recoveryExit."
+}
+Write-Host "Clean full wrapper recovery exit code: $recoveryExit"
+```
+
+Do not commit `test_m00_expected_failure.gd`, `test_m00_expected_failure.gd.uid`, generated logs, or machine-specific Godot paths.
 
 ## 5. Planned test layout
 
