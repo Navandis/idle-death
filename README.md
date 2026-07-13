@@ -1,0 +1,95 @@
+# Death Idle
+
+Death Idle is a Godot 4.7, GDScript-only prototype for a 2D, UI-led idle and incremental management game.
+
+## Prerequisites
+
+- Godot 4.7.x standard build available either through:
+  - `GODOT_BIN` environment variable;
+  - `godot` or `godot4` on `PATH`; or
+  - the wrapper's explicit Godot path argument.
+- No Steam client, network access, or `steam_appid.txt` is required for the M00 harness.
+
+## Run tests
+
+Linux/Codex Cloud full suite:
+
+```sh
+./tools/test/run_gut.sh
+```
+
+Linux focused infrastructure test:
+
+```sh
+./tools/test/run_gut.sh -- -gtest=res://tests/unit/infrastructure/test_project_harness.gd
+```
+
+Linux from outside the repository:
+
+```sh
+repo_root="$(pwd)"; tmp_dir="$(mktemp -d)"; (cd "$tmp_dir" && "$repo_root/tools/test/run_gut.sh"); result=$?; rmdir "$tmp_dir"; exit $result
+```
+
+Linux with an explicit Godot binary:
+
+```sh
+./tools/test/run_gut.sh --godot-bin /path/to/godot
+```
+
+Windows PowerShell full suite:
+
+```powershell
+.\tools\test\run_gut.ps1
+```
+
+Windows focused infrastructure test:
+
+```powershell
+.\tools\test\run_gut.ps1 -GutArgs @('-gtest=res://tests/unit/infrastructure/test_project_harness.gd')
+```
+
+Windows from outside the repository:
+
+```powershell
+$repoRoot = (Get-Location).Path
+Push-Location $env:TEMP
+& "$repoRoot\tools\test\run_gut.ps1"
+$result = $LASTEXITCODE
+Pop-Location
+exit $result
+```
+
+Windows with an explicit Godot binary:
+
+```powershell
+.\tools\test\run_gut.ps1 -GodotBin 'C:\Path\To\Godot_v4.7-stable_win64.exe'
+```
+
+## Main-scene smoke
+
+The current smoke target is the configured temporary dry-run scene. It should start headlessly and exit automatically:
+
+```sh
+godot --headless --path . --quit-after 5
+```
+
+Use the same Godot executable that the wrapper prints. Do not commit local executable paths.
+
+## Temporary failure-propagation check
+
+Create a temporary failing file under `tests/unit/infrastructure/`, run a focused wrapper command against it, confirm the wrapper exits nonzero, delete the file, then rerun the full wrapper successfully. Do not commit the temporary failing test.
+
+## Dependency and license notes
+
+- GUT 9.7.1 is pinned under `addons/gut/`; its plugin metadata is `addons/gut/plugin.cfg` and license is `addons/gut/LICENSE.md`.
+- GodotSteam 4.20 is pinned under `addons/godotsteam/`; its plugin metadata is `addons/godotsteam/plugin.cfg`, GDExtension manifest is `addons/godotsteam/godotsteam.gdextension`, and license is `addons/godotsteam/license.md`.
+
+## Documentation map
+
+- Architecture: `docs/codex/ARCHITECTURE.md`
+- Implementation rules: `docs/codex/IMPLEMENTATION_RULES.md`
+- Data/content contracts: `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`
+- Testing and validation: `docs/codex/TESTING_AND_VALIDATION.md`
+- Milestones: `docs/codex/MILESTONES.md`
+- Prototype source of truth: `docs/design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md`
+- Idle Fork source of truth: `docs/design/IDLE_FORK_SOURCE_OF_TRUTH.md`
