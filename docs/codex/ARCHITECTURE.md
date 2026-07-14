@@ -887,11 +887,15 @@ Example wire representation:
   "codec_id": "JSON_V1",
   "content_revision": "prototype-r1",
   "save_revision": "42",
+  "last_offline_resolution_id": "offline-000042",
+  "metadata": {},
   "time_authority": {
     "trusted_source_id": "STEAM_SERVER_TIME",
+    "has_trusted_anchor": true,
     "trusted_anchor_utc_msec": "1783872000000",
     "foreground_credited_since_anchor_msec": "125000",
-    "pending_trusted_reconciliation": false
+    "pending_trusted_reconciliation": false,
+    "last_sample_diagnostic_code": "TIME_OK"
   },
   "game_state": {
     "simulation_time_msec": "3485000"
@@ -1208,3 +1212,9 @@ M01 adds the first scene-independent runtime foundation without adding gameplay 
 - `TimeReconciliationService` separates non-mutating trusted-time planning from commit. This lets later save/offline milestones simulate candidate elapsed time and commit the simulation result, anchor update, and foreground-credit reset transactionally.
 - `ProcessMonotonicClock` is the only M01 adapter that reads Godot's process-monotonic clock. Authoritative simulation receives elapsed milliseconds and does not query wall-clock, calendar, timezone, file timestamp, Steam, or registry APIs.
 
+
+## M02 persistence implementation note
+
+M02 adds a scene-independent persistence foundation under `src/persistence/`. `SaveSchemaMapper` maps the current M01 `GameState` and `TimeAuthorityState` to primitive schema-version-1 dictionaries and back. `SaveSchemaValidator` validates those dictionaries before runtime construction or file commit. `SaveInt64` owns canonical signed 64-bit decimal strings so authoritative integers do not cross JSON as numbers. `JsonSaveCodec` owns only `JSON_V1` UTF-8 JSON bytes. `SaveMigrationRegistry` migrates primitive dictionaries one sequential version at a time. `SaveStorage`, `FileSaveStorage`, and `SaveFileSet` isolate file operations and paths. `SaveService` performs temp write, reopen/decode/full validation, backup rotation, primary promotion, independent primary/backup load validation, highest revision selection, suspect primary preservation, and reconciliation-candidate commit after persistence succeeds.
+
+The prototype default save file set is `user://saves/death_idle_m02.json`, `user://saves/death_idle_m02.tmp`, and `user://saves/death_idle_m02.bak.json`. Tests and traces inject isolated roots and must not use the default save root. Persistence selection uses validated `save_revision`, never file timestamps, local wall time, Steam state, or path metadata.

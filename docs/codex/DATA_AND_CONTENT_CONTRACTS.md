@@ -870,12 +870,15 @@ Example:
   "schema_version": "1",
   "codec_id": "JSON_V1",
   "save_revision": "42",
+  "last_offline_resolution_id": "offline-000042",
+  "metadata": {},
   "time_authority": {
     "trusted_source_id": "STEAM_SERVER_TIME",
     "has_trusted_anchor": true,
     "trusted_anchor_utc_msec": "1783872000000",
     "foreground_credited_since_anchor_msec": "125000",
-    "pending_trusted_reconciliation": false
+    "pending_trusted_reconciliation": false,
+    "last_sample_diagnostic_code": "TIME_OK"
   },
   "game_state": {
     "simulation_time_msec": "3485000",
@@ -1173,8 +1176,8 @@ M01 introduces these runtime-only contracts. They are not a save schema and do n
 - `trusted_anchor_utc_msec: int` — accepted external trusted UTC anchor in milliseconds, or `-1` when no anchor exists.
 - `trusted_source_id: String` — stable source ID for the accepted anchor.
 - `foreground_credited_since_anchor_msec: int` — foreground elapsed milliseconds already credited after the anchor.
-- `pending_reconciliation: bool` — true when trusted time was unavailable and closed-session credit must remain pending.
-- `last_diagnostic_code: String` — stable diagnostic from the latest commit or rejection.
+- `pending_trusted_reconciliation: bool` — true when trusted time was unavailable and closed-session credit must remain pending.
+- `last_sample_diagnostic_code: String` — stable diagnostic from the latest commit or rejection.
 
 ### Fixed-point values
 
@@ -1182,3 +1185,11 @@ M01 introduces these runtime-only contracts. They are not a save schema and do n
 - Fixed-point flow helpers accept non-negative inputs and return typed result dictionaries with stable failure codes.
 - Explicit-period accumulation stores and returns its arithmetic carry in the same units as the period denominator. The caller owns the single durable progress/carry record for a future flow key.
 
+
+## M02 schema-version-1 save contract
+
+Schema version 1 is the frozen minimal M01 persistence snapshot. Top-level keys are exactly `codec_id`, `schema_version`, `save_revision`, `content_revision`, `time_authority`, `last_offline_resolution_id`, `metadata`, and `game_state`. `codec_id` must be `JSON_V1`. `schema_version`, `save_revision`, `game_state.simulation_time_msec`, `time_authority.trusted_anchor_utc_msec`, and `time_authority.foreground_credited_since_anchor_msec` are canonical signed-64-bit decimal strings, with non-negative policies for current schema fields. JSON numeric values in these fields are invalid.
+
+`game_state` contains exactly `simulation_time_msec`. `last_offline_resolution_id` is a diagnostic/idempotency string, and `metadata` is an explicit dictionary reserved for schema diagnostics; M02 writes an empty resolution ID and empty metadata. `time_authority` contains exactly `has_trusted_anchor`, `trusted_anchor_utc_msec`, `trusted_source_id`, `foreground_credited_since_anchor_msec`, `pending_trusted_reconciliation`, and `last_sample_diagnostic_code`. The M01 no-anchor runtime sentinel `trusted_anchor_utc_msec = -1` is encoded as `has_trusted_anchor = false`, `trusted_anchor_utc_msec = "0"`, empty `trusted_source_id`, and foreground credit `"0"`; decoding reconstructs the runtime sentinel. Anchored saves require `has_trusted_anchor = true`, a non-empty source ID, and non-negative anchor/foreground credit.
+
+Stable M02 diagnostics include `SAVE_INT_*` integer errors, `SAVE_SCHEMA_*` validation errors, `SAVE_CODEC_*` codec errors, `SAVE_MIGRATION_*` migration errors, and `SAVE_TRANSACTION_FAILED` storage orchestration failures. Fixtures live under `tests/fixtures/saves/`.

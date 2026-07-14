@@ -1010,3 +1010,29 @@ Required automated owner steps:
 
 No visual/editor checklist is required for M02 because the milestone introduces no player-facing save UI. Windows filesystem behavior remains an owner merge gate.
 
+
+## M02 persistence validation
+
+Focused Linux/Codex command:
+
+```bash
+./tools/test/run_gut.sh -- -gdir=res://tests/unit/persistence -gdir=res://tests/integration/save_load
+```
+
+Real-file trace command, using a disposable root outside production saves:
+
+```bash
+godot --headless --path . -s res://tools/test/m02/m02_persistence_trace.gd -- --save-root /tmp/death-idle-m02-trace
+```
+
+The M02 suite covers runtime/schema mapping, canonical integer strings, JSON numeric rejection, deterministic `JSON_V1` bytes, migration seams, primary/temp/backup transactions, highest valid revision selection, corrupt-primary fallback with byte retention, both-invalid recovery failure, injected write/copy/rename failures, suspect primary preservation, reconciliation candidate commit behavior, and source ownership checks against local wall time, file timestamps, Steam, and registry-derived authority.
+
+Owner Windows verification is packaged as:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass `
+    -File .\tools\test\owner\run_m02_owner_verification.ps1 `
+    -CommitSha "<PR_HEAD_SHA>"
+```
+
+The script writes a generated log under `tools/test/owner/logs/`, uses a unique temporary save root, runs full and focused suites, import preflight, the M02 trace, cleanup verification, and a final clean full suite. Windows verification remains pending until the owner runs it for the PR head.
