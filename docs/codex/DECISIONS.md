@@ -3,8 +3,8 @@
 **Document role:** Durable record of approved and proposed design and architecture decisions  
 **Repository path:** `docs/codex/DECISIONS.md`  
 **Document status:** Approved architecture and active decision record  
-**Revision:** 3  
-**Last updated:** 2026-07-12
+**Revision:** 5  
+**Last updated:** 2026-07-13
 
 ## 1. How to use this file
 
@@ -54,6 +54,8 @@ Rules:
 | `DEC-0022` | Prototype save resilience and release-format security gate | Accepted | 2026-07-12 |
 | `DEC-0023` | Required Linux and Windows test wrappers with split execution responsibility | Accepted | 2026-07-12 |
 | `DEC-0024` | GodotSteam 4.20 and project-setting App ID 480 are the approved prototype bridge | Accepted | 2026-07-12 |
+| `DEC-0025` | Milestone-specific owner verification packages and generated logs | Accepted | 2026-07-13 |
+| `DEC-0026` | Six-decimal fixed-point scale and checked residual arithmetic | Proposed | 2026-07-13 |
 
 ---
 
@@ -918,8 +920,114 @@ The project owner committed GodotSteam GDExtension 4.20 under `addons/godotsteam
 
 ---
 
+## `DEC-0025` — Milestone-specific owner verification packages and generated logs
+
+**Status:** Accepted  
+**Date:** 2026-07-13  
+**Decision type:** Test execution and evidence workflow  
+**Refines:** `DEC-0023`
+
+### Context
+
+Codex Cloud cannot execute commands or perform editor, visual, audio, Windows-specific, or live Steam checks on the project owner's separate Godot machine. M00 verification showed that long copy/paste command sequences are error-prone and that a generated execution log is more useful evidence than an informal summary alone. The owner requested future manual and Windows checks to be supplied as ready-to-run files, preferably a script that records its output.
+
+### Decision
+
+For each milestone with owner-run checks:
+
+- the planning prompt must define the exact owner verification package;
+- when checks are safely automatable, Codex creates a milestone-specific PowerShell script under `tools/test/owner/`;
+- the script invokes the canonical project wrappers and only the additional checks required by that milestone;
+- the script writes one UTF-8 execution log under the Git-ignored `tools/test/owner/logs/` directory;
+- the script records the tested milestone, requested PR head or commit, detected commit when Git is available, tool versions, commands, exit codes, cleanup result, and final pass/fail summary;
+- Git CLI is optional on the Windows machine; the owner may provide the PR head through a script parameter;
+- temporary failure, corruption, migration, or save fixtures created by the script must be removed and their removal verified before success;
+- a clean regression suite runs after any intentional-failure test;
+- visual, editor, audio, A/B, and live Steam observations remain an explicit owner checklist and are never auto-marked as passed;
+- when a script would add no value or cannot safely drive the required tool, provide a repository-tracked `.md` or `.txt` command/checklist file instead and state why;
+- generated logs are uploaded as evidence when useful but are not committed.
+
+The canonical format and path rules are maintained in `docs/codex/OWNER_VERIFICATION_WORKFLOW.md`.
+
+### Consequences
+
+- The owner normally runs one PowerShell entry point rather than reconstructing milestone commands from chat.
+- Test evidence is reproducible and easier to review, while machine-specific paths remain outside committed configuration.
+- Future prompts must budget the verification script or checklist as part of the milestone, not as post-implementation improvisation.
+- Interactive judgment remains human-owned; a log cannot prove an unperformed visual or Steam check.
+- No automatic upload, credential collection, or network transmission is authorized.
+
+### Affected documents
+
+- `AGENTS.md`
+- `.gitignore`
+- `docs/codex/OWNER_VERIFICATION_WORKFLOW.md`
+- `docs/codex/PROMPT_TEMPLATE.md`
+- `docs/codex/TESTING_AND_VALIDATION.md`
+- `docs/codex/MILESTONES.md`
+
+
+---
+
+
+## `DEC-0026` — Six-decimal fixed-point scale and checked residual arithmetic
+
+**Status:** Proposed  
+**Date:** 2026-07-13  
+**Decision type:** Numeric representation  
+**Refines:** `DEC-0010`
+
+### Context
+
+M01 must choose one exact fixed-point scale before production rates, Mastery, discovery, support, forecasts, and save residuals depend on it. The scale needs enough precision for fractional rates and coefficients while remaining understandable, testable, and safe in Godot's signed 64-bit integer model. Ordinary floating-point accumulation and per-subsystem scales would weaken chunking equivalence and save reproducibility.
+
+### Proposed decision
+
+- Use `FixedPoint.SCALE = 1_000_000` subunits per whole unit.
+- Represent `1.0` as `1_000_000`; for example, `0.15` is `150_000` and a `1.15` multiplier is `1_150_000`.
+- Authoritative fractional progress, rates, and multipliers use signed 64-bit GDScript integers. M01's flow APIs accept non-negative values unless a method explicitly documents a signed contract.
+- Central fixed-point operations use deterministic floor semantics and return the unproduced numerator as an explicit canonical remainder.
+- Integer-millisecond accumulation must be chunking invariant when callers preserve the returned remainder.
+- Arithmetic must check inputs and mathematical results before mutation. It must never silently wrap or use a float as an authoritative intermediate.
+- Operations document their supported ranges and reject unsupported overflow with typed reason codes.
+- No subsystem may define another fixed-point scale or duplicate conversion/remainder logic.
+- M02 serializes these integers and remainders exactly through the approved codec-independent snapshot contract; JSON later represents them as canonical decimal strings.
+
+### Consequences
+
+- Six decimal places are available for rates and coefficients without introducing floating-point state.
+- Common prototype modifiers such as `+15%`, `+30%`, and `50%` are represented exactly.
+- High-value arithmetic needs decomposition or other checked algorithms so a final result that fits is not rejected solely because a naïve intermediate multiply would overflow.
+- Every rate flow needs one documented residual owner, and equivalent time chunking becomes an exact regression test.
+- A later scale change would alter persisted numeric meaning and require an explicit migration decision after M02.
+
+### Alternatives considered
+
+- **Scale 1,000:** simpler but unnecessarily coarse for cumulative rates and forecast coefficients.
+- **Scale 1,000,000,000 or larger:** more precision than the prototype demonstrates and materially reduces comfortable overflow headroom.
+- **Binary fixed point:** viable but less legible for designer-authored decimal coefficients and junior review.
+- **Floating-point authoritative state:** rejected because chunking, serialization, and cross-platform reproducibility become harder to prove exactly.
+- **Different scales by subsystem:** rejected because conversions and residual ownership would become error-prone.
+- **Arbitrary-precision or rational-number dependency:** rejected as unnecessary prototype complexity.
+
+### Approval condition
+
+Approval of the M01 v0.1 prompt also approves this decision. Before Codex executes M01, the repository copy must mark this record `Accepted` and the prompt must be marked `Approved`.
+
+### Affected documents
+
+- `docs/codex/ARCHITECTURE.md`
+- `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`
+- `docs/codex/IMPLEMENTATION_RULES.md`
+- `docs/codex/TESTING_AND_VALIDATION.md`
+- `docs/codex/MILESTONES.md`
+- `docs/codex/milestone-prompts/M01-deterministic-time-foundation.md`
+
+---
+
 ## 3. Current approval state
 
-- `DEC-0001` through `DEC-0024` are Accepted.
-- The Phase 6 architecture is approved with trusted-time, save-format, cross-machine testing, and GodotSteam dependency refinements recorded in `DEC-0021` through `DEC-0024`.
+- `DEC-0001` through `DEC-0025` are Accepted.
+- `DEC-0026` is Proposed and awaits approval with the M01 v0.1 prompt.
+- The Phase 6 architecture is approved with trusted-time, save-format, cross-machine testing, GodotSteam, and owner-verification refinements recorded in `DEC-0021` through `DEC-0025`.
 - Future changes preserve decision IDs for wording clarifications and create a new decision only when semantics, ownership, compatibility, or security posture changes.

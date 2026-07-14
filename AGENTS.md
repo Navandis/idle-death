@@ -61,7 +61,8 @@ Before modifying non-trivial behavior:
    - `docs/codex/IMPLEMENTATION_RULES.md`;
    - `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`;
    - `docs/codex/TESTING_AND_VALIDATION.md`;
-   - `docs/codex/DECISIONS.md`.
+   - `docs/codex/DECISIONS.md`;
+   - `docs/codex/OWNER_VERIFICATION_WORKFLOW.md` when the task has owner-run Windows, editor, visual, audio, functional, A/B, persistence, or Steam checks.
 4. Read the applicable milestone definition and milestone prompt.
 5. Inspect the current implementation and tests before proposing changes.
 
@@ -108,6 +109,7 @@ The intended repository responsibilities are:
 - `addons/gut/`: pinned GUT 9.7.1 test dependency; M00 owns harness validation, not dependency acquisition.
 - `addons/godotsteam/`: pinned GodotSteam 4.20 GDExtension; only M06 may introduce trusted-time behavior through it.
 - `tools/test/`: cross-platform repository test wrappers created and maintained by M00.
+- `tools/test/owner/`: milestone-specific owner verification scripts; generated logs live under the ignored `tools/test/owner/logs/` directory.
 - `test_main_scene.tscn`: current temporary editor and asset dry-run scene. It is not final application architecture.
 - `src/app/`: application startup, composition, and high-level coordination.
 - `src/domain/`: authoritative game-state concepts and domain rules.
@@ -122,7 +124,7 @@ The intended repository responsibilities are:
 - `tests/`: deterministic unit, integration, save/load, and simulation tests.
 - `docs/design/`: implementation-oriented design sources of truth.
 - `docs/design/source-documents/`: optional archived DOCX source material; not routine implementation guidance.
-- `docs/codex/`: architecture, engineering rules, decisions, validation, milestones, and prompts.
+- `docs/codex/`: architecture, engineering rules, decisions, validation, owner-verification workflow, milestones, and prompts.
 
 Do not create every planned directory merely to reproduce this map. Introduce a directory when its first real file is needed, except for approved asset destinations that require placeholders.
 
@@ -449,19 +451,11 @@ Do not leave large blocks of commented-out code. Use version control instead.
 
 ## Testing and validation
 
-The canonical test commands and manual flows belong in `docs/codex/TESTING_AND_VALIDATION.md`.
+The canonical test commands and manual flows belong in `docs/codex/TESTING_AND_VALIDATION.md`. Owner-run packaging and generated-log rules belong in `docs/codex/OWNER_VERIFICATION_WORKFLOW.md`.
 
-GUT 9.7.1 is already committed, but the repository-wide harness is not established until M00 creates and verifies `.gutconfig.json`, `tools/test/run_gut.sh`, `tools/test/run_gut.ps1`, and the first test suite.
+M00 established and verified `.gutconfig.json`, `tools/test/run_gut.sh`, `tools/test/run_gut.ps1`, and the initial GUT suite on Linux/Codex Cloud and the owner's Windows Godot machine.
 
-Until M00 merges, minimum verification for a Godot change is:
-
-- import or open the project using Godot 4.7;
-- run the configured main scene;
-- confirm that the editor reports no new parser or resource errors;
-- exercise the exact manual path changed by the task;
-- report the exact verification that was and was not performed.
-
-After M00:
+For executable Godot work:
 
 - Codex Cloud and other Linux environments run `tools/test/run_gut.sh`;
 - the project owner runs `tools/test/run_gut.ps1` on the separate Windows machine that has Godot 4.7;
@@ -469,7 +463,9 @@ After M00:
 - a Codex task may report the Windows check as pending, but must never report it as passed unless the owner actually ran it;
 - required Windows, visual, or Steam checks must pass before merge when the milestone says they are merge gates.
 
-Codex does not need to be installed on the Windows Godot machine. Git transfers the branch; the owner executes the committed PowerShell wrapper and manual checklist there.
+When a milestone has owner-run merge gates, the approved prompt must define the owner verification package. Prefer a milestone-specific script under `tools/test/owner/` that runs the automatable checks and writes an ignored log under `tools/test/owner/logs/`. Provide a concise repository-tracked checklist for visual, editor, audio, A/B, or live Steam observations that cannot be automated safely.
+
+Codex does not need to be installed on the Windows Godot machine. Git transfers the branch; the owner executes the committed PowerShell entry point and any manual checklist there. Generated logs may be shared as evidence but are not committed.
 
 Simulation and persistence changes normally require tests for applicable cases such as:
 
@@ -505,7 +501,7 @@ Never commit a local absolute path to a Godot executable.
 
 ## Assets, generated files, and repository hygiene
 
-- Do not commit `.godot/`, exported builds, temporary logs, or local editor state.
+- Do not commit `.godot/`, exported builds, temporary logs, owner-verification logs, or local editor state.
 - Preserve Godot import metadata that is intentionally tracked by the repository.
 - Do not manually edit generated binary data.
 - Do not overwrite, recompress, rename, or delete source art, audio, fonts, archived design documents, or other binary assets without explicit scope.
@@ -524,6 +520,7 @@ Update the applicable files in the same pull request:
 - `docs/codex/IMPLEMENTATION_RULES.md` for changed engineering conventions;
 - `docs/codex/DATA_AND_CONTENT_CONTRACTS.md` for changed IDs, schemas, fields, guarantees, or serialized state;
 - `docs/codex/TESTING_AND_VALIDATION.md` for changed commands or validation paths;
+- `docs/codex/OWNER_VERIFICATION_WORKFLOW.md` for changed owner-run script, checklist, log, or evidence conventions;
 - `docs/codex/DECISIONS.md` for approved architectural or design decisions;
 - the applicable design source of truth for an approved design change;
 - `docs/codex/MILESTONES.md` for changed status, scope, dependencies, or acceptance criteria.

@@ -2,11 +2,12 @@
 
 **Document role:** Canonical test strategy, commands, fixture rules, and manual validation flows
 **Repository path:** `docs/codex/TESTING_AND_VALIDATION.md`
-**Document status:** Approved architecture validation plan with M00 harness implemented
-**Validation revision:** 4
+**Document status:** Approved architecture validation plan with M00 harness validated
+**Validation revision:** 5
 **Last updated:** 2026-07-13
 **Engine target:** Godot 4.7 standard build, GDScript only
-**Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)
+**Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)  
+**Owner evidence companion:** [OWNER_VERIFICATION_WORKFLOW.md](OWNER_VERIFICATION_WORKFLOW.md)
 
 ## 1. Current status
 
@@ -25,7 +26,7 @@ M00 has added the approved automated harness:
 - `tests/unit/infrastructure/test_project_harness.gd`;
 - canonical import, focused-test, full-test, outside-root, and smoke documentation.
 
-Codex/Linux verification may pass before merge, but owner-run Windows checks remain **Pending owner verification** until the project owner reports results for the tested commit or branch.
+M00 merged through PR #4. Linux/Codex Cloud and owner-run Windows verification passed, including full and focused GUT execution, outside-root invocation, main-scene/editor smoke, passive Steam configuration, intentional failing-test propagation, cleanup, and clean recovery. Future milestones use the same canonical wrappers and the owner evidence package described in `OWNER_VERIFICATION_WORKFLOW.md`.
 
 ## 2. Pinned test and platform dependencies
 
@@ -33,7 +34,7 @@ Codex/Linux verification may pass before merge, but owner-run Windows checks rem
 
 GUT 9.7.1 is the approved GDScript test framework for Godot 4.7.x. It is already committed and is not downloaded by M00 or at test time.
 
-M00 verified the committed version from `addons/gut/plugin.cfg`, retained `addons/gut/LICENSE.md`, and added `.gutconfig.json` with repository-relative recursive discovery under `res://tests`. The wrappers avoid addon updaters, floating versions, and runtime network downloads. Linux failure propagation is verified by Codex; Windows failure propagation remains pending owner verification until reported.
+M00 verified the committed version from `addons/gut/plugin.cfg`, retained `addons/gut/LICENSE.md`, and added `.gutconfig.json` with repository-relative recursive discovery under `res://tests`. The wrappers avoid addon updaters, floating versions, and runtime network downloads. Failure propagation and clean recovery are verified on both Linux/Codex Cloud and the owner's Windows Godot machine.
 
 Official project references:
 
@@ -178,7 +179,7 @@ exit $result
 
 ### 4.7 M00 temporary failure-propagation check
 
-Linux and Codex already proved failure propagation during the M00 implementation. The owner-run Windows failure-propagation gate remains **Pending owner verification** until the project owner runs the following copy/paste-complete PowerShell procedure on the Windows Godot machine. Use the console executable path for reliable output and exit-code capture.
+M00 completion proved failure propagation and clean recovery on Linux/Codex Cloud and Windows. The following PowerShell procedure remains the canonical reproducible Windows check. Use the console executable path for reliable output and exit-code capture.
 
 ```powershell
 $godotBin = 'C:\Path\To\Godot_v4.7-stable_win64_console.exe'
@@ -842,7 +843,8 @@ Once configured, headless tests should:
 - show failed test names and assertions in stdout;
 - optionally write JUnit XML to a generated test-results directory;
 - avoid committing generated results;
-- preserve useful logs as CI or Codex task artifacts when available.
+- preserve useful logs as CI or Codex task artifacts when available;
+- write milestone-specific owner logs only under the ignored `tools/test/owner/logs/` path defined in `OWNER_VERIFICATION_WORKFLOW.md`.
 
 Do not hide failures behind a wrapper that always exits successfully.
 
@@ -896,3 +898,25 @@ A milestone is validated only when:
 - exactly-once behavior is tested when progression changes;
 - the exact manual demonstration path is recorded;
 - limitations are disclosed rather than inferred away.
+
+## 19. Owner verification packages and generated logs
+
+Owner-run merge gates follow [OWNER_VERIFICATION_WORKFLOW.md](OWNER_VERIFICATION_WORKFLOW.md) and `DEC-0025`.
+
+For each milestone, the approved prompt must select one of these packages:
+
+1. canonical Windows GUT wrapper only;
+2. milestone-specific PowerShell script under `tools/test/owner/`;
+3. milestone-specific PowerShell script plus interactive checklist under `docs/codex/owner-checklists/`; or
+4. a direct `.md` or `.txt` command/checklist file when automation is unsafe or adds no practical value.
+
+A milestone-specific script normally writes a UTF-8 log under:
+
+```text
+tools/test/owner/logs/
+```
+
+The generated log records the requested PR head or commit, detected commit when Git is available, Windows and PowerShell versions, Godot executable and version, commands, exit codes, cleanup, pending interactive checks, and final result. Git CLI is optional; scripts accept a `-CommitSha` parameter when exact owner evidence is required.
+
+Scripts must return nonzero on automated failure, verify cleanup of any temporary fixtures, and rerun the clean regression suite after intentional-failure or corruption checks. Logs are uploaded or quoted as validation evidence and are never committed. Visual, editor, audio, A/B, functional, and live Steam observations remain explicit owner results and cannot be inferred from the script log.
+

@@ -1,11 +1,11 @@
 # Death Idle Prototype Milestones
 
-**Document role:** Approved implementation sequence and acceptance map for the 0–90 minute prototype
-**Repository path:** `docs/codex/MILESTONES.md`
-**Document status:** Phase 7 approved
-**Milestone-map revision:** 4
-**Last updated:** 2026-07-13
-**Primary context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md), [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md), [Architecture](ARCHITECTURE.md), [Data contracts](DATA_AND_CONTENT_CONTRACTS.md), [Testing](TESTING_AND_VALIDATION.md), and [Decisions](DECISIONS.md)
+**Document role:** Approved implementation sequence and acceptance map for the 0–90 minute prototype  
+**Repository path:** `docs/codex/MILESTONES.md`  
+**Document status:** Phase 7 approved  
+**Milestone-map revision:** 6  
+**Last updated:** 2026-07-13  
+**Primary context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md), [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md), [Architecture](ARCHITECTURE.md), [Data contracts](DATA_AND_CONTENT_CONTRACTS.md), [Testing](TESTING_AND_VALIDATION.md), [Owner verification](OWNER_VERIFICATION_WORKFLOW.md), and [Decisions](DECISIONS.md)
 
 ## 1. Purpose and authority
 
@@ -15,14 +15,16 @@ Use the source hierarchy in `AGENTS.md`. A milestone definition cannot weaken a 
 
 ## 2. Current repository baseline
 
-At Phase 7 approval:
+After M00 completion:
 
 - Godot 4.7, GDScript, the 1920 × 1080 reference viewport, resizing/stretch settings, and a temporary dry-run main scene exist.
-- `AGENTS.md`, project Codex configuration, the maintained design sources, the architecture documents, and the approved `PROMPT_TEMPLATE.md` are present in the repository.
+- `AGENTS.md`, project Codex configuration, the maintained design sources, the architecture documents, the approved `PROMPT_TEMPLATE.md`, and `OWNER_VERIFICATION_WORKFLOW.md` are present in the repository.
 - GUT 9.7.1 is committed under `addons/gut/`.
 - GodotSteam GDExtension 4.20 is committed under `addons/godotsteam/`.
 - Development App ID `480` is configured in `project.godot`; automatic Steam initialization is disabled.
-- The repository still has no approved `.gutconfig.json`, test wrappers, initial test suite, production game-state model, content registry, simulation, persistence implementation, or gameplay UI.
+- M00 established `.gutconfig.json`, `tools/test/run_gut.sh`, `tools/test/run_gut.ps1`, the initial infrastructure test, and the canonical Linux/Windows verification documentation.
+- Linux/Codex Cloud and owner-run Windows M00 verification passed, including failure propagation and clean recovery.
+- The repository still has no production game-state model, content registry, simulation, persistence implementation, or gameplay UI.
 - Existing dry-run assets and scene work are preserved unless a scoped milestone explicitly replaces or integrates them.
 
 ## 3. Milestone rules
@@ -38,7 +40,8 @@ Every milestone must:
 7. avoid unrelated refactors and future-milestone systems;
 8. update this status map and every maintained contract made inaccurate by the change;
 9. preserve junior-readable code and comments under `AGENTS.md` and `IMPLEMENTATION_RULES.md`;
-10. stop for owner approval when a listed decision gate is reached.
+10. stop for owner approval when a listed decision gate is reached;
+11. package owner-run merge gates under `OWNER_VERIFICATION_WORKFLOW.md`, preferring one milestone-specific PowerShell entry point with a generated log and a separate checklist only for interactive observations.
 
 A milestone may be split after implementation begins only when the split preserves a demonstrable result and the dependency/status tables are updated first. Do not merge several later milestones merely because Codex can generate a large diff.
 
@@ -57,12 +60,14 @@ A milestone may be split after implementation begins only when the split preserv
 |---|---|---|
 | `GATE-GUT` | M00 merge | Verify the committed GUT 9.7.1 dependency, retained license, `.gutconfig.json`, required Linux and Windows wrappers, Godot 4.7 execution, and real failure exit codes. |
 | `GATE-WINDOWS-HARNESS` | M00 merge | The owner runs `tools/test/run_gut.ps1` on the separate Windows Godot machine and records the result; Codex Cloud cannot satisfy this gate. |
-| `GATE-FIXED-POINT` | M01 merge | Record the centralized scale and tested numeric bounds; do not let subsystems choose different scales. |
+| `GATE-FIXED-POINT` | M01 merge | Approve and implement `DEC-0026`: one centralized scale of `1_000_000`, checked 64-bit arithmetic, canonical residuals, documented bounds, and cross-platform tests; do not let subsystems choose different scales. |
 | `GATE-SAVE-SCHEMA` | M02 merge | Freeze schema-version-1 key spelling and representative fixtures before gameplay state depends on it. |
 | `GATE-STEAM-TIME` | M06 prompt/implementation | Satisfied for prompt drafting by `DEC-0024`: use pinned GodotSteam 4.20 and development App ID `480`. M06 must still verify license footprint, wrapper API, explicit initialization, and live Windows behavior. |
 | `GATE-PRODUCTION-OFFLINE` | M16 merge | Fake-provider automation plus the owner-run Windows/GodotSteam connected, unavailable, reconnect, clock-change, and repeated-load checks must pass. |
 | `RELEASE-GATE-STEAM-APP` | Before external Steam Playtest or commercial distribution | Replace development App ID `480` with Death Idle's assigned App ID and validate package ownership, launch-through-Steam behavior, export contents, and absence of development-only App ID aids. |
 | `RELEASE-GATE-SAVE` | Before commercial release, not this prototype map | Profile realistic full-game saves and choose the final codec/threat model under `DEC-0022`. JSON may remain; binary/compression/encryption are not assumed security. |
+
+`GATE-GUT` and `GATE-WINDOWS-HARNESS` were satisfied by M00. PR #4 merged on 2026-07-13 at merge commit `77c618a1d9adbf8b02380d8509d2afb4c4cbc8ea`; Linux/Codex Cloud checks passed, and explicit owner evidence covered Windows full and focused GUT, outside-root execution, editor smoke, passive Steam configuration, intentional failure propagation, cleanup, and clean recovery.
 
 When trusted time is unavailable, the approved behavior is to grant no guessed closed-session progress, retain pending reconciliation, and continue monotonic foreground production. No milestone may introduce a local-device-time fallback.
 
@@ -70,8 +75,8 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 
 | ID | Milestone | Definition | Prompt | Implementation | Verification |
 |---|---|---|---|---|---|
-| M00 | Repository, Godot, GUT, and Codex Cloud harness | Approved | Approved | Implemented in open PR; Linux verified; Windows owner checks mostly passed | Linux passed; owner Windows full/focused/outside-root/editor/no-Steam checks passed at `75a1752a09e2f326e11a51469c7efa2debfe269c`; Windows failure propagation pending |
-| M01 | Deterministic numeric and time-authority foundation | Approved | Not drafted | Not started | — |
+| M00 | Repository, Godot, GUT, and Codex Cloud harness | Approved | Approved | Merged | Passed |
+| M01 | Deterministic numeric and time-authority foundation | Approved | Drafted | Not started | — |
 | M02 | Versioned save codec and atomic storage | Approved | Not drafted | Not started | — |
 | M03 | Content catalog, canonical IDs, and configurable prototype data | Approved | Not drafted | Not started | — |
 | M04 | Persistent Reaping simulation vertical slice | Approved | Not drafted | Not started | — |
@@ -131,10 +136,11 @@ The starting M00–M13 hypothesis was useful, but this map makes several deliber
 
 ### M00 — Repository, Godot, GUT, and Codex Cloud harness
 
-**Definition status:** Approved
-**Prompt status:** Approved
-**Implementation status:** Implemented in open PR; Linux verified; Windows owner checks mostly passed; Windows failure propagation pending
-**Recommended Codex task size:** Medium; one infrastructure pull request.
+**Definition status:** Approved  
+**Prompt status:** Approved  
+**Implementation status:** Merged through PR #4  
+**Verification status:** Passed  
+**Recommended Codex task size:** Medium; one infrastructure pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M00-repository-test-harness.md`
 
 #### Purpose
@@ -250,19 +256,21 @@ No gameplay save format is introduced. Test fixtures must not write persistent u
 - `IMPLEMENTATION_RULES.md` only if the realized wrapper interface differs from the approved contract
 - `MILESTONES.md`
 
-#### Current verification state
+#### Completion record
 
-- Linux/Codex full wrapper, focused wrapper, outside-root invocation, main-scene smoke, missing/wrong Godot checks, and temporary failing-test propagation were implemented for M00 verification.
-- Owner-run Windows full wrapper, focused wrapper, outside-root invocation, editor dry-run scene smoke, and no-Steam-initialization checks passed at PR head `75a1752a09e2f326e11a51469c7efa2debfe269c` with `Godot_v4.7-stable_win64_console.exe` / Godot `4.7.stable.official.5b4e0cb0f`.
-- Owner-run Windows temporary failing-test/recovery remains pending owner verification.
-- M00 remains implemented in the open pull request and must not be marked merged or fully passed until the Windows failure-propagation gate is reported.
+- PR #4 merged on 2026-07-13.
+- Final PR head: `ad9070cb5a8c2d8b5fd8b12f6e134e672f31c91d`.
+- Merge commit: `77c618a1d9adbf8b02380d8509d2afb4c4cbc8ea`.
+- Linux/Codex Cloud passed full, focused, outside-root, missing/wrong-version, intentional-failure/recovery, and main-scene smoke checks.
+- The owner passed Windows full and focused GUT, outside-root execution, editor dry-run smoke, passive Steam configuration, intentional failing-test exit propagation, temporary-file cleanup, and clean full-suite recovery.
+- `GATE-GUT` and `GATE-WINDOWS-HARNESS` are satisfied.
+- M01 is unblocked for prompt drafting.
 
 #### Known risks
 
-- Codex Cloud setup may need a pinned Godot installation step outside the repository.
-- GUT 9.7.1 CLI behavior must be verified against the committed files rather than assumed from another version.
+- Future Godot or dependency upgrades require the M00 wrapper and environment checks to be rerun.
 - GodotSteam native libraries may expose environment-specific load failures even when Steam is not initialized.
-- The Windows gate depends on timely owner execution and cannot be completed by Codex Cloud.
+- Windows, visual, editor, persistence, and live Steam checks remain owner-run where later milestones require them.
 
 #### Follow-on dependencies
 
@@ -272,10 +280,10 @@ No gameplay save format is introduced. Test fixtures must not write persistent u
 
 ### M01 — Deterministic numeric and time-authority foundation
 
-**Definition status:** Approved
-**Prompt status:** Not drafted
-**Implementation status:** Not started
-**Recommended Codex task size:** Medium; one pure-foundation pull request.
+**Definition status:** Approved  
+**Prompt status:** Drafted  
+**Implementation status:** Not started  
+**Recommended Codex task size:** Medium; one pure-foundation pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M01-deterministic-time-foundation.md`
 
 #### Purpose
@@ -293,7 +301,7 @@ A developer can advance a minimal `GameState` with explicit elapsed milliseconds
 #### Included scope
 
 - Create the minimal scene-independent `GameState` timeline required by later systems.
-- Select and document one centralized 64-bit fixed-point scale with checked arithmetic and persisted residual semantics.
+- Implement the proposed `DEC-0026` scale of `1_000_000` subunits per whole unit, with checked 64-bit arithmetic and canonical residual semantics. Prompt approval is required before execution.
 - Define `MonotonicClock`, `TrustedTimeProvider`, `TrustedTimeSample`, and `TimeAuthorityState` contracts.
 - Implement trusted-gap accounting: first anchor, unavailable state, pending reconciliation, subtraction of foreground time already credited since the anchor, caps, diagnostics, and backward-sample rejection.
 - Provide fake monotonic and trusted-time sources for tests.
@@ -314,11 +322,13 @@ The exact file list remains subject to repository inspection. Expected areas are
 - `src/simulation/fixed_point.gd` or equivalent centralized utility
 - `src/time/` provider interfaces and reconciliation service
 - `tests/unit/simulation/` and `tests/unit/domain/`
-- `tests/support/fake_monotonic_clock.gd` and `fake_trusted_time_source.gd`
+- `tests/support/fake_monotonic_clock.gd` and `fake_trusted_time_provider.gd`
+- `tools/test/traces/m01_time_foundation_trace.gd`
+- `tools/test/owner/run_m01_owner_verification.ps1` and ignored generated logs
 
 #### Data and content required
 
-- Fixed-point scale and named trusted-time statuses/diagnostic codes. These are architecture constants, not balance values.
+- Proposed `FixedPoint.SCALE = 1_000_000` under `DEC-0026`, plus named trusted-time statuses and diagnostic codes. These are architecture constants, not balance values.
 
 #### Acceptance criteria
 
@@ -339,7 +349,9 @@ The exact file list remains subject to repository inspection. Expected areas are
 
 #### Manual verification
 
-- Run a developer trace using fake values: establish an anchor, advance foreground time, mark trust unavailable, restore a later sample, and inspect the single uncredited interval.
+- Codex creates `tools/test/owner/run_m01_owner_verification.ps1` under `OWNER_VERIFICATION_WORKFLOW.md`.
+- The owner runs one PowerShell entry point against the PR head; it executes the full/focused Windows suite and deterministic trace and writes a UTF-8 log under `tools/test/owner/logs/`.
+- No separate visual or editor checklist is required because M01 has no player-facing presentation.
 
 #### Demonstration path
 
@@ -354,7 +366,7 @@ State classes expose explicit primitive conversion hooks where useful, but no fi
 
 #### Documentation updates
 
-- `ARCHITECTURE.md`, `DATA_AND_CONTENT_CONTRACTS.md`, `IMPLEMENTATION_RULES.md`, `TESTING_AND_VALIDATION.md`, `DECISIONS.md` if the fixed-point scale changes the approved contract, and `MILESTONES.md`.
+- `ARCHITECTURE.md`, `DATA_AND_CONTENT_CONTRACTS.md`, `IMPLEMENTATION_RULES.md`, `TESTING_AND_VALIDATION.md`, `DECISIONS.md`, and `MILESTONES.md`; `OWNER_VERIFICATION_WORKFLOW.md` changes only if implementation exposes a generic workflow defect.
 
 #### Known risks
 
@@ -369,10 +381,10 @@ State classes expose explicit primitive conversion hooks where useful, but no fi
 
 ### M02 — Versioned save codec and atomic storage
 
-**Definition status:** Approved
-**Prompt status:** Not drafted
-**Implementation status:** Not started
-**Recommended Codex task size:** Medium; one persistence pull request.
+**Definition status:** Approved  
+**Prompt status:** Not drafted  
+**Implementation status:** Not started  
+**Recommended Codex task size:** Medium; one persistence pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M02-save-codec-atomic-storage.md`
 
 #### Purpose
@@ -469,10 +481,10 @@ This milestone establishes schema version 1, codec ID, transaction rules, and ba
 
 ### M03 — Content catalog, canonical IDs, and configurable prototype data
 
-**Definition status:** Approved
-**Prompt status:** Not drafted
-**Implementation status:** Not started
-**Recommended Codex task size:** Medium; one content-foundation pull request.
+**Definition status:** Approved  
+**Prompt status:** Not drafted  
+**Implementation status:** Not started  
+**Recommended Codex task size:** Medium; one content-foundation pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M03-content-catalog-prototype-data.md`
 
 #### Purpose
@@ -563,10 +575,10 @@ Saves reference definitions only by canonical ID and record content revision. Un
 
 ### M04 — Persistent Reaping simulation vertical slice
 
-**Definition status:** Approved
-**Prompt status:** Not drafted
-**Implementation status:** Not started
-**Recommended Codex task size:** Medium-large but bounded to one operation and three core streams.
+**Definition status:** Approved  
+**Prompt status:** Not drafted  
+**Implementation status:** Not started  
+**Recommended Codex task size:** Medium-large but bounded to one operation and three core streams.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M04-persistent-reaping-simulation.md`
 
 #### Purpose
@@ -664,10 +676,10 @@ Schema version 1 gains Reaping, Threshold, inventory, progression, and report fi
 
 ### M05 — Persistent application shell, navigation, and debug access
 
-**Definition status:** Approved
-**Prompt status:** Not drafted
-**Implementation status:** Not started
-**Recommended Codex task size:** Medium; one application-shell pull request.
+**Definition status:** Approved  
+**Prompt status:** Not drafted  
+**Implementation status:** Not started  
+**Recommended Codex task size:** Medium; one application-shell pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M05-application-shell-navigation-debug.md`
 
 #### Purpose
@@ -762,10 +774,10 @@ Startup and shutdown use M02 storage. Current screen, hover, and animation state
 
 ### M06 — Steam trusted-time adapter and transactional offline resolution
 
-**Definition status:** Approved
-**Prompt status:** Not drafted
-**Implementation status:** Not started
-**Recommended Codex task size:** Medium with mandatory owner-run Windows integration checks.
+**Definition status:** Approved  
+**Prompt status:** Not drafted  
+**Implementation status:** Not started  
+**Recommended Codex task size:** Medium with mandatory owner-run Windows integration checks.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M06-steam-trusted-time-adapter.md`
 
 #### Purpose
@@ -911,10 +923,10 @@ The trusted anchor, simulation time at anchor, foreground credited since anchor,
 
 ### M07 — Dialogue and save-safe tutorial orchestration framework
 
-**Definition status:** Approved
-**Prompt status:** Not drafted
-**Implementation status:** Not started
-**Recommended Codex task size:** Medium; one orchestration-framework pull request.
+**Definition status:** Approved  
+**Prompt status:** Not drafted  
+**Implementation status:** Not started  
+**Recommended Codex task size:** Medium; one orchestration-framework pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M07-dialogue-tutorial-framework.md`
 
 #### Purpose
@@ -1007,10 +1019,10 @@ Tutorial, story checkpoint, skip/help, and presented-notice fields persist. Tran
 
 ### M08 — Opening sequence, scripted four returns, Brand, and first dispatch
 
-**Definition status:** Approved
-**Prompt status:** Not drafted
-**Implementation status:** Not started
-**Recommended Codex task size:** Medium-large but limited to Beats 1–4.
+**Definition status:** Approved  
+**Prompt status:** Not drafted  
+**Implementation status:** Not started  
+**Recommended Codex task size:** Medium-large but limited to Beats 1–4.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M08-opening-first-dispatch.md`
 
 #### Purpose
@@ -1109,10 +1121,10 @@ Checkpoint after every tutorial transition, the four-return transaction, Brand c
 
 ### M09 — Archive, Recollections, and Soulweave horizon
 
-**Definition status:** Approved
-**Prompt status:** Not drafted
-**Implementation status:** Not started
-**Recommended Codex task size:** Medium; one Beat-5 pull request.
+**Definition status:** Approved  
+**Prompt status:** Not drafted  
+**Implementation status:** Not started  
+**Recommended Codex task size:** Medium; one Beat-5 pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M09-archive-recollections-soulweave.md`
 
 #### Purpose
@@ -1206,10 +1218,10 @@ Checkpoint after Archive restoration, Recollection purchase, tutorial transition
 
 ### M10 — First report, Emergency-to-Standard transition, and Soldier Company
 
-**Definition status:** Approved
-**Prompt status:** Not drafted
-**Implementation status:** Not started
-**Recommended Codex task size:** Medium-large but bounded to Beat 6 and one Retinue.
+**Definition status:** Approved  
+**Prompt status:** Not drafted  
+**Implementation status:** Not started  
+**Recommended Codex task size:** Medium-large but bounded to Beat 6 and one Retinue.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M10-first-report-soldier-company.md`
 
 #### Purpose
@@ -1305,10 +1317,10 @@ Checkpoint at milestone, Writ transition, guarantee, report snapshot/archive, Re
 
 ### M11 — Scribe guarantee, player-driven awakening, and Form comparison
 
-**Definition status:** Approved
-**Prompt status:** Not drafted
-**Implementation status:** Not started
-**Recommended Codex task size:** Small-medium; one Beat-7 pull request.
+**Definition status:** Approved  
+**Prompt status:** Not drafted  
+**Implementation status:** Not started  
+**Recommended Codex task size:** Small-medium; one Beat-7 pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M11-scribe-awakening-form-comparison.md`
 
 #### Purpose
@@ -1402,10 +1414,10 @@ Checkpoint at milestone/top-ups, protection changes, awakening, tutorial present
 
 ### M12 — Broken Watch, minor resonance, second tether, and concurrent Reapings
 
-**Definition status:** Approved
-**Prompt status:** Not drafted
-**Implementation status:** Not started
-**Recommended Codex task size:** Medium; one Beat-8 pull request.
+**Definition status:** Approved  
+**Prompt status:** Not drafted  
+**Implementation status:** Not started  
+**Recommended Codex task size:** Medium; one Beat-8 pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M12-broken-watch-second-tether.md`
 
 #### Purpose
@@ -1501,10 +1513,10 @@ Checkpoint at milestone/resonance, Threshold knowledge/availability, tether gran
 
 ### M13 — Discovery states, hidden Provisions, and forecast confidence
 
-**Definition status:** Approved
-**Prompt status:** Not drafted
-**Implementation status:** Not started
-**Recommended Codex task size:** Medium; one Beat-9 pull request.
+**Definition status:** Approved  
+**Prompt status:** Not drafted  
+**Implementation status:** Not started  
+**Recommended Codex task size:** Medium; one Beat-9 pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M13-discovery-provisions-forecasts.md`
 
 #### Purpose
@@ -1598,10 +1610,10 @@ Checkpoint on discovery state transitions and tutorial progression; hidden resou
 
 ### M14 — Larder, Rations, support pressure, and graceful degradation
 
-**Definition status:** Approved
-**Prompt status:** Not drafted
-**Implementation status:** Not started
-**Recommended Codex task size:** Medium-large but bounded to one Hall, one recipe, one Store, and one consumer.
+**Definition status:** Approved  
+**Prompt status:** Not drafted  
+**Implementation status:** Not started  
+**Recommended Codex task size:** Medium-large but bounded to one Hall, one recipe, one Store, and one consumer.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M14-larder-rations-support.md`
 
 #### Purpose
@@ -1698,10 +1710,10 @@ Checkpoint at guarantee, Hall restoration/activation/target changes, support tra
 
 ### M15 — Regional 10,000 resonance, optional Recollection choice, and objectives
 
-**Definition status:** Approved
-**Prompt status:** Not drafted
-**Implementation status:** Not started
-**Recommended Codex task size:** Small-medium; one Beat-11 pull request.
+**Definition status:** Approved  
+**Prompt status:** Not drafted  
+**Implementation status:** Not started  
+**Recommended Codex task size:** Small-medium; one Beat-11 pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M15-second-resonance-recollection-choice.md`
 
 #### Purpose
@@ -1794,10 +1806,10 @@ Checkpoint at milestone/resonance/reward, choice availability, purchase, objecti
 
 ### M16 — Offline forecast, welcome-back report, and guided-opening completion
 
-**Definition status:** Approved
-**Prompt status:** Not drafted
-**Implementation status:** Not started
-**Recommended Codex task size:** Medium; one Beat-12/offline-UX pull request.
+**Definition status:** Approved  
+**Prompt status:** Not drafted  
+**Implementation status:** Not started  
+**Recommended Codex task size:** Medium; one Beat-12/offline-UX pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M16-offline-return-welcome-back.md`
 
 #### Purpose
@@ -1919,10 +1931,10 @@ Create checkpoints before and after the offline transaction, after report snapsh
 
 ### M17 — Complete 0–90 minute integration, resilience, pacing, and acceptance pass
 
-**Definition status:** Approved
-**Prompt status:** Not drafted
-**Implementation status:** Not started
-**Recommended Codex task size:** Medium-large acceptance pass with no new major subsystem; split only when defects are independently reviewable.
+**Definition status:** Approved  
+**Prompt status:** Not drafted  
+**Implementation status:** Not started  
+**Recommended Codex task size:** Medium-large acceptance pass with no new major subsystem; split only when defects are independently reviewable.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M17-prototype-integration-acceptance.md`
 
 #### Purpose

@@ -3,9 +3,9 @@
 **Document role:** Reusable authoring template for one bounded Codex implementation milestone  
 **Repository path:** `docs/codex/PROMPT_TEMPLATE.md`  
 **Document status:** Phase 8 approved  
-**Template revision:** 2  
+**Template revision:** 3  
 **Last updated:** 2026-07-13  
-**Companion documents:** [Milestones](MILESTONES.md), [Architecture](ARCHITECTURE.md), [Data and content contracts](DATA_AND_CONTENT_CONTRACTS.md), [Implementation rules](IMPLEMENTATION_RULES.md), [Testing and validation](TESTING_AND_VALIDATION.md), [Decisions](DECISIONS.md), [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md), and [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md)
+**Companion documents:** [Milestones](MILESTONES.md), [Architecture](ARCHITECTURE.md), [Data and content contracts](DATA_AND_CONTENT_CONTRACTS.md), [Implementation rules](IMPLEMENTATION_RULES.md), [Testing and validation](TESTING_AND_VALIDATION.md), [Owner verification workflow](OWNER_VERIFICATION_WORKFLOW.md), [Decisions](DECISIONS.md), [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md), and [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md)
 
 ## 1. Purpose
 
@@ -33,8 +33,9 @@ Before drafting a milestone prompt:
 6. Add exact requirement labels, decision IDs, paths, commands, and observable pass conditions.
 7. Keep provisional balance values configurable and identify their status explicitly.
 8. Separate checks Codex can run from checks the project owner must run on the Windows Godot machine.
-9. Use `Not applicable` with a reason when a mandatory section does not apply. Do not delete the section.
-10. Update the prompt version and date whenever an approved prompt changes materially.
+9. Decide the owner verification package under `OWNER_VERIFICATION_WORKFLOW.md`: canonical wrapper only, milestone-specific PowerShell script, script plus interactive checklist, or a justified direct command/checklist file.
+10. Use `Not applicable` with a reason when a mandatory section does not apply. Do not delete the section.
+11. Update the prompt version and date whenever an approved prompt changes materially.
 
 Once implementation has started, do not silently rewrite the prompt. A material change requires a new prompt version, an explanation of what changed, and any necessary update to `MILESTONES.md` or `DECISIONS.md`.
 
@@ -59,6 +60,21 @@ Owner-run Windows, editor, visual, audio, functional, A/B, and Steam checks use 
 - Until explicit evidence exists, Codex and repository status documents must use `Pending owner verification` and keep milestone verification `Partial` when any pending item is a merge gate.
 - After explicit owner confirmation and merge, `MILESTONES.md` may be synchronized by the next planning package or a scoped documentation update. The owner is not required to hand-edit the file merely to communicate the result.
 - A reported failure returns to troubleshooting and triage. The planning workflow decides whether the correct response is a follow-up Codex fix prompt, more diagnostics, a prompt revision, or a design decision.
+
+### 2.3 Owner verification package
+
+When a milestone has owner-run checks, the prompt must choose and specify the package defined in `OWNER_VERIFICATION_WORKFLOW.md`.
+
+Preferred order:
+
+1. Use the canonical `tools/test/run_gut.ps1` only when it fully covers the owner automation.
+2. Otherwise require Codex to add `tools/test/owner/run_mNN_owner_verification.ps1` in the milestone pull request.
+3. Require a companion `docs/codex/owner-checklists/MNN-owner-verification.md` when visual, editor, audio, A/B, functional, or live Steam observations remain.
+4. Use a direct `.md` or `.txt` command sheet only when a script is unsafe or would add no practical value; state the reason.
+
+A milestone-specific PowerShell script must write a UTF-8 log under the ignored `tools/test/owner/logs/` directory, record the requested PR head or commit, tool versions, commands, exit codes, cleanup, and final result, and return nonzero on an automated failure. Git CLI must remain optional; accept a `-CommitSha` parameter when exact evidence is a merge gate.
+
+The prompt must name the expected script/checklist paths and the exact owner invocation. Generated logs are evidence to upload or quote, not files to commit.
 
 ## 3. Placeholder and identifier rules
 
@@ -135,8 +151,9 @@ Read the following before editing. The entries must name exact sections, require
 | 6 | `docs/codex/DATA_AND_CONTENT_CONTRACTS.md` | [[CONTRACT SECTIONS, IDS, OR SCHEMAS]] | Canonical IDs and data contracts |
 | 7 | `docs/codex/IMPLEMENTATION_RULES.md` | [[IMPLEMENTATION-RULE SECTIONS]] | GDScript, comments, determinism, and repository conventions |
 | 8 | `docs/codex/TESTING_AND_VALIDATION.md` | [[TEST SECTIONS AND CANONICAL COMMANDS]] | Required test environments and evidence |
-| 9 | `docs/codex/DECISIONS.md` | [[DECISION IDS]] | Accepted decisions that constrain this milestone |
-| 10 | [[OPTIONAL: PRIOR PROMPT, PR, HANDOFF, ISSUE, OR FILE]] | [[EXACT RELEVANT PART]] | [[WHY IT APPLIES]] |
+| 9 | `docs/codex/OWNER_VERIFICATION_WORKFLOW.md` | [[APPLICABLE SCRIPT, LOG, AND CHECKLIST RULES OR "Not applicable"]] | Packaging for owner-run Windows and interactive checks |
+| 10 | `docs/codex/DECISIONS.md` | [[DECISION IDS]] | Accepted decisions that constrain this milestone |
+| 11 | [[OPTIONAL: PRIOR PROMPT, PR, HANDOFF, ISSUE, OR FILE]] | [[EXACT RELEVANT PART]] | [[WHY IT APPLIES]] |
 
 This prompt is the latest owner-approved task instruction only within its stated scope. It does not silently supersede accepted decisions or protected design invariants. When two applicable sources conflict, stop and report the conflict, practical consequence, and options unless the documented hierarchy already resolves it.
 
@@ -290,6 +307,8 @@ This list is an informed expectation, not permission to edit every path. Codex m
 | `[[PATH]]` | [[ACTION]] | [[PURPOSE]] |
 | `tests/[[PATH]]` | [[ACTION]] | [[BEHAVIOR PROVED]] |
 | `docs/[[PATH]]` | [[ACTION]] | [[CONTRACT OR STATUS UPDATE]] |
+| `tools/test/owner/[[OPTIONAL MILESTONE SCRIPT]]` | [[Add | Modify | Not applicable]] | [[OWNER AUTOMATION AND GENERATED-LOG PURPOSE]] |
+| `docs/codex/owner-checklists/[[OPTIONAL CHECKLIST]]` | [[Add | Modify | Not applicable]] | [[INTERACTIVE OWNER CHECKS]] |
 
 Do not create empty directories solely to match a planned tree. Do not rename or reorganize unrelated assets or temporary scaffolding.
 
@@ -346,6 +365,14 @@ Do not leave deliberately failing tests, temporary saves, logs, generated result
 
 Codex cannot mark an owner-run check as passed unless the owner explicitly reports the result for the tested commit or branch. In the pull-request handoff, label it `Pending owner verification` when it has not been run or no result has been reported. The owner may provide a lightweight pull-request comment or project-owner message; no manual Markdown edit is required. Do not modify the wrappers or tests to hide a platform-specific failure.
 
+**Owner package for this milestone:** [[CANONICAL WRAPPER ONLY | MILESTONE-SPECIFIC POWERSHELL SCRIPT | SCRIPT PLUS CHECKLIST | DIRECT COMMAND/CHECKLIST FILE WITH REASON]]  
+**Expected PowerShell path:** [[PATH OR "Not applicable"]]  
+**Generated log path:** [[NORMALLY `tools/test/owner/logs/` OR "Not applicable"]]  
+**Expected owner invocation:** `[[COPY/PASTE COMMAND OR "Not applicable"]]`  
+**Interactive checklist path:** [[PATH OR "Not applicable"]]
+
+When a milestone-specific script is required, Codex must create or update it in the same pull request, make Git CLI optional, capture the requested PR head or commit, record commands and exit codes, clean temporary artifacts, rerun the clean regression suite after intentional failures, and print the generated UTF-8 log path. The log directory must remain ignored by Git.
+
 For a documentation-only milestone, state which automated checks are intentionally not required and why.
 
 ## Manual verification
@@ -358,7 +385,7 @@ Provide exact reproduction steps. Separate what Codex can observe from what requ
 | 2 | [[ACTOR]] | [[EXACT STEP]] | [[VISIBLE RESULT]] | [[Yes | No]] |
 | 3 | [[ACTOR]] | [[EXACT STEP]] | [[VISIBLE RESULT]] | [[Yes | No]] |
 
-Manual steps must identify required setup, starting state, inputs, expected state changes, and cleanup. Do not write only "test in editor."
+Manual steps must identify required setup, starting state, inputs, expected state changes, and cleanup. Do not write only "test in editor." When several owner steps are required, place the exact checklist in the repository path named above rather than forcing the owner to reconstruct it from the pull-request description.
 
 When a visual, functional, A/B, audio, or Steam check cannot be performed by Codex, implementation may still be delivered for owner testing if the milestone permits it. The final response must call the check pending, not passed. A non-gating check with no reported issue may later be summarized as `No blocking issue reported`, but only an explicit owner result can satisfy a merge gate.
 
@@ -389,6 +416,7 @@ Rules:
 | `docs/codex/DATA_AND_CONTENT_CONTRACTS.md` | [[UPDATE OR "No change expected"]] |
 | `docs/codex/IMPLEMENTATION_RULES.md` | [[UPDATE OR "No change expected"]] |
 | `docs/codex/TESTING_AND_VALIDATION.md` | [[COMMAND, FIXTURE, OR MANUAL-FLOW UPDATE]] |
+| `docs/codex/OWNER_VERIFICATION_WORKFLOW.md` | [[UPDATE OR "No change expected"]] |
 | `docs/codex/DECISIONS.md` | [[APPROVED DECISION UPDATE OR "No new decision expected"]] |
 | Design source of truth | [[APPROVED DESIGN CHANGE OR "No change expected"]] |
 | `README.md` | [[SETUP OR USAGE UPDATE OR "No change expected"]] |
@@ -426,6 +454,7 @@ The completed task must provide:
 - applicable content or configuration;
 - automated tests and fixtures;
 - required manual verification instructions;
+- the approved owner verification script, generated-log path, and interactive checklist when owner-run checks apply;
 - synchronized documentation;
 - junior-readable comments for non-obvious code;
 - a complete changed-file inventory;
@@ -495,6 +524,7 @@ Do not approve or execute an instantiated prompt until all applicable items are 
 - [ ] Expected files are plausible but not treated as permission for broad edits.
 - [ ] Every acceptance criterion is binary and mapped to actual evidence.
 - [ ] Codex Cloud/Linux checks and owner-run Windows checks are separated.
+- [ ] The owner verification package is explicitly selected; any required PowerShell script, log path, invocation, cleanup, and interactive checklist are specified.
 - [ ] Every owner-run merge gate requires explicit owner evidence; silence is not treated as a pass.
 - [ ] The prompt does not authorize Codex to author, rewrite, or broaden its own prompt or create future milestone prompts.
 - [ ] Exact commands match the current `TESTING_AND_VALIDATION.md`.
