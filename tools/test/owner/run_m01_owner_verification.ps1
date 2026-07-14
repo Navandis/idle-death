@@ -1,6 +1,7 @@
 # Canonical owner-run Windows verification package for M01.
 param(
-    [string]$GodotBin = $env:GODOT_BIN
+    [string]$GodotBin = $env:GODOT_BIN,
+    [string]$CommitSha
 )
 
 $ErrorActionPreference = "Stop"
@@ -30,6 +31,25 @@ Set-Location $RepoRoot
 Write-LogLine "Death Idle M01 owner verification"
 Write-LogLine "Repository root: $RepoRoot"
 Write-LogLine "Log path: $LogPath"
+if (-not [string]::IsNullOrWhiteSpace($CommitSha)) {
+    Write-LogLine "Expected commit: $CommitSha"
+    $GitCommand = Get-Command git -ErrorAction SilentlyContinue
+    if (-not $GitCommand) {
+        Write-LogLine "FAILED: -CommitSha was provided, but git is not available to verify the checked-out PR head."
+        exit 66
+    }
+    $DetectedCommit = (& git rev-parse HEAD 2>&1) -join "`n"
+    if ($LASTEXITCODE -ne 0) {
+        Write-LogLine "FAILED: Could not determine checked-out commit. Output: $DetectedCommit"
+        exit 66
+    }
+    $DetectedCommit = $DetectedCommit.Trim()
+    Write-LogLine "Detected commit: $DetectedCommit"
+    if ($DetectedCommit -ne $CommitSha) {
+        Write-LogLine "FAILED: checked-out commit does not match -CommitSha."
+        exit 67
+    }
+}
 
 $Wrapper = Join-Path $RepoRoot "tools\test\run_gut.ps1"
 $WrapperArgs = @()

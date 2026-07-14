@@ -957,7 +957,7 @@ godot --headless --path . -s res://tools/test/m01/m01_deterministic_trace.gd
 Owner Windows verification:
 
 ```powershell
-./tools/test/owner/run_m01_owner_verification.ps1
+./tools/test/owner/run_m01_owner_verification.ps1 -CommitSha <PR_HEAD_SHA>
 ```
 
-The owner script runs the full suite, focused M01 suite, source-ownership check, and trace, then writes a generated UTF-8 log under `tools/test/owner/logs/`. Logs remain ignored and are not committed.
+The owner script verifies the checked-out commit when `-CommitSha` is provided, runs the full suite, focused M01 suite, source-ownership check, and trace, then writes a generated UTF-8 log under `tools/test/owner/logs/`. Logs remain ignored and are not committed.

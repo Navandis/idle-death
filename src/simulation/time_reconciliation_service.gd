@@ -54,13 +54,13 @@ func plan_trusted_reconciliation(time_state: TimeAuthorityState, sample_value: T
 	if sample_value.status == TrustedTimeSample.STATUS_UNAVAILABLE:
 		return _plan(false, TIME_UNAVAILABLE, 0, 0, 0, time_state, sample_value, false, true)
 	if sample_value.status != TrustedTimeSample.STATUS_TRUSTED or sample_value.utc_msec < 0 or sample_value.source_id.is_empty():
-		return _plan(false, TIME_SAMPLE_MALFORMED, 0, 0, 0, time_state, sample_value, false, false)
+		return _plan(false, TIME_SAMPLE_MALFORMED, 0, 0, 0, time_state, sample_value, false, true)
 	if not time_state.has_anchor():
 		return _plan(true, OK, 0, 0, 0, time_state, sample_value, true, false)
 	if sample_value.source_id != time_state.trusted_source_id:
-		return _plan(false, TIME_SOURCE_MISMATCH, 0, 0, 0, time_state, sample_value, false, false)
+		return _plan(false, TIME_SOURCE_MISMATCH, 0, 0, 0, time_state, sample_value, false, true)
 	if sample_value.utc_msec < time_state.trusted_anchor_utc_msec:
-		return _plan(false, TIME_SAMPLE_BACKWARDS, 0, 0, 0, time_state, sample_value, false, false)
+		return _plan(false, TIME_SAMPLE_BACKWARDS, 0, 0, 0, time_state, sample_value, false, true)
 	var gross_gap_msec := sample_value.utc_msec - time_state.trusted_anchor_utc_msec
 	if gross_gap_msec <= time_state.foreground_credited_since_anchor_msec:
 		return _plan(true, TIME_SAMPLE_NOT_AHEAD, 0, gross_gap_msec, 0, time_state, sample_value, false, false)
