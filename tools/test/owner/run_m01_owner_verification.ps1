@@ -1,6 +1,6 @@
 # Canonical owner-run Windows verification package for M01.
 param(
-    [string]$GodotBin = $env:GODOT_BIN,
+    [string]$GodotBin,
     [string]$CommitSha
 )
 
@@ -131,29 +131,49 @@ function Run-Step([string]$Name, [scriptblock]$Command) {
         Write-LogLine "PASSED: $Name"
     }
     Write-LogLine ""
+    return ($StepExitCode -eq 0)
+}
+
+function Write-SkippedStep([string]$Name, [string]$Reason) {
+    Write-LogLine "=== $Name ==="
+    Write-LogLine "SKIPPED: $Reason"
+    Write-LogLine ""
 }
 
 $ExitCode = 0
 $Wrapper = Join-Path $RepoRoot "tools\test\run_gut.ps1"
-$WrapperArgs = @()
+$WrapperBaseParams = @{}
 if (-not [string]::IsNullOrWhiteSpace($GodotBin)) {
-    $WrapperArgs += @("-GodotBin", $GodotBin)
+    $WrapperBaseParams["GodotBin"] = $GodotBin
 }
 $FocusedGutArgs = @(
     "-gtest=res://tests/unit/m01/test_fixed_point.gd",
     "-gtest=res://tests/unit/m01/test_time_authority.gd",
     "-gtest=res://tests/unit/m01/test_source_ownership.gd"
 )
+$FocusedWrapperParams = @{}
+foreach ($Key in $WrapperBaseParams.Keys) {
+    $FocusedWrapperParams[$Key] = $WrapperBaseParams[$Key]
+}
+$FocusedWrapperParams["GutArgs"] = $FocusedGutArgs
 
-Run-Step "Full GUT suite" { & $Wrapper @WrapperArgs }
-Run-Step "Focused M01 GUT suite" { & $Wrapper @WrapperArgs -GutArgs $FocusedGutArgs }
-Run-Step "M01 deterministic trace" {
+$FullSuitePassed = Run-Step "Full GUT suite" { & $Wrapper @WrapperBaseParams }
+$FocusedSuitePassed = Run-Step "Focused M01 GUT suite" { & $Wrapper @FocusedWrapperParams }
+$TraceImportPassed = Run-Step "M01 deterministic trace import preflight" {
     if ($GodotExecutable -eq "unavailable") {
-        Write-Error "Godot 4.7.x was not found for the M01 trace."
+        Write-Error "Godot 4.7.x was not found for the M01 trace import preflight."
     }
     else {
+        & $GodotExecutable --headless --path $RepoRoot --import
+    }
+}
+if ($TraceImportPassed) {
+    Run-Step "M01 deterministic trace" {
         & $GodotExecutable --headless --path $RepoRoot -s res://tools/test/m01/m01_deterministic_trace.gd
     }
+}
+else {
+    Write-SkippedStep "M01 deterministic trace" "prerequisite failed: M01 deterministic trace import preflight"
 }
 
 $GeneratedLogExists = Test-Path -LiteralPath $LogPath

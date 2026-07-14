@@ -960,4 +960,4 @@ Owner Windows verification:
 ./tools/test/owner/run_m01_owner_verification.ps1 -CommitSha <PR_HEAD_SHA>
 ```
 
-The owner script logs the requested `-CommitSha`, compares it with the detected checkout only when Git CLI is available, continues with GitHub Desktop checkouts when Git CLI is unavailable, runs the full suite, focused M01 suite, source-ownership check, and trace, then writes a generated UTF-8 log under `tools/test/owner/logs/`. Logs remain ignored and are not committed.
+The owner script logs the requested `-CommitSha`, compares it with the detected checkout only when Git CLI is available, continues with GitHub Desktop checkouts when Git CLI is unavailable, runs the full suite, focused M01 suite, source-ownership check, explicit trace import preflight, and trace, then writes a generated UTF-8 log under `tools/test/owner/logs/`. Logs remain ignored and are not committed.
