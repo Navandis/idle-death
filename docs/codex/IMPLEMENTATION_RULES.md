@@ -750,3 +750,7 @@ Before marking a task complete, verify:
 ## M02 persistence conventions
 
 Persistence code must keep runtime state, primitive schema mapping, byte codec, migrations, storage, and save/load orchestration separate. Authoritative integers at the JSON boundary use `SaveInt64` canonical decimal strings, not JSON numbers. Save selection uses validated schema `save_revision`, not filenames, local time, file modification time, Steam, registry data, or path metadata. Invalid or suspect files are retained for diagnosis instead of silently deleted during load.
+
+## M03 Resource authoring rules
+
+Add production content by creating typed text `.tres` Resources and referencing them from `content/prototype_content_catalog.tres`. Do not recursively scan content directories, infer IDs from filenames, or execute content-provided expressions. Decimal authoring values must cross the `ContentRegistry` normalization boundary before becoming authoritative runtime values.

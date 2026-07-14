@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ContentDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/content/content_definition.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+id = "RET_SOLDIER_COMPANY"
+kind = "retinue"
+display_name = "Soldier Company"
+description = "Prototype scaffold definition."
+localization_key = ""
+data = {"required_soldier_souls": 12, "category": "MARTIAL", "support_capacity": 12, "modifiers": [{"metric": "RETINUE_CONTRIBUTION", "operation": "ADD", "scope": "RETINUE_OWN_CONTRIBUTION", "condition": "RETINUE_CATEGORY", "value": 1.0}]}

@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="CoreTerminologyDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/content/core_terminology_definition.gd" id="1_term"]
+
+[resource]
+script = ExtResource("1_term")
+id = "TERM_CATALOG_CORE"
+terms = {"TERM_ESSENCE": "Essence", "TERM_FORM": "Form", "TERM_TRAIT": "Trait", "TERM_ART": "Art", "TERM_THRESHOLD": "Threshold", "TERM_REAPING": "Reaping", "TERM_WRIT": "Writ", "TERM_RETINUE": "Retinue", "TERM_RECOLLECTION": "Recollection", "TERM_HALL": "Hall", "TERM_SOULWEAVE": "Soulweave", "TERM_MASTERY": "Mastery", "TERM_COMMAND_TETHER": "Command Tether", "TERM_WHOLE_SOUL": "Whole Soul", "TERM_FORM_SOUL": "Form Soul", "TERM_CALLING_SOUL": "Calling Soul", "TERM_DENIZEN_SOUL": "Denizen Soul", "TERM_STORE": "Store", "TERM_SEAL": "Seal", "TERM_REAPING_REPORT": "Reaping Report"}

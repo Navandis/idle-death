@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ContentDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/content/content_definition.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+id = "REC_LEDGER_MARGINALIA"
+kind = "recollection"
+display_name = "Ledger Marginalia"
+description = "Prototype scaffold definition."
+localization_key = ""
+data = {"effects": [{"id": "REC_LEDGER_MARGINALIA_EFFECT", "kind": "UNLOCK_FEATURE"}]}

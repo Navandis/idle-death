@@ -3,7 +3,7 @@ extends GutTest
 func test_test_only_migration_step_advances_to_v1() -> void:
 	var registry := SaveMigrationRegistry.new()
 	registry.register_step(0, func(s): s["schema_version"] = "1"; return {"ok": true, "snapshot": s})
-	var old := SaveSchemaMapper.runtime_to_snapshot(GameState.new(), TimeAuthorityState.new(), 1)
+	var old := SaveSchemaMapper.runtime_to_snapshot(GameState.new(), TimeAuthorityState.new(), 1, "prototype-content-r1")
 	old.schema_version = "0"
 	var result := registry.migrate(old, 0)
 	assert_true(result.ok)

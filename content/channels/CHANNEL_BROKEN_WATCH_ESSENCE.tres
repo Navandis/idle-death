@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ContentDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/content/content_definition.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+id = "CHANNEL_BROKEN_WATCH_ESSENCE"
+kind = "channel"
+display_name = "Broken Watch Essence"
+description = "Prototype scaffold definition."
+localization_key = ""
+data = {"source_threshold_id": "THR_BROKEN_WATCH", "output_item_id": "RES_ESSENCE", "output_kind": "COMMON", "rate_per_period": 1.0, "period_msec": 10000, "settled_multiplier": 0.25, "requires_progress_display": false, "progression_required": false}

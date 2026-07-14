@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ContentDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/content/content_definition.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+id = "CHANNEL_GLOAMWOOD_SOLDIER_SOULS"
+kind = "channel"
+display_name = "Gloamwood Soldier Souls"
+description = "Prototype scaffold definition."
+localization_key = ""
+data = {"source_threshold_id": "THR_GLOAMWOOD_HAMLET", "output_item_id": "SOUL_SOLDIER", "output_kind": "WHOLE_ITEM", "rate_per_period": 1.0, "period_msec": 300000, "settled_multiplier": 0.25, "requires_progress_display": true, "progression_required": true}
