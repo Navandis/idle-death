@@ -2,7 +2,7 @@
 
 **Prompt version:** v0.1  
 **Prompt date:** 2026-07-14  
-**Prompt status:** Draft  
+**Prompt status:** Approved  
 **Milestone definition:** `docs/codex/MILESTONES.md` — `### M02 — Versioned save codec and atomic storage`  
 **Recommended task size:** Medium; one persistence pull request  
 **Expected base branch or ref:** current `main` after M01 merge commit `a5b231682967e4cb71b4404af158e93ff8bbf261`  

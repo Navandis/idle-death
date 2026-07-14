@@ -3,7 +3,7 @@
 **Document role:** Approved implementation sequence and acceptance map for the 0–90 minute prototype  
 **Repository path:** `docs/codex/MILESTONES.md`  
 **Document status:** Phase 7 approved  
-**Milestone-map revision:** 8  
+**Milestone-map revision:** 9  
 **Last updated:** 2026-07-14  
 **Primary context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md), [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md), [Architecture](ARCHITECTURE.md), [Data contracts](DATA_AND_CONTENT_CONTRACTS.md), [Testing](TESTING_AND_VALIDATION.md), [Owner verification](OWNER_VERIFICATION_WORKFLOW.md), and [Decisions](DECISIONS.md)
 
@@ -81,7 +81,7 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 |---|---|---|---|---|---|
 | M00 | Repository, Godot, GUT, and Codex Cloud harness | Approved | Approved | Merged | Passed |
 | M01 | Deterministic numeric and time-authority foundation | Approved | Approved | Merged | Passed |
-| M02 | Versioned save codec and atomic storage | Approved | Drafted | Not started | — |
+| M02 | Versioned save codec and atomic storage | Approved | Approved | Not started | — |
 | M03 | Content catalog, canonical IDs, and configurable prototype data | Approved | Not drafted | Not started | — |
 | M04 | Persistent Reaping simulation vertical slice | Approved | Not drafted | Not started | — |
 | M05 | Persistent application shell, navigation, and debug access | Approved | Not drafted | Not started | — |
@@ -400,7 +400,7 @@ State classes expose explicit primitive conversion hooks where useful, but no fi
 ### M02 — Versioned save codec and atomic storage
 
 **Definition status:** Approved  
-**Prompt status:** Drafted  
+**Prompt status:** Approved  
 **Implementation status:** Not started  
 **Recommended Codex task size:** Medium; one persistence pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M02-save-codec-atomic-storage.md`
