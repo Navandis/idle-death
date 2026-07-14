@@ -3,7 +3,7 @@
 **Document role:** Durable record of approved and proposed design and architecture decisions  
 **Repository path:** `docs/codex/DECISIONS.md`  
 **Document status:** Approved architecture and active decision record  
-**Revision:** 6  
+**Revision:** 7  
 **Last updated:** 2026-07-14
 
 ## 1. How to use this file
@@ -57,6 +57,7 @@ Rules:
 | `DEC-0025` | Milestone-specific owner verification packages and generated logs | Accepted | 2026-07-13 |
 | `DEC-0026` | Six-decimal fixed-point scale, unscaled discrete counts, and checked period accumulation | Accepted | 2026-07-14 |
 | `DEC-0027` | Threshold-owned long-horizon acquisition progress survives Reaping reconfiguration | Accepted | 2026-07-14 |
+| `DEC-0028` | Rare-output progress is normalized work; rate changes are prospective and non-compounding | Accepted | 2026-07-14 |
 
 ---
 
@@ -1081,9 +1082,65 @@ Some rare Souls, Denizen Souls, catalysts, or future materials may take eight to
 
 ---
 
+
+## `DEC-0028` — Rare-output progress is normalized work; rate changes are prospective and non-compounding
+
+**Status:** Accepted  
+**Date:** 2026-07-14  
+**Decision type:** Output-rate semantics and exploit prevention  
+**Refines:** `DEC-0010`, `DEC-0027`
+
+### Context
+
+A long-horizon Threshold source may already have partial progress when the player recalls a Reaping, changes Form or Retinue configuration, unlocks a Form Art, purchases a Recollection, changes support state, or otherwise alters the acquisition rate. The player should benefit immediately from the new future rate without forfeiting prior work. The implementation must also prevent repeated recall and redispatch from applying the same bonus again to progress that was already earned.
+
+A representative case starts with a four-hour source at `50.0%` progress. A stronger configuration can reduce the remaining estimate from two hours to one hour forty minutes. That does not mean the stored progress becomes `60.0%` or that a second redispatch should reduce the estimate again without another state change.
+
+### Decision
+
+- Persist acquisition progress as normalized completed work toward a fixed one-whole-unit target, using `progress_subunits` in `0 <= value < FixedPoint.SCALE` plus the exact arithmetic carry owned by the Threshold channel.
+- Do not persist elapsed time spent, a current effective duration, a cached ETA, or a percentage rebased to the current loadout.
+- Before any assignment or modifier change, resolve elapsed time to the exact command or unlock boundary under the old rate context.
+- After the state change, derive the next segment's effective rate from immutable authored baseline data plus the currently active modifiers. Never derive a new effective rate from a previous effective rate.
+- Within one content revision, each channel has one stable normalized rate period/denominator. Ordinary live modifiers change the effective numerator or multiplier, not that denominator, so the existing arithmetic carry retains the same mathematical meaning. A future rule that changes the denominator at runtime requires a separate accepted contract and exact carry normalization at the boundary.
+- Apply ordinary Form, Writ, Retinue, Form Art, Recollection, support, lifecycle, and global-efficiency modifiers prospectively. They change future accumulation only and do not multiply, divide, or otherwise rebase progress already earned.
+- Recalling and redispatching the same configuration derives the same effective rate and leaves stored progress unchanged. Repeating the operation cannot compound the bonus.
+- The Threshold progress bar is based only on normalized stored progress. A rate change updates the derived ETA and modifier trace, not the percentage already earned.
+- A future design that intentionally awards retroactive progress must use a separate explicit, exactly-once progress-grant effect with its own ID and tests. It must not be encoded as a rate modifier.
+- Cached rate plans or ETAs may exist as rebuildable performance data only; they are never the sole source of truth and are not serialized.
+
+### Consequences
+
+- At `50.0%` progress, a twenty-percent future rate increase leaves the bar at `50.0%` while reducing the remaining estimate from two hours to one hour forty minutes.
+- A Recollection purchased while a Reaping is active creates a deterministic simulation boundary: progress before the purchase uses the old rate and progress after it uses the new rate.
+- Form Arts, support changes, and loadout changes follow the same boundary rule.
+- Tests can prove equivalence between one segmented call and separate calls around the modifier boundary.
+- Repeated recall/redispatch with no state change becomes a no-op for progress and rate, closing a potential compounding exploit.
+- M03 defines baseline rate and modifier data without persisting effective rates. M04 implements the resolver behavior and regression tests. Later presentation uses unchanged progress percentage plus a recalculated ETA.
+
+### Alternatives considered
+
+- **Rebase stored progress when the rate changes:** rejected because it retroactively changes earned work, creates percentage jumps, and is vulnerable to repeated reconfiguration exploits.
+- **Store remaining seconds instead of normalized work:** rejected because remaining time depends on the current loadout and becomes ambiguous when modifiers change.
+- **Multiply accumulated progress by a newly unlocked efficiency bonus:** rejected because a rate modifier is prospective and repeated application would compound.
+- **Store and modify the previous effective rate:** rejected because bonuses could be applied to an already modified value instead of being re-derived from the baseline.
+- **Reset progress on every rate change:** rejected because it punishes strategic experimentation and contradicts `DEC-0027`.
+
+### Affected documents
+
+- `AGENTS.md`
+- `docs/design/IDLE_FORK_SOURCE_OF_TRUTH.md`
+- `docs/codex/ARCHITECTURE.md`
+- `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`
+- `docs/codex/IMPLEMENTATION_RULES.md`
+- `docs/codex/TESTING_AND_VALIDATION.md`
+- `docs/codex/MILESTONES.md`
+
+---
+
 ## 3. Current approval state
 
-- `DEC-0001` through `DEC-0027` are Accepted.
-- M01 prompt approval accepted `DEC-0026`; the owner's long-horizon source-progress clarification is recorded in `DEC-0027`.
-- The Phase 6 architecture is approved with trusted-time, save-format, cross-machine testing, GodotSteam, owner-verification, fixed-point, and Threshold-channel ownership refinements recorded in `DEC-0021` through `DEC-0027`.
+- `DEC-0001` through `DEC-0028` are Accepted.
+- M01 prompt approval accepted `DEC-0026`; long-horizon source ownership is recorded in `DEC-0027`; prospective, non-compounding rate-change semantics are recorded in `DEC-0028`.
+- The Phase 6 architecture is approved with trusted-time, save-format, cross-machine testing, GodotSteam, owner-verification, fixed-point, and Threshold-channel ownership refinements recorded in `DEC-0021` through `DEC-0028`.
 - Future changes preserve decision IDs for wording clarifications and create a new decision only when semantics, ownership, compatibility, or security posture changes.

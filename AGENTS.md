@@ -274,6 +274,7 @@ Treat the following as protected architecture rules:
 - Parallel output channels resolve independently unless an approved content rule explicitly links them.
 - Hidden output is real output and is banked before identification.
 - Deterministic partial progress toward a rare whole output is authoritative state. It belongs to the stable Threshold-and-channel source, survives Form, Writ, Retinue, and Reaping reconfiguration, freezes rather than resets while inactive, and resumes when that source operates again.
+- Stored acquisition progress is normalized completed work toward the channel's fixed whole-unit target, not elapsed time or a cached ETA. Resolve the old configuration to the command boundary, then derive the new future rate from immutable base data plus current modifiers. Within one content revision, keep the channel's normalized rate period stable and change only the effective numerator or multiplier. Do not rescale accumulated progress, multiply it by a newly unlocked rate bonus, or derive a new effective rate from a previous effective rate.
 - Ordinary support depletion degrades affected effects or premium channels. It does not stop valid base backlog, Essence, or Mastery production.
 - Reaching zero backlog automatically changes an active Standing Threshold to renewable Settled Passage behavior.
 - Essential sources remain accessible after settlement at the applicable renewable rate.
@@ -453,6 +454,7 @@ Do not leave large blocks of commented-out code. Use version control instead.
 - Forecast changes caused by a Form, Retinue, Hall, or Recollection should show an understandable before-and-after result when required by the milestone.
 - Unknown, Identified, and Charted states must remain distinguishable.
 - When an Identified long-horizon whole-output channel exposes acquisition progress, show it at Threshold level as a progress bar with a percentage floored to at most one decimal place and capped at `99.9%` before completion. Do not display fractional Souls, catalysts, or other whole inventory items, and do not show `100.0%` before the whole unit is banked.
+- A rate change updates the derived ETA, not the stored progress percentage. For example, progress already at `50.0%` remains `50.0%` after a loadout or Recollection bonus; only the expected remaining time changes.
 - Presentation may smooth or animate displayed numbers, but authoritative values must remain available immediately.
 
 ## Testing and validation
@@ -486,7 +488,8 @@ Simulation and persistence changes normally require tests for applicable cases s
 - interrupted offline resolution;
 - multiple concurrent Reapings;
 - report clearing without inventory loss;
-- long-horizon whole-output progress surviving reconfiguration, inactivity, save/load, and equivalent elapsed-time chunking.
+- long-horizon whole-output progress surviving reconfiguration, inactivity, save/load, and equivalent elapsed-time chunking;
+- rate changes applying prospectively from the command or unlock boundary without rebasing stored progress or compounding on repeated recall/redispatch.
 
 Use test fixtures with explicit values and readable setup. Explain unusual fixture state so a junior reviewer can understand why it exists.
 

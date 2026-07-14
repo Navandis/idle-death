@@ -3,7 +3,7 @@
 **Document role:** Maintained implementation architecture for the 0-90 minute prototype  
 **Repository path:** `docs/codex/ARCHITECTURE.md`  
 **Document status:** Approved architecture  
-**Architecture revision:** 4  
+**Architecture revision:** 5  
 **Last updated:** 2026-07-14  
 **Engine target:** Godot 4.7, GDScript only  
 **Primary design context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md) and [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md)
@@ -633,16 +633,23 @@ Forecast uncertainty is information uncertainty, not necessarily production rand
 
 Under `DEC-0027`, deterministic progress toward a rare whole output is keyed by the stable Threshold and output channel/source. The Threshold channel owns `acquisition_progress_subunits` and any finer carry needed to resume the same source exactly. The active Reaping supplies the current rate context but does not own or reset prior acquisition effort.
 
-At a Form, Writ, or Retinue change:
+Acquisition state stores normalized completed work, not time already spent and not a cached remaining duration. The target for one whole item is the fixed-point whole-unit boundary. Effective rate is a pure derivation from the channel's authored baseline plus the current Form, Writ, Retinue, support, Recollection, Form Art, lifecycle, and other approved modifiers. `ContentRegistry` normalizes the channel to one stable rate period/denominator for the active content revision; ordinary live modifiers change the effective numerator or multiplier, not that denominator.
 
-1. resolve elapsed time under the old configuration to the command timestamp;
-2. bank every whole item crossed and retain the remainder;
-3. change the assignment and future rate context;
-4. continue from the same Threshold-channel progress.
+At any assignment or modifier change:
+
+1. resolve elapsed time under the old rate context to the exact command or unlock timestamp;
+2. bank every whole item crossed and retain the normalized progress plus arithmetic carry;
+3. commit the assignment, Recollection, Art, support, or other state change;
+4. derive the next segment's effective rate from immutable baseline data and the newly committed current state;
+5. continue from the unchanged Threshold-channel progress.
+
+The stored progress is never multiplied, divided, or rebased merely because the effective rate changed. A repeated recall and redispatch with the same loadout therefore cannot compound a bonus: the same baseline and same current modifiers derive the same rate. Cached effective rates and estimated remaining time are not authoritative and are not persisted.
+
+For example, a source with a four-hour baseline reaches `50.0%` after two hours. If a newly selected configuration is twenty percent faster, the bar remains `50.0%` and the derived remaining estimate becomes one hour forty minutes. The percentage would change only through future productive elapsed time or an explicit exactly-once progress-grant effect, not through an ordinary rate modifier.
 
 Recall or inactivity freezes the channel. Redispatch resumes it. When the Threshold becomes Settled, the same source progress continues at its configured Settled rate if that source remains available. A long interval can bank several items in one analytical segment or across boundaries; no per-item object or timer is created.
 
-Presentation reads this state through disclosure-aware view models. Unknown channels reveal no progress. An Identified long-horizon channel may show a bar and a one-decimal percentage derived by flooring to tenths so it cannot display `100.0%` before the item is banked. A Charted channel may add rate, modifiers, and estimated time. Inventory and reports still use whole item counts only.
+Presentation reads this state through disclosure-aware view models. Unknown channels reveal no progress. An Identified long-horizon channel may show a bar and a one-decimal percentage derived by flooring to tenths so it cannot display `100.0%` before the item is banked. A Charted channel may add the current derived rate, contributing modifiers, and estimated time. Inventory and reports still use whole item counts only.
 
 ## 13. Inventory and reservation ledger
 
@@ -1200,3 +1207,4 @@ M01 adds the first scene-independent runtime foundation without adding gameplay 
 - `FixedPoint` owns the single `1_000_000` subunit scale for fractional state. Discrete counts such as inventory, backlog, and tethers remain unscaled integers.
 - `TimeReconciliationService` separates non-mutating trusted-time planning from commit. This lets later save/offline milestones simulate candidate elapsed time and commit the simulation result, anchor update, and foreground-credit reset transactionally.
 - `ProcessMonotonicClock` is the only M01 adapter that reads Godot's process-monotonic clock. Authoritative simulation receives elapsed milliseconds and does not query wall-clock, calendar, timezone, file timestamp, Steam, or registry APIs.
+

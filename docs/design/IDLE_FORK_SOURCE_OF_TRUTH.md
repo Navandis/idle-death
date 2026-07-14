@@ -2,7 +2,7 @@
 
 **Document role:** Maintained implementation context for the idle/incremental branch  
 **Repository path:** `docs/design/IDLE_FORK_SOURCE_OF_TRUTH.md`  
-**Markdown revision:** 3  
+**Markdown revision:** 4  
 **Last updated:** 2026-07-14  
 **Primary source:** *Death Idle - Idle & Incremental Fork - Design Direction v0.1* (12 July 2026)  
 **Companion prototype contract:** [PROTOTYPE_0_90_SOURCE_OF_TRUTH.md](PROTOTYPE_0_90_SOURCE_OF_TRUTH.md)
@@ -227,16 +227,20 @@ Scribe-line Forms, Specialist Retinues, Recollections, repeated operation, and l
 
 ### Long-horizon discrete acquisition progress
 
-**Status: Confirmed direction through `DEC-0026` and `DEC-0027`**
+**Status: Confirmed direction through `DEC-0026`, `DEC-0027`, and `DEC-0028`**
 
 Some rare Souls, Denizen Souls, catalysts, or future materials may require many hours of productive Threshold operation before one whole unit is banked. These sources use deterministic accumulated acquisition progress rather than an opaque item timer or fractional inventory.
 
-- Partial acquisition progress is owned by the Threshold's stable output channel/source.
-- Changing or recalling a Form, Writ, or Retinue changes future rate only; progress already earned remains.
+- Partial acquisition progress is owned by the Threshold's stable output channel/source and represents normalized completed work toward the next whole unit.
+- The stored percentage is not elapsed time and is not recalculated from the current estimated duration.
+- A Form, Writ, Retinue, Form Art, Recollection, support state, or other modifier change first resolves elapsed time to the exact change boundary under the old rate. The new configuration changes only the future rate.
+- Existing progress is never multiplied by a newly acquired efficiency bonus. Recalling and redispatching the same loadout cannot apply the same bonus again because effective rate is always derived from the authored baseline plus current modifiers, never from a previous effective rate. The channel keeps one stable normalized rate period within the current content revision; ordinary live bonuses alter future throughput rather than changing that denominator.
+- At `50.0%` progress, a stronger setup can shorten the remaining estimate from two hours to one hour forty minutes while the bar remains `50.0%`. Ordinary rate modifiers do not turn the bar into `60.0%` or reduce the displayed remaining percentage to `40.0%`.
 - An inactive Threshold retains progress without advancing it.
 - Settlement does not clear progress when the source remains available in Settled Passage.
 - Whole items are banked automatically when progress crosses the whole-unit boundary; the remainder continues toward the next item.
 - Unknown progress remains hidden. Once Identified, the Threshold may show a progress bar and a percentage truncated to one decimal place. It must not present a fractional Soul or catalyst count.
+- A future effect intended to grant retroactive progress must be authored as an explicit, exactly-once progress grant. It must not masquerade as a rate modifier.
 - This is resolved by the shared simulation engine and is not a separate timer per item.
 
 ## 9. Persistent Reapings, Writs, support, and offline resolution
@@ -592,4 +596,5 @@ When changing a confirmed rule:
 | Prototype Thresholds and guarantees | Appendices C-E, pages 25-26. |
 | Emergency-to-Standard transition, two prototype resonances, manual Scribe awakening, Godot 4.7/GDScript, and Steam-first distribution | Project-owner decisions recorded during the 2026-07-12 planning session. |
 | External trusted-time authority and prohibition on local wall-clock offline credit | Project-owner clarification recorded during the 2026-07-12 planning session; implemented by `DEC-0021`. |
+| Normalized rare-output work, prospective rate changes, and non-compounding modifier application | Project-owner clarification recorded during the 2026-07-14 planning session; implemented by `DEC-0028`. |
 | Six-decimal fractional scale, unscaled whole counts, and persistent Threshold-owned long-horizon acquisition progress | Project-owner clarifications approved on 2026-07-14; implemented by `DEC-0026` and `DEC-0027`. |

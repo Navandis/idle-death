@@ -2,8 +2,8 @@
 
 **Document role:** Canonical test strategy, commands, fixture rules, and manual validation flows
 **Repository path:** `docs/codex/TESTING_AND_VALIDATION.md`
-**Document status:** Approved architecture validation plan with M00 harness validated
-**Validation revision:** 6
+**Document status:** Approved architecture validation plan through M01
+**Validation revision:** 7
 **Last updated:** 2026-07-14
 **Engine target:** Godot 4.7 standard build, GDScript only
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)  
@@ -27,6 +27,8 @@ M00 has added the approved automated harness:
 - canonical import, focused-test, full-test, outside-root, and smoke documentation.
 
 M00 merged through PR #4. Linux/Codex Cloud and owner-run Windows verification passed, including full and focused GUT execution, outside-root invocation, main-scene/editor smoke, passive Steam configuration, intentional failing-test propagation, cleanup, and clean recovery. Future milestones use the same canonical wrappers and the owner evidence package described in `OWNER_VERIFICATION_WORKFLOW.md`.
+
+M01 merged through PR #5. Linux/Codex and owner-run Windows verification passed the full suite, focused fixed-point/time/source-ownership suite, import preflight, trusted-time reconciliation trace, long-horizon 24-hour fixed-point trace, cleanup, and generated-log checks. M02 builds persistence on the resulting `GameState`, `TimeAuthorityState`, `FixedPoint`, and `TimeReconciliationService` contracts.
 
 ## 2. Pinned test and platform dependencies
 
@@ -517,7 +519,11 @@ Resolve an interval that reaches zero backlog and has time remaining. Assert:
 Using a deterministic test channel that produces one whole item per twenty-four hours, verify:
 
 - six hours records `250_000` acquisition subunits and zero whole inventory units;
-- changing the active Form/Writ/Retinue rate context after resolving to the command time preserves prior progress;
+- changing the active Form/Writ/Retinue rate context after resolving to the command time preserves prior progress and carry while deriving a new numerator against the same normalized channel period;
+- a four-hour baseline fixture at `50.0%` progress remains at `50.0%` after a twenty-percent future rate increase while the ETA changes from two hours to one hour forty minutes;
+- purchasing a test Recollection or enabling another global rate modifier mid-operation resolves the old rate before the unlock boundary and the new rate after it;
+- repeated recall and redispatch with the same state does not reapply or compound the rate bonus;
+- effective rate is re-derived from immutable baseline data plus current modifiers rather than from the previous effective rate;
 - recalling the Reaping freezes progress and redispatch resumes it;
 - a twenty-four-hour equivalent interval banks exactly one whole item and retains the exact remainder;
 - one-shot, hourly, and mixed-chunk resolution produce identical whole units, Threshold progress, and arithmetic carry;
@@ -563,6 +569,7 @@ Also assert that:
 - authoritative integers are written as canonical decimal strings and reconstruct exactly as runtime integers;
 - `codec_id` is validated and an unknown codec never overwrites a valid save;
 - `TimeAuthorityState` reconstructs exactly;
+- the M01 no-anchor runtime sentinel (`-1`) maps to `has_trusted_anchor = false`, empty source, and canonical wire anchor `"0"`, then reconstructs the no-anchor runtime state exactly;
 - set-like arrays are sorted and duplicate-free;
 - persisted enum values and IDs are stable strings;
 - malformed integer strings reject the candidate save rather than being clamped or cast;
@@ -961,3 +968,45 @@ Owner Windows verification:
 ```
 
 The owner script logs the requested `-CommitSha`, compares it with the detected checkout only when Git CLI is available, continues with GitHub Desktop checkouts when Git CLI is unavailable, runs the full suite, focused M01 suite, source-ownership check, explicit trace import preflight, and trace, then writes a generated UTF-8 log under `tools/test/owner/logs/`. Logs remain ignored and are not committed.
+
+## M01 completion record
+
+M01 merged through PR #5 at merge commit `a5b231682967e4cb71b4404af158e93ff8bbf261` from final head `e2b291e75dab5e3484da7dec1d4420a2fb9637be`.
+
+The owner log recorded:
+
+- Godot `4.7.stable.official.5b4e0cb0f`;
+- full Windows suite: `12/12` tests, `109` assertions, exit `0`;
+- focused M01 suite: `10/10` tests, `103` assertions, exit `0`;
+- deterministic-trace import preflight: pass;
+- trusted-time trace: zero first-anchor credit, ten foreground minutes, fifty uncredited minutes from a one-hour trusted gap, zero repeat credit;
+- fixed-point trace: `250_000` subunits after six hours toward a twenty-four-hour item, one whole item and zero residual after twenty-four hours;
+- failed step count `0`, cleanup `PASS`, and no interactive checks required.
+
+`GATE-FIXED-POINT` is satisfied.
+
+## M02 validation package
+
+M02 must add a focused persistence suite, a headless storage trace, and one owner-run Windows entry point:
+
+```text
+tools/test/owner/run_m02_owner_verification.ps1
+```
+
+The script follows `OWNER_VERIFICATION_WORKFLOW.md`, keeps Git CLI optional, accepts `-CommitSha`, writes its log under `tools/test/owner/logs/`, and uses an isolated disposable directory rather than the owner's normal `user://` save location.
+
+Required automated owner steps:
+
+1. run the full Windows GUT suite;
+2. run the focused M02 codec, schema, migration, storage, and transaction tests;
+3. run a headless M02 persistence trace in an isolated Windows temporary directory;
+4. write revision 1 and revision 2 through the real file-storage path;
+5. corrupt the primary deliberately and prove the valid backup is selected while the corrupt primary bytes remain available for diagnosis;
+6. exercise the documented Windows rename/replacement sequence and verify at least one valid committed snapshot at every tested failure boundary;
+7. verify unsupported codec/future schema candidates do not overwrite valid files;
+8. delete the entire isolated test directory and verify cleanup;
+9. rerun the clean full suite after the corruption/recovery trace;
+10. finish with automated result `PASS`, failed step count `0`, cleanup `PASS`, and no pending interactive checks.
+
+No visual/editor checklist is required for M02 because the milestone introduces no player-facing save UI. Windows filesystem behavior remains an owner merge gate.
+

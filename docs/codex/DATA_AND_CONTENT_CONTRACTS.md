@@ -3,7 +3,7 @@
 **Document role:** Canonical prototype data, runtime-state, ID, and serialization contracts  
 **Repository path:** `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`  
 **Document status:** Approved architecture contract  
-**Revision:** 4  
+**Revision:** 5  
 **Last updated:** 2026-07-14
 
 ## 1. Purpose
@@ -331,7 +331,7 @@ A Threshold definition does not contain current backlog, active Form, or discove
 | `settled_multiplier` | `float` | Essential channels remain above zero; normalized by the registry |
 | `required_for_progression` | `bool` | Enables validation against accidental removal |
 
-Parallel channels do not subtract from one another unless a future approved rule explicitly defines that coupling. Runtime normalization may choose an equivalent internal rate shape, but it must preserve the authored period semantics and `DEC-0026` precision.
+Parallel channels do not subtract from one another unless a future approved rule explicitly defines that coupling. Runtime normalization may choose an equivalent internal rate shape, but it must preserve the authored period semantics and `DEC-0026` precision. Within a content revision, the normalized `rate_period_msec` is stable for the channel; ordinary Form, Writ, Retinue, Art, Recollection, support, and lifecycle modifiers alter the effective numerator/multiplier rather than replacing the denominator.
 
 ### 7.6 ItemDefinition
 
@@ -518,6 +518,7 @@ Rules:
 
 - no authoritative field is populated from the player's local wall clock, timezone, calendar, or file timestamp;
 - when `has_trusted_anchor` is false, `trusted_anchor_utc_msec` must be zero and no retroactive closed-session credit is granted before the first trusted sample;
+- the M01 runtime currently represents no anchor internally with `trusted_anchor_utc_msec = -1`; the schema mapper must encode that state as `has_trusted_anchor = false`, empty source ID, and canonical wire value `"0"`, then reconstruct the runtime sentinel on load without exposing `-1` as an authoritative wire value;
 - a newly accepted trusted sample may not move the anchor backwards;
 - `foreground_credited_since_anchor_msec` is reset only in the same successful transaction that commits a new trusted anchor;
 - trusted-time source details remain outside domain state; only the normalized sample and accounting state are persisted;
@@ -607,20 +608,24 @@ A Threshold stores one acquisition record for each discrete output channel that 
 
 | Field | Type | Rule |
 |---|---|---|
-| `progress_subunits` | `int` | `0 <= value < FixedPoint.SCALE`; durable progress toward the next whole unit |
-| `rate_carry` | typed integer carry/result state | Finer-than-subunit arithmetic remainder with an explicit denominator and one owner; exact shape is finalized by the realized M01/M04 API |
+| `progress_subunits` | `int` | `0 <= value < FixedPoint.SCALE`; normalized completed work toward the next whole unit |
+| `rate_carry` | typed integer carry/result state | Finer-than-subunit arithmetic remainder with an explicit denominator and one owner; it preserves exact accumulation but does not encode a prior effective rate |
 | `total_banked_units` | `int` | Optional non-negative diagnostic/report counter; inventory remains the ownership source of truth |
 
 Rules:
 
 - the record is keyed by stable Threshold ID and output channel/source ID;
 - Form, Writ, Retinue, or assignment revisions do not clear it;
-- the old setup is resolved to the command timestamp before the future rate changes;
-- inactive Thresholds retain but do not advance it;
+- the old setup is resolved to the command or unlock timestamp before the future rate changes;
+- an effective rate is derived from immutable channel baseline data plus current modifiers for each applicable segment; it is never derived from a previous effective rate;
+- ordinary modifier changes do not rescale `progress_subunits` or `rate_carry` and cannot compound through repeated recall/redispatch; the carry remains valid because the channel's normalized period/denominator is stable within the content revision;
+- inactive Thresholds retain but do not advance the record;
 - Overdue-to-Settled transition retains it when the source remains available;
 - crossing one or more whole-unit boundaries banks those whole units immediately and retains only the remainder;
 - the same progress/carry cannot also be stored in `ReapingState`;
-- Unknown disclosure hides the progress but does not stop or erase it.
+- effective rate, remaining duration, and display percentage are derived and are not persisted in this record;
+- Unknown disclosure hides the progress but does not stop or erase it;
+- a retroactive progress increase, if ever approved, is an explicit exactly-once progress-grant effect rather than a rate modifier.
 
 ### 9.9 ReapingState
 
@@ -1176,3 +1181,4 @@ M01 introduces these runtime-only contracts. They are not a save schema and do n
 - `FixedPoint.SCALE = 1_000_000` subunits per whole fractional unit.
 - Fixed-point flow helpers accept non-negative inputs and return typed result dictionaries with stable failure codes.
 - Explicit-period accumulation stores and returns its arithmetic carry in the same units as the period denominator. The caller owns the single durable progress/carry record for a future flow key.
+

@@ -3,7 +3,7 @@
 **Document role:** Detailed engineering conventions for Godot 4.7 and GDScript implementation  
 **Repository path:** `docs/codex/IMPLEMENTATION_RULES.md`  
 **Document status:** Approved engineering rules  
-**Rules revision:** 4  
+**Rules revision:** 5  
 **Last updated:** 2026-07-14  
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)  
 **Data companion:** [DATA_AND_CONTENT_CONTRACTS.md](DATA_AND_CONTENT_CONTRACTS.md)
@@ -393,13 +393,21 @@ For a deterministic rare source governed by `DEC-0027`:
 
 - store progress on the stable Threshold output channel, not on the current Form, Writ, Retinue, or a disposable Reaping record;
 - resolve elapsed time under the old configuration before changing future modifiers;
-- bank every whole unit crossed and retain the remaining progress and exact carry;
+- bank every whole unit crossed and retain the remaining normalized progress and exact carry;
+- derive each future effective rate from immutable baseline data plus current modifiers; never apply a new modifier to a previously modified effective rate;
+- keep one stable normalized rate period/denominator per channel within a content revision; ordinary live modifiers change the effective numerator or multiplier so the existing carry retains its meaning;
+- leave stored progress unchanged when a Form, Writ, Retinue, Form Art, Recollection, support state, lifecycle, or other ordinary rate modifier changes;
+- treat modifier changes as simulation boundaries so the old rate applies before the boundary and the new rate applies after it;
+- ensure repeated recall/redispatch with the same state cannot compound a bonus;
 - preserve progress while the Threshold is inactive and across Overdue-to-Settled transition when the source remains available;
+- do not persist effective rate, ETA, or a time-based reinterpretation of the progress percentage;
 - do not create a timer or object per future drop;
 - keep player inventory whole-numbered;
 - keep Unknown progress hidden, and expose a one-decimal, floor-derived progress bar only when disclosure permits it.
 
 A Threshold-level acquisition bar is not a second Reaping-cycle bar. It displays durable saved progress toward a specific known whole output.
+
+At `50.0%` progress, an improved rate may shorten the ETA without changing the bar. A percentage jump requires actual future accumulation or an explicit exactly-once progress grant; an ordinary rate bonus is not retroactive.
 
 ## 12. Inventory and reservation rules
 
@@ -726,3 +734,4 @@ Before marking a task complete, verify:
 - Keep `src/domain/time_authority_state.gd` paired with, but not embedded in, `GameState`.
 - Use `src/simulation/time_reconciliation_service.gd` for foreground credit and trusted-time planning/commit. Planning must remain non-mutating.
 - Do not add direct clock reads to domain or simulation code. `src/platform/time/process_monotonic_clock.gd` is the approved process-monotonic adapter; trusted-time providers remain injected.
+

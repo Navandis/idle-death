@@ -3,7 +3,7 @@
 **Document role:** Approved implementation sequence and acceptance map for the 0–90 minute prototype  
 **Repository path:** `docs/codex/MILESTONES.md`  
 **Document status:** Phase 7 approved  
-**Milestone-map revision:** 7  
+**Milestone-map revision:** 8  
 **Last updated:** 2026-07-14  
 **Primary context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md), [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md), [Architecture](ARCHITECTURE.md), [Data contracts](DATA_AND_CONTENT_CONTRACTS.md), [Testing](TESTING_AND_VALIDATION.md), [Owner verification](OWNER_VERIFICATION_WORKFLOW.md), and [Decisions](DECISIONS.md)
 
@@ -15,7 +15,7 @@ Use the source hierarchy in `AGENTS.md`. A milestone definition cannot weaken a 
 
 ## 2. Current repository baseline
 
-After M00 completion:
+After M01 completion:
 
 - Godot 4.7, GDScript, the 1920 × 1080 reference viewport, resizing/stretch settings, and a temporary dry-run main scene exist.
 - `AGENTS.md`, project Codex configuration, the maintained design sources, the architecture documents, the approved `PROMPT_TEMPLATE.md`, and `OWNER_VERIFICATION_WORKFLOW.md` are present in the repository.
@@ -24,7 +24,9 @@ After M00 completion:
 - Development App ID `480` is configured in `project.godot`; automatic Steam initialization is disabled.
 - M00 established `.gutconfig.json`, `tools/test/run_gut.sh`, `tools/test/run_gut.ps1`, the initial infrastructure test, and the canonical Linux/Windows verification documentation.
 - Linux/Codex Cloud and owner-run Windows M00 verification passed, including failure propagation and clean recovery.
-- The repository still has no production game-state model, content registry, simulation, persistence implementation, or gameplay UI.
+- M01 added `FixedPoint`, the minimal `GameState` simulation timeline, separate `TimeAuthorityState`, monotonic and trusted-time contracts, `TimeReconciliationService`, fakes, focused tests, a deterministic trace, and the milestone-specific Windows verification script.
+- M01 Linux/Codex and owner-run Windows verification passed, including the full suite, focused numeric/time tests, source-ownership checks, import preflight, deterministic trusted-time trace, and long-horizon fixed-point trace.
+- The repository still has no content registry, production Reaping simulation, persistence implementation, or gameplay UI.
 - Existing dry-run assets and scene work are preserved unless a scoped milestone explicitly replaces or integrates them.
 
 ## 3. Milestone rules
@@ -69,6 +71,8 @@ A milestone may be split after implementation begins only when the split preserv
 
 `GATE-GUT` and `GATE-WINDOWS-HARNESS` were satisfied by M00. PR #4 merged on 2026-07-13 at merge commit `77c618a1d9adbf8b02380d8509d2afb4c4cbc8ea`; Linux/Codex Cloud checks passed, and explicit owner evidence covered Windows full and focused GUT, outside-root execution, editor smoke, passive Steam configuration, intentional failure propagation, cleanup, and clean recovery.
 
+`GATE-FIXED-POINT` was satisfied by M01. PR #5 merged on 2026-07-14 at merge commit `a5b231682967e4cb71b4404af158e93ff8bbf261`; its final head was `e2b291e75dab5e3484da7dec1d4420a2fb9637be`. Linux/Codex and owner-run Windows verification passed the full and focused suites, forbidden-time-source checks, import preflight, trusted-time trace, long-horizon fixed-point trace, cleanup, and generated-log requirements.
+
 When trusted time is unavailable, the approved behavior is to grant no guessed closed-session progress, retain pending reconciliation, and continue monotonic foreground production. No milestone may introduce a local-device-time fallback.
 
 ## 6. Milestone status map
@@ -76,8 +80,8 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 | ID | Milestone | Definition | Prompt | Implementation | Verification |
 |---|---|---|---|---|---|
 | M00 | Repository, Godot, GUT, and Codex Cloud harness | Approved | Approved | Merged | Passed |
-| M01 | Deterministic numeric and time-authority foundation | Approved | Approved | Not started | — |
-| M02 | Versioned save codec and atomic storage | Approved | Not drafted | Not started | — |
+| M01 | Deterministic numeric and time-authority foundation | Approved | Approved | Merged | Passed |
+| M02 | Versioned save codec and atomic storage | Approved | Drafted | Not started | — |
 | M03 | Content catalog, canonical IDs, and configurable prototype data | Approved | Not drafted | Not started | — |
 | M04 | Persistent Reaping simulation vertical slice | Approved | Not drafted | Not started | — |
 | M05 | Persistent application shell, navigation, and debug access | Approved | Not drafted | Not started | — |
@@ -282,7 +286,8 @@ No gameplay save format is introduced. Test fixtures must not write persistent u
 
 **Definition status:** Approved  
 **Prompt status:** Approved  
-**Implementation status:** Implemented in current M01 PR; owner Windows verification pending.  
+**Implementation status:** Merged through PR #5  
+**Verification status:** Passed  
 **Recommended Codex task size:** Medium; one pure-foundation pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M01-deterministic-time-foundation.md`
 
@@ -352,7 +357,7 @@ The exact file list remains subject to repository inspection. Expected areas are
 #### Manual verification
 
 - Codex creates `tools/test/owner/run_m01_owner_verification.ps1` under `OWNER_VERIFICATION_WORKFLOW.md`.
-- The owner runs one PowerShell entry point with `-CommitSha <PR_HEAD_SHA>` against the PR head; it rejects a checked-out commit mismatch when Git CLI is available, continues when Git CLI is unavailable, executes the full/focused Windows suite and deterministic trace, and writes a UTF-8 log under `tools/test/owner/logs/`.
+- The owner runs one PowerShell entry point against the PR head; it executes the full/focused Windows suite and deterministic trace and writes a UTF-8 log under `tools/test/owner/logs/`.
 - No separate visual or editor checklist is required because M01 has no player-facing presentation.
 
 #### Demonstration path
@@ -370,11 +375,16 @@ State classes expose explicit primitive conversion hooks where useful, but no fi
 
 - `ARCHITECTURE.md`, `DATA_AND_CONTENT_CONTRACTS.md`, `IMPLEMENTATION_RULES.md`, `TESTING_AND_VALIDATION.md`, `DECISIONS.md`, and `MILESTONES.md`; `OWNER_VERIFICATION_WORKFLOW.md` changes only if implementation exposes a generic workflow defect.
 
-#### Implementation record
+#### Completion record
 
+- PR #5 merged on 2026-07-14.
+- Final PR head: `e2b291e75dab5e3484da7dec1d4420a2fb9637be`.
+- Merge commit: `a5b231682967e4cb71b4404af158e93ff8bbf261`.
 - Added `FixedPoint`, minimal `GameState`, separate `TimeAuthorityState`, monotonic/trusted-time contracts, fake providers, and `TimeReconciliationService`.
 - Added focused M01 GUT tests, source-ownership test, deterministic trace, and owner PowerShell verification package.
-- Linux/Codex full suite, focused M01 suite, and deterministic trace passed for this PR head. Owner Windows verification remains pending until the owner runs the PowerShell package.
+- Linux/Codex full and focused suites and deterministic trace passed.
+- The owner passed the Windows full suite (`12/12` tests), focused M01 suite (`10/10` tests), source-ownership checks, import preflight, deterministic trusted-time trace, fixed-point 24-hour trace, cleanup, and generated-log checks at the final PR head.
+- `GATE-FIXED-POINT` is satisfied.
 
 #### Known risks
 
@@ -390,7 +400,7 @@ State classes expose explicit primitive conversion hooks where useful, but no fi
 ### M02 — Versioned save codec and atomic storage
 
 **Definition status:** Approved  
-**Prompt status:** Not drafted  
+**Prompt status:** Drafted  
 **Implementation status:** Not started  
 **Recommended Codex task size:** Medium; one persistence pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M02-save-codec-atomic-storage.md`
@@ -428,10 +438,12 @@ A minimal authoritative state, including trusted-time accounting, round-trips th
 
 The exact file list remains subject to repository inspection. Expected areas are:
 
-- `src/persistence/save_codec.gd`, JSON codec, schema mapper, validation, storage abstraction, and file storage
-- Schema version and migration files
+- `src/persistence/` schema mapper, codec interface, JSON codec, validation, migration registry, save service, storage abstraction, and file storage
+- Schema version and representative fixture files
 - `tests/unit/persistence/`, `tests/integration/save_load/`, and save fixtures
-- Documentation of the prototype save directory and reset procedure
+- `tools/test/m02/` headless persistence trace
+- `tools/test/owner/run_m02_owner_verification.ps1` and ignored generated logs
+- Documentation of the prototype save directory, isolated test directory, and reset procedure
 
 #### Data and content required
 
@@ -439,7 +451,7 @@ The exact file list remains subject to repository inspection. Expected areas are
 
 #### Acceptance criteria
 
-- Values at and beyond `2^53`, representative trusted epoch values, signed 64-bit limits, and fixed-point residuals round-trip exactly.
+- Values at and beyond `2^53`, representative trusted epoch values, signed 64-bit limits, and representative fixed-point residual integers round-trip exactly through the shared integer codec. M02 does not add a production residual field solely for this test; later runtime state uses the same codec when residual fields are introduced.
 - Malformed or numeric JSON values for authoritative integer fields are rejected rather than coerced.
 - A valid backup loads when the primary is corrupt or truncated.
 - Failure at every documented atomic-write step leaves at least one valid committed snapshot.
@@ -458,7 +470,9 @@ The exact file list remains subject to repository inspection. Expected areas are
 
 #### Manual verification
 
-- Create a save, copy it, corrupt the primary deliberately, relaunch, and confirm the backup is selected with a visible diagnostic while the invalid file is retained.
+- Codex creates `tools/test/owner/run_m02_owner_verification.ps1` under `OWNER_VERIFICATION_WORKFLOW.md`.
+- The owner runs one PowerShell entry point against the PR head. The script uses an isolated Windows temporary directory, runs the full and focused suites, writes two revisions, corrupts the primary, verifies backup selection and suspect-file retention, exercises Windows rename/replacement behavior, cleans the temporary directory, reruns the clean suite, and writes one UTF-8 log.
+- No separate visual checklist is required because M02 has no player-facing save UI.
 
 #### Demonstration path
 
@@ -473,7 +487,7 @@ This milestone establishes schema version 1, codec ID, transaction rules, and ba
 
 #### Documentation updates
 
-- `ARCHITECTURE.md`, `DATA_AND_CONTENT_CONTRACTS.md`, `IMPLEMENTATION_RULES.md`, `TESTING_AND_VALIDATION.md`, and `MILESTONES.md`.
+- `ARCHITECTURE.md`, `DATA_AND_CONTENT_CONTRACTS.md`, `IMPLEMENTATION_RULES.md`, `TESTING_AND_VALIDATION.md`, `MILESTONES.md`, and `README.md`; `OWNER_VERIFICATION_WORKFLOW.md` changes only if implementation exposes a generic workflow defect.
 
 #### Known risks
 
@@ -513,7 +527,7 @@ The Godot editor loads one explicit prototype catalog containing the approved Fo
 - Implement `ContentRegistry` normalization, canonical ordering, ID-prefix checks, reference validation, and immutable runtime lookup tables.
 - Implement only the finite modifier and progression-effect operations already required by the prototype.
 - Author the established prototype IDs and centralized provisional values from `DATA_AND_CONTENT_CONTRACTS.md`.
-- Define output-channel rate periods and the content flags needed for Threshold-owned long-horizon acquisition progress under `DEC-0027`, without authoring speculative rare content.
+- Define output-channel baseline rates, explicit periods, modifier inputs, and content flags needed for Threshold-owned long-horizon acquisition progress under `DEC-0027` and non-compounding rate derivation under `DEC-0028`, without authoring speculative rare content or persisting effective rates/ETAs.
 - Assign and persist a content revision used by save validation.
 - Provide minimal fixture catalogs for focused tests.
 
@@ -545,7 +559,7 @@ The exact file list remains subject to repository inspection. Expected areas are
 - Provisional rates, costs, coefficients, durations, and floors exist in content data rather than UI or tutorial code.
 - Man-at-Arms and Scribe behavior can be distinguished from data without branching on display name.
 - A save records and validates the content revision without serializing immutable definition data.
-- Channel validation rejects zero/negative periods and invalid long-horizon progress-display combinations.
+- Channel validation rejects zero/negative periods and invalid long-horizon progress-display combinations; the normalized period remains stable within a content revision while live modifiers alter only the effective numerator or multiplier.
 
 #### Automated verification
 
@@ -647,6 +661,8 @@ The exact file list remains subject to repository inspection. Expected areas are
 - Save/load preserves operation, residuals, counters, inventory, and report accumulator exactly.
 - No screen, Node path, rendered frame, or clock read is required by domain or simulation tests.
 - Reconfiguring, recalling, redispatching, and settling the test Threshold preserves its long-horizon channel progress and exact carry; whole inventory is banked only at completion.
+- A rate-changing loadout or global modifier resolves the old rate to the boundary, leaves stored progress and carry unchanged, and applies the newly derived numerator or multiplier only to future time against the channel's stable normalized period.
+- A four-hour fixture at `50.0%` progress remains `50.0%` after a twenty-percent rate increase while its ETA changes from two hours to one hour forty minutes; repeated recall/redispatch with unchanged state does not shorten it again.
 
 #### Automated verification
 
