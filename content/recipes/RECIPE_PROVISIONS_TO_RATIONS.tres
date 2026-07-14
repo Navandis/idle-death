@@ -9,4 +9,4 @@ kind = "recipe"
 display_name = "Provisions to Rations"
 description = "Prototype scaffold definition."
 localization_key = ""
-data = {"hall_id": "HALL_LARDER", "input_item_id": "RES_PROVISIONS", "input_quantity": 2, "output_item_id": "RES_RATIONS", "output_quantity": 1, "duration_msec": 60000}
+data = {"hall_id": "HALL_LARDER", "input_item_id": "RES_PROVISIONS", "input_quantity": 10, "output_item_id": "RES_RATIONS", "output_quantity": 10, "duration_msec": 120000, "default_target_quantity": 50}

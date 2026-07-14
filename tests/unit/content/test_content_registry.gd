@@ -29,8 +29,20 @@ func test_form_traits_are_data_not_display_name_branches() -> void:
 	var scribe: Dictionary = registry.get_record("FORM_SCRIBE").record
 	assert_eq(maa.data.traits[0].id, "TRAIT_OLD_DRILL")
 	assert_eq(scribe.data.traits[0].id, "TRAIT_UNCLOSED_LEDGER")
+	assert_eq(scribe.data.traits[0].modifiers[0].metric, "DISCOVERY_RATE")
+	assert_eq(scribe.data.traits[0].modifiers[0].value, 2000000)
+	assert_eq(scribe.data.traits[0].modifiers[1].metric, "FORECAST_UNCERTAINTY")
+	assert_eq(scribe.data.traits[0].modifiers[1].value, 500000)
 	assert_has(maa.data.slot_affinities, "MARTIAL")
 	assert_has(scribe.data.slot_affinities, "SPECIALIST")
+
+func test_larder_recipe_matches_approved_scaffold() -> void:
+	var registry := ContentRegistry.build(CatalogResource)
+	var recipe: Dictionary = registry.get_record("RECIPE_PROVISIONS_TO_RATIONS").record
+	assert_eq(recipe.data.input_quantity, 10)
+	assert_eq(recipe.data.output_quantity, 10)
+	assert_eq(recipe.data.duration_msec, 120000)
+	assert_eq(recipe.data.default_target_quantity, 50)
 
 func test_source_resource_mutation_does_not_change_registry_record() -> void:
 	var registry := ContentRegistry.build(CatalogResource)

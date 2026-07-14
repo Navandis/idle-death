@@ -9,4 +9,4 @@ kind = "form"
 display_name = "Scribe"
 description = "Prototype scaffold definition."
 localization_key = ""
-data = {"base_returned_souls_per_second": 1.0, "base_mastery_per_minute": 1.0, "cycle_msec": 60000, "traits": [{"id": "TRAIT_UNCLOSED_LEDGER", "name": "Unclosed Ledger", "modifiers": [{"metric": "DISCOVERY_RATE", "operation": "MULTIPLY", "scope": "REAPING_TOTAL", "condition": "ALWAYS", "value": 1.15}, {"metric": "ESSENCE_YIELD", "operation": "ADD", "scope": "OUTPUT_CHANNEL", "condition": "OUTPUT_ITEM", "value": 0.05}]}], "slot_affinities": ["SPECIALIST", "LOGISTICS_OR_EXTRACTION"]}
+data = {"base_returned_souls_per_second": 1.0, "base_mastery_per_minute": 1.0, "cycle_msec": 60000, "traits": [{"id": "TRAIT_UNCLOSED_LEDGER", "name": "Unclosed Ledger", "modifiers": [{"metric": "DISCOVERY_RATE", "operation": "MULTIPLY", "scope": "REAPING_TOTAL", "condition": "ALWAYS", "value": 2.0}, {"metric": "FORECAST_UNCERTAINTY", "operation": "MULTIPLY", "scope": "FORECAST_ONLY", "condition": "ALWAYS", "value": 0.5}]}], "slot_affinities": ["SPECIALIST", "LOGISTICS_OR_EXTRACTION"]}
