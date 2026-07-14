@@ -14,8 +14,8 @@ const NO_DIAGNOSTIC := "TIME_OK"
 var trusted_anchor_utc_msec: int = -1
 var trusted_source_id: String = ""
 var foreground_credited_since_anchor_msec: int = 0
-var pending_reconciliation: bool = false
-var last_diagnostic_code: String = NO_DIAGNOSTIC
+var pending_trusted_reconciliation: bool = false
+var last_sample_diagnostic_code: String = NO_DIAGNOSTIC
 
 func has_anchor() -> bool:
 	return trusted_anchor_utc_msec >= 0 and not trusted_source_id.is_empty()

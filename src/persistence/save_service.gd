@@ -89,8 +89,8 @@ func persist_reconciliation_candidate(game_state: GameState, time_state: TimeAut
 	time_copy.trusted_anchor_utc_msec = time_state.trusted_anchor_utc_msec
 	time_copy.trusted_source_id = time_state.trusted_source_id
 	time_copy.foreground_credited_since_anchor_msec = time_state.foreground_credited_since_anchor_msec
-	time_copy.pending_reconciliation = time_state.pending_reconciliation
-	time_copy.last_diagnostic_code = time_state.last_diagnostic_code
+	time_copy.pending_trusted_reconciliation = time_state.pending_trusted_reconciliation
+	time_copy.last_sample_diagnostic_code = time_state.last_sample_diagnostic_code
 	var commit := TimeReconciliationService.new().commit_trusted_reconciliation(game_copy, time_copy, plan)
 	if not commit.ok:
 		return commit

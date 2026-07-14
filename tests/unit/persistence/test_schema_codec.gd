@@ -44,6 +44,6 @@ func test_json_codec_is_deterministic_and_rejects_objects() -> void:
 
 func test_json_numeric_integer_field_decodes_then_schema_rejects() -> void:
 	var codec := JsonSaveCodec.new()
-	var decoded := codec.decode('{"codec_id":"JSON_V1","schema_version":1,"save_revision":"1","content_revision":"x","game":{"simulation_time_msec":"0"},"time_authority":{"has_trusted_anchor":false,"trusted_anchor_utc_msec":"0","trusted_source_id":"","foreground_credited_since_anchor_msec":"0","pending_reconciliation":false,"last_diagnostic_code":"TIME_OK"}}'.to_utf8_buffer())
+	var decoded := codec.decode('{"codec_id":"JSON_V1","schema_version":1,"save_revision":"1","content_revision":"x","last_offline_resolution_id":"","metadata":{},"game_state":{"simulation_time_msec":"0"},"time_authority":{"has_trusted_anchor":false,"trusted_anchor_utc_msec":"0","trusted_source_id":"","foreground_credited_since_anchor_msec":"0","pending_trusted_reconciliation":false,"last_sample_diagnostic_code":"TIME_OK"}}'.to_utf8_buffer())
 	assert_true(decoded.ok)
 	assert_eq(SaveSchemaValidator.validate_v1(decoded.snapshot).code, SaveInt64.ERR_NOT_STRING)

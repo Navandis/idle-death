@@ -17,14 +17,16 @@ static func runtime_to_snapshot(game_state: GameState, time_state: TimeAuthority
 		"schema_version": SaveInt64.format(SaveEnvelope.CURRENT_SCHEMA_VERSION),
 		"save_revision": SaveInt64.format(save_revision),
 		"content_revision": content_revision,
-		"game": {"simulation_time_msec": SaveInt64.format(game_state.simulation_time_msec)},
+		"last_offline_resolution_id": "",
+		"metadata": {},
+		"game_state": {"simulation_time_msec": SaveInt64.format(game_state.simulation_time_msec)},
 		"time_authority": {
 			"has_trusted_anchor": has_anchor,
 			"trusted_anchor_utc_msec": SaveInt64.format(time_state.trusted_anchor_utc_msec if has_anchor else 0),
 			"trusted_source_id": time_state.trusted_source_id if has_anchor else "",
 			"foreground_credited_since_anchor_msec": SaveInt64.format(time_state.foreground_credited_since_anchor_msec if has_anchor else 0),
-			"pending_reconciliation": time_state.pending_reconciliation,
-			"last_diagnostic_code": time_state.last_diagnostic_code,
+			"pending_trusted_reconciliation": time_state.pending_trusted_reconciliation,
+			"last_sample_diagnostic_code": time_state.last_sample_diagnostic_code,
 		},
 	}
 
@@ -44,6 +46,6 @@ static func snapshot_to_runtime(snapshot: Dictionary) -> Dictionary:
 		time.trusted_anchor_utc_msec = -1
 		time.trusted_source_id = ""
 		time.foreground_credited_since_anchor_msec = 0
-	time.pending_reconciliation = t.pending_reconciliation
-	time.last_diagnostic_code = t.last_diagnostic_code
+	time.pending_trusted_reconciliation = t.pending_trusted_reconciliation
+	time.last_sample_diagnostic_code = t.last_sample_diagnostic_code
 	return {"ok": true, "code": OK, "game_state": game, "time_authority_state": time, "save_revision": validation.save_revision, "content_revision": snapshot.content_revision}

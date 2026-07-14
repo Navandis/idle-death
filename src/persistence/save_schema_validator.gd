@@ -38,12 +38,16 @@ static func validate_v1(snapshot: Variant) -> Dictionary:
 		return _err(ERR_CONTENT_REVISION, "content_revision")
 	if _looks_like_absolute_path(data.content_revision):
 		return _err(ERR_ABSOLUTE_PATH, "content_revision")
-	if typeof(data.game) != TYPE_DICTIONARY:
-		return _err(ERR_TYPE, "game")
-	var game_keys := _require_keys(data.game, SaveEnvelope.GAME_KEYS, "game")
+	if typeof(data.last_offline_resolution_id) != TYPE_STRING or _looks_like_absolute_path(data.last_offline_resolution_id):
+		return _err(ERR_TYPE, "last_offline_resolution_id")
+	if typeof(data.metadata) != TYPE_DICTIONARY:
+		return _err(ERR_TYPE, "metadata")
+	if typeof(data.game_state) != TYPE_DICTIONARY:
+		return _err(ERR_TYPE, "game_state")
+	var game_keys := _require_keys(data.game_state, SaveEnvelope.GAME_KEYS, "game_state")
 	if not game_keys.ok:
 		return game_keys
-	var sim := SaveInt64.parse(data.game.simulation_time_msec, false, "game.simulation_time_msec")
+	var sim := SaveInt64.parse(data.game_state.simulation_time_msec, false, "game_state.simulation_time_msec")
 	if not sim.ok:
 		return sim
 	if typeof(data.time_authority) != TYPE_DICTIONARY:
@@ -52,10 +56,10 @@ static func validate_v1(snapshot: Variant) -> Dictionary:
 	if not time_keys.ok:
 		return time_keys
 	var t: Dictionary = data.time_authority
-	if typeof(t.has_trusted_anchor) != TYPE_BOOL or typeof(t.trusted_source_id) != TYPE_STRING or typeof(t.pending_reconciliation) != TYPE_BOOL or typeof(t.last_diagnostic_code) != TYPE_STRING:
+	if typeof(t.has_trusted_anchor) != TYPE_BOOL or typeof(t.trusted_source_id) != TYPE_STRING or typeof(t.pending_trusted_reconciliation) != TYPE_BOOL or typeof(t.last_sample_diagnostic_code) != TYPE_STRING:
 		return _err(ERR_TYPE, "time_authority")
-	if t.last_diagnostic_code.is_empty() or _looks_like_absolute_path(t.last_diagnostic_code):
-		return _err(ERR_TYPE, "time_authority.last_diagnostic_code")
+	if t.last_sample_diagnostic_code.is_empty() or _looks_like_absolute_path(t.last_sample_diagnostic_code):
+		return _err(ERR_TYPE, "time_authority.last_sample_diagnostic_code")
 	var anchor := SaveInt64.parse(t.trusted_anchor_utc_msec, false, "time_authority.trusted_anchor_utc_msec")
 	if not anchor.ok:
 		return anchor

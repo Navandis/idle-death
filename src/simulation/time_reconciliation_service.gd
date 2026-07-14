@@ -72,9 +72,9 @@ func plan_trusted_reconciliation(time_state: TimeAuthorityState, sample_value: T
 
 func commit_trusted_reconciliation(game_state: GameState, time_state: TimeAuthorityState, plan: Dictionary) -> Dictionary:
 	if not plan.get("ok", false):
-		time_state.last_diagnostic_code = plan.get("code", TIME_SAMPLE_MALFORMED)
+		time_state.last_sample_diagnostic_code = plan.get("code", TIME_SAMPLE_MALFORMED)
 		if plan.get("set_pending", false):
-			time_state.pending_reconciliation = true
+			time_state.pending_trusted_reconciliation = true
 		return {"ok": false, "code": plan.get("code", TIME_SAMPLE_MALFORMED)}
 	if time_state.trusted_anchor_utc_msec != plan.previous_anchor_utc_msec or time_state.trusted_source_id != plan.previous_source_id or time_state.foreground_credited_since_anchor_msec != plan.previous_foreground_credited_since_anchor_msec:
 		return {"ok": false, "code": TIME_STALE_PLAN}
@@ -85,10 +85,10 @@ func commit_trusted_reconciliation(game_state: GameState, time_state: TimeAuthor
 		time_state.trusted_anchor_utc_msec = plan.sample_utc_msec
 		time_state.trusted_source_id = plan.sample_source_id
 		time_state.foreground_credited_since_anchor_msec = 0
-		time_state.pending_reconciliation = false
+		time_state.pending_trusted_reconciliation = false
 	else:
-		time_state.pending_reconciliation = false
-	time_state.last_diagnostic_code = plan.code
+		time_state.pending_trusted_reconciliation = false
+	time_state.last_sample_diagnostic_code = plan.code
 	return {"ok": true, "code": plan.code, "credited_msec": plan.credited_msec, "simulation_time_msec": game_state.simulation_time_msec}
 
 

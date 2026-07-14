@@ -887,11 +887,15 @@ Example wire representation:
   "codec_id": "JSON_V1",
   "content_revision": "prototype-r1",
   "save_revision": "42",
+  "last_offline_resolution_id": "offline-000042",
+  "metadata": {},
   "time_authority": {
     "trusted_source_id": "STEAM_SERVER_TIME",
+    "has_trusted_anchor": true,
     "trusted_anchor_utc_msec": "1783872000000",
     "foreground_credited_since_anchor_msec": "125000",
-    "pending_trusted_reconciliation": false
+    "pending_trusted_reconciliation": false,
+    "last_sample_diagnostic_code": "TIME_OK"
   },
   "game_state": {
     "simulation_time_msec": "3485000"

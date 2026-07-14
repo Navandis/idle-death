@@ -40,19 +40,19 @@ func test_unavailable_mismatch_backwards_cap_and_stale_plan() -> void:
 	var unavailable := service.plan_trusted_reconciliation(time, TrustedTimeSampleScript.unavailable("FAKE"), 1000)
 	assert_false(unavailable.ok)
 	service.commit_trusted_reconciliation(game, time, unavailable)
-	assert_true(time.pending_reconciliation)
+	assert_true(time.pending_trusted_reconciliation)
 	var anchor := service.plan_trusted_reconciliation(time, TrustedTimeSampleScript.trusted("A", 10_000), 1000)
 	assert_true(service.commit_trusted_reconciliation(game, time, anchor).ok)
 	var mismatch := service.plan_trusted_reconciliation(time, TrustedTimeSampleScript.trusted("B", 11_000), 1000)
 	assert_eq(mismatch.code, TimeReconciliationServiceScript.TIME_SOURCE_MISMATCH)
 	service.commit_trusted_reconciliation(game, time, mismatch)
-	assert_true(time.pending_reconciliation)
-	time.pending_reconciliation = false
+	assert_true(time.pending_trusted_reconciliation)
+	time.pending_trusted_reconciliation = false
 	var backwards := service.plan_trusted_reconciliation(time, TrustedTimeSampleScript.trusted("A", 9_999), 1000)
 	assert_eq(backwards.code, TimeReconciliationServiceScript.TIME_SAMPLE_BACKWARDS)
 	service.commit_trusted_reconciliation(game, time, backwards)
-	assert_true(time.pending_reconciliation)
-	time.pending_reconciliation = false
+	assert_true(time.pending_trusted_reconciliation)
+	time.pending_trusted_reconciliation = false
 	var capped := service.plan_trusted_reconciliation(time, TrustedTimeSampleScript.trusted("A", 20_000), 4_000)
 	assert_eq(capped.credited_msec, 4_000)
 	assert_eq(capped.capped_out_msec, 6_000)
