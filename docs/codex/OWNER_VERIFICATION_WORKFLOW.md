@@ -4,7 +4,7 @@
 **Repository path:** `docs/codex/OWNER_VERIFICATION_WORKFLOW.md`  
 **Document status:** Approved workflow  
 **Workflow revision:** 1  
-**Last updated:** 2026-07-13  
+**Last updated:** 2026-07-14  
 **Companion documents:** [Testing and validation](TESTING_AND_VALIDATION.md), [Prompt template](PROMPT_TEMPLATE.md), [Milestones](MILESTONES.md), and [Decisions](DECISIONS.md)
 
 ## 1. Purpose
@@ -151,7 +151,7 @@ When `GODOT_BIN` is not already configured:
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass `
     -File .\tools\test\owner\run_m01_owner_verification.ps1 `
-    -GodotBin "D:\Path\To\Godot_v4.7-stable_win64_console.exe" `
+    -GodotBin "C:\Path\To\Godot_v4.7-stable_win64_console.exe" `
     -CommitSha "<PR_HEAD_SHA>"
 ```
 

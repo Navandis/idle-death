@@ -1,14 +1,14 @@
 # Milestone M01: Deterministic numeric and time-authority foundation
 
-**Prompt version:** v0.1  
-**Prompt date:** 2026-07-13  
-**Prompt status:** Draft  
+**Prompt version:** v0.2  
+**Prompt date:** 2026-07-14  
+**Prompt status:** Approved  
 **Milestone definition:** `docs/codex/MILESTONES.md` — `### M01 — Deterministic numeric and time-authority foundation`  
 **Recommended task size:** Medium; one pure-foundation pull request  
-**Expected base branch or ref:** `main` at or after M00 merge commit `77c618a1d9adbf8b02380d8509d2afb4c4cbc8ea`  
+**Expected base branch or ref:** current `main` after this approved planning package is committed; M00 merge commit `77c618a1d9adbf8b02380d8509d2afb4c4cbc8ea` must be an ancestor  
 **Planned prompt path:** `docs/codex/milestone-prompts/M01-deterministic-time-foundation.md`
 
-> This draft proposes the fixed-point decision recorded as proposed `DEC-0026`. Do not execute it until the project owner approves both this prompt and that decision, and the repository copies are updated to `Prompt status: Approved` / `DEC-0026: Accepted`.
+> The project owner approved this prompt, accepted refined `DEC-0026`, and accepted the long-horizon channel ownership rule in `DEC-0027`. M01 implements the generic numeric support only; Threshold-channel ownership and player-facing progress presentation remain later milestone work.
 
 > This prompt authorizes only the M01 numeric and time-authority foundation. It does not authorize persistence files, Steam initialization, gameplay production, UI, future milestones, broad cleanup, dependency changes, or silent changes to accepted design and architecture decisions.
 
@@ -20,7 +20,7 @@ Before editing:
 2. Read every document and section listed under **Authoritative context**.
 3. Inspect the current repository, M00 harness, tests, addon configuration, and `git status --short`.
 4. Confirm that M00 is merged and verified and that the repository contains the canonical Linux and Windows GUT wrappers.
-5. Confirm that `DEC-0026` is `Accepted`. If it is still `Proposed`, stop and report that the prompt has not completed owner approval.
+5. Confirm that `DEC-0026` and `DEC-0027` are `Accepted`. If either is not Accepted, stop and report that the repository approval state is stale.
 6. Briefly state the proposed implementation approach, expected files, fixed-point API shape, time-authority state flow, and verification plan before making non-trivial edits.
 7. Report any material mismatch between this prompt and the repository before implementing dependent behavior.
 
@@ -49,13 +49,15 @@ Implement the scene-independent numeric and time-authority foundation that every
 
 From tests and a deterministic developer trace, a developer can:
 
-- represent fractional rates and progress with exact integer subunits and residuals;
+- represent fractional rates and progress with exact integer subunits and residuals while keeping whole inventory and backlog counts unscaled;
+- represent an explicit-period rare rate such as one whole item per twenty-four hours without rounding it to an integer per-second rate;
 - prove that equivalent time chunking produces the same result;
 - advance a minimal authoritative timeline from an injected monotonic clock;
 - establish a first trusted anchor without retroactive credit;
 - continue foreground progress while trusted time is unavailable;
 - reconcile a later trusted sample by subtracting already-credited foreground time;
 - prove that a repeated sample returns no additional elapsed time;
+- prove that explicit one-item-per-eight-hours and one-item-per-twenty-four-hours rates accumulate exact partial progress, extract one whole unit at completion, and remain chunking invariant;
 - inspect explicit rejection and cap diagnostics;
 - run the complete Windows validation through one PowerShell command that writes a shareable log.
 
@@ -77,7 +79,7 @@ Read the following before editing.
 | 8 | `docs/codex/DATA_AND_CONTENT_CONTRACTS.md` | §§9.2–9.3; §§12.1, 12.3, and 12.4; §17 | `TimeAuthorityState`, minimal `GameState`, units, fractional progress, rounding, and runtime validation |
 | 9 | `docs/codex/IMPLEMENTATION_RULES.md` | §§5–6; §§10.1–10.9; §18; §§21–22 | Junior-readable code, dependency boundaries, determinism, testing, security, and PR scope |
 | 10 | `docs/codex/TESTING_AND_VALIDATION.md` | §§4, 6, 7.1, 8.2, 9.6, 11.1, 12.3, 18, and 19 | Canonical commands, test cases, trusted-time anomalies, demonstration path, and owner logs |
-| 11 | `docs/codex/DECISIONS.md` | `DEC-0007`, `DEC-0010`, `DEC-0017`, `DEC-0021`, `DEC-0023`, `DEC-0025`, and accepted `DEC-0026` | State independence, numeric model, test framework, trusted-time policy, split execution, owner logs, and exact scale |
+| 11 | `docs/codex/DECISIONS.md` | `DEC-0007`, `DEC-0010`, `DEC-0017`, `DEC-0021`, `DEC-0023`, `DEC-0025`, accepted `DEC-0026`, and accepted `DEC-0027` | State independence, numeric model, test framework, trusted-time policy, split execution, owner logs, and exact scale |
 | 12 | M00 merge | PR #4; merge commit `77c618a1d9adbf8b02380d8509d2afb4c4cbc8ea` | Verified test harness and dependency baseline |
 
 This prompt is the latest owner-approved task instruction only within M01. It does not supersede accepted decisions or protected design invariants. If applicable sources conflict and the documented hierarchy does not resolve the conflict, stop and report the conflict, practical consequence, and available options.
@@ -107,6 +109,7 @@ Re-check these facts at task start. If the repository is materially ahead of, be
 |---|---|---|---|
 | M00 | Merged and `Passed` | Implementation | `MILESTONES.md`, PR #4 merge, full harness execution |
 | `DEC-0026` | `Accepted` | Implementation | `DECISIONS.md` |
+| `DEC-0027` | `Accepted`; M01 implements arithmetic support only | Implementation boundary | `DECISIONS.md` |
 | Godot | 4.7.x available through M00 wrapper resolution | Verification | `./tools/test/run_gut.sh`; owner PowerShell package |
 | GUT | Pinned 9.7.1 | Implementation and verification | `addons/gut/plugin.cfg` and wrapper output |
 | `GATE-FIXED-POINT` | Exact scale, arithmetic rules, bounds, tests, and documentation recorded | Merge | M01 code, tests, `DEC-0026`, updated contracts, owner log |
@@ -120,15 +123,15 @@ Implement only the following:
 
 1. Create a minimal typed, scene-tree-independent `GameState` containing the authoritative `simulation_time_msec` timeline required by later systems. Do not add empty inventory, Reaping, Hall, tutorial, or report placeholders.
 2. Create a separate typed `TimeAuthorityState` matching the approved contract. It is paired with `GameState` by services and later belongs to the save envelope; do not duplicate it inside `GameState`.
-3. Implement one centralized `FixedPoint` utility using the accepted scale of `1_000_000` subunits per whole unit.
-4. Implement checked, deterministic non-negative fixed-point operations sufficient for later rate, multiplier, and residual flows, including integer-millisecond rate accumulation.
+3. Implement one centralized `FixedPoint` utility using the accepted scale of `1_000_000` subunits per whole fractional unit. Whole inventory, backlog, and other discrete counts remain unscaled integers.
+4. Implement checked, deterministic non-negative fixed-point operations sufficient for later rate, multiplier, progress, and carry flows, including explicit-period integer-millisecond accumulation and whole-unit extraction.
 5. Define the project-owned monotonic clock contract, a production process-monotonic adapter, and a fake monotonic clock for tests.
 6. Define `TrustedTimeProvider`, `TrustedTimeSample`, trusted/unavailable statuses, stable diagnostic codes, and a fake trusted-time provider. Do not implement a Steam adapter.
 7. Implement a pure or explicitly non-mutating trusted-time reconciliation planning step and a separately validated commit step so a candidate elapsed interval can be simulated and saved transactionally by later milestones.
 8. Implement foreground accounting that advances `GameState.simulation_time_msec` and, when an anchor exists, increments `foreground_credited_since_anchor_msec` atomically in memory.
-9. Add comprehensive GUT tests for fixed-point boundaries, residuals, overflow, monotonic behavior, trusted-time unavailable/reconnect/rollback/source mismatch/cap/repeated-sample behavior, stale-plan rejection, and chunking invariance.
+9. Add comprehensive GUT tests for fixed-point boundaries, explicit-period accumulation, whole-unit extraction, the one-item-per-24-hours example, residuals/carries, overflow, monotonic behavior, trusted-time unavailable/reconnect/rollback/source mismatch/cap/repeated-sample behavior, stale-plan rejection, and chunking invariance.
 10. Add a focused source-ownership test that rejects authoritative device-wall-clock and file-timestamp calls while allowing the one approved monotonic process-clock adapter.
-11. Add a deterministic headless M01 trace that prints the anchor → ten foreground minutes → one trusted hour → fifty uncredited minutes → repeated zero sequence and exits nonzero if any value is wrong.
+11. Add a deterministic headless M01 trace that prints both: (a) the anchor → ten foreground minutes → one trusted hour → fifty uncredited minutes → repeated zero sequence; and (b) the one-item-per-24-hours fixed-point example showing six-hour partial progress and exact whole-unit completion. It exits nonzero if any value is wrong.
 12. Add `tools/test/owner/run_m01_owner_verification.ps1` under the approved owner workflow. It must run the full suite, focused M01 tests, source-ownership check, and trace; capture one UTF-8 log; clean any temporary artifacts; and return the correct process status.
 13. Update the maintained architecture, data, implementation, testing, decision, milestone, and applicable README documentation made concrete by the implementation.
 
@@ -144,11 +147,12 @@ Do not implement or refactor:
 4. Final offline cap or production balance. The reconciliation service receives a non-negative cap as an input; tests use explicit fixtures.
 5. A general arbitrary-precision library, rational-expression engine, BigInt dependency, native extension, or another third-party dependency.
 6. Floating-point authoritative accumulation or per-subsystem fixed-point scales.
-7. A gameplay autoload, main-scene replacement, screen, editor plugin, or debug UI.
-8. Network time from an unapproved service, local-wall-clock fallback, registry/file timestamp fallback, or manual time entry.
-9. GitHub Actions, release automation, telemetry backends, or platform packaging.
-10. Broad directory reorganization, unrelated renaming/formatting, dependency upgrades, or modification of third-party addon source.
-11. Changes to `PROMPT_TEMPLATE.md`, this prompt, or later milestone prompts during implementation.
+7. Threshold output-channel runtime state, reconfiguration transfer, acquisition progress UI, or any player-facing rare item; those belong to M03, M04, and later presentation milestones under `DEC-0027`.
+8. A gameplay autoload, main-scene replacement, screen, editor plugin, or debug UI.
+9. Network time from an unapproved service, local-wall-clock fallback, registry/file timestamp fallback, or manual time entry.
+10. GitHub Actions, release automation, telemetry backends, or platform packaging.
+11. Broad directory reorganization, unrelated renaming/formatting, dependency upgrades, or modification of third-party addon source.
+12. Changes to `PROMPT_TEMPLATE.md`, this prompt, or later milestone prompts during implementation.
 
 ## Required behavior
 
@@ -156,10 +160,10 @@ Every row is a binary requirement for this task.
 
 | ID | Required behavior | Source trace |
 |---|---|---|
-| `RB-01` | `FixedPoint.SCALE` equals `1_000_000`; one whole unit is exactly `1_000_000` subunits and the same scale is used by every M01 fixed-point operation. | Accepted `DEC-0026`; `GATE-FIXED-POINT` |
-| `RB-02` | Authoritative fixed-point operations use signed 64-bit GDScript integers but accept only non-negative flow/rate/multiplier inputs in M01 unless a method explicitly documents a signed contract. | `DEC-0010`; `IMPLEMENTATION_RULES.md` §10.7 |
+| `RB-01` | `FixedPoint.SCALE` equals `1_000_000`; one whole fractional unit is exactly `1_000_000` subunits and the same scale is used by every M01 fixed-point operation. | Accepted `DEC-0026`; `GATE-FIXED-POINT` |
+| `RB-02` | Whole inventory, backlog, tethers, and other discrete counts remain ordinary unscaled signed 64-bit integers; fixed-point is used only for meaningful fractional state. M01 flow/rate/multiplier methods accept non-negative inputs unless a method explicitly documents a signed contract. | `DEC-0010`; accepted `DEC-0026`; `IMPLEMENTATION_RULES.md` §10.7 |
 | `RB-03` | Expected invalid inputs and arithmetic overflow return a typed failure result with a stable reason code; they never wrap silently, partially mutate state, or rely on an assertion as the only handling. | `DEC-0010`; action-result and error-handling rules |
-| `RB-04` | Integer-millisecond rate accumulation uses deterministic floor semantics and returns the next residual explicitly. Equivalent chunks produce exactly the same produced subunits and residual. | `IF-REQ-08`; `ARCHITECTURE.md` §10.6 |
+| `RB-04` | Integer-millisecond rate accumulation accepts an explicit positive `period_msec`, uses deterministic floor semantics, and returns the next arithmetic carry explicitly. It does not require rates to be rounded to integer subunits per second. Equivalent chunks produce exactly the same produced subunits and carry. | `IF-REQ-08`; accepted `DEC-0026`; `ARCHITECTURE.md` §10.6 |
 | `RB-05` | A high-value rate case whose naïve intermediate multiplication would exceed signed 64-bit range succeeds when the mathematical final result fits; a result that cannot fit fails clearly. | `GATE-FIXED-POINT`; `DEC-0026` |
 | `RB-06` | `GameState.simulation_time_msec` is a non-negative authoritative timeline and changes only through validated elapsed-time operations. | `ARCHITECTURE.md` §§9.1–9.2; data contract §9.3 |
 | `RB-07` | `TimeAuthorityState` remains separate from `GameState` and contains the approved anchor, source, foreground-credit, pending, and diagnostic fields without Steam-specific wrapper data. | Data contract §9.2; `DEC-0021` |
@@ -177,9 +181,11 @@ Every row is a binary requirement for this task.
 | `RB-19` | After a successful commit, repeating the same trusted sample returns zero additional elapsed time. | Idempotency requirement; `P90-AC07` |
 | `RB-20` | No project-owned authoritative source calls device wall-clock, timezone, calendar, registry, file-modification-time, Steam, or unapproved network-time APIs. A source-ownership test enforces the current forbidden API list. | `IF-REQ-16`, `IF-REQ-17`; `P90-SAFE-14` |
 | `RB-21` | Tests use fake clocks/providers and do not sleep, initialize Steam, access the network, or depend on the scene tree. | `DEC-0017`; `ARCHITECTURE.md` §23 |
-| `RB-22` | The M01 developer trace prints exact expected values and returns nonzero on any mismatch. It must not mutate user saves or require the main scene. | M01 demonstration path |
+| `RB-22` | The M01 developer trace prints exact trusted-time values and the 24-hour acquisition arithmetic example, and returns nonzero on any mismatch. It must not mutate user saves or require the main scene. | M01 demonstration path |
 | `RB-23` | The owner PowerShell script follows `OWNER_VERIFICATION_WORKFLOW.md`, accepts `-CommitSha`, keeps Git optional, writes a UTF-8 log under the ignored log directory, and returns nonzero on any automated failure. | `DEC-0025` |
 | `RB-24` | All non-trivial project-owned scripts explain responsibility, owned/non-owned state, collaborators, units, determinism, and error behavior for a junior reviewer. | `AGENTS.md`; `IMPLEMENTATION_RULES.md` §5 |
+| `RB-25` | Whole-unit extraction returns the exact whole count plus `progress_subunits % SCALE`; it never mutates or emits fractional inventory. | Accepted `DEC-0026`; data contract §12.2–12.4 |
+| `RB-26` | Explicit rates of one whole item per eight hours and one whole item per twenty-four hours produce exact quarter-progress after two and six hours respectively, then exactly one whole unit at the full period, with identical output/carry across one-shot and chunked resolution. | Accepted `DEC-0026`; arithmetic support for `DEC-0027` |
 
 ## State transitions
 
@@ -197,6 +203,8 @@ Every row is a binary requirement for this task.
 | `ST-10` | Uncredited gap exceeds supplied cap | Plan reconciliation | Credit equals cap; capped-out amount is reported; candidate anchor is the trusted sample | Negative cap is invalid; no mutation | Cap value remains caller-supplied/test data |
 | `ST-11` | Foreground count exceeds current trusted gross gap because the source has not advanced enough | Plan reconciliation | Credit `0`; diagnostic `TIME_SAMPLE_NOT_AHEAD`; anchor and foreground count preserved | Later trusted sample can catch up and reconcile once | Prevents granularity-driven over-credit |
 | `ST-12` | Fixed-point rate and residual are known | Accumulate one total interval or equivalent chunks | Produced subunits and final residual are identical | Unsupported overflow returns failure with original residual unchanged | Residual is returned to caller; not persisted yet |
+| `ST-13` | Zero discrete units, zero progress, explicit rate `1_000_000` subunits per `86_400_000` msec | Accumulate six hours, then the remaining eighteen hours | Six hours yields `250_000` progress and zero whole units; twenty-four total hours yields one whole unit and zero progress | Invalid period/overflow fails without changing caller state | Generic arithmetic result only; Threshold ownership is deferred |
+| `ST-14` | Zero discrete units, zero progress, explicit rate `1_000_000` subunits per `28_800_000` msec | Accumulate two hours, then the remaining six hours | Two hours yields `250_000` progress and zero whole units; eight total hours yields one whole unit and zero progress | Invalid period/overflow fails without changing caller state | Generic arithmetic result only; Threshold ownership is deferred |
 
 State ownership must remain explicit. The time-authority service owns validation and reconciliation state changes; `FixedPoint` owns numeric conversion/arithmetic; fake providers own only test-controlled samples; no UI or tutorial callback owns these rules.
 
@@ -206,7 +214,8 @@ M01 introduces architecture constants and typed runtime contracts, not authored 
 
 | Canonical ID, setting, or file | Type | Required value or shape | Status | Source |
 |---|---|---|---|---|
-| `FixedPoint.SCALE` | Numeric architecture constant | `1_000_000` subunits per whole unit | Proposed by `DEC-0026`; becomes confirmed on owner approval | `DEC-0026` |
+| `FixedPoint.SCALE` | Numeric architecture constant | `1_000_000` subunits per whole fractional unit; whole inventory/backlog counts remain unscaled | Confirmed | Accepted `DEC-0026` |
+| `rate_period_msec` | Numeric rate contract | Positive explicit denominator for elapsed accumulation; `86_400_000` in the canonical 24-hour fixture | Confirmed | Accepted `DEC-0026` |
 | `TrustedTimeStatus.TRUSTED` | Enum/status | Sample contains validated source and epoch | Confirmed | `ARCHITECTURE.md` §9.3 |
 | `TrustedTimeStatus.UNAVAILABLE` | Enum/status | No authoritative sample; grants no closed-session time | Confirmed | `DEC-0021` |
 | `TEST_TRUSTED_TIME` | Test-only source ID | Fake provider source; never used by release platform code | Test-only | M01 tests |
@@ -238,11 +247,14 @@ Fixed-point rules:
 
 - `1.0` multiplier = `1_000_000`.
 - `0.15` additive fraction = `150_000`; `1.15` multiplier = `1_150_000`.
+- Whole inventory, backlog, and other discrete counts are unscaled integers.
 - M01 arithmetic is non-negative and floors toward zero where a whole subunit cannot be produced.
-- The unproduced numerator is returned as an explicit canonical remainder for the documented divisor.
+- Rate accumulation accepts `rate_subunits_per_period`, positive `period_msec`, elapsed milliseconds, and the prior carry; the unproduced numerator is returned as an explicit carry with the documented denominator.
+- Whole-unit extraction returns an integer whole count and a progress remainder in `0 <= progress_subunits < SCALE`.
 - No float or formatted display value enters authoritative arithmetic.
 - Each operation documents its accepted range and fails before a mathematical result would exceed signed 64-bit range.
-- The rate-accumulation API must support `rate_subunits_per_second = INT64_MAX` for exactly `1000` milliseconds with zero prior residual, producing `INT64_MAX`, while a larger mathematical result is rejected. This prevents a naïve overflowing intermediate multiply.
+- The canonical rare-rate fixture uses `1_000_000` subunits per `86_400_000` milliseconds: six hours produces `250_000` progress subunits and twenty-four hours extracts one whole unit.
+- The rate-accumulation API must also support a final-fit case such as `rate_subunits_per_period = INT64_MAX`, `elapsed_msec = period_msec = 1000`, and zero prior carry, producing `INT64_MAX` even though a naïve intermediate multiplication would overflow. A larger mathematical result is rejected.
 
 The reconciliation cap is an explicit non-negative method input. M01 does not select the game's final offline cap.
 
@@ -252,7 +264,7 @@ No player-facing UI is implemented.
 
 | Surface or state | Required presentation and interaction | Explicitly deferred |
 |---|---|---|
-| Headless developer trace | Print anchor, foreground credited, trusted gap, uncredited result, commit result, repeated-sample result, and diagnostics with units | Debug overlay, forecast UI, offline-return screen |
+| Headless developer trace | Print anchor, foreground credited, trusted gap, uncredited result, commit result, repeated-sample result, plus the six-hour/24-hour fixed-point acquisition example and diagnostics with units | Debug overlay, forecast UI, offline-return screen |
 | Owner verification script | Print progress and final log path; log exact commands, versions, exit codes, and PASS/FAIL | Visual/editor/Steam interaction |
 
 The trace and owner script are development tools. They must not load the main scene, create saves, initialize Steam, or become release gameplay surfaces.
@@ -288,11 +300,11 @@ This is an informed expectation, not permission to edit every path. Codex may co
 | `src/time/time_authority_service.gd` | Add | Foreground accounting, planning, and commit validation |
 | `tests/support/fake_monotonic_clock.gd` | Add | Test-controlled monotonic source |
 | `tests/support/fake_trusted_time_provider.gd` | Add | Test-controlled trusted/unavailable samples |
-| `tests/unit/simulation/test_fixed_point.gd` | Add | Scale, residual, chunking, bounds, and overflow tests |
+| `tests/unit/simulation/test_fixed_point.gd` | Add | Scale, unscaled discrete counts, explicit-period accumulation, 8-hour and 24-hour rare-rate progress, extraction, chunking, bounds, and overflow tests |
 | `tests/unit/time/test_monotonic_elapsed_tracker.gd` | Add | First/repeated/forward/backward monotonic behavior |
 | `tests/unit/time/test_time_authority_service.gd` | Add | Anchor, unavailable, reconnect, cap, repeat, mismatch, and stale-plan tests |
 | `tests/unit/infrastructure/test_time_source_ownership.gd` | Add | Reject forbidden wall-clock/file/Steam calls in authoritative source |
-| `tools/test/traces/m01_time_foundation_trace.gd` | Add | Deterministic headless developer demonstration |
+| `tools/test/traces/m01_time_foundation_trace.gd` | Add | Deterministic trusted-time and 24-hour acquisition arithmetic demonstration |
 | `tools/test/owner/run_m01_owner_verification.ps1` | Add | One-command Windows verification and UTF-8 log |
 | `.gitignore` | Inspect; modify only if required | Ensure generated owner logs remain ignored |
 | `README.md` | Modify if useful | Add M01 owner command and trace reference |
@@ -300,7 +312,7 @@ This is an informed expectation, not permission to edit every path. Codex may co
 | `docs/codex/DATA_AND_CONTENT_CONTRACTS.md` | Modify | Record exact scale, statuses, fields, diagnostics, and bounds |
 | `docs/codex/IMPLEMENTATION_RULES.md` | Modify | Record realized fixed-point and time APIs where durable |
 | `docs/codex/TESTING_AND_VALIDATION.md` | Modify | Record exact M01 test and owner-script commands |
-| `docs/codex/DECISIONS.md` | Modify | Mark accepted `DEC-0026` and record realized bounds if implementation preserves the approved decision |
+| `docs/codex/DECISIONS.md` | Modify | Preserve accepted `DEC-0026` and `DEC-0027`; record narrower realized numeric bounds only when implementation evidence requires it |
 | `docs/codex/MILESTONES.md` | Modify | Record truthful M01 implementation and verification state |
 | `docs/codex/OWNER_VERIFICATION_WORKFLOW.md` | No change expected | Existing generic package applies |
 
@@ -313,7 +325,7 @@ Each criterion is binary and observable.
 | ID | Pass condition | Verification evidence | Merge gate? |
 |---|---|---|---:|
 | `AC-01` | `FixedPoint.SCALE` is exactly `1_000_000`, documented once as the project scale, and no M01 subsystem defines another scale. | Fixed-point unit test, source search, `DEC-0026`, contract review | Yes |
-| `AC-02` | Whole/subunit conversion, ratio conversion, multiplier application, and millisecond rate accumulation return exact expected values and residuals for documented inputs. | `test_fixed_point.gd` | Yes |
+| `AC-02` | Whole/subunit conversion, ratio conversion, multiplier application, explicit-period millisecond accumulation, and whole-unit extraction return exact expected values and carries for documented inputs. | `test_fixed_point.gd` | Yes |
 | `AC-03` | Equivalent elapsed chunks produce identical fixed-point output and final residual. | Parameterized chunking tests including one-shot, 60 chunks, and 3600 chunks | Yes |
 | `AC-04` | Naïve-intermediate-overflow cases whose final result fits succeed; invalid and true-overflow cases return stable failures without state mutation or wraparound. | Boundary tests at signed-64 limits | Yes |
 | `AC-05` | Minimal `GameState` and `TimeAuthorityState` are scene-tree independent, validate non-negative units, and preserve their ownership separation. | Direct construction tests and code review | Yes |
@@ -333,7 +345,10 @@ Each criterion is binary and observable.
 | `AC-19` | Owner-run Windows full suite, focused M01 tests, source-ownership check, and trace pass for the reported PR head. | Explicit owner result and uploaded generated log | Yes |
 | `AC-20` | All changed non-trivial GDScript and PowerShell follows the repository junior-reviewer documentation rules. | Review against `AGENTS.md` and `IMPLEMENTATION_RULES.md` | Yes |
 | `AC-21` | Maintained architecture, data, implementation, testing, decision, milestone, and applicable README documents are synchronized. | Changed-file review and link validation | Yes |
-| `AC-22` | No save file, schema, JSON codec, Steam initialization, gameplay production, new dependency, local absolute path, secret, committed owner log, or unrelated refactor is introduced. | Changed-file review, source search, `git diff --check`, `git status --short` | Yes |
+| `AC-22` | No save file, schema, JSON codec, Steam initialization, gameplay production, Threshold-channel implementation, acquisition UI, new dependency, local absolute path, secret, committed owner log, or unrelated refactor is introduced. | Changed-file review, source search, `git diff --check`, `git status --short` | Yes |
+| `AC-23` | Discrete inventory/backlog examples remain unscaled integers while fractional calculations use `SCALE`; no test or runtime contract stores `1 Soul` as `1_000_000` inventory units. | Fixed-point/discrete-contract tests and source review | Yes |
+| `AC-24` | The one-item-per-24-hours case yields exactly 25.0% progress after six hours, one whole unit after twenty-four hours, and the same whole/progress/carry state under equivalent chunking. | `test_fixed_point.gd` and M01 trace output | Yes |
+| `AC-25` | The one-item-per-8-hours case yields exactly 25.0% progress after two hours, one whole unit after eight hours, and the same whole/progress/carry state under equivalent chunking. | `test_fixed_point.gd` and M01 trace output | Yes |
 
 Completion rules:
 
@@ -354,11 +369,11 @@ Run in this order:
 | Order | Command | Purpose | Required result |
 |---:|---|---|---|
 | 1 | `git status --short` | Confirm starting worktree | Empty before task edits |
-| 2 | `./tools/test/run_gut.sh -- -gtest=res://tests/unit/simulation/test_fixed_point.gd` | Fixed-point scale, arithmetic, residuals, chunking, and overflow | Exit `0` |
+| 2 | `./tools/test/run_gut.sh -- -gtest=res://tests/unit/simulation/test_fixed_point.gd` | Scale, unscaled discrete contract, explicit-period accumulation, 8-hour and 24-hour rare-rate progress, extraction, chunking, and overflow | Exit `0` |
 | 3 | `./tools/test/run_gut.sh -- -gtest=res://tests/unit/time/test_monotonic_elapsed_tracker.gd` | Monotonic cursor/delta behavior | Exit `0` |
 | 4 | `./tools/test/run_gut.sh -- -gtest=res://tests/unit/time/test_time_authority_service.gd` | Anchor, unavailable, reconnect, cap, repeat, mismatch, and plan/commit behavior | Exit `0` |
 | 5 | `./tools/test/run_gut.sh -- -gtest=res://tests/unit/infrastructure/test_time_source_ownership.gd` | Forbidden clock/file/Steam source ownership | Exit `0` |
-| 6 | Use the wrapper-resolved Godot 4.7 executable with `--headless --path . -s res://tools/test/traces/m01_time_foundation_trace.gd` | Developer-visible exact trace | Prints 10 foreground minutes, 50 uncredited minutes, repeated zero; exit `0` |
+| 6 | Use the wrapper-resolved Godot 4.7 executable with `--headless --path . -s res://tools/test/traces/m01_time_foundation_trace.gd` | Developer-visible exact trace | Prints 10 foreground minutes, 50 uncredited minutes, repeated zero, six-hour `250_000` progress, and one whole unit at 24 hours; exit `0` |
 | 7 | `./tools/test/run_gut.sh` | Full regression suite | Exit `0`; no new parser/resource errors |
 | 8 | `git diff --check` | Patch sanity | Exit `0` |
 | 9 | Search project-owned `src/` for forbidden wall-clock, timezone, file-timestamp, registry, Steam, and unapproved network-time APIs | Defense in depth | Only the approved monotonic call is present in its adapter |
@@ -417,7 +432,7 @@ The owner script must:
 5. record the evidence header required by the workflow;
 6. run the canonical full Windows wrapper;
 7. run the focused fixed-point, monotonic, time-authority, and source-ownership tests;
-8. run the headless deterministic trace;
+8. run the headless deterministic trace, including the trusted-time and 24-hour acquisition arithmetic examples;
 9. record every command, meaningful output, and exit code;
 10. fail nonzero if any required step fails;
 11. verify that no temporary test, UID companion, save, or generated project file remains;
@@ -461,8 +476,8 @@ Do not write `user://` files. Do not call JSON. Do not freeze schema key spellin
 | `docs/codex/IMPLEMENTATION_RULES.md` | Record the realized utility/service API conventions only where durable |
 | `docs/codex/TESTING_AND_VALIDATION.md` | Add exact M01 focused tests, trace, owner script, and log evidence requirements |
 | `docs/codex/OWNER_VERIFICATION_WORKFLOW.md` | No change expected unless implementation exposes a generic workflow defect |
-| `docs/codex/DECISIONS.md` | Mark `DEC-0026` Accepted and record any narrower realized bounds without changing the approved scale |
-| Design source-of-truth files | No change expected |
+| `docs/codex/DECISIONS.md` | Preserve accepted `DEC-0026` and `DEC-0027`; record any narrower realized bounds without changing the approved scale or ownership rule |
+| `docs/design/IDLE_FORK_SOURCE_OF_TRUTH.md` | Preserve approved `IF-REQ-18` and long-horizon source-progress direction; no further change expected unless implementation exposes a contradiction |
 | `README.md` | Add concise M01 owner-verification invocation or link if it improves discoverability |
 | `AGENTS.md` | No change expected |
 
@@ -473,8 +488,8 @@ Do not mark M01 `Merged` or verification `Passed` before those facts are true. T
 Stop before implementing or expanding the affected part when any of the following occurs:
 
 1. M00 is not merged/passed or the canonical wrappers no longer work.
-2. `DEC-0026` is not Accepted.
-3. The exact scale or non-negative flow contract conflicts with an accepted requirement.
+2. `DEC-0026` or `DEC-0027` is not Accepted.
+3. The exact scale, discrete-count boundary, long-horizon arithmetic support, or non-negative flow contract conflicts with an accepted requirement.
 4. Correct checked arithmetic would require a new third-party dependency, native extension, arbitrary-precision library, or engine change.
 5. The required final-fit/intermediate-overflow case cannot be implemented honestly with documented 64-bit operations.
 6. A required method would need floating-point authoritative state or a second subsystem scale.
@@ -484,7 +499,7 @@ Stop before implementing or expanding the affected part when any of the followin
 10. The task would require Steam initialization or a production provider, which belongs to M06.
 11. Tests expose a pre-existing harness failure that cannot be isolated safely within M01.
 12. The required result cannot fit one reviewable foundation pull request without implementing later gameplay systems.
-13. A new design/architecture decision beyond accepted `DEC-0026` is required.
+13. A new design/architecture decision beyond accepted `DEC-0026` and `DEC-0027` is required.
 
 Do not stop for ordinary local implementation choices already bounded by the prompt. Make the smallest clear choice, document it, and report it under assumptions.
 
@@ -495,8 +510,9 @@ Owner-run Windows checks being unavailable to Codex are not themselves a stop co
 The completed task must provide:
 
 - minimal typed `GameState` and separate `TimeAuthorityState`;
-- centralized `FixedPoint` implementation using scale `1_000_000`;
-- checked arithmetic and explicit residual results;
+- centralized `FixedPoint` implementation using scale `1_000_000` only for fractional state;
+- checked explicit-period arithmetic, whole-unit extraction, and explicit carry results;
+- one-item-per-eight-hours and one-item-per-twenty-four-hours regressions proving partial progress and exact completion;
 - monotonic clock contract, production adapter, and fake;
 - trusted-time provider/sample contracts and fake;
 - reconciliation plan/result/commit seam;
@@ -525,7 +541,7 @@ List every added, modified, renamed, or deleted file and its purpose. Note any e
 
 Report separately:
 
-- Codex Cloud/Linux fixed-point, monotonic, time-authority, source-ownership, trace, and full-suite commands with versions, test counts, exit codes, and results;
+- Codex Cloud/Linux fixed-point, explicit-period/24-hour acquisition, monotonic, time-authority, source-ownership, trace, and full-suite commands with versions, test counts, exit codes, and results;
 - high-value arithmetic, true-overflow, unavailable, backward, mismatch, not-ahead, cap, stale-plan, repeat, and cleanup checks;
 - owner script path and generated-log contract;
 - owner-run Windows package as `Pending owner verification`, `Passed`, or `Failed` based only on explicit owner evidence;

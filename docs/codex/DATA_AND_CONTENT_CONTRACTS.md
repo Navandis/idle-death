@@ -3,8 +3,8 @@
 **Document role:** Canonical prototype data, runtime-state, ID, and serialization contracts  
 **Repository path:** `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`  
 **Document status:** Approved architecture contract  
-**Revision:** 3  
-**Last updated:** 2026-07-12
+**Revision:** 4  
+**Last updated:** 2026-07-14
 
 ## 1. Purpose
 
@@ -320,16 +320,18 @@ A Threshold definition does not contain current backlog, active Form, or discove
 
 | Field | Type | Rule |
 |---|---|---|
-| `channel_id` | `StringName` | Unique within Threshold; stable in saves when carry is persisted |
+| `channel_id` | `StringName` | Unique within Threshold; stable in saves when acquisition progress or carry is persisted |
 | `output_item_id` | `StringName` | Resource/Soul/Store produced |
 | `channel_kind` | enum | Essence, Form Soul, Calling Soul, material, or later Denizen |
-| `base_rate` | `float` | Non-negative configurable authored value; normalized by the registry |
+| `base_rate_per_period` | `float` | Non-negative authored amount for the declared period; normalized once by the registry |
+| `rate_period_msec` | `int` | Positive explicit period; avoids forcing rare rates into integer subunits per second |
 | `initial_discovery_state` | enum | Unknown, Identified, or Charted |
 | `identified_frequency_label` | `String` | Prototype qualitative label |
+| `show_acquisition_progress` | `bool` | True only when a known long-horizon whole-unit source benefits from a Threshold-level progress bar |
 | `settled_multiplier` | `float` | Essential channels remain above zero; normalized by the registry |
 | `required_for_progression` | `bool` | Enables validation against accidental removal |
 
-Parallel channels do not subtract from one another unless a future approved rule explicitly defines that coupling.
+Parallel channels do not subtract from one another unless a future approved rule explicitly defines that coupling. Runtime normalization may choose an equivalent internal rate shape, but it must preserve the authored period semantics and `DEC-0026` precision.
 
 ### 7.6 ItemDefinition
 
@@ -584,6 +586,7 @@ No Art state is required beyond optional locked placeholders.
 | `persistent_returns_total` | `int` | Returns from authoritative Reapings only; excludes opening four |
 | `familiarity_subunits` | `int` | Non-negative central fixed-point units; provisional system |
 | `channel_discovery` | channel-ID-to-`DiscoveryChannelState` | Discovery state and progress |
+| `channel_acquisition` | channel-ID-to-`ThresholdAcquisitionState` | Durable progress toward whole discrete outputs for channels that use accumulation |
 
 The opening action modifies `remaining_backlog` and story state but does not modify `persistent_returns_total`.
 
@@ -596,9 +599,30 @@ The opening action modifies `remaining_backlog` and story state but does not mod
 | `discovery_rate_residual` | `int` | Normalized remainder needed to continue discovery progress exactly across chunking and save/load |
 | `total_produced` | `int` | Optional diagnostic/history counter if required by reports |
 
-The inventory total exists independently. Identification does not grant historical output again. Production residuals belong to the active Reaping flow that produces the item, not to this disclosure record.
+The inventory total exists independently. Identification does not grant historical output again. Discovery progress and acquisition progress are separate state: learning what a source is does not reset or award its accumulated output.
 
-### 9.8 ReapingState
+### 9.8 ThresholdAcquisitionState
+
+A Threshold stores one acquisition record for each discrete output channel that can accumulate partial progress toward a whole item.
+
+| Field | Type | Rule |
+|---|---|---|
+| `progress_subunits` | `int` | `0 <= value < FixedPoint.SCALE`; durable progress toward the next whole unit |
+| `rate_carry` | typed integer carry/result state | Finer-than-subunit arithmetic remainder with an explicit denominator and one owner; exact shape is finalized by the realized M01/M04 API |
+| `total_banked_units` | `int` | Optional non-negative diagnostic/report counter; inventory remains the ownership source of truth |
+
+Rules:
+
+- the record is keyed by stable Threshold ID and output channel/source ID;
+- Form, Writ, Retinue, or assignment revisions do not clear it;
+- the old setup is resolved to the command timestamp before the future rate changes;
+- inactive Thresholds retain but do not advance it;
+- Overdue-to-Settled transition retains it when the source remains available;
+- crossing one or more whole-unit boundaries banks those whole units immediately and retains only the remainder;
+- the same progress/carry cannot also be stored in `ReapingState`;
+- Unknown disclosure hides the progress but does not stop or erase it.
+
+### 9.9 ReapingState
 
 | Field | Type | Rule |
 |---|---|---|
@@ -609,7 +633,7 @@ The inventory total exists independently. Identification does not grant historic
 | `assignment_revision` | `int` | Increments after each committed configuration change |
 | `cycle_phase_msec` | `int` | Presentation/runtime continuity; normalized integer milliseconds |
 | `completed_cycle_count` | `int` | Optional persisted diagnostic/trigger count where required |
-| `flow_residuals` | flow-ID-to-residual data | The sole persisted remainder owner for this Reaping's backlog, Essence, Mastery, channel output, and support-consumption flows; keys are stable and validated |
+| `flow_residuals` | flow-ID-to-residual data | Sole owner for backlog, Essence, Mastery, cycle, and support flows that are operation-scoped; durable Threshold-source acquisition progress is excluded and belongs to `ThresholdAcquisitionState` |
 | `support_buffer_amounts` | item-ID-to-int | Per-Reaping allocated/support amount where the Writ uses a buffer |
 | `active_fallback_id` | `StringName` | Empty in the prototype unless an approved fallback is active |
 | `support_state` | enum | Full, low, depleted/reduced as implemented |
@@ -618,7 +642,7 @@ The inventory total exists independently. Identification does not grant historic
 
 There is one global trusted-time accounting record in the save envelope and one `simulation_time_msec` in `GameState`. Per-Reaping wall-clock or trusted-time cursors must not independently drift.
 
-### 9.9 HallState
+### 9.10 HallState
 
 | Field | Type | Rule |
 |---|---|---|
@@ -629,7 +653,7 @@ There is one global trusted-time accounting record in the save envelope and one 
 | `production_phase_msec` | `int` | Runtime continuity if cycle-based |
 | `flow_residuals` | flow-ID-to-residual data | The sole persisted remainder owner for Hall input, output, and cycle/rate flows |
 
-### 9.10 ProgressionState
+### 9.11 ProgressionState
 
 | Field | Type | Rule |
 |---|---|---|
@@ -642,7 +666,7 @@ There is one global trusted-time accounting record in the save envelope and one 
 
 A milestone completion flag and its reward-completion flag are distinct enough to recover safely if a future migration or interrupted transaction requires diagnosis. The atomic snapshot normally commits them together.
 
-### 9.11 StoryState
+### 9.12 StoryState
 
 Minimum fields as required by milestones:
 
@@ -656,7 +680,7 @@ Minimum fields as required by milestones:
 - Sanctum/window reveal state;
 - active narrative sequence ID and checkpoint when resume is required.
 
-### 9.12 TutorialState
+### 9.13 TutorialState
 
 | Field | Type | Rule |
 |---|---|---|
@@ -669,7 +693,7 @@ Minimum fields as required by milestones:
 
 Do not duplicate resource totals, Form awakening, Hall activity, or milestone completion inside tutorial state.
 
-### 9.13 ReportAccumulatorState
+### 9.14 ReportAccumulatorState
 
 | Field | Type | Rule |
 |---|---|---|
@@ -688,7 +712,7 @@ Do not duplicate resource totals, Form awakening, Hall activity, or milestone co
 Clearing or archiving this state never mutates inventory, backlog, Mastery, milestones, or Hall output.
 
 
-### 9.14 ReportSnapshot
+### 9.15 ReportSnapshot
 
 A report snapshot is created when the current accumulator is opened, archived, or rolled over by an approved report policy.
 
@@ -773,29 +797,35 @@ When trusted time is unavailable, closed-session credit is deferred rather than 
 
 ### 12.2 Discrete quantities
 
-Use non-negative integers for:
+Use non-negative unscaled integers for:
 
-- owned and reserved Souls;
-- inventory resources and Stores after whole units are extracted;
+- owned and reserved whole Souls;
+- whole catalysts, resources, materials, and Stores after extraction;
 - remaining backlog;
 - persistent-return counters;
 - command tether capacity;
 - completed-cycle counts when persisted;
 - milestone, guarantee, resonance, and unlock membership.
 
-Do not represent a whole Soldier Soul, backlog soul, or Ration as a floating-point value.
+Do not represent a whole Soldier Soul, rare catalyst, backlog soul, or Ration as a floating-point or scaled inventory count. The fixed-point scale does not multiply these counts; it is used only for meaningful fractional state.
 
 ### 12.3 Authoritative fractional progress
 
-Authoritative fractional production, Mastery, discovery progress, familiarity, and rate carries use the central fixed-point utility defined by the architecture.
+`DEC-0026` defines `FixedPoint.SCALE = 1_000_000` subunits per whole unit.
 
-Runtime representation uses 64-bit integer subunits:
+Authoritative fractional production, Mastery, discovery progress, familiarity, support consumption, forecast calculations, acquisition progress, and rate carries use the central fixed-point utility defined by the architecture.
+
+Runtime representation uses signed 64-bit integer values with non-negative flow contracts where applicable:
 
 - one project-wide scale constant;
 - one conversion path from validated content numbers to fixed-point values;
-- normalized remainders in the range `0 <= remainder < scale`;
+- an explicit positive rate period rather than an assumed integer subunit-per-second rate;
+- normalized whole-progress remainders in `0 <= progress_subunits < SCALE` after extraction;
+- explicitly typed arithmetic carries whose range is defined by their denominator;
 - checked arithmetic for the supported prototype horizon;
 - exact extraction of whole units before inventory mutation.
+
+A canonical long-horizon example is one whole item per `86_400_000` milliseconds. From zero progress, six hours produces exactly `250_000` acquisition subunits; twenty-four hours banks one whole unit. Equivalent chunking must produce the same whole count, progress, and carry.
 
 Content Resources may expose editor-friendly finite decimal numbers. `ContentRegistry` validates and normalizes them into the fixed-point representation once. Simulation code does not repeatedly convert or independently round authored floats.
 
@@ -804,13 +834,15 @@ Content Resources may expose editor-friendly finite decimal numbers. `ContentReg
 One fixed-point utility owns:
 
 - conversion from authored decimal values;
-- multiply/divide behavior;
+- multiply/divide and per-period accumulation behavior;
 - whole-unit extraction;
 - remainder normalization;
 - overflow checks;
 - any documented half-up, floor, or truncation rule.
 
-Presentation may format derived values with decimals, abbreviations, or uncertainty ranges. Presentation rounding never writes back to authoritative state.
+Presentation may format derived values with decimals, abbreviations, uncertainty ranges, or acquisition percentages. Presentation rounding never writes back to authoritative state.
+
+For an Identified long-horizon whole-unit source, derive a one-decimal progress percentage by flooring to tenths of a percent. While `progress_subunits < SCALE`, the display must remain at or below `99.9%`; `100.0%` is shown only as part of the actual whole-unit completion/banking presentation. Do not display fractional Souls, catalysts, or other whole inventory objects.
 
 ### 12.5 JSON integer wire representation
 

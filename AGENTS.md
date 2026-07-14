@@ -198,6 +198,7 @@ Authoritative game state owns gameplay facts such as:
 - tutorial state;
 - guarantee-completion flags;
 - report accumulators;
+- Threshold-channel acquisition progress and the exact arithmetic carry needed to resume long-horizon whole-output production;
 - timestamps needed for resolution.
 
 Do not make a UI node, animation, open screen, dialogue box, or temporary scene-tree object the sole owner of authoritative state.
@@ -272,6 +273,7 @@ Treat the following as protected architecture rules:
 - Segment at state boundaries such as support depletion, milestone grants, discovery changes, Hall targets, backlog zero, and fallback transitions.
 - Parallel output channels resolve independently unless an approved content rule explicitly links them.
 - Hidden output is real output and is banked before identification.
+- Deterministic partial progress toward a rare whole output is authoritative state. It belongs to the stable Threshold-and-channel source, survives Form, Writ, Retinue, and Reaping reconfiguration, freezes rather than resets while inactive, and resumes when that source operates again.
 - Ordinary support depletion degrades affected effects or premium channels. It does not stop valid base backlog, Essence, or Mastery production.
 - Reaching zero backlog automatically changes an active Standing Threshold to renewable Settled Passage behavior.
 - Essential sources remain accessible after settlement at the applicable renewable rate.
@@ -299,6 +301,7 @@ Persist all state required to reconstruct gameplay, including:
 - tutorial state, skip state, and completed guarantees;
 - unlock and milestone flags;
 - report accumulators;
+- Threshold-channel acquisition progress and the exact arithmetic carry needed to resume long-horizon whole-output production;
 - the authoritative simulation timeline and trusted-time cursor state;
 - schema version and transaction state where applicable.
 
@@ -324,6 +327,8 @@ Forms, Traits, Thresholds, channels, Writs, Retinues, Halls, Recollections, mile
 Rules:
 
 - Treat provisional rates, costs, coefficients, durations, backlog sizes, support values, and milestone rewards as configurable data.
+- Keep inherently discrete inventory and campaign counts as unscaled integers. Use the centralized fixed-point scale only for meaningful fractional rates, multipliers, progress, and arithmetic carries.
+- Define deterministic rare-output rates with an explicit period or cycle increment; do not assume every source can be rounded safely to integer subunits per second.
 - Do not scatter canonical IDs as unrelated string literals.
 - Separate stable canonical IDs from player-facing display names.
 - Validate missing IDs, duplicate IDs, invalid references, and incompatible assignments clearly.
@@ -447,6 +452,7 @@ Do not leave large blocks of commented-out code. Use version control instead.
 - Backlog, rate, settlement estimate, output channels, support condition, and discovery state are separate concepts and should not be represented as if they were interchangeable.
 - Forecast changes caused by a Form, Retinue, Hall, or Recollection should show an understandable before-and-after result when required by the milestone.
 - Unknown, Identified, and Charted states must remain distinguishable.
+- When an Identified long-horizon whole-output channel exposes acquisition progress, show it at Threshold level as a progress bar with a percentage floored to at most one decimal place and capped at `99.9%` before completion. Do not display fractional Souls, catalysts, or other whole inventory items, and do not show `100.0%` before the whole unit is banked.
 - Presentation may smooth or animate displayed numbers, but authoritative values must remain available immediately.
 
 ## Testing and validation
@@ -479,7 +485,8 @@ Simulation and persistence changes normally require tests for applicable cases s
 - save serialization and round trip;
 - interrupted offline resolution;
 - multiple concurrent Reapings;
-- report clearing without inventory loss.
+- report clearing without inventory loss;
+- long-horizon whole-output progress surviving reconfiguration, inactivity, save/load, and equivalent elapsed-time chunking.
 
 Use test fixtures with explicit values and readable setup. Explain unusual fixture state so a junior reviewer can understand why it exists.
 

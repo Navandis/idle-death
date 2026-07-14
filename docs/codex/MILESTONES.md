@@ -3,8 +3,8 @@
 **Document role:** Approved implementation sequence and acceptance map for the 0–90 minute prototype  
 **Repository path:** `docs/codex/MILESTONES.md`  
 **Document status:** Phase 7 approved  
-**Milestone-map revision:** 6  
-**Last updated:** 2026-07-13  
+**Milestone-map revision:** 7  
+**Last updated:** 2026-07-14  
 **Primary context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md), [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md), [Architecture](ARCHITECTURE.md), [Data contracts](DATA_AND_CONTENT_CONTRACTS.md), [Testing](TESTING_AND_VALIDATION.md), [Owner verification](OWNER_VERIFICATION_WORKFLOW.md), and [Decisions](DECISIONS.md)
 
 ## 1. Purpose and authority
@@ -60,7 +60,7 @@ A milestone may be split after implementation begins only when the split preserv
 |---|---|---|
 | `GATE-GUT` | M00 merge | Verify the committed GUT 9.7.1 dependency, retained license, `.gutconfig.json`, required Linux and Windows wrappers, Godot 4.7 execution, and real failure exit codes. |
 | `GATE-WINDOWS-HARNESS` | M00 merge | The owner runs `tools/test/run_gut.ps1` on the separate Windows Godot machine and records the result; Codex Cloud cannot satisfy this gate. |
-| `GATE-FIXED-POINT` | M01 merge | Approve and implement `DEC-0026`: one centralized scale of `1_000_000`, checked 64-bit arithmetic, canonical residuals, documented bounds, and cross-platform tests; do not let subsystems choose different scales. |
+| `GATE-FIXED-POINT` | M01 merge | Implement accepted `DEC-0026`: one centralized scale of `1_000_000` for fractional state, unscaled discrete counts, explicit-period accumulation, checked 64-bit arithmetic, canonical carries, documented bounds, and cross-platform tests including one-item-per-8-hours and one-item-per-24-hours cases. |
 | `GATE-SAVE-SCHEMA` | M02 merge | Freeze schema-version-1 key spelling and representative fixtures before gameplay state depends on it. |
 | `GATE-STEAM-TIME` | M06 prompt/implementation | Satisfied for prompt drafting by `DEC-0024`: use pinned GodotSteam 4.20 and development App ID `480`. M06 must still verify license footprint, wrapper API, explicit initialization, and live Windows behavior. |
 | `GATE-PRODUCTION-OFFLINE` | M16 merge | Fake-provider automation plus the owner-run Windows/GodotSteam connected, unavailable, reconnect, clock-change, and repeated-load checks must pass. |
@@ -76,7 +76,7 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 | ID | Milestone | Definition | Prompt | Implementation | Verification |
 |---|---|---|---|---|---|
 | M00 | Repository, Godot, GUT, and Codex Cloud harness | Approved | Approved | Merged | Passed |
-| M01 | Deterministic numeric and time-authority foundation | Approved | Drafted | Not started | — |
+| M01 | Deterministic numeric and time-authority foundation | Approved | Approved | Not started | — |
 | M02 | Versioned save codec and atomic storage | Approved | Not drafted | Not started | — |
 | M03 | Content catalog, canonical IDs, and configurable prototype data | Approved | Not drafted | Not started | — |
 | M04 | Persistent Reaping simulation vertical slice | Approved | Not drafted | Not started | — |
@@ -281,7 +281,7 @@ No gameplay save format is introduced. Test fixtures must not write persistent u
 ### M01 — Deterministic numeric and time-authority foundation
 
 **Definition status:** Approved  
-**Prompt status:** Drafted  
+**Prompt status:** Approved  
 **Implementation status:** Not started  
 **Recommended Codex task size:** Medium; one pure-foundation pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M01-deterministic-time-foundation.md`
@@ -301,7 +301,7 @@ A developer can advance a minimal `GameState` with explicit elapsed milliseconds
 #### Included scope
 
 - Create the minimal scene-independent `GameState` timeline required by later systems.
-- Implement the proposed `DEC-0026` scale of `1_000_000` subunits per whole unit, with checked 64-bit arithmetic and canonical residual semantics. Prompt approval is required before execution.
+- Implement accepted `DEC-0026`: `1_000_000` subunits per whole fractional unit, unscaled discrete counts, explicit-period rate accumulation, checked 64-bit arithmetic, whole-unit extraction, and canonical residual semantics.
 - Define `MonotonicClock`, `TrustedTimeProvider`, `TrustedTimeSample`, and `TimeAuthorityState` contracts.
 - Implement trusted-gap accounting: first anchor, unavailable state, pending reconciliation, subtraction of foreground time already credited since the anchor, caps, diagnostics, and backward-sample rejection.
 - Provide fake monotonic and trusted-time sources for tests.
@@ -328,11 +328,12 @@ The exact file list remains subject to repository inspection. Expected areas are
 
 #### Data and content required
 
-- Proposed `FixedPoint.SCALE = 1_000_000` under `DEC-0026`, plus named trusted-time statuses and diagnostic codes. These are architecture constants, not balance values.
+- Accepted `FixedPoint.SCALE = 1_000_000` under `DEC-0026`, explicit rate periods, plus named trusted-time statuses and diagnostic codes. These are architecture constants, not balance values.
 
 #### Acceptance criteria
 
-- Fixed-point operations and residuals are exact for documented prototype bounds and fail clearly on unsupported overflow.
+- Fixed-point operations, explicit-period accumulation, whole-unit extraction, and residuals are exact for documented prototype bounds and fail clearly on unsupported overflow.
+- Whole inventory/backlog counts remain unscaled integers, while one-item-per-8-hours and one-item-per-24-hours fractional progress reaches exact quarter-progress and one whole unit at the full period.
 - Foreground elapsed time is derived only from the injected monotonic source.
 - No authoritative path reads device date, time, timezone, calendar, registry, or file timestamps.
 - The first trusted sample creates an anchor without retroactive gains.
@@ -346,6 +347,7 @@ The exact file list remains subject to repository inspection. Expected areas are
 - Trusted-time unavailable, reconnect, rollback, cap, and repeated-sample tests.
 - Source-ownership check or review test preventing authoritative local-clock calls.
 - Chunking-invariance tests for the accounting service.
+- Long-horizon rate tests: one whole item per eight hours and per twenty-four hours, exact quarter-progress, whole-unit extraction, and equivalent chunks.
 
 #### Manual verification
 
@@ -505,6 +507,7 @@ The Godot editor loads one explicit prototype catalog containing the approved Fo
 - Implement `ContentRegistry` normalization, canonical ordering, ID-prefix checks, reference validation, and immutable runtime lookup tables.
 - Implement only the finite modifier and progression-effect operations already required by the prototype.
 - Author the established prototype IDs and centralized provisional values from `DATA_AND_CONTENT_CONTRACTS.md`.
+- Define output-channel rate periods and the content flags needed for Threshold-owned long-horizon acquisition progress under `DEC-0027`, without authoring speculative rare content.
 - Assign and persist a content revision used by save validation.
 - Provide minimal fixture catalogs for focused tests.
 
@@ -527,6 +530,7 @@ The exact file list remains subject to repository inspection. Expected areas are
 #### Data and content required
 
 - All canonical IDs in the current contract, including `RECIPE_...`, `MS_...`, `GUA_...`, and `RESONANCE_...`; Man-at-Arms and Scribe are the only functional Form definitions.
+- Output-channel definitions include an explicit rate period and optional progress-display metadata; no new player-facing rare item is required.
 
 #### Acceptance criteria
 
@@ -535,6 +539,7 @@ The exact file list remains subject to repository inspection. Expected areas are
 - Provisional rates, costs, coefficients, durations, and floors exist in content data rather than UI or tutorial code.
 - Man-at-Arms and Scribe behavior can be distinguished from data without branching on display name.
 - A save records and validates the content revision without serializing immutable definition data.
+- Channel validation rejects zero/negative periods and invalid long-horizon progress-display combinations.
 
 #### Automated verification
 
@@ -602,6 +607,7 @@ Through tests and a developer harness, one Gloamwood Reaping led by Man-at-Arms 
 - Implement the global segmented `SimulationEngine` for one active Reaping with independent backlog, Essence, Mastery, and configured prototype channels.
 - Implement live, supplied-duration offline, forecast-clone, and debug-advance modes through the same resolver.
 - Implement stable boundary ordering, fixed-point residuals, zero-duration loop protection, and aggregate report deltas.
+- Implement Threshold-owned accumulated progress for a deterministic whole-unit test channel under `DEC-0027`; assignment changes alter future rate without resetting prior progress.
 - Extend schema version 1 and save fixtures for the new state.
 
 #### Explicit non-goals
@@ -623,7 +629,7 @@ The exact file list remains subject to repository inspection. Expected areas are
 
 #### Data and content required
 
-- `FORM_MAN_AT_ARMS`, `THR_GLOAMWOOD`, `WRIT_STANDARD`, Corrupted Essence, Mastery, and a small test channel configuration.
+- `FORM_MAN_AT_ARMS`, `THR_GLOAMWOOD`, `WRIT_STANDARD`, Corrupted Essence, Mastery, and a small deterministic test channel configuration, including a one-item-per-24-hours long-horizon fixture.
 
 #### Acceptance criteria
 
@@ -634,6 +640,7 @@ The exact file list remains subject to repository inspection. Expected areas are
 - Opening or clearing a report accumulator is not required to receive output.
 - Save/load preserves operation, residuals, counters, inventory, and report accumulator exactly.
 - No screen, Node path, rendered frame, or clock read is required by domain or simulation tests.
+- Reconfiguring, recalling, redispatching, and settling the test Threshold preserves its long-horizon channel progress and exact carry; whole inventory is banked only at completion.
 
 #### Automated verification
 
@@ -642,6 +649,7 @@ The exact file list remains subject to repository inspection. Expected areas are
 - Independent-channel and report-banking tests.
 - Save round trip with residuals.
 - Stable ordering and zero-time-loop tests.
+- Long-horizon channel progress tests across rate changes, recall/redispatch, settlement, whole-unit extraction, and save round trip.
 
 #### Manual verification
 
@@ -1539,6 +1547,7 @@ Broken Watch produces Provisions before they are known; Scribe identifies the ch
 - Implement Scribe discovery modifier and forecast-uncertainty modifier through shared data-driven evaluation.
 - Implement the configured Scribe and fallback cycle thresholds.
 - Extend Threshold/report/forecast UI with unknown rows, identification event, qualitative frequency, charting progress, and trace attribution.
+- Add the generic known-channel acquisition progress presentation required by `DEC-0027`: Threshold-level bar, one-decimal floored percentage, and no fractional item count. Use a fixture or existing suitable channel; do not invent a new rare content item solely for the UI.
 
 #### Explicit non-goals
 
@@ -1567,6 +1576,7 @@ The exact file list remains subject to repository inspection. Expected areas are
 - Scribe and fallback paths reach the same required state at different configured speeds.
 - Forecast uncertainty/disclosure changes, but the deterministic underlying production result does not.
 - The event attributes accelerated discovery to Scribe when applicable.
+- Unknown acquisition progress remains hidden; once disclosure permits it, the bar survives reassignment/reload, never rounds to `100.0%` before banking, and never displays a fractional Soul/material count.
 - Save/load preserves hidden inventory, discovery progress/state, completed cycles, and queued presentation exactly.
 
 #### Automated verification
@@ -1576,6 +1586,7 @@ The exact file list remains subject to repository inspection. Expected areas are
 - Scribe versus fallback thresholds.
 - Forecast non-mutation and uncertainty trace.
 - Save round trip at each discovery state.
+- Disclosure-aware long-horizon progress bar formatting and persistence.
 
 #### Manual verification
 

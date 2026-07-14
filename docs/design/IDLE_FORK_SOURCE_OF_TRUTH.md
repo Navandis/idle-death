@@ -2,8 +2,8 @@
 
 **Document role:** Maintained implementation context for the idle/incremental branch  
 **Repository path:** `docs/design/IDLE_FORK_SOURCE_OF_TRUTH.md`  
-**Markdown revision:** 2  
-**Last updated:** 2026-07-12  
+**Markdown revision:** 3  
+**Last updated:** 2026-07-14  
 **Primary source:** *Death Idle - Idle & Incremental Fork - Design Direction v0.1* (12 July 2026)  
 **Companion prototype contract:** [PROTOTYPE_0_90_SOURCE_OF_TRUTH.md](PROTOTYPE_0_90_SOURCE_OF_TRUTH.md)
 
@@ -158,6 +158,7 @@ The identifiers below are stable requirement references for later architecture a
 - **IF-REQ-15 - Save integrity:** Active operations, accumulated state, guarantees, unlocks, reservations, Hall state, tutorial state, reports, and timestamps must reconstruct correctly after load.
 - **IF-REQ-16 - Storefront independence:** Authoritative gameplay rules, save-schema meaning, and content must not depend on Steamworks or another storefront SDK. A narrowly approved platform adapter may supply trusted time through the project-owned interface, but domain and simulation code remain storefront-independent.
 - **IF-REQ-17 - Trusted time authority:** Foreground elapsed time uses a monotonic process clock. Closed-session elapsed time is credited only from an approved external trusted-time provider; the player's local wall clock, timezone, calendar, file timestamps, and manually supplied time are never authoritative fallbacks. If trusted time is unavailable, unresolved closed-session progress remains pending rather than being guessed.
+- **IF-REQ-18 - Persistent long-horizon source progress:** Deterministic partial progress toward a rare whole output belongs to its Threshold channel, survives Form/Writ/Retinue reconfiguration and inactivity, banks whole units automatically, and is never represented as fractional inventory.
 
 ## 7. Incremental progression architecture
 
@@ -223,6 +224,20 @@ A backlog is a deterministic campaign objective, not a pre-generated bag of indi
 | Charted | Expected range, relevant modifiers, and known source relationships. |
 
 Scribe-line Forms, Specialist Retinues, Recollections, repeated operation, and later Codex upgrades improve discovery speed or precision. Discovery changes information, not whether production occurred.
+
+### Long-horizon discrete acquisition progress
+
+**Status: Confirmed direction through `DEC-0026` and `DEC-0027`**
+
+Some rare Souls, Denizen Souls, catalysts, or future materials may require many hours of productive Threshold operation before one whole unit is banked. These sources use deterministic accumulated acquisition progress rather than an opaque item timer or fractional inventory.
+
+- Partial acquisition progress is owned by the Threshold's stable output channel/source.
+- Changing or recalling a Form, Writ, or Retinue changes future rate only; progress already earned remains.
+- An inactive Threshold retains progress without advancing it.
+- Settlement does not clear progress when the source remains available in Settled Passage.
+- Whole items are banked automatically when progress crosses the whole-unit boundary; the remainder continues toward the next item.
+- Unknown progress remains hidden. Once Identified, the Threshold may show a progress bar and a percentage truncated to one decimal place. It must not present a fractional Soul or catalyst count.
+- This is resolved by the shared simulation engine and is not a separate timer per item.
 
 ## 9. Persistent Reapings, Writs, support, and offline resolution
 
@@ -460,6 +475,7 @@ Opening, dismissing, clearing, or losing a report accumulator must never remove 
 - Regional maps use separate terrain, points of interest, and state overlays.
 - Backlog, rate, settlement estimate, output categories, support condition, and discovery state remain visually distinct.
 - One central Reaping-cycle indicator is preferred over unrelated bars for every output.
+- A known long-horizon discrete source may use its own Threshold-level acquisition bar because it represents durable progress toward the next whole item, not another Reaping-cycle timer. Show at most one decimal place and never display fractional inventory.
 
 ## 14. Technical and production boundaries
 
@@ -576,3 +592,4 @@ When changing a confirmed rule:
 | Prototype Thresholds and guarantees | Appendices C-E, pages 25-26. |
 | Emergency-to-Standard transition, two prototype resonances, manual Scribe awakening, Godot 4.7/GDScript, and Steam-first distribution | Project-owner decisions recorded during the 2026-07-12 planning session. |
 | External trusted-time authority and prohibition on local wall-clock offline credit | Project-owner clarification recorded during the 2026-07-12 planning session; implemented by `DEC-0021`. |
+| Six-decimal fractional scale, unscaled whole counts, and persistent Threshold-owned long-horizon acquisition progress | Project-owner clarifications approved on 2026-07-14; implemented by `DEC-0026` and `DEC-0027`. |

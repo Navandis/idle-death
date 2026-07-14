@@ -3,8 +3,8 @@
 **Document role:** Durable record of approved and proposed design and architecture decisions  
 **Repository path:** `docs/codex/DECISIONS.md`  
 **Document status:** Approved architecture and active decision record  
-**Revision:** 5  
-**Last updated:** 2026-07-13
+**Revision:** 6  
+**Last updated:** 2026-07-14
 
 ## 1. How to use this file
 
@@ -55,7 +55,8 @@ Rules:
 | `DEC-0023` | Required Linux and Windows test wrappers with split execution responsibility | Accepted | 2026-07-12 |
 | `DEC-0024` | GodotSteam 4.20 and project-setting App ID 480 are the approved prototype bridge | Accepted | 2026-07-12 |
 | `DEC-0025` | Milestone-specific owner verification packages and generated logs | Accepted | 2026-07-13 |
-| `DEC-0026` | Six-decimal fixed-point scale and checked residual arithmetic | Proposed | 2026-07-13 |
+| `DEC-0026` | Six-decimal fixed-point scale, unscaled discrete counts, and checked period accumulation | Accepted | 2026-07-14 |
+| `DEC-0027` | Threshold-owned long-horizon acquisition progress survives Reaping reconfiguration | Accepted | 2026-07-14 |
 
 ---
 
@@ -970,52 +971,56 @@ The canonical format and path rules are maintained in `docs/codex/OWNER_VERIFICA
 ---
 
 
-## `DEC-0026` — Six-decimal fixed-point scale and checked residual arithmetic
+## `DEC-0026` — Six-decimal fixed-point scale, unscaled discrete counts, and checked period accumulation
 
-**Status:** Proposed  
-**Date:** 2026-07-13  
+**Status:** Accepted  
+**Date:** 2026-07-14  
 **Decision type:** Numeric representation  
 **Refines:** `DEC-0010`
 
 ### Context
 
-M01 must choose one exact fixed-point scale before production rates, Mastery, discovery, support, forecasts, and save residuals depend on it. The scale needs enough precision for fractional rates and coefficients while remaining understandable, testable, and safe in Godot's signed 64-bit integer model. Ordinary floating-point accumulation and per-subsystem scales would weaken chunking equivalence and save reproducibility.
+M01 must choose one exact fixed-point scale before production rates, Mastery, discovery, support, forecasts, and save residuals depend on it. The same numeric model must support very large campaign counters and small inventories without forcing whole objects such as Souls, catalysts, or Rations to become fractional inventory. It must also represent long-horizon deterministic sources that may take eight to twenty-four hours to produce one whole item.
 
-### Proposed decision
+### Decision
 
 - Use `FixedPoint.SCALE = 1_000_000` subunits per whole unit.
 - Represent `1.0` as `1_000_000`; for example, `0.15` is `150_000` and a `1.15` multiplier is `1_150_000`.
-- Authoritative fractional progress, rates, and multipliers use signed 64-bit GDScript integers. M01's flow APIs accept non-negative values unless a method explicitly documents a signed contract.
-- Central fixed-point operations use deterministic floor semantics and return the unproduced numerator as an explicit canonical remainder.
-- Integer-millisecond accumulation must be chunking invariant when callers preserve the returned remainder.
+- Keep inherently discrete authoritative counts as ordinary unscaled signed 64-bit integers. This includes backlog, owned and reserved whole Souls, whole resources and Stores, command tethers, completed cycles, milestones, and other countable objects.
+- Use the fixed-point scale only where fractional state is meaningful: rates, multipliers, Mastery, discovery, familiarity, support consumption, forecasts, acquisition progress toward the next whole unit, and arithmetic residuals.
+- A deterministic rate is represented with an explicit period, such as `rate_subunits_per_period` plus `period_msec`; systems must not assume every rate can be rounded safely to integer subunits per second.
+- Central fixed-point operations use deterministic floor semantics and return any unproduced numerator as an explicit remainder with a documented denominator and one owner.
+- Whole-unit extraction is exact: transfer `progress_subunits / SCALE` whole units into inventory and retain `progress_subunits % SCALE` toward the next unit.
+- Integer-millisecond accumulation must be chunking invariant when callers preserve the returned progress and arithmetic remainder.
 - Arithmetic must check inputs and mathematical results before mutation. It must never silently wrap or use a float as an authoritative intermediate.
 - Operations document their supported ranges and reject unsupported overflow with typed reason codes.
-- No subsystem may define another fixed-point scale or duplicate conversion/remainder logic.
-- M02 serializes these integers and remainders exactly through the approved codec-independent snapshot contract; JSON later represents them as canonical decimal strings.
+- No subsystem may define another fixed-point scale or duplicate conversion, accumulation, extraction, or remainder logic.
+- M02 serializes all authoritative integers and remainders exactly through the approved codec-independent snapshot contract; JSON later represents them as canonical decimal strings.
 
 ### Consequences
 
-- Six decimal places are available for rates and coefficients without introducing floating-point state.
-- Common prototype modifiers such as `+15%`, `+30%`, and `50%` are represented exactly.
-- High-value arithmetic needs decomposition or other checked algorithms so a final result that fits is not rejected solely because a naïve intermediate multiply would overflow.
-- Every rate flow needs one documented residual owner, and equivalent time chunking becomes an exact regression test.
+- Small inventories in the normal `1`–`1,000` range remain simple exact integers; a player owns `1` rare Soul, not `1_000_000` inventory units and never `0.4563` of a Soul.
+- Six decimal places remain available for continuous progress and coefficients. One fixed-point subunit represents `0.000001` of a whole unit.
+- A source authored as one whole unit per twenty-four hours can accumulate exactly to `250_000` progress subunits after six hours and one whole unit after twenty-four hours, subject to the documented rate period and residual.
+- A scaled signed-64-bit value can represent approximately 9.22 trillion whole units, while unscaled discrete counters retain the full signed-64-bit whole-number range.
+- High-value arithmetic needs decomposition or other checked algorithms so a final result that fits is not rejected solely because a naive intermediate multiplication would overflow.
+- Every fractional flow needs one documented progress and residual owner, and equivalent time chunking becomes an exact regression test.
 - A later scale change would alter persisted numeric meaning and require an explicit migration decision after M02.
 
 ### Alternatives considered
 
-- **Scale 1,000:** simpler but unnecessarily coarse for cumulative rates and forecast coefficients.
-- **Scale 1,000,000,000 or larger:** more precision than the prototype demonstrates and materially reduces comfortable overflow headroom.
+- **Scale 1,000:** simpler but unnecessarily coarse for cumulative rates, long-horizon progress, and forecast coefficients.
+- **Scale 1,000,000,000 or larger:** more precision than current design needs and materially reduces comfortable overflow headroom.
+- **Scaling every inventory count:** rejected because whole objects and campaign counters do not benefit from fractional storage and would lose useful range.
+- **Integer subunits per second as the only rate unit:** rejected because very rare sources can require a finer long-horizon rate than that representation expresses cleanly.
 - **Binary fixed point:** viable but less legible for designer-authored decimal coefficients and junior review.
 - **Floating-point authoritative state:** rejected because chunking, serialization, and cross-platform reproducibility become harder to prove exactly.
 - **Different scales by subsystem:** rejected because conversions and residual ownership would become error-prone.
 - **Arbitrary-precision or rational-number dependency:** rejected as unnecessary prototype complexity.
 
-### Approval condition
-
-Approval of the M01 v0.1 prompt also approves this decision. Before Codex executes M01, the repository copy must mark this record `Accepted` and the prompt must be marked `Approved`.
-
 ### Affected documents
 
+- `docs/design/IDLE_FORK_SOURCE_OF_TRUTH.md`
 - `docs/codex/ARCHITECTURE.md`
 - `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`
 - `docs/codex/IMPLEMENTATION_RULES.md`
@@ -1025,9 +1030,60 @@ Approval of the M01 v0.1 prompt also approves this decision. Before Codex execut
 
 ---
 
+## `DEC-0027` — Threshold-owned long-horizon acquisition progress survives Reaping reconfiguration
+
+**Status:** Accepted  
+**Date:** 2026-07-14  
+**Decision type:** Output-channel ownership and presentation  
+**Refines:** `DEC-0010`, `DEC-0019`, `DEC-0020`
+
+### Context
+
+Some rare Souls, Denizen Souls, catalysts, or future materials may take eight to twenty-four hours of productive Threshold operation to yield one whole item. Requiring the player to keep the same Form, Writ, or Retinue configuration until a hidden timer finishes would contradict persistent strategic reconfiguration and would create an uncommunicated forfeiture risk. At the same time, player-facing inventory must remain whole and readable rather than displaying fractional Souls or catalysts.
+
+### Decision
+
+- When a discrete Threshold output uses deterministic long-horizon accumulation, its progress belongs to the stable pair `Threshold ID + output channel/source ID`, not to the currently assigned Form, Writ, Retinue, or transient Reaping configuration.
+- The Threshold channel persists `acquisition_progress_subunits` toward the next whole item. Any finer arithmetic carry required for exact chunking has exactly one persistent owner and must be preserved or exactly normalized when the active rate context changes.
+- Reconfiguration first resolves elapsed time under the old setup to the command timestamp. The new setup changes only the future rate and modifiers; it does not reset, consume, or reroll already accumulated acquisition progress.
+- Recalling or leaving the Threshold inactive freezes the stored progress. Redispatch resumes from the same progress unless a separately approved rule explicitly changes the source itself.
+- Transitioning from Overdue to Settled Passage does not clear the channel. Remaining progress continues under the channel's Settled rate when the source remains available.
+- A long elapsed interval may bank multiple whole items. Whole units are added immediately to normal inventory and only the remainder toward the next item remains in channel state.
+- The system is one channel accumulator inside the global deterministic resolver, not an independent item timer, per-item object, or separate simulation loop.
+- Discovery controls disclosure, not ownership. Unknown progress remains banked but hidden. Once the channel is Identified, the Threshold view may show a progress bar and a percentage truncated to one decimal place, such as `45.6%`. It must not show `0.4563 Rare Soul` or round to `100.0%` before the whole unit is actually banked.
+- A Charted channel may additionally show an estimated time, rate, relevant modifiers, and forecast range without changing the underlying progress.
+
+### Consequences
+
+- Players can change Forms, Retinues, or Writs without feeling forced to preserve an opaque configuration for many hours.
+- Different configurations still matter because they change the future acquisition rate and forecast, not ownership of prior effort.
+- Threshold state, save fixtures, forecasts, reports, and UI read models need a stable per-channel progress contract before the first long-horizon source is implemented.
+- M01 implements only the generic fixed-point and per-period arithmetic needed by this rule. M03 defines channel data, M04 proves Threshold-owned accumulation and reconfiguration persistence with a test channel, and later presentation milestones expose the progress bar when a known channel requires it.
+- Future stochastic rare drops, if ever approved, require a separate randomness and bad-luck-protection decision; this record governs deterministic accumulated acquisition progress.
+
+### Alternatives considered
+
+- **Reaping-owned progress:** rejected because recall or reassignment would require fragile transfer logic and could make prior effort appear lost.
+- **Form-owned progress:** rejected because the source belongs to the Threshold and should survive a Form swap.
+- **Independent countdown timer per item:** rejected because it creates competing time authority and does not compose cleanly with offline segmentation or rate changes.
+- **Fractional inventory:** rejected because partial Souls and catalysts are confusing player-facing objects and complicate inventory semantics.
+- **Hide all progress until a drop occurs:** rejected for long-horizon deterministic sources because it makes reconfiguration consequences opaque and can feel punitive.
+
+### Affected documents
+
+- `AGENTS.md`
+- `docs/design/IDLE_FORK_SOURCE_OF_TRUTH.md`
+- `docs/codex/ARCHITECTURE.md`
+- `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`
+- `docs/codex/IMPLEMENTATION_RULES.md`
+- `docs/codex/TESTING_AND_VALIDATION.md`
+- `docs/codex/MILESTONES.md`
+
+---
+
 ## 3. Current approval state
 
-- `DEC-0001` through `DEC-0025` are Accepted.
-- `DEC-0026` is Proposed and awaits approval with the M01 v0.1 prompt.
-- The Phase 6 architecture is approved with trusted-time, save-format, cross-machine testing, GodotSteam, and owner-verification refinements recorded in `DEC-0021` through `DEC-0025`.
+- `DEC-0001` through `DEC-0027` are Accepted.
+- M01 prompt approval accepted `DEC-0026`; the owner's long-horizon source-progress clarification is recorded in `DEC-0027`.
+- The Phase 6 architecture is approved with trusted-time, save-format, cross-machine testing, GodotSteam, owner-verification, fixed-point, and Threshold-channel ownership refinements recorded in `DEC-0021` through `DEC-0027`.
 - Future changes preserve decision IDs for wording clarifications and create a new decision only when semantics, ownership, compatibility, or security posture changes.

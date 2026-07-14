@@ -3,8 +3,8 @@
 **Document role:** Canonical test strategy, commands, fixture rules, and manual validation flows
 **Repository path:** `docs/codex/TESTING_AND_VALIDATION.md`
 **Document status:** Approved architecture validation plan with M00 harness validated
-**Validation revision:** 5
-**Last updated:** 2026-07-13
+**Validation revision:** 6
+**Last updated:** 2026-07-14
 **Engine target:** Godot 4.7 standard build, GDScript only
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)  
 **Owner evidence companion:** [OWNER_VERIFICATION_WORKFLOW.md](OWNER_VERIFICATION_WORKFLOW.md)
@@ -309,9 +309,12 @@ Every test controls:
 
 Test:
 
+- exact `FixedPoint.SCALE = 1_000_000` and proof that discrete inventory/backlog counts remain unscaled;
 - fixed-point conversion and canonical rounding;
-- multiply/divide and residual preservation;
-- overflow and invalid negative handling;
+- multiply/divide, explicit-period accumulation, whole-unit extraction, and residual preservation;
+- one whole unit per eight hours: `250_000` progress subunits after two hours, one whole unit after eight hours, and identical results across equivalent chunks;
+- one whole unit per twenty-four hours: `250_000` progress subunits after six hours, one whole unit after twenty-four hours, and identical results across equivalent chunks;
+- overflow and invalid negative handling, including a final-fit case whose naive intermediate multiplication would overflow;
 - equivalent interval chunking;
 - monotonic foreground clock behavior;
 - trusted sample statuses, source IDs, and normalization to integer milliseconds;
@@ -509,7 +512,20 @@ Resolve an interval that reaches zero backlog and has time remaining. Assert:
 - essential channels remain available;
 - no negative backlog occurs.
 
-### 8.10 Support degradation
+### 8.10 Long-horizon discrete acquisition progress
+
+Using a deterministic test channel that produces one whole item per twenty-four hours, verify:
+
+- six hours records `250_000` acquisition subunits and zero whole inventory units;
+- changing the active Form/Writ/Retinue rate context after resolving to the command time preserves prior progress;
+- recalling the Reaping freezes progress and redispatch resumes it;
+- a twenty-four-hour equivalent interval banks exactly one whole item and retains the exact remainder;
+- one-shot, hourly, and mixed-chunk resolution produce identical whole units, Threshold progress, and arithmetic carry;
+- Overdue-to-Settled transition does not reset the source when the Settled definition retains it;
+- Unknown disclosure hides the progress while debug/state inspection confirms it remains authoritative;
+- the player-facing percentage helper floors to one decimal and never shows `100.0%` before a whole unit is banked.
+
+### 8.11 Support degradation
 
 Resolve through Ration depletion. Assert:
 
@@ -519,7 +535,7 @@ Resolve through Ration depletion. Assert:
 - report records one transition;
 - later Ration production can restore support if current prototype policy permits it.
 
-### 8.11 Hidden production and discovery
+### 8.12 Hidden production and discovery
 
 Produce Provisions while its channel is Unknown, then identify it. Assert:
 
@@ -894,6 +910,7 @@ A milestone is validated only when:
 - the main scene has no new parser or resource errors;
 - save/load is exercised when authoritative state changes;
 - deterministic equivalence is tested when simulation changes;
+- long-horizon discrete output progress survives reconfiguration when a milestone introduces or changes such a channel;
 - trusted-time accounting, unavailable behavior, and duplicate-prevention are tested when offline resolution changes;
 - exactly-once behavior is tested when progression changes;
 - the exact manual demonstration path is recorded;

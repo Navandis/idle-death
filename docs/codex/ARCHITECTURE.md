@@ -3,8 +3,8 @@
 **Document role:** Maintained implementation architecture for the 0-90 minute prototype  
 **Repository path:** `docs/codex/ARCHITECTURE.md`  
 **Document status:** Approved architecture  
-**Architecture revision:** 3  
-**Last updated:** 2026-07-12  
+**Architecture revision:** 4  
+**Last updated:** 2026-07-14  
 **Engine target:** Godot 4.7, GDScript only  
 **Primary design context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md) and [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md)
 
@@ -36,6 +36,7 @@ The prototype architecture must make the following properties straightforward to
 9. Calling Soul reservations remain visible and reversible instead of consuming the underlying Souls.
 10. Content and prototype balance remain editable without rewriting tutorial or UI scripts.
 11. A future junior engineer can find system ownership, state flow, and invariants without reconstructing them from scenes.
+12. Long-horizon progress toward rare whole outputs survives Reaping reconfiguration and remains readable without fractional inventory.
 
 ## 3. Deliberate non-goals
 
@@ -213,7 +214,7 @@ Tests construct `GameState`, `ContentRegistry`, clocks, services, `SimulationEng
 |---|---|
 | Inventory | Total owned quantities and reservation ledger. |
 | Forms | Awakening, Mastery, and future Form-specific progression. |
-| Thresholds | Knowledge state, lifecycle state, backlog, discovery, familiarity, and stream remainders. |
+| Thresholds | Knowledge state, lifecycle state, backlog, discovery, familiarity, durable output-channel acquisition progress, and Threshold-owned channel carries. |
 | Reapings | Current Form, Writ, Retinues, cycle cursor, support buffer, fallback state, and assignment revision. |
 | Halls | Restored state, active recipe, production cursor, reserve policy, target, and active state. |
 | Recollections | Purchased nodes and resulting unlock/effect state. |
@@ -512,20 +513,24 @@ New rates apply to the next segment. Producer output at the exact moment a suppo
 
 ### 10.6 Numeric accumulation
 
-Discrete owned quantities, returned-soul counters, backlog, reservations, completed-cycle counts, and authoritative timestamps use 64-bit integers.
+`DEC-0026` fixes the project scale at `FixedPoint.SCALE = 1_000_000` subunits per whole unit.
+
+Inherently discrete values remain ordinary unscaled signed 64-bit integers, including owned whole Souls/items, backlog, reservations, command tethers, completed-cycle counts, milestones, and authoritative timestamps. Fractional state uses the central scale, including rates, multipliers, Mastery, discovery, familiarity, support consumption, forecasts, and progress toward the next whole discrete output.
 
 Authored content may expose editor-friendly decimal coefficients. `ContentRegistry` normalizes those values once into immutable fixed-point runtime values before gameplay. `SimulationEngine` uses only the normalized integer values.
 
-Fractional production uses one centralized fixed-point utility and persisted residuals. The exact scale is selected in the foundation milestone, recorded in `FixedPoint`, and may not vary by subsystem.
+Rate accumulation uses an explicit period rather than assuming every rate is an integer number of subunits per second. A rate plan supplies a normalized numerator such as `rate_subunits_per_period`, a positive `period_msec`, and any exact arithmetic carry needed to continue the same flow. The central utility applies deterministic floor semantics and returns both produced subunits and the next carry.
 
 Required properties:
 
-- every authoritative fractional state is represented by an integer scaled value or integer residual;
-- residuals survive save/load;
+- every authoritative fractional state is represented by an integer scaled value or an explicitly typed integer carry;
+- whole-unit extraction banks `progress_subunits / SCALE` and retains `progress_subunits % SCALE`;
+- every progress value and arithmetic carry has exactly one documented owner;
+- carries survive save/load and are preserved or exactly normalized when a rate context changes;
 - resolving one eight-hour interval produces the same authoritative result as resolving equivalent smaller intervals when the same boundaries are crossed;
 - UI formatting never writes rounded values back into state;
-- rate changes occur only at explicit boundaries;
-- overflow bounds are documented and tested;
+- rate changes occur only after elapsed time is resolved to an explicit boundary;
+- overflow bounds are documented and tested, including final-fit calculations whose naive intermediate multiplication would overflow;
 - tests compare exact authoritative integers; tolerances are allowed only for derived display formatting.
 
 ### 10.7 Randomness
@@ -547,7 +552,8 @@ A Threshold runtime instead tracks:
 - lifecycle: Overdue or Settled;
 - activity: derived from whether an active Reaping references the Threshold;
 - backlog and independent output-channel state;
-- discovery progress per channel.
+- discovery progress per channel;
+- durable acquisition progress for long-horizon discrete sources.
 
 Presentation composes these facts into labels such as `Active - Overdue`, `Active - Settled`, or `Inactive - Settled` from the design document.
 
@@ -563,7 +569,7 @@ There is at most one active Reaping per Threshold in the prototype. Active Reapi
 - cycle cursor and completed-cycle counters;
 - support-buffer state;
 - active fallback state;
-- stream fractional remainders that belong to the operation;
+- fractional carries for flows whose stable owner is the active operation; Threshold-source acquisition progress is not stored here;
 - timestamps or simulation cursors required to continue exactly.
 
 An assignment change first resolves time to the command moment, then changes the relevant IDs and increments the assignment revision.
@@ -605,6 +611,8 @@ When backlog reaches zero:
 
 ## 12. Parallel output channels and discovery
 
+### 12.1 Independent channels and disclosure
+
 Each Threshold definition declares independent channels. The prototype channel types are:
 
 - backlog returns;
@@ -620,6 +628,21 @@ The resolver computes each channel separately from the same segment context. Add
 Discovery state controls player knowledge, not whether output exists. Hidden Provisions produced at Broken Watch are banked to inventory and reported as hidden output events until identified. Identification changes disclosure; it does not retroactively generate or erase resources.
 
 Forecast uncertainty is information uncertainty, not necessarily production randomness. Scribe may narrow the displayed range around a deterministic underlying result.
+
+### 12.2 Long-horizon discrete acquisition progress
+
+Under `DEC-0027`, deterministic progress toward a rare whole output is keyed by the stable Threshold and output channel/source. The Threshold channel owns `acquisition_progress_subunits` and any finer carry needed to resume the same source exactly. The active Reaping supplies the current rate context but does not own or reset prior acquisition effort.
+
+At a Form, Writ, or Retinue change:
+
+1. resolve elapsed time under the old configuration to the command timestamp;
+2. bank every whole item crossed and retain the remainder;
+3. change the assignment and future rate context;
+4. continue from the same Threshold-channel progress.
+
+Recall or inactivity freezes the channel. Redispatch resumes it. When the Threshold becomes Settled, the same source progress continues at its configured Settled rate if that source remains available. A long interval can bank several items in one analytical segment or across boundaries; no per-item object or timer is created.
+
+Presentation reads this state through disclosure-aware view models. Unknown channels reveal no progress. An Identified long-horizon channel may show a bar and a one-decimal percentage derived by flooring to tenths so it cannot display `100.0%` before the item is banked. A Charted channel may add rate, modifiers, and estimated time. Inventory and reports still use whole item counts only.
 
 ## 13. Inventory and reservation ledger
 
@@ -973,6 +996,8 @@ Screen navigation does not pause or own simulation. Closing a screen discards on
 
 View-model construction enforces tutorial and discovery disclosure. Hidden data may remain present in authoritative state but must not leak into player-facing rows, labels, or forecasts before the applicable state.
 
+For a known long-horizon discrete source, the Threshold detail may expose durable acquisition progress as a bar and a percentage truncated to one decimal place. This is separate from the central Reaping-cycle indicator: it represents saved source progress toward the next whole item and survives assignment changes. Do not display fractional Souls, catalysts, or other whole inventory objects.
+
 ## 22. Debug and pacing tools
 
 Debug tools are allowed because first-session pacing requires rapid iteration. They must call the same domain and simulation paths as normal play.
@@ -1106,7 +1131,6 @@ A pull request affecting core behavior should be rejected or revised when it doe
 The following remain deliberately open until a later approved milestone or playtest provides evidence:
 
 - exact simulation update cadence during live play;
-- exact fixed-point scale, provided it is centralized and tested;
 - general offline cap beyond the required eight-hour path;
 - report-history retention count;
 - final save-file naming and number of player slots;
@@ -1146,6 +1170,7 @@ This table maps protected design requirements to their primary architecture sect
 | `IF-REQ-15` — Save integrity | Section 20 |
 | `IF-REQ-16` — Storefront independence | Sections 3 and 24 |
 | `IF-REQ-17` — Trusted time authority | Sections 9.3–9.6 and 20.5 |
+| `IF-REQ-18` — Persistent long-horizon source progress | Sections 10.6, 11.1–11.2, 12.2, and 21.4 |
 
 ### 27.2 Prototype safeguards
 

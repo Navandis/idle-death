@@ -3,8 +3,8 @@
 **Document role:** Detailed engineering conventions for Godot 4.7 and GDScript implementation  
 **Repository path:** `docs/codex/IMPLEMENTATION_RULES.md`  
 **Document status:** Approved engineering rules  
-**Rules revision:** 3  
-**Last updated:** 2026-07-12  
+**Rules revision:** 4  
+**Last updated:** 2026-07-14  
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)  
 **Data companion:** [DATA_AND_CONTENT_CONTRACTS.md](DATA_AND_CONTENT_CONTRACTS.md)
 
@@ -312,18 +312,22 @@ Sort canonical IDs before processing equal-priority dictionaries or sets. Use th
 
 ### 10.7 Central fixed-point utility
 
-All fixed-point conversion and arithmetic belongs in one documented utility. Do not reproduce scaling and remainder logic in each output channel.
+All fixed-point conversion and arithmetic belongs in one documented utility. Do not reproduce scaling, period accumulation, whole-unit extraction, or remainder logic in each output channel.
+
+The project scale is `1_000_000` subunits per whole unit under `DEC-0026`. Apply it only to meaningful fractional state. Whole inventory objects, backlog, command tethers, and other discrete counts remain unscaled integers.
 
 The utility must:
 
-- use 64-bit integers;
-- check invalid negative inputs where the domain forbids them;
-- preserve remainders;
-- avoid integer overflow for supported prototype horizons;
-- have direct unit tests;
-- explain rounding behavior for junior reviewers.
+- use signed 64-bit integers and non-negative flow contracts unless a method explicitly documents signed behavior;
+- support rates with an explicit positive period, not only integer subunits per second;
+- check invalid inputs before mutation;
+- return produced subunits and any exact arithmetic carry explicitly;
+- extract whole units and retain `progress_subunits % SCALE` exactly;
+- avoid integer overflow for supported prototype horizons, including decomposed final-fit calculations;
+- have direct unit tests, including one whole unit per twenty-four hours;
+- explain scale, period, denominator, ownership, and floor behavior for junior reviewers.
 
-Every residual has exactly one documented owner identified by a stable flow key. Do not store the same fractional remainder in both a Threshold/channel record and its active Reaping. Reassignment, save/load, and settlement must preserve or deliberately transform that owner through a tested rule.
+Every progress value and carry has exactly one documented owner identified by a stable flow key. Do not store the same fractional state in both a Threshold/channel record and its active Reaping. Reassignment, save/load, and settlement must preserve or exactly normalize the owner through a tested rule.
 
 ### 10.8 Chunking invariance
 
@@ -382,6 +386,20 @@ Forecast mode uses a deep state clone and the same engine. Do not add `if foreca
 ### 11.6 No per-cycle history
 
 Store aggregate totals, fractional remainders, completed-cycle counts, and meaningful events. Do not retain an object for every cycle or returned soul.
+
+### 11.7 Long-horizon discrete output channels
+
+For a deterministic rare source governed by `DEC-0027`:
+
+- store progress on the stable Threshold output channel, not on the current Form, Writ, Retinue, or a disposable Reaping record;
+- resolve elapsed time under the old configuration before changing future modifiers;
+- bank every whole unit crossed and retain the remaining progress and exact carry;
+- preserve progress while the Threshold is inactive and across Overdue-to-Settled transition when the source remains available;
+- do not create a timer or object per future drop;
+- keep player inventory whole-numbered;
+- keep Unknown progress hidden, and expose a one-decimal, floor-derived progress bar only when disclosure permits it.
+
+A Threshold-level acquisition bar is not a second Reaping-cycle bar. It displays durable saved progress toward a specific known whole output.
 
 ## 12. Inventory and reservation rules
 
@@ -555,6 +573,8 @@ It does not optimistically mutate authoritative values.
 ### 16.3 Display rounding
 
 Formatting belongs to presentation helpers. Display strings never become inputs to domain calculations.
+
+Long-horizon whole-output progress may be formatted as a Threshold-level bar and a percentage floored to one decimal place. Clamp the pre-completion display to `99.9%`; never render a fractional Soul, catalyst, or other whole inventory count.
 
 ### 16.4 Unknown information
 
