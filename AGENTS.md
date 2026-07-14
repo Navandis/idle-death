@@ -79,6 +79,8 @@ The following decisions supersede ambiguous shorthand in the design documents:
 - The 10,000-regional-souls milestone produces a separate second resonance event, an Essence reward, and access to the optional Recollection choice.
 - At the Scribe tutorial step, guarantees secure the required Scribe Form Soul and mandatory Essence. The player must still press **Awaken**. Normal tutorial progression must not awaken Scribe automatically.
 - The timings, coefficients, costs, rates, and balance values identified as provisional remain configurable and may change after playtesting.
+- **Essence** is the sole internal and player-facing term for the damaged soul-matter resource. Use `RES_ESSENCE`; do not reintroduce the deprecated `Corrupted Essence` label or `RES_CORRUPTED_ESSENCE` ID.
+- Player-facing names are editable content. Canonical IDs and rule meanings remain stable even when a Form, Trait, Art, Denizen, Recollection, or shared system term is renamed.
 
 ## Technology, platform, and distribution
 
@@ -140,7 +142,7 @@ The prototype includes only the systems needed to demonstrate:
 - Man-at-Arms and Scribe;
 - the Emergency-to-Standard Writ transition;
 - persistent Reapings;
-- Corrupted Essence and Form Mastery;
+- Essence and Form Mastery;
 - the Archive and early Recollections;
 - the 30-position Soulweave presentation, with only two functional Forms;
 - Soldier Calling Soul inventory and reservation;
@@ -332,6 +334,11 @@ Rules:
 - Define deterministic rare-output rates with an explicit period or cycle increment; do not assume every source can be rounded safely to integer subunits per second.
 - Do not scatter canonical IDs as unrelated string literals.
 - Separate stable canonical IDs from player-facing display names.
+- Store editable player-facing names and descriptions in content definitions. Logic, saves, tests, and references must use canonical IDs rather than display text.
+- Give named Traits and future Arts/Denizens stable IDs plus editable display text. A rename must not require code changes or alter mechanical identity.
+- Resolve shared system nouns through the `TERM_...` terminology entries in the content catalog. Do not hard-code labels such as Threshold, Recollection, Form, or Retinue throughout presentation code.
+- A player-facing core-term rename does not imply renaming persisted prefixes such as `THR_`; those IDs stay stable unless an explicit migration decision changes them. Free-form dialogue and descriptive prose still require a reviewed search/update pass.
+- Optional localization keys may accompany fallback English text, but a full localization pipeline remains deferred.
 - Validate missing IDs, duplicate IDs, invalid references, and incompatible assignments clearly.
 - Do not hard-code Man-at-Arms or Scribe behavior directly into tutorial presentation when the behavior belongs to Form data or simulation rules.
 - Do not hard-code Soldier Company resource reservation into a single button when it belongs to Retinue and inventory rules.
@@ -349,6 +356,7 @@ Canonical IDs use the approved uppercase prefix format, for example:
 - `REC_...`
 - `WRIT_...`
 - `TUT_...`
+- `TERM_...`
 
 Use the exact IDs defined in `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`.
 

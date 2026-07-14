@@ -2,8 +2,8 @@
 
 **Document role:** Maintained implementation contract for the playable first-session prototype  
 **Repository path:** `docs/design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md`  
-**Markdown revision:** 3  
-**Last updated:** 2026-07-12  
+**Markdown revision:** 4  
+**Last updated:** 2026-07-14  
 **Primary source:** *Death Idle - Prototype 0-90 Minute Beat Sheet & Implementation Brief v0.1* (12 July 2026)  
 **Broader design companion:** [IDLE_FORK_SOURCE_OF_TRUTH.md](IDLE_FORK_SOURCE_OF_TRUTH.md)
 
@@ -29,11 +29,13 @@ Requirement labels such as `P90-B04`, `P90-G02`, and `P90-AC05` are traceability
 
 Revision 2 incorporates the approved counter rule: the four scripted opening returns are excluded from all persistent-Reaping Threshold and regional milestone counters.
 
+Revision 4 adopts **Essence** as the sole resource term (`RES_ESSENCE`) and records that player-facing names remain editable content while canonical IDs remain stable.
+
 ## 2. Prototype thesis and required end state
 
 The prototype must prove the first-hour product promise:
 
-> Death identifies an impossible backlog, delegates persistent Reapings, restores systems through Corrupted Essence, differentiates two Forms, fields a reserved-soul Retinue, opens a second Threshold, establishes a simple Hall supply chain, and sees that the same machinery will continue while the game is closed.
+> Death identifies an impossible backlog, delegates persistent Reapings, restores systems through Essence, differentiates two Forms, fields a reserved-soul Retinue, opens a second Threshold, establishes a simple Hall supply chain, and sees that the same machinery will continue while the game is closed.
 
 The prototype is not intended to prove the launch economy, the full Form roster, final balance, or final presentation.
 
@@ -82,7 +84,7 @@ Pacing values are playtest targets, not hard-coded timers. Progression remains s
 
 | Phase | Target duration | Purpose |
 |---|---|---|
-| Mandatory tutorial | Approximately 8–12 minutes | Teach Threshold, backlog, Form, Reaping, Corrupted Essence, and continuous operation. |
+| Mandatory tutorial | Approximately 8–12 minutes | Teach Threshold, backlog, Form, Reaping, Essence, and continuous operation. |
 | Guided onboarding | Until approximately 30–40 minutes | Introduce Soulweave, Soldier Company, Scribe, and the second command tether. |
 | Player-led first session | Until approximately 60–90 minutes | Operate two Reapings, discover Provisions, restore Larder, choose a Recollection, and inspect an offline forecast. |
 
@@ -262,7 +264,7 @@ Expose only:
 - leading Form;
 - Emergency Writ;
 - one central cycle bar;
-- Corrupted Essence;
+- Essence;
 - several unknown output rows.
 
 Retinues, Rations, support buffers, advanced forecasts, and supply policies remain hidden.
@@ -274,7 +276,7 @@ Retinues, Rations, support buffers, advanced forecasts, and supply policies rema
 - `WRIT_EMERGENCY_FIRST_RETURN` is active.
 - The Emergency objective tracks 1,000 returns produced by the active Gloamwood Reaping after dispatch. The scripted opening four are a separate transaction.
 - Gloamwood and regional persistent-Reaping counters start at zero for this dispatch; they are not reconstructed from backlog already removed.
-- Backlog, Corrupted Essence, and Man-at-Arms Mastery begin resolving continuously.
+- Backlog, Essence, and Man-at-Arms Mastery begin resolving continuously.
 
 **Fail-safe**
 
@@ -314,7 +316,7 @@ Retinues, Rations, support buffers, advanced forecasts, and supply policies rema
 
 **Authoritative state transition**
 
-- The damaged rat and wolf patterns resolve into Corrupted Essence as a narrative/domain event; this is not a repeatable player action.
+- The damaged rat and wolf patterns resolve into Essence as a narrative/domain event; this is not a repeatable player action.
 - `HALL_ARCHIVE` becomes restored.
 - `REC_WEAVE_REMEMBERED` becomes purchased.
 - Soulweave navigation becomes permanently available.
@@ -363,7 +365,7 @@ Any UI wording such as “confirm configuration” must not teach a stop-and-red
 
 **Visible presentation**
 
-- Report explains 1,000 souls returned, Corrupted Essence, Man-at-Arms Mastery, and Soldier Souls.
+- Report explains 1,000 souls returned, Essence, Man-at-Arms Mastery, and Soldier Souls.
 - The report does not grant or claim those rewards.
 - Retinue picker exposes one compatible card.
 - Required, owned, available, and reserved Soldier Soul counts are visible.
@@ -743,7 +745,7 @@ Use these exact IDs and separate them from display names.
 | Threshold | `THR_BROKEN_WATCH` | Broken Watch |
 | Hall | `HALL_ARCHIVE` | Archive |
 | Hall | `HALL_LARDER` | Larder |
-| Resource | `RES_CORRUPTED_ESSENCE` | Corrupted Essence |
+| Resource | `RES_ESSENCE` | Essence |
 | Resource | `RES_PROVISIONS` | Provisions |
 | Store | `STORE_RATIONS` | Rations |
 | Recollection | `REC_WEAVE_REMEMBERED` | The Weave Remembered |
@@ -790,7 +792,7 @@ All other Soulweave nodes are presentational placeholders. They show position, a
 | Type | Standing Threshold — Overdue |
 | Tags | Forest, Settlement |
 | Opening backlog | `1,000,000`; `999,996` after the scripted attempt |
-| Known initially | Corrupted Essence and active Form Mastery |
+| Known initially | Essence and active Form Mastery |
 | Calling Soul channel | Soldier Souls; common repeatable source; guarantee reaches twelve by 1,000 returns |
 | Form Soul channel | Scribe Form Souls; uncommon repeatable source; guarantee reaches one by 2,500 returns |
 | Material channel | None required for this prototype |
@@ -803,7 +805,7 @@ All other Soulweave nodes are presentational placeholders. They show position, a
 | Type | Standing Threshold — Overdue |
 | Tags | Road, Settlement, Martial |
 | Backlog | Provisional `250,000` |
-| Known at unlock | Corrupted Essence and active Form Mastery; other rows Unknown |
+| Known at unlock | Essence and active Form Mastery; other rows Unknown |
 | Material channel | Provisions; common repeatable source; guaranteed floor after identification |
 | Form Soul channel | Man-at-Arms Form Soul; uncommon repeatable source; not required for onboarding |
 | Future Calling Soul | Disabled backend slot; Roadwarden is only a later candidate, not prototype content |

@@ -3,7 +3,7 @@
 **Document role:** Approved implementation sequence and acceptance map for the 0–90 minute prototype  
 **Repository path:** `docs/codex/MILESTONES.md`  
 **Document status:** Phase 7 approved  
-**Milestone-map revision:** 9  
+**Milestone-map revision:** 11  
 **Last updated:** 2026-07-14  
 **Primary context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md), [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md), [Architecture](ARCHITECTURE.md), [Data contracts](DATA_AND_CONTENT_CONTRACTS.md), [Testing](TESTING_AND_VALIDATION.md), [Owner verification](OWNER_VERIFICATION_WORKFLOW.md), and [Decisions](DECISIONS.md)
 
@@ -15,7 +15,7 @@ Use the source hierarchy in `AGENTS.md`. A milestone definition cannot weaken a 
 
 ## 2. Current repository baseline
 
-After M01 completion:
+After M02 completion:
 
 - Godot 4.7, GDScript, the 1920 × 1080 reference viewport, resizing/stretch settings, and a temporary dry-run main scene exist.
 - `AGENTS.md`, project Codex configuration, the maintained design sources, the architecture documents, the approved `PROMPT_TEMPLATE.md`, and `OWNER_VERIFICATION_WORKFLOW.md` are present in the repository.
@@ -26,7 +26,8 @@ After M01 completion:
 - Linux/Codex Cloud and owner-run Windows M00 verification passed, including failure propagation and clean recovery.
 - M01 added `FixedPoint`, the minimal `GameState` simulation timeline, separate `TimeAuthorityState`, monotonic and trusted-time contracts, `TimeReconciliationService`, fakes, focused tests, a deterministic trace, and the milestone-specific Windows verification script.
 - M01 Linux/Codex and owner-run Windows verification passed, including the full suite, focused numeric/time tests, source-ownership checks, import preflight, deterministic trusted-time trace, and long-horizon fixed-point trace.
-- M02 adds the first persistence implementation for minimal M01 runtime state; the repository still has no content registry, production Reaping simulation, or gameplay UI.
+- M02 added the frozen schema-version-1 mapper/validator, canonical signed-64-bit JSON strings, migration seam, atomic primary/temporary/backup storage, corrupt-file retention, persistence tests, trace, and Windows verification package.
+- The repository still has no content registry, production Reaping simulation, or gameplay UI.
 - Existing dry-run assets and scene work are preserved unless a scoped milestone explicitly replaces or integrates them.
 
 ## 3. Milestone rules
@@ -64,6 +65,7 @@ A milestone may be split after implementation begins only when the split preserv
 | `GATE-WINDOWS-HARNESS` | M00 merge | The owner runs `tools/test/run_gut.ps1` on the separate Windows Godot machine and records the result; Codex Cloud cannot satisfy this gate. |
 | `GATE-FIXED-POINT` | M01 merge | Implement accepted `DEC-0026`: one centralized scale of `1_000_000` for fractional state, unscaled discrete counts, explicit-period accumulation, checked 64-bit arithmetic, canonical carries, documented bounds, and cross-platform tests including one-item-per-8-hours and one-item-per-24-hours cases. |
 | `GATE-SAVE-SCHEMA` | M02 merge | Freeze schema-version-1 key spelling and representative fixtures before gameplay state depends on it. |
+| `GATE-CONTENT-CATALOG` | M03 merge | Validate one explicit typed catalog containing the required prototype IDs, `RES_ESSENCE`, stable `CHANNEL_...` sources, centralized `TERM_...` terminology, editable names independent of IDs, normalized values, content-revision compatibility, deterministic ordering, and editor-inspectable `.tres` definitions before simulation depends on content. |
 | `GATE-STEAM-TIME` | M06 prompt/implementation | Satisfied for prompt drafting by `DEC-0024`: use pinned GodotSteam 4.20 and development App ID `480`. M06 must still verify license footprint, wrapper API, explicit initialization, and live Windows behavior. |
 | `GATE-PRODUCTION-OFFLINE` | M16 merge | Fake-provider automation plus the owner-run Windows/GodotSteam connected, unavailable, reconnect, clock-change, and repeated-load checks must pass. |
 | `RELEASE-GATE-STEAM-APP` | Before external Steam Playtest or commercial distribution | Replace development App ID `480` with Death Idle's assigned App ID and validate package ownership, launch-through-Steam behavior, export contents, and absence of development-only App ID aids. |
@@ -73,6 +75,8 @@ A milestone may be split after implementation begins only when the split preserv
 
 `GATE-FIXED-POINT` was satisfied by M01. PR #5 merged on 2026-07-14 at merge commit `a5b231682967e4cb71b4404af158e93ff8bbf261`; its final head was `e2b291e75dab5e3484da7dec1d4420a2fb9637be`. Linux/Codex and owner-run Windows verification passed the full and focused suites, forbidden-time-source checks, import preflight, trusted-time trace, long-horizon fixed-point trace, cleanup, and generated-log requirements.
 
+`GATE-SAVE-SCHEMA` was satisfied by M02. PR #6 merged on 2026-07-14 at merge commit `480a9eae2fe0c3591503da56b07c272be74ec027`; its final head was `0dd0c1d5c799db45aa4a8387d93750e02b2e485f`. Linux/Codex passed the focused persistence suite (`17/17` tests), full suite (`29/29` tests), and real-file trace. The owner passed the same Windows full/focused suites, explicit import, revision-1/revision-2 rotation, corrupt-primary rejection, backup selection, retained corrupt bytes, isolated-directory cleanup, and final clean regression rerun.
+
 When trusted time is unavailable, the approved behavior is to grant no guessed closed-session progress, retain pending reconciliation, and continue monotonic foreground production. No milestone may introduce a local-device-time fallback.
 
 ## 6. Milestone status map
@@ -81,8 +85,8 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 |---|---|---|---|---|---|
 | M00 | Repository, Godot, GUT, and Codex Cloud harness | Approved | Approved | Merged | Passed |
 | M01 | Deterministic numeric and time-authority foundation | Approved | Approved | Merged | Passed |
-| M02 | Versioned save codec and atomic storage | Approved | Approved | Pull request open | Partial |
-| M03 | Content catalog, canonical IDs, and configurable prototype data | Approved | Not drafted | Not started | — |
+| M02 | Versioned save codec and atomic storage | Approved | Approved | Merged | Passed |
+| M03 | Content catalog, canonical IDs, and configurable prototype data | Approved | Approved | Not started | — |
 | M04 | Persistent Reaping simulation vertical slice | Approved | Not drafted | Not started | — |
 | M05 | Persistent application shell, navigation, and debug access | Approved | Not drafted | Not started | — |
 | M06 | Steam trusted-time adapter and transactional offline resolution | Approved | Not drafted | Not started | — |
@@ -401,7 +405,8 @@ State classes expose explicit primitive conversion hooks where useful, but no fi
 
 **Definition status:** Approved  
 **Prompt status:** Approved  
-**Implementation status:** Not started  
+**Implementation status:** Merged through PR #6  
+**Verification status:** Passed  
 **Recommended Codex task size:** Medium; one persistence pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M02-save-codec-atomic-storage.md`
 
@@ -489,6 +494,16 @@ This milestone establishes schema version 1, codec ID, transaction rules, and ba
 
 - `ARCHITECTURE.md`, `DATA_AND_CONTENT_CONTRACTS.md`, `IMPLEMENTATION_RULES.md`, `TESTING_AND_VALIDATION.md`, `MILESTONES.md`, and `README.md`; `OWNER_VERIFICATION_WORKFLOW.md` changes only if implementation exposes a generic workflow defect.
 
+#### Completion record
+
+- PR #6 merged on 2026-07-14.
+- Final PR head: `0dd0c1d5c799db45aa4a8387d93750e02b2e485f`.
+- Merge commit: `480a9eae2fe0c3591503da56b07c272be74ec027`.
+- Added schema-version-1 runtime mapping, deterministic `JSON_V1`, canonical signed-64-bit string encoding, sequential primitive migrations, injectable storage, primary/temporary/backup transactions, suspect preservation, and working-candidate reconciliation persistence.
+- Linux/Codex passed the focused M02 suite (`17/17`), full suite (`29/29`), source-ownership checks, and real-file corruption/recovery trace.
+- The owner passed the Windows full suite before and after the trace (`29/29` each), focused M02 suite (`17/17`), import preflight, revision/backup/corruption fallback trace, corrupt-byte retention, cleanup, and generated-log contract at the final head.
+- `GATE-SAVE-SCHEMA` is satisfied.
+
 #### Known risks
 
 - Windows rename and file-lock behavior.
@@ -504,9 +519,9 @@ This milestone establishes schema version 1, codec ID, transaction rules, and ba
 ### M03 — Content catalog, canonical IDs, and configurable prototype data
 
 **Definition status:** Approved  
-**Prompt status:** Not drafted  
+**Prompt status:** Approved  
 **Implementation status:** Not started  
-**Recommended Codex task size:** Medium; one content-foundation pull request.  
+**Recommended Codex task size:** Medium-large but bounded to authored data, normalization, validation, save-revision compatibility, and developer verification.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M03-content-catalog-prototype-data.md`
 
 #### Purpose
@@ -515,86 +530,116 @@ Create the typed authored-data layer and validation grammar before systems hard-
 
 #### Player or developer outcome
 
-The Godot editor loads one explicit prototype catalog containing the approved Forms, Thresholds, Writs, Retinue, Halls, recipe, resources, Recollections, milestones, guarantees, resonances, narrative IDs, and tutorial IDs; invalid catalogs fail with actionable diagnostics.
+The Godot editor loads one explicit prototype catalog containing the approved Forms, Thresholds, output channels, Writs, Retinue, Halls, recipe, items, Recollections, milestones, guarantees, resonances, narrative identities, tutorial states, and a centralized terminology catalog. Player-facing names can change without changing canonical IDs, the sole resource term is Essence, the registry presents deterministic normalized data, existing M02 saves are accepted through an explicit compatibility list, and invalid catalogs fail with aggregated actionable diagnostics.
 
 #### Dependencies
 
-- M02
+- M00, M01, and M02 merged and Passed.
+- `GATE-GUT`, `GATE-FIXED-POINT`, and `GATE-SAVE-SCHEMA` satisfied.
+- Accepted `DEC-0029` through `DEC-0032`.
 
 #### Included scope
 
-- Implement typed custom Resource definitions and an explicit `ContentCatalog`.
-- Implement `ContentRegistry` normalization, canonical ordering, ID-prefix checks, reference validation, and immutable runtime lookup tables.
-- Implement only the finite modifier and progression-effect operations already required by the prototype.
-- Author the established prototype IDs and centralized provisional values from `DATA_AND_CONTENT_CONTRACTS.md`.
-- Define output-channel baseline rates, explicit periods, modifier inputs, and content flags needed for Threshold-owned long-horizon acquisition progress under `DEC-0027` and non-compounding rate derivation under `DEC-0028`, without authoring speculative rare content or persisting effective rates/ETAs.
-- Assign and persist a content revision used by save validation.
-- Provide minimal fixture catalogs for focused tests.
+- Implement typed custom `Resource` definitions and an explicit `ContentCatalog` stored as text `.tres` files.
+- Implement editable fallback names/optional localization keys and one `CoreTerminologyDefinition` using stable `TERM_...` entries.
+- Use stable inline Trait IDs with editable names; prepare the base naming contract for future Arts and Denizens without implementing those systems.
+- Implement `ContentRegistry` structural validation, production completeness validation, canonical ordering, ID-prefix checks, reference/type validation, authored-float normalization, and source-Resource isolation.
+- Implement only the finite modifier, condition, target-scope, progression-effect, cost, and reward grammars already required by the prototype.
+- Author the established prototype IDs and centrally labelled scaffold values from `DATA_AND_CONTENT_CONTRACTS.md`, using `RES_ESSENCE` and the approved Essence channel IDs.
+- Add first-class stable `CHANNEL_...` definitions for the six current Threshold item channels. Backlog and active Form Mastery remain core streams rather than item-channel definitions.
+- Define immutable baseline channel rates, explicit periods, progress-display flags, and modifier inputs needed by `DEC-0027` and `DEC-0028`, without implementing accumulation or effective-rate evaluation.
+- Establish catalog revision `prototype-content-r1` with an explicit compatibility allowlist containing `prototype-m02` and the current revision.
+- Require new saves to receive the current catalog revision explicitly; keep persistence independent of `ContentRegistry` and leave schema version 1 unchanged.
+- Provide valid and invalid fixture coverage, a deterministic headless catalog trace, a Windows owner script, and an Inspector checklist.
 
 #### Explicit non-goals
 
-- Functional implementation of all thirty Forms or their Arts.
-- Final balance, final narrative text, final assets, or localization pipeline.
-- Recursive directory discovery or arbitrary expression/script execution from content.
-- Player-facing screens.
+- Gameplay state, production resolution, inventory, dispatch, acquisition progress, modifier evaluation, progression application, tutorial control, save UI, or player-facing screens.
+- Functional implementation of the remaining twenty-eight Forms, any Form Art behavior, Denizen Souls, Roadwarden content, advanced Writs, additional Retinues, multiple recipes, final dialogue, a complete translation/localization pipeline or translated content, final art, or final balance. Optional localization keys and fallback English text are in scope.
+- Recursive directory discovery, arbitrary expression evaluation, Callables, or script paths embedded in content.
+- A save-schema version bump or serialization of immutable definitions, effective rates, ETAs, or future gameplay dictionaries.
 
 #### Expected files or subsystems
 
-The exact file list remains subject to repository inspection. Expected areas are:
-
-- `src/content/definitions/`, registry, validation, and normalization
-- `content/prototype_content_catalog.tres` and referenced `.tres` definitions
-- Fixture catalogs and content-validation tests
-- Optional placeholder presentation references only when files already exist
+- `src/content/definitions/` typed Resource classes and bounded supporting Resources.
+- `src/content/content_catalog.gd`, `content_registry.gd`, validation/result types, finite grammar constants, and normalized runtime records.
+- `content/prototype_content_catalog.tres` plus referenced production `.tres` definitions.
+- `tests/unit/content/`, `tests/integration/content/`, and fixture Resources or builders.
+- `tools/test/m03/m03_content_catalog_trace.gd`.
+- `tools/test/owner/run_m03_owner_verification.ps1` and ignored generated logs.
+- `docs/codex/owner-checklists/M03-owner-verification.md`.
+- Focused persistence changes that require an explicit content revision and validate compatibility without importing content into `SaveService`.
 
 #### Data and content required
 
-- All canonical IDs in the current contract, including `RECIPE_...`, `MS_...`, `GUA_...`, and `RESONANCE_...`; Man-at-Arms and Scribe are the only functional Form definitions.
-- Output-channel definitions include an explicit rate period and optional progress-display metadata; no new player-facing rare item is required.
+- Fifty-four required top-level definitions plus six first-class output-channel definitions, plus one core terminology Resource containing twenty `TERM_...` entries.
+- Required identities include `RES_ESSENCE`, the approved Essence channels, `TRAIT_OLD_DRILL`, `TRAIT_UNCLOSED_LEDGER`, and all stable IDs in the current contract.
+- Forms: Man-at-Arms and Scribe only as functional Forms.
+- Items, Thresholds, Writs, Soldier Company, Archive, Larder, one recipe, five Recollections, six milestones, six guarantees, two resonances, fourteen tutorial states, and five narrative identities.
+- Accepted catalog revision/compatibility, channel-ID, editable naming, centralized terminology, and Essence identity contracts in `DEC-0029` through `DEC-0032`.
+- All rates, costs, coefficients, floors, durations, and rewards identified as prototype scaffold remain editable content and change the content revision when adjusted.
 
 #### Acceptance criteria
 
-- The valid catalog loads in deterministic canonical order.
-- Duplicate IDs, wrong prefixes, missing references, unsupported effects, invalid reservation requirements, and invalid recipe references fail clearly.
-- Provisional rates, costs, coefficients, durations, and floors exist in content data rather than UI or tutorial code.
-- Man-at-Arms and Scribe behavior can be distinguished from data without branching on display name.
-- A save records and validates the content revision without serializing immutable definition data.
-- Channel validation rejects zero/negative periods and invalid long-horizon progress-display combinations; the normalized period remains stable within a content revision while live modifiers alter only the effective numerator or multiplier.
+- The production catalog loads from one explicit root and contains every required definition exactly once.
+- Display names and shared terminology are editable content; lookups, rules, and saves remain keyed by canonical IDs.
+- Renaming Unclosed Ledger, a Recollection, or `TERM_THRESHOLD` changes presentation data without changing Form/`REC_...`/`THR_...` identity or save compatibility.
+- `RES_ESSENCE`, `CHANNEL_GLOAMWOOD_ESSENCE`, and `CHANNEL_BROKEN_WATCH_ESSENCE` are the only production Essence identities; deprecated IDs are rejected.
+- Duplicate IDs, wrong prefixes, missing/wrong-type references, missing required definitions, unsupported grammar tokens, invalid costs/rates/periods, invalid Soldier requirement, invalid recipes, invalid tutorial states, and invalid compatibility lists fail with stable field-level diagnostics.
+- Registry lookup and iteration use deterministic canonical ID order and never depend on filesystem enumeration or `Dictionary` insertion order.
+- Normalized runtime values contain fixed-point integers and explicit periods rather than authoritative floats; mutating a source Resource after registry construction cannot change normalized data.
+- Man-at-Arms and Scribe have data-driven, mechanically distinct modifiers and slot profiles without display-name branching.
+- Long-horizon channel definitions use stable `CHANNEL_...` IDs, whole-item outputs, explicit stable periods, and valid progress-display metadata.
+- Existing `prototype-m02` saves are explicitly compatible; new save snapshots receive `prototype-content-r1`; an unknown revision is rejected before simulation without a schema bump.
+- Provisional values live in `.tres` data, not UI, tutorial, save, or registry code.
+- The valid catalog trace, invalid duplicate-ID trace, and provisional-override normalization trace pass.
+- Linux full/focused tests, Windows owner script, and Inspector checklist pass before merge.
 
 #### Automated verification
 
-- Valid and invalid catalog suites.
-- Stable-order tests.
-- Modifier/effect grammar validation.
-- Save content-revision compatibility test.
+- Valid production catalog and deterministic summary.
+- Required-ID completeness and global uniqueness.
+- Prefix, reference, type, grammar, range, period, progress-display, recipe, Retinue, tutorial, and revision-compatibility matrices.
+- Authored-float normalization and source-mutation isolation.
+- Data-driven Man-at-Arms/Scribe distinction.
+- Existing M02 save compatibility, current-revision save creation, and unknown-revision rejection.
+- Full regression suite and parser/resource import.
 
 #### Manual verification
 
-- Open representative `.tres` definitions in the Godot Inspector and confirm that a provisional value can be changed without editing code.
+- Codex creates `tools/test/owner/run_m03_owner_verification.ps1` under `OWNER_VERIFICATION_WORKFLOW.md` to run full/focused suites, import, trace, and clean regression with one generated log.
+- Codex creates `docs/codex/owner-checklists/M03-owner-verification.md` for Godot Inspector review of the catalog, representative definitions, typed fields, Resource references, provisional values, editable names, stable Trait IDs, and core terminology entries.
+- No gameplay or visual-presentation checklist is required.
 
 #### Demonstration path
 
-- Load the valid catalog and print a deterministic summary.
-- Swap in an invalid duplicate-ID fixture and show the actionable failure.
-- Change one provisional fixture rate and show normalized runtime data changing.
+- Load the production catalog and print revision, compatibility list, per-group counts, canonical IDs, and representative normalized values.
+- Show the eight-hour Scribe Soul and twenty-four-hour Man-at-Arms Soul channel periods and progress-display metadata.
+- Load an invalid duplicate-ID catalog and print the stable actionable error.
+- Load or construct a provisional override and show the normalized value changing without code changes.
+- Validate an M02 save revision as compatible and reject an unknown revision.
 
 #### Save/load expectations
 
-Saves reference definitions only by canonical ID and record content revision. Unknown required IDs reject a save before simulation.
+Schema version 1 and its key spelling remain unchanged. New-save calls pass the current catalog revision explicitly. `prototype-m02` remains compatible because M02 saves contain only the minimal M01 state and no content IDs. Immutable definitions, effective rates, ETAs, and catalog Resources are never serialized. Later gameplay fields reference canonical IDs and use the same revision policy.
 
 #### Documentation updates
 
-- `DATA_AND_CONTENT_CONTRACTS.md`, `ARCHITECTURE.md`, source-of-truth files if a content ID changes, and `MILESTONES.md`.
+- `DATA_AND_CONTENT_CONTRACTS.md`, `ARCHITECTURE.md`, `IMPLEMENTATION_RULES.md`, `TESTING_AND_VALIDATION.md`, `MILESTONES.md`, and `README.md` as made inaccurate by the implementation.
+- `DECISIONS.md` records accepted `DEC-0029` through `DEC-0032`.
+- Design source-of-truth files change only if an approved content identity changes.
 
 #### Known risks
 
-- Godot Resource circular references or editor import ordering.
-- Overbuilding a generic rules engine.
-- Treating display names as keys.
+- Overbuilding a generic rules engine instead of the finite prototype grammar.
+- Resource circular references, editor import ordering, or source-Resource mutation leaking into normalized runtime data.
+- Treating display names or filenames as stable IDs.
+- Silently accepting incompatible save content revisions.
+- Provisional scaffold values being mistaken for final balance.
 
 #### Follow-on dependencies
 
-- M04 and all content-driven milestones.
+- M04 and every content-driven milestone.
 
 ---
 
@@ -612,7 +657,7 @@ Prove the core idle machinery before narrative and production UI are layered ove
 
 #### Player or developer outcome
 
-Through tests and a developer harness, one Gloamwood Reaping led by Man-at-Arms persists across updates, auto-banks backlog progress, Corrupted Essence, and Mastery, produces report deltas, forecasts the same rules on a clone, and survives save/load.
+Through tests and a developer harness, one Gloamwood Reaping led by Man-at-Arms persists across updates, auto-banks backlog progress, Essence, and Mastery, produces report deltas, forecasts the same rules on a clone, and survives save/load.
 
 #### Dependencies
 
@@ -649,7 +694,7 @@ The exact file list remains subject to repository inspection. Expected areas are
 
 #### Data and content required
 
-- `FORM_MAN_AT_ARMS`, `THR_GLOAMWOOD`, `WRIT_STANDARD`, Corrupted Essence, Mastery, and a small deterministic test channel configuration, including a one-item-per-24-hours long-horizon fixture.
+- `FORM_MAN_AT_ARMS`, `THR_GLOAMWOOD`, `WRIT_STANDARD`, Essence, Mastery, and a small deterministic test channel configuration, including a one-item-per-24-hours long-horizon fixture.
 
 #### Acceptance criteria
 

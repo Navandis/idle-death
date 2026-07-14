@@ -3,7 +3,7 @@
 **Document role:** Durable record of approved and proposed design and architecture decisions  
 **Repository path:** `docs/codex/DECISIONS.md`  
 **Document status:** Approved architecture and active decision record  
-**Revision:** 7  
+**Revision:** 9  
 **Last updated:** 2026-07-14
 
 ## 1. How to use this file
@@ -58,6 +58,10 @@ Rules:
 | `DEC-0026` | Six-decimal fixed-point scale, unscaled discrete counts, and checked period accumulation | Accepted | 2026-07-14 |
 | `DEC-0027` | Threshold-owned long-horizon acquisition progress survives Reaping reconfiguration | Accepted | 2026-07-14 |
 | `DEC-0028` | Rare-output progress is normalized work; rate changes are prospective and non-compounding | Accepted | 2026-07-14 |
+| `DEC-0029` | Explicit content revisions govern save compatibility | Accepted | 2026-07-14 |
+| `DEC-0030` | Output channels are first-class catalog definitions with stable `CHANNEL_...` IDs | Accepted | 2026-07-14 |
+| `DEC-0031` | Stable canonical IDs and mutable player-facing language | Accepted | 2026-07-14 |
+| `DEC-0032` | Essence is the sole resource term and canonical ID | Accepted | 2026-07-14 |
 
 ---
 
@@ -1138,9 +1142,213 @@ A representative case starts with a four-hour source at `50.0%` progress. A stro
 
 ---
 
+## `DEC-0029` — Explicit content revisions govern save compatibility
+
+**Status:** Accepted  
+**Date:** 2026-07-14  
+**Decision type:** Content compatibility and persistence boundary  
+**Refines:** `DEC-0009`, `DEC-0011`
+
+### Context
+
+M02 persists a non-empty `content_revision`, but the foundation value `prototype-m02` predates the authored content catalog and the persistence API currently permits a default revision. M03 introduces the first authoritative definitions. The project needs an explicit compatibility rule that can accept known-safe foundation saves without inferring compatibility from revision names or coupling `SaveService` to content.
+
+### Decision
+
+- The production `ContentCatalog` declares one exact current revision, initially `prototype-content-r1`.
+- The catalog also declares an explicit, duplicate-free, canonically sorted `compatible_save_revisions` list. The current revision must include itself.
+- The initial list contains exactly `prototype-content-r1` and `prototype-m02`. The legacy foundation revision is safe because M02 saves contain only the minimal M01 timeline/time-authority state and no gameplay content IDs.
+- Compatibility is exact string membership. Do not infer it from lexical order, numeric suffixes, semantic-version ranges, timestamps, or “latest” logic.
+- New-save code must receive the current catalog revision explicitly. Persistence code must not silently select a content revision or import `ContentRegistry`.
+- Load order is: decode/migrate/schema-validate the snapshot, load/validate the catalog, check exact revision compatibility, validate any persisted content IDs that exist, and only then begin simulation.
+- Removing a previously compatible revision requires an explicit migration, documented prototype reset, or new decision with fixtures and owner approval.
+- Any authoritative definition, normalized value, source identity, grammar reference, or rule change that can affect state, simulation, forecast, or tests advances the content revision. Presentation-only asset or naming changes do not invalidate saves; they may keep the same compatibility revision or introduce a new explicitly compatible revision for release bookkeeping.
+
+### Consequences
+
+- M02 saves can open after M03 without weakening validation.
+- Save-schema version and content revision remain separate compatibility dimensions.
+- Content revisions are reviewable and deterministic rather than inferred.
+- A later content-only balance change can require a new content revision without necessarily changing schema version.
+- Tests cover current, explicitly compatible legacy, missing, duplicate, and unknown revisions.
+
+### Alternatives considered
+
+- **Keep a persistence-owned default revision:** rejected because every content revision would require changing persistence code and callers could create stale saves silently.
+- **Accept any non-empty revision:** rejected because a save could reference incompatible rules or IDs.
+- **Infer compatibility from `r1`, `r2`, or semantic versions:** rejected because compatibility is not necessarily monotonic and cannot be proven from naming.
+- **Bump schema solely because content exists:** rejected because schema key meaning is unchanged.
+
+### Affected documents
+
+- `docs/codex/ARCHITECTURE.md`
+- `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`
+- `docs/codex/IMPLEMENTATION_RULES.md`
+- `docs/codex/TESTING_AND_VALIDATION.md`
+- `docs/codex/MILESTONES.md`
+- `docs/codex/milestone-prompts/M03-content-catalog-prototype-data.md`
+
+---
+
+## `DEC-0030` — Output channels are first-class catalog definitions with stable `CHANNEL_...` IDs
+
+**Status:** Accepted  
+**Date:** 2026-07-14  
+**Decision type:** Content identity and long-horizon source ownership  
+**Refines:** `DEC-0009`, `DEC-0027`, `DEC-0028`
+
+### Context
+
+Threshold outputs need stable identities independent of display names, output item IDs, filenames, and the active Reaping. The same item type may later appear at multiple Thresholds with different rates, discovery, modifiers, and acquisition progress. `DEC-0027` keys durable work by Threshold plus source/channel identity, so M03 must define that identity before M04 persists progress.
+
+### Decision
+
+- Add `CHANNEL_` as the canonical prefix for authored Threshold output channels.
+- Treat output channels as first-class typed definitions explicitly referenced by `ContentCatalog`; do not infer them by scanning Threshold folders.
+- Each channel has one stable ID, one source Threshold ID, one output item ID, a channel kind, authored baseline amount, explicit stable period, discovery metadata, Settled multiplier, progression requirement flag, and optional acquisition-progress presentation metadata.
+- Threshold definitions reference channel IDs. Registry validation enforces bidirectional ownership, global channel-ID uniqueness, valid output items, and deterministic ordering.
+- Backlog returns and active Form Mastery remain core Reaping streams rather than `OutputChannelDefinition` item grants.
+- Durable acquisition state is keyed by `Threshold ID + channel ID`; item ID alone is insufficient because the same item may have more than one source.
+- Ordinary modifiers change the future effective numerator/multiplier derived from the channel baseline. They do not change the stable period within a content revision and do not rewrite prior normalized progress.
+- The current prototype channel IDs are:
+  - `CHANNEL_GLOAMWOOD_ESSENCE`
+  - `CHANNEL_GLOAMWOOD_SOLDIER_SOULS`
+  - `CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS`
+  - `CHANNEL_BROKEN_WATCH_ESSENCE`
+  - `CHANNEL_BROKEN_WATCH_PROVISIONS`
+  - `CHANNEL_BROKEN_WATCH_MAN_AT_ARMS_FORM_SOULS`
+- M03 authors and validates these definitions but does not accumulate them. M04 adds runtime acquisition/save state keyed by these IDs.
+
+### Consequences
+
+- Reconfiguration can preserve the correct source progress without attaching it to a Form, Writ, Retinue, or generic item total.
+- Multiple sources of the same item remain distinguishable in forecasts, reports, discovery, and saves.
+- Catalog completeness and reference validation can catch missing or miswired sources before simulation starts.
+- Changing a persisted channel ID later requires migration or an approved reset.
+- The catalog gains an explicit output-channel group, increasing required production definitions from fifty-four top-level non-channel records to sixty total first-class records.
+
+### Alternatives considered
+
+- **Use output item ID as the channel key:** rejected because one item can have multiple Threshold sources with different behavior.
+- **Use array position:** rejected because reordering content would change saved identity.
+- **Use filename or resource path:** rejected because organization and renames are not gameplay identity.
+- **Keep channel IDs local strings inside Thresholds only:** rejected because global duplicate detection, save validation, and cross-reference diagnostics would be weaker.
+- **Represent backlog and Mastery as ordinary item channels:** rejected because they have different ownership and progression semantics.
+
+### Affected documents
+
+- `AGENTS.md`
+- `docs/design/IDLE_FORK_SOURCE_OF_TRUTH.md`
+- `docs/codex/ARCHITECTURE.md`
+- `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`
+- `docs/codex/IMPLEMENTATION_RULES.md`
+- `docs/codex/TESTING_AND_VALIDATION.md`
+- `docs/codex/MILESTONES.md`
+- `docs/codex/milestone-prompts/M03-content-catalog-prototype-data.md`
+
+---
+
+
+## `DEC-0031` — Stable canonical IDs and mutable player-facing language
+
+**Status:** Accepted  
+**Date:** 2026-07-14  
+**Decision type:** Content identity, terminology, and localization readiness  
+**Refines:** `DEC-0009`, `DEC-0014`, `DEC-0029`
+
+### Context
+
+Names such as **Unclosed Ledger**, Form Arts, Denizens, Recollections, and even core system terms will evolve during design, alpha/beta testing, and localization. Coupling mechanics or save references to those strings would make ordinary copy iteration risky. A later decision may also replace a player-facing system noun such as Threshold without changing the underlying mechanic.
+
+### Decision
+
+- Canonical IDs are stable mechanical/save identities. Player-facing names, descriptions, and terminology are editable authored content.
+- Every named definition exposes fallback display text and may expose localization keys. Rules, saves, tests, and references never use display text as a key.
+- The two prototype Traits use stable inline IDs, `TRAIT_OLD_DRILL` and `TRAIT_UNCLOSED_LEDGER`, plus editable names/descriptions and data-driven modifiers. Future Arts and Denizens follow the same ID-versus-name rule when introduced.
+- Shared system nouns are centralized in one terminology catalog using stable `TERM_...` keys. Presentation resolves common labels such as Threshold, Recollection, Form, Retinue, and Essence through that catalog rather than scattering literals.
+- A player-facing rename does not rename persisted prefixes or IDs. If Threshold is later displayed as another term, existing `THR_...` IDs remain stable.
+- Free-form dialogue, narrative, and long descriptions are not blindly generated through term substitution. A core-term change requires a reviewed search/update pass for grammar and context.
+- A display-only rename does not require a save migration. If release bookkeeping advances the content revision for text-only changes, the previous revision remains explicitly compatible.
+
+### Consequences
+
+- Designers can rename Traits, Recollections, and future Arts/Denizens in `.tres` content without changing gameplay code.
+- UI code later receives resolved text from content/terminology lookups rather than embedding core vocabulary.
+- Internal IDs may preserve historic abbreviations even when player-facing terminology changes, reducing migration risk.
+- A full localization pipeline remains deferred, but M03 fields are localization-ready.
+
+### Alternatives considered
+
+- **Use display names as IDs:** rejected because copy changes would break references and saves.
+- **Hard-code all core nouns in scenes:** rejected because a terminology change would require broad manual code edits.
+- **Automatically replace core words inside prose:** rejected because grammar, inflection, and narrative context cannot be handled safely by blind substitution.
+- **Rename canonical prefixes whenever the UI term changes:** rejected because internal identity does not need to mirror current marketing language.
+
+### Affected documents
+
+- `AGENTS.md`
+- `docs/design/IDLE_FORK_SOURCE_OF_TRUTH.md`
+- `docs/design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md`
+- `docs/codex/ARCHITECTURE.md`
+- `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`
+- `docs/codex/IMPLEMENTATION_RULES.md`
+- `docs/codex/TESTING_AND_VALIDATION.md`
+- `docs/codex/MILESTONES.md`
+- `docs/codex/milestone-prompts/M03-content-catalog-prototype-data.md`
+
+---
+
+## `DEC-0032` — Essence is the sole resource term and canonical ID
+
+**Status:** Accepted  
+**Date:** 2026-07-14  
+**Decision type:** Terminology and canonical data identity  
+**Refines:** `DEC-0009`, `DEC-0030`, `DEC-0031`
+
+### Context
+
+The design sources used both **Essence** and the earlier label **Corrupted Essence** for the same resource. Keeping two names for one inventory item would invite duplicate IDs, mismatched references, inconsistent UI, and migration mistakes. M03 is the final safe point to settle the identity before item/channel IDs enter gameplay saves.
+
+### Decision
+
+- Use **Essence** as the sole internal and player-facing resource term.
+- Use canonical item ID `RES_ESSENCE`.
+- Use channel IDs `CHANNEL_GLOAMWOOD_ESSENCE` and `CHANNEL_BROKEN_WATCH_ESSENCE`.
+- Use `TERM_ESSENCE` for shared player-facing terminology.
+- Code variables, metrics, tests, content, and documentation use `essence`; `ESSENCE_YIELD` remains the metric token.
+- Production catalog validation rejects the deprecated item/channel IDs and the deprecated alternate display term.
+- M00–M02 saves require no migration because schema version 1 currently contains no item or channel IDs. If a deprecated ID ever appears in a shipped save later, changing it requires an explicit migration.
+
+### Consequences
+
+- One resource has one canonical identity across authored data, runtime state, reports, saves, tests, and presentation.
+- M03 definitions start with the final current ID rather than introducing an alias layer.
+- Historical design provenance may mention the retired wording, but operational files and production content use Essence only.
+
+### Alternatives considered
+
+- **Keep both names as aliases:** rejected because aliases would spread ambiguity into content validation and reporting.
+- **Use the longer player-facing name but shorter internal ID:** rejected because the owner explicitly selected one term for both boundaries.
+- **Delay the decision until gameplay saves exist:** rejected because that would create avoidable migration work.
+
+### Affected documents
+
+- `AGENTS.md`
+- `docs/design/IDLE_FORK_SOURCE_OF_TRUTH.md`
+- `docs/design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md`
+- `docs/codex/ARCHITECTURE.md`
+- `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`
+- `docs/codex/IMPLEMENTATION_RULES.md`
+- `docs/codex/TESTING_AND_VALIDATION.md`
+- `docs/codex/MILESTONES.md`
+- `docs/codex/milestone-prompts/M03-content-catalog-prototype-data.md`
+
+---
+
 ## 3. Current approval state
 
-- `DEC-0001` through `DEC-0028` are Accepted.
+- `DEC-0001` through `DEC-0032` are Accepted.
+- M03 prompt approval accepted `DEC-0029` through `DEC-0032`, including explicit revision compatibility, stable channel IDs, editable player-facing language, centralized terminology, and Essence as the single resource identity.
 - M01 prompt approval accepted `DEC-0026`; long-horizon source ownership is recorded in `DEC-0027`; prospective, non-compounding rate-change semantics are recorded in `DEC-0028`.
-- The Phase 6 architecture is approved with trusted-time, save-format, cross-machine testing, GodotSteam, owner-verification, fixed-point, and Threshold-channel ownership refinements recorded in `DEC-0021` through `DEC-0028`.
+- The Phase 6 architecture is approved with trusted-time, save-format, cross-machine testing, GodotSteam, owner-verification, fixed-point, Threshold-channel ownership, content compatibility, naming, and terminology refinements recorded in `DEC-0021` through `DEC-0032`.
 - Future changes preserve decision IDs for wording clarifications and create a new decision only when semantics, ownership, compatibility, or security posture changes.

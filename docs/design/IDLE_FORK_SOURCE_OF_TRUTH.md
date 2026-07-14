@@ -2,7 +2,7 @@
 
 **Document role:** Maintained implementation context for the idle/incremental branch  
 **Repository path:** `docs/design/IDLE_FORK_SOURCE_OF_TRUTH.md`  
-**Markdown revision:** 4  
+**Markdown revision:** 5  
 **Last updated:** 2026-07-14  
 **Primary source:** *Death Idle - Idle & Incremental Fork - Design Direction v0.1* (12 July 2026)  
 **Companion prototype contract:** [PROTOTYPE_0_90_SOURCE_OF_TRUTH.md](PROTOTYPE_0_90_SOURCE_OF_TRUTH.md)
@@ -92,7 +92,7 @@ Avoid language that frames souls as disposable troops or loot. Avoid terms such 
 
 **Status: Confirmed**
 
-1. Choose an objective: backlog settlement, Corrupted Essence, a Whole Soul source, materials, Mastery, Recollection progress, or seal progress.
+1. Choose an objective: backlog settlement, Essence, a Whole Soul source, materials, Mastery, Recollection progress, or seal progress.
 2. Allocate limited command tethers among available Thresholds.
 3. Configure each Reaping with a leading Form, Writ, compatible Retinues, and support policy.
 4. Allow Reapings and Halls to operate online and offline.
@@ -136,6 +136,16 @@ Expected session rhythms:
 | Codex Mortis | Glossary, source records, performance history, statistics, and later advanced analysis. |
 | Halls | Persistent conversion and infrastructure systems. |
 | Seals | Major account progression, chapter gates, capacity changes, and restored authority. |
+
+### Player-facing names and durable identity
+
+**Status: Confirmed**
+
+The vocabulary in this document is the current player-facing language, not the save identity of the underlying systems. Forms, Traits, future Arts, Denizens, Recollections, items, and other named content use stable canonical IDs plus editable display text. Renaming **Unclosed Ledger**, a Recollection, or a Denizen does not change its mechanical identity or require a save migration.
+
+Shared system nouns such as **Threshold**, **Reaping**, **Recollection**, and **Essence** are resolved through centralized terminology entries so a later player-facing rename can be applied consistently to UI labels, tooltips, Help, and glossary surfaces. Internal prefixes such as `THR_` remain stable even if the displayed term changes. Free-form narrative or descriptive prose still requires a reviewed terminology update; the architecture does not perform unsafe blind string replacement.
+
+The current canonical resource term is **Essence**, internally `RES_ESSENCE`. The earlier dual wording is retired before the content catalog is implemented.
 
 ## 6. Architecture-level design invariants
 
@@ -208,7 +218,7 @@ A backlog is a deterministic campaign objective, not a pre-generated bag of indi
 | Stream | Produces |
 |---|---|
 | Backlog | Souls Returned and settlement progress. |
-| Essence | Corrupted Essence generated from returned souls and local conditions. |
+| Essence | Essence generated from returned souls and local conditions. |
 | Mastery | Mastery for the leading Form while the Reaping is productive. |
 | Form Soul channel | Location-appropriate Form Souls. |
 | Calling Soul channel | Location-appropriate ordinary callings. |
@@ -274,7 +284,7 @@ Halls produce global Stores. A Reaping maintains a small support buffer accordin
 |---|---|
 | Fully supported | Full Reaping rate, Retinue effects, premium channels, and mitigation. |
 | Running low | Forecast warns the player; affected premium effects may begin to soften. |
-| Depleted | Base backlog, Corrupted Essence, and Mastery continue; affected Retinue or premium effects operate at a reduced value. |
+| Depleted | Base backlog, Essence, and Mastery continue; affected Retinue or premium effects operate at a reduced value. |
 | Fallback enabled | A later Writ may switch automatically to a low-upkeep behavior. |
 
 Stable Runtime must state the likely bottleneck and the post-bottleneck behavior. It is not a countdown until all production stops.
@@ -345,7 +355,7 @@ Avoid active combat abilities, cooldown rotations, and bespoke scripting for eve
 
 ### Prototype identities
 
-- **Man-at-Arms:** organized force, backlog throughput, Corrupted Essence, Mastery, and Martial Retinue synergy; weak at preservation and spiritual or magical handling.
+- **Man-at-Arms:** organized force, backlog throughput, Essence, Mastery, and Martial Retinue synergy; weak at preservation and spiritual or magical handling.
 - **Scribe:** discovery, forecast precision, Codex-oriented information value, and reduced uncertainty; lower direct throughput and diminishing value at fully charted sites.
 
 Exact prototype coefficients are defined and status-labeled in the companion prototype contract.
@@ -358,7 +368,7 @@ Exact prototype coefficients are defined and status-labeled in the companion pro
 
 | Category | Meaning | Primary uses |
 |---|---|---|
-| Corrupted Essence | Soul matter too damaged to retain stable identity. | Recollections, Hall work, Threshold control, and general progression costs. |
+| Essence | Soul matter too damaged to retain stable identity. | Recollections, Hall work, Threshold control, and general progression costs. |
 | Whole Soul | Umbrella category for cleanly recovered souls. | Parent category for Form, Calling, and Denizen Souls. |
 | Form Soul | Whole Soul tied to a Soulweave Form. | Awakening, later weaving, Arts, and higher-form requirements. |
 | Calling Soul | Whole Soul tied to an ordinary calling. | Retinues, Hall Keepers, later relief, commissions, and settlement. |
@@ -398,7 +408,7 @@ Calling Soul attrition, strain, relief reserves, settlement, understrength cohor
 
 | Layer | Examples | Purpose |
 |---|---|---|
-| Soul economy | Corrupted Essence, Form Souls, Calling Souls, Denizen Souls, Mastery. | Forms, Retinues, Halls, Recollections, seals, and later Arts. |
+| Soul economy | Essence, Form Souls, Calling Souls, Denizen Souls, Mastery. | Forms, Retinues, Halls, Recollections, seals, and later Arts. |
 | Material economy | Provisions, Metal, Timber, Stone, Remains, Reagents, Relics. | Hall inputs, recipes, biome identity, and unlock requirements. |
 | Logistics economy | Rations, Armaments, Tools, Wards, Medical Supplies. | Support buffers, Writs, Retinues, hazards, and later anchoring. |
 | Knowledge economy | Insight, Codex records, Threshold familiarity. | Forecasts, source knowledge, automation, and Recollections. |
@@ -461,7 +471,7 @@ Historical trends, advanced comparisons, channel-level return on investment, sou
 Reports aggregate already-applied production into a satisfying review moment. A report can explain:
 
 - souls returned and backlog progress;
-- Corrupted Essence and other resources;
+- Essence and other resources;
 - Whole Souls and materials;
 - Mastery;
 - discoveries;
@@ -506,7 +516,7 @@ The current prototype must prove:
 - Gloamwood Hamlet and Broken Watch;
 - persistent Reapings and automatic banking;
 - Man-at-Arms and Scribe;
-- Corrupted Essence and active Form Mastery;
+- Essence and active Form Mastery;
 - Archive, early Recollections, and the visible thirty-position Soulweave;
 - one Soldier Company using twelve reserved Soldier Souls;
 - two command tethers and two concurrent Reapings;
@@ -598,3 +608,4 @@ When changing a confirmed rule:
 | External trusted-time authority and prohibition on local wall-clock offline credit | Project-owner clarification recorded during the 2026-07-12 planning session; implemented by `DEC-0021`. |
 | Normalized rare-output work, prospective rate changes, and non-compounding modifier application | Project-owner clarification recorded during the 2026-07-14 planning session; implemented by `DEC-0028`. |
 | Six-decimal fractional scale, unscaled whole counts, and persistent Threshold-owned long-horizon acquisition progress | Project-owner clarifications approved on 2026-07-14; implemented by `DEC-0026` and `DEC-0027`. |
+| Mutable player-facing naming, centralized core terminology, and Essence as the single resource term | Project-owner clarifications approved on 2026-07-14; implemented by `DEC-0031` and `DEC-0032`. |

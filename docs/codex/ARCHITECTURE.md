@@ -3,7 +3,7 @@
 **Document role:** Maintained implementation architecture for the 0-90 minute prototype  
 **Repository path:** `docs/codex/ARCHITECTURE.md`  
 **Document status:** Approved architecture  
-**Architecture revision:** 5  
+**Architecture revision:** 6  
 **Last updated:** 2026-07-14  
 **Engine target:** Godot 4.7, GDScript only  
 **Primary design context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md) and [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md)
@@ -129,11 +129,20 @@ Examples:
 - `HallDefinition` and `RecipeDefinition`;
 - `RecollectionDefinition`;
 - `MilestoneDefinition`;
-- `GuaranteeDefinition`.
+- `GuaranteeDefinition`;
+- `CoreTerminologyDefinition` and its `TERM_...` entries.
 
 A checked-in `ContentCatalog` explicitly lists prototype definitions. `ContentRegistry` loads that catalog, validates IDs and references, and exposes read-only lookup methods.
 
 Definitions describe what content means. They do not contain mutable quantities such as the player's current backlog, inventory, Mastery, active assignments, or tutorial progress.
+
+#### Stable identity and mutable player-facing language
+
+Canonical IDs are durable mechanical and save identities. Player-facing names, descriptions, and shared system terminology are content. A Form, Trait, future Art, Denizen, Recollection, or other named object therefore exposes editable fallback text and may expose a localization key, while rules and saves continue to reference its canonical ID.
+
+`CoreTerminologyDefinition` centralizes shared nouns through stable `TERM_...` keys. Presentation later resolves labels such as Threshold, Recollection, Form, Retinue, and Essence from those entries instead of scattering literals through scenes. A player-facing rename does not rename persisted prefixes such as `THR_`; changing a canonical ID is a migration decision. Free-form dialogue and long descriptions still require a deliberate reviewed copy update.
+
+The catalog uses `RES_ESSENCE` and the player-facing term **Essence**. The deprecated dual terminology is not accepted by production content validation.
 
 ### 5.2 Mutable runtime state
 
@@ -616,7 +625,7 @@ When backlog reaches zero:
 Each Threshold definition declares independent channels. The prototype channel types are:
 
 - backlog returns;
-- Corrupted Essence;
+- Essence;
 - active Form Mastery;
 - Form Souls;
 - Calling Souls;
@@ -1211,6 +1220,7 @@ M01 adds the first scene-independent runtime foundation without adding gameplay 
 - `FixedPoint` owns the single `1_000_000` subunit scale for fractional state. Discrete counts such as inventory, backlog, and tethers remain unscaled integers.
 - `TimeReconciliationService` separates non-mutating trusted-time planning from commit. This lets later save/offline milestones simulate candidate elapsed time and commit the simulation result, anchor update, and foreground-credit reset transactionally.
 - `ProcessMonotonicClock` is the only M01 adapter that reads Godot's process-monotonic clock. Authoritative simulation receives elapsed milliseconds and does not query wall-clock, calendar, timezone, file timestamp, Steam, or registry APIs.
+
 
 
 ## M02 persistence implementation note

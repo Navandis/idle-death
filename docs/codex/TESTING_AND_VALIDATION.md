@@ -2,8 +2,8 @@
 
 **Document role:** Canonical test strategy, commands, fixture rules, and manual validation flows
 **Repository path:** `docs/codex/TESTING_AND_VALIDATION.md`
-**Document status:** Approved architecture validation plan through M01
-**Validation revision:** 7
+**Document status:** Approved architecture validation plan through M02 with M03 package approved
+**Validation revision:** 9
 **Last updated:** 2026-07-14
 **Engine target:** Godot 4.7 standard build, GDScript only
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)  
@@ -1011,28 +1011,88 @@ Required automated owner steps:
 No visual/editor checklist is required for M02 because the milestone introduces no player-facing save UI. Windows filesystem behavior remains an owner merge gate.
 
 
-## M02 persistence validation
+
+## M02 completion record
+
+M02 merged through PR #6 at merge commit `480a9eae2fe0c3591503da56b07c272be74ec027` from final head `0dd0c1d5c799db45aa4a8387d93750e02b2e485f`.
+
+Linux/Codex evidence recorded:
+
+- focused persistence suite: `17/17` tests, exit `0`;
+- full regression suite: `29/29` tests, exit `0`;
+- real-file trace: revision 1, revision 2, backup rotation, corrupt-primary rejection, backup selection, and corrupt-byte retention passed;
+- source-ownership and `git diff --check` passed.
+
+The owner Windows log recorded:
+
+- Godot `4.7.stable.official.5b4e0cb0f`;
+- full suite before and after trace: `29/29` tests and `253` assertions each;
+- focused M02 suite: `17/17` tests and `144` assertions;
+- import preflight: pass;
+- real-file trace: both revisions written, revision-1 backup present, primary corrupted, backup selected, stable diagnostic emitted, corrupt bytes retained;
+- isolated test directory removed and verified absent;
+- automated result `PASS`, failed step count `0`, cleanup `PASS`, and no interactive checks.
+
+`GATE-SAVE-SCHEMA` is satisfied.
+
+## M03 approved validation package
+
+M03 must add content-focused tests, one deterministic headless trace, one owner-run Windows entry point, and one Inspector checklist.
 
 Focused Linux/Codex command:
 
 ```bash
-./tools/test/run_gut.sh -- -gdir=res://tests/unit/persistence -gdir=res://tests/integration/save_load
+./tools/test/run_gut.sh -- \
+  -gdir=res://tests/unit/content \
+  -gdir=res://tests/integration/content
 ```
 
-Real-file trace command, using a disposable root outside production saves:
+Headless trace after explicit import:
 
 ```bash
-godot --headless --path . -s res://tools/test/m02/m02_persistence_trace.gd -- --save-root /tmp/death-idle-m02-trace
+godot --headless --path . --import
+godot --headless --path . -s res://tools/test/m03/m03_content_catalog_trace.gd
 ```
 
-The M02 suite covers runtime/schema mapping, canonical integer strings, JSON numeric rejection, deterministic `JSON_V1` bytes, migration seams, primary/temp/backup transactions, highest valid revision selection, corrupt-primary fallback with byte retention, both-invalid recovery failure, injected write/copy/rename failures, suspect primary preservation, reconciliation candidate commit behavior, and source ownership checks against local wall time, file timestamps, Steam, and registry-derived authority.
+The trace must print:
 
-Owner Windows verification is packaged as:
+- current content revision and exact compatibility list;
+- per-group counts and deterministic canonical ID order;
+- representative normalized fixed-point values;
+- the eight-hour Scribe Form Soul and twenty-four-hour Man-at-Arms Form Soul channel periods;
+- one invalid duplicate-ID diagnostic;
+- one provisional override whose normalized value changes without code modification;
+- a fixture rename of Unclosed Ledger and a Recollection that preserves their canonical IDs/modifiers;
+- a `TERM_THRESHOLD` override that changes shared display text while `THR_...` identities remain unchanged;
+- `RES_ESSENCE`, `CHANNEL_GLOAMWOOD_ESSENCE`, and `CHANNEL_BROKEN_WATCH_ESSENCE`, with deprecated IDs rejected;
+- acceptance of `prototype-m02` and rejection of an unknown save revision.
+
+Owner Windows automation must be packaged as:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass `
-    -File .\tools\test\owner\run_m02_owner_verification.ps1 `
+    -File .\tools\test\owner\run_m03_owner_verification.ps1 `
     -CommitSha "<PR_HEAD_SHA>"
 ```
 
-The script writes a generated log under `tools/test/owner/logs/`, uses a unique temporary save root, runs full and focused suites, import preflight, the M02 trace, cleanup verification, and a final clean full suite. Windows verification remains pending until the owner runs it for the PR head.
+The script follows `OWNER_VERIFICATION_WORKFLOW.md`, keeps Git CLI optional, captures complete output in one UTF-8 log, runs full suite before, focused M03 suite, explicit import, trace, and full suite after, and finishes with failed step count `0`, cleanup `PASS`, and the Inspector checklist pending until the owner reports it.
+
+Interactive Inspector verification must be supplied at:
+
+```text
+docs/codex/owner-checklists/M03-owner-verification.md
+```
+
+The checklist must cover:
+
+1. `content/prototype_content_catalog.tres` revision, compatibility list, and explicit group references;
+2. Man-at-Arms and Scribe typed fields, stable inline Trait IDs, editable Trait labels, optional localization keys, and modifiers;
+3. Gloamwood, Broken Watch, and representative `CHANNEL_...` definitions, including explicit periods and progress-display flags;
+4. Soldier Company requirement/support fields;
+5. Archive, Larder, and the Provisions-to-Rations recipe;
+6. representative Recollection, milestone, guarantee, resonance, tutorial, and narrative identity Resources with editable names independent of IDs;
+7. the core terminology Resource, including `TERM_THRESHOLD`, `TERM_RECOLLECTION`, and `TERM_ESSENCE`;
+8. a production or fixture override showing an exported provisional value can differ without editing GDScript;
+9. no import/parser errors and no arbitrary script callback/expression fields in authored content.
+
+M03 merge requires both the owner script log and explicit checklist result.

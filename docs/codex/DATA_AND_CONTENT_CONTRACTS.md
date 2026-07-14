@@ -3,7 +3,7 @@
 **Document role:** Canonical prototype data, runtime-state, ID, and serialization contracts  
 **Repository path:** `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`  
 **Document status:** Approved architecture contract  
-**Revision:** 5  
+**Revision:** 7  
 **Last updated:** 2026-07-14
 
 ## 1. Purpose
@@ -94,7 +94,8 @@ Changing a canonical ID after it appears in a committed save requires a migratio
 | Prefix | Entity |
 |---|---|
 | `FORM_` | Form / Soulform |
-| `TRAIT_` | Named Trait when separately identified |
+| `TRAIT_` | Named Trait or inline Trait identity |
+| `ART_` | Form Art identity when Arts are introduced |
 | `THR_` | Threshold |
 | `WRIT_` | Writ |
 | `RET_` | Retinue |
@@ -113,8 +114,27 @@ Changing a canonical ID after it appears in a committed save requires a migratio
 | `DIALOGUE_` | Dialogue sequence |
 | `CHAR_` | Narrative character record |
 | `REPORT_EVENT_` | Reportable event type, when a canonical ID is required |
+| `CHANNEL_` | Stable Threshold output-channel/source identity |
+| `TERM_` | Shared player-facing system terminology entry |
 
 Requirement labels such as `P90-B04`, `P90-G02`, `P90-AC07`, and `IF-REQ-08` are documentation traceability labels, not runtime IDs.
+
+### 3.3 Stable IDs and editable player-facing language
+
+Canonical IDs are not display strings. Every named definition uses its stable ID for references and saves while exposing editable fallback text. A rename of a Form, Trait, future Art, Denizen, Recollection, or other entity does not change its mechanical identity.
+
+Base naming fields are:
+
+| Field | Type | Rule |
+|---|---|---|
+| `display_name` | `String` | Required fallback/player-facing text; never a key |
+| `localization_key` | `StringName` | Optional until localization is implemented; stable when populated |
+| `description` | `String` | Optional fallback descriptive text; never executable logic |
+| `description_localization_key` | `StringName` | Optional localized description key |
+
+Shared system nouns use `TERM_...` entries in one `CoreTerminologyDefinition`. Each entry supplies singular and plural fallback text plus optional localization keys. UI labels, glossary headings, and Help surfaces later resolve those keys rather than hard-coding core terms. A player-facing rename does not require renaming persisted prefixes such as `THR_`; changing a canonical ID still requires migration or an approved reset.
+
+Free-form narrative and descriptive prose is not mechanically rewritten from terminology entries. A core-term change requires a reviewed copy pass so grammar and context remain correct. Display-only renames do not by themselves invalidate saves.
 
 ## 4. Existing prototype content IDs
 
@@ -132,7 +152,7 @@ The following IDs are fixed by the approved prototype source of truth.
 | Threshold | `THR_BROKEN_WATCH` | Broken Watch |
 | Hall | `HALL_ARCHIVE` | Archive |
 | Hall | `HALL_LARDER` | Larder |
-| Resource | `RES_CORRUPTED_ESSENCE` | Corrupted Essence |
+| Resource | `RES_ESSENCE` | Essence |
 | Resource | `RES_PROVISIONS` | Provisions |
 | Store | `STORE_RATIONS` | Rations |
 | Recollection | `REC_WEAVE_REMEMBERED` | The Weave Remembered |
@@ -170,11 +190,11 @@ The scripted opening four are excluded from every `*_REAPING_*` counter.
 
 | ID | Contract |
 |---|---|
-| `GUA_ARCHIVE_WEAVE_COST_FLOOR` | Ensure available Corrupted Essence covers the remaining mandatory Archive restoration and The Weave Remembered costs when that guided step becomes actionable; derive the amount from configured content and current completion state |
+| `GUA_ARCHIVE_WEAVE_COST_FLOOR` | Ensure available Essence covers the remaining mandatory Archive restoration and The Weave Remembered costs when that guided step becomes actionable; derive the amount from configured content and current completion state |
 | `GUA_SOLDIER_SOULS_12` | Ensure at least twelve owned Soldier Souls at the 1,000-return milestone, granting only the missing amount |
-| `GUA_MUSTER_COST_FLOOR` | Ensure available Corrupted Essence covers the remaining mandatory The Muster Remembered cost before Retinue assignment is required |
+| `GUA_MUSTER_COST_FLOOR` | Ensure available Essence covers the remaining mandatory The Muster Remembered cost before Retinue assignment is required |
 | `GUA_SCRIBE_SOUL_1` | Ensure at least one Scribe Form Soul at the 2,500-return milestone, granting nothing if already satisfied |
-| `GUA_SCRIBE_AWAKENING_COST_FLOOR` | Ensure available Corrupted Essence covers the configured Scribe awakening cost while leaving the Awaken command to the player |
+| `GUA_SCRIBE_AWAKENING_COST_FLOOR` | Ensure available Essence covers the configured Scribe awakening cost while leaving the Awaken command to the player |
 | `GUA_PROVISIONS_ONBOARDING_FLOOR` | Ensure the derived Provisions floor after identification: Larder restoration + one Ration batch + configured buffer |
 
 The four-soul opening is a one-time scripted transaction, not an inventory-floor guarantee.
@@ -200,6 +220,61 @@ The following IDs are recommended when narrative data first requires them:
 
 They need not be created until their first implementation milestone.
 
+### 5.6 Inline prototype Trait identities
+
+The prototype Forms use stable inline Trait identities with editable names:
+
+| ID | Current display name | Owner |
+|---|---|---|
+| `TRAIT_OLD_DRILL` | The Old Drill | `FORM_MAN_AT_ARMS` |
+| `TRAIT_UNCLOSED_LEDGER` | Unclosed Ledger | `FORM_SCRIBE` |
+
+These are not separate top-level definitions in M03. The Form definition owns the Trait identity, editable fallback name, optional localization key, description, and modifiers. Logic never checks the displayed Trait name.
+
+### 5.7 M03 output-channel identities
+
+Accepted `DEC-0030` promotes Threshold output sources to first-class catalog definitions:
+
+| ID | Threshold | Output |
+|---|---|---|
+| `CHANNEL_GLOAMWOOD_ESSENCE` | `THR_GLOAMWOOD` | `RES_ESSENCE` |
+| `CHANNEL_GLOAMWOOD_SOLDIER_SOULS` | `THR_GLOAMWOOD` | `SOUL_CALLING_SOLDIER` |
+| `CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS` | `THR_GLOAMWOOD` | `SOUL_FORM_SCRIBE` |
+| `CHANNEL_BROKEN_WATCH_ESSENCE` | `THR_BROKEN_WATCH` | `RES_ESSENCE` |
+| `CHANNEL_BROKEN_WATCH_PROVISIONS` | `THR_BROKEN_WATCH` | `RES_PROVISIONS` |
+| `CHANNEL_BROKEN_WATCH_MAN_AT_ARMS_FORM_SOULS` | `THR_BROKEN_WATCH` | `SOUL_FORM_MAN_AT_ARMS` |
+
+Backlog returns and active Form Mastery are core Reaping streams, not inventory-output channels.
+
+### 5.8 Core terminology identities
+
+M03 adds one terminology catalog containing these stable keys and current fallback terms:
+
+| ID | Singular fallback | Plural fallback |
+|---|---|---|
+| `TERM_ESSENCE` | Essence | Essence |
+| `TERM_FORM` | Form | Forms |
+| `TERM_TRAIT` | Trait | Traits |
+| `TERM_ART` | Art | Arts |
+| `TERM_THRESHOLD` | Threshold | Thresholds |
+| `TERM_REAPING` | Reaping | Reapings |
+| `TERM_WRIT` | Writ | Writs |
+| `TERM_RETINUE` | Retinue | Retinues |
+| `TERM_RECOLLECTION` | Recollection | Recollections |
+| `TERM_HALL` | Hall | Halls |
+| `TERM_SOULWEAVE` | Soulweave | Soulweave |
+| `TERM_MASTERY` | Mastery | Mastery |
+| `TERM_COMMAND_TETHER` | Command Tether | Command Tethers |
+| `TERM_WHOLE_SOUL` | Whole Soul | Whole Souls |
+| `TERM_FORM_SOUL` | Form Soul | Form Souls |
+| `TERM_CALLING_SOUL` | Calling Soul | Calling Souls |
+| `TERM_DENIZEN_SOUL` | Denizen Soul | Denizen Souls |
+| `TERM_STORE` | Store | Stores |
+| `TERM_SEAL` | Seal | Seals |
+| `TERM_REAPING_REPORT` | Reaping Report | Reaping Reports |
+
+The current fallback strings are content, not IDs. `TERM_THRESHOLD` may later display a different word without renaming `THR_...` identifiers or saved references.
+
 ## 6. Content catalog contract
 
 The content registry loads one explicit root `ContentCatalog` Resource:
@@ -208,12 +283,13 @@ The content registry loads one explicit root `ContentCatalog` Resource:
 content/prototype_content_catalog.tres
 ```
 
-The catalog contains a required `content_revision` string and ordered references to the prototype definitions required by the current build. The revision changes whenever an authoritative definition, normalized value, or rule reference changes in a way that can affect a save, forecast, test fixture, or simulation result. Presentation-only asset replacement does not require a revision change unless code or content behavior also changes.
+The catalog contains a required `content_revision` string, an explicit duplicate-free `compatible_save_revisions` list, and ordered references to the prototype definitions required by the current build. Accepted `DEC-0029` sets the first current revision to `prototype-content-r1` and explicitly permits `prototype-m02` plus the current revision. Compatibility is exact string membership; it is never inferred from revision naming. The revision changes whenever an authoritative definition, normalized value, source ID, or rule reference changes in a way that can affect a save, forecast, test fixture, or simulation result. Presentation-only asset replacement does not require a revision change unless code or content behavior also changes.
 
 Minimum catalog groups:
 
 - Forms;
 - Thresholds;
+- output channels;
 - Writs;
 - Retinues;
 - Soul/resource/store items;
@@ -222,8 +298,10 @@ Minimum catalog groups:
 - Recollections;
 - milestones;
 - guarantees;
+- resonances;
 - tutorial presentation definitions;
-- dialogue definitions when implemented.
+- narrative identity and dialogue definitions required by the current build;
+- one core terminology catalog containing `TERM_...` entries.
 
 The registry does not discover authoritative content by recursively scanning directories. Explicit references make missing content, load order, and test fixtures deterministic.
 
@@ -240,11 +318,29 @@ Every top-level definition contains:
 | Field | Type | Rule |
 |---|---|---|
 | `id` | `StringName` | Required, unique, correctly prefixed |
-| `display_name` | `String` | Player-facing prototype text; not used as a key |
+| `display_name` | `String` | Editable fallback/player-facing text; never used as a key |
+| `localization_key` | `StringName` | Optional localization key; empty until needed |
+| `description` | `String` | Optional fallback descriptive text |
+| `description_localization_key` | `StringName` | Optional localization key for description |
 | `enabled` | `bool` | Allows a definition to be present but intentionally unavailable; default true |
 | `notes` | `String` | Optional editor-facing context, not runtime logic |
 
 Optional presentation assets are resource references or `res://` paths validated by the appropriate definition.
+
+#### CoreTerminologyDefinition and TermEntry
+
+One `CoreTerminologyDefinition` contains explicit `TermEntry` subresources. A term entry has:
+
+| Field | Type | Rule |
+|---|---|---|
+| `id` | `StringName` | Required unique `TERM_...` key |
+| `singular_display_name` | `String` | Required fallback singular/current form |
+| `plural_display_name` | `String` | Required fallback plural form |
+| `singular_localization_key` | `StringName` | Optional |
+| `plural_localization_key` | `StringName` | Optional |
+| `notes` | `String` | Editor-only guidance |
+
+Term entries are presentation vocabulary, not game-rule switches. The registry exposes immutable term lookups, while free-form prose remains separately authored and reviewed.
 
 ### 7.2 FormDefinition
 
@@ -254,7 +350,10 @@ Optional presentation assets are resource references or `res://` paths validated
 | `display_name` | `String` | Required |
 | `circle` | `int` | Man-at-Arms and Scribe are First Circle |
 | `role_summary` | `String` | Concise player-facing identity |
-| `trait_id` | `StringName` | Stable Trait identity if separated |
+| `trait_id` | `StringName` | Stable inline `TRAIT_...` identity |
+| `trait_display_name` | `String` | Editable fallback name; not used by logic |
+| `trait_localization_key` | `StringName` | Optional localized Trait-name key |
+| `trait_description` | `String` | Editable fallback description |
 | `modifiers` | `Array[ModifierDefinition]` | Data-driven Trait effects |
 | `retinue_slot_profiles` | array | Ordered slot compatibility definitions |
 | `base_values` | typed Resource or fields | Prototype production/discovery inputs |
@@ -306,8 +405,8 @@ The final Soldier Company stacking model remains provisional. The data represent
 | `tags` | `Array[StringName]` | Stable tag IDs or approved simple names |
 | `initial_backlog` | `int` | Non-negative; Gloamwood 1,000,000, Broken Watch provisional 250,000 |
 | `base_production` | typed values | Configurable rate/yield inputs |
-| `overdue_channels` | array | Independent output definitions |
-| `settled_channels` | array or multipliers | Renewable essential outputs |
+| `channel_ids` | `Array[StringName]` | Stable first-class `CHANNEL_...` references owned by this Threshold |
+| `settled_channel_ids` | `Array[StringName]` or the same `channel_ids` plus per-channel multiplier | Renewable essential outputs |
 | `settlement_multiplier` | `float` | Provisional, positive; normalized by the registry |
 | `initial_disclosure` | fields | Which rows are known at unlock |
 | `milestone_ids` | array | Ordered relevant milestones |
@@ -320,7 +419,8 @@ A Threshold definition does not contain current backlog, active Form, or discove
 
 | Field | Type | Rule |
 |---|---|---|
-| `channel_id` | `StringName` | Unique within Threshold; stable in saves when acquisition progress or carry is persisted |
+| `id` | `StringName` | Global canonical `CHANNEL_...` identity; stable once saves may reference it |
+| `source_threshold_id` | `StringName` | Owning `THR_...`; must agree with the Threshold reference |
 | `output_item_id` | `StringName` | Resource/Soul/Store produced |
 | `channel_kind` | enum | Essence, Form Soul, Calling Soul, material, or later Denizen |
 | `base_rate_per_period` | `float` | Non-negative authored amount for the declared period; normalized once by the registry |
@@ -412,6 +512,8 @@ No attrition or service-turnover fields are active in the first-session prototyp
 | `modifiers` | array | Optional global effects |
 | `repeatable` | `bool` | False for prototype |
 | `presentation` | fields | Description/icon/position |
+
+A Recollection rename changes only display/localization fields. `REC_...` remains the rule/save identity.
 
 ### 7.12 MilestoneDefinition
 
@@ -1048,6 +1150,9 @@ Tests must cover the exact `999`, `1_000`, `2_499`, `2_500`, `4_999`, `5_000`, `
 `ContentRegistry` must reject or clearly report:
 
 - duplicate canonical IDs;
+- empty required display names or duplicate/malformed `TERM_...` entries;
+- any rule or reference keyed by display text rather than canonical ID;
+- deprecated `RES_CORRUPTED_ESSENCE` or deprecated Essence-channel IDs in production content;
 - IDs with an invalid or mismatched prefix;
 - missing required prototype definitions;
 - unresolved references between definitions;
@@ -1108,7 +1213,7 @@ The following values remain configurable authored data or focused settings. They
 - Form rate, discovery, and uncertainty inputs;
 - Man-at-Arms and Scribe Trait coefficients;
 - Soldier Company rate, Essence, Mastery, support-consumption, reduced-floor, and stacking values;
-- Corrupted Essence yield;
+- Essence yield;
 - Mastery rate;
 - Form Soul, Calling Soul, and material channel rates;
 - discovery thresholds and Scribe/non-Scribe fallback progress;
@@ -1186,6 +1291,7 @@ M01 introduces these runtime-only contracts. They are not a save schema and do n
 - Explicit-period accumulation stores and returns its arithmetic carry in the same units as the period denominator. The caller owns the single durable progress/carry record for a future flow key.
 
 
+
 ## M02 schema-version-1 save contract
 
 Schema version 1 is the frozen minimal M01 persistence snapshot. Top-level keys are exactly `codec_id`, `schema_version`, `save_revision`, `content_revision`, `time_authority`, `last_offline_resolution_id`, `metadata`, and `game_state`. `codec_id` must be `JSON_V1`. `schema_version`, `save_revision`, `game_state.simulation_time_msec`, `time_authority.trusted_anchor_utc_msec`, and `time_authority.foreground_credited_since_anchor_msec` are canonical signed-64-bit decimal strings, with non-negative policies for current schema fields. JSON numeric values in these fields are invalid.
@@ -1193,3 +1299,82 @@ Schema version 1 is the frozen minimal M01 persistence snapshot. Top-level keys 
 `game_state` contains exactly `simulation_time_msec`. `last_offline_resolution_id` is a diagnostic/idempotency string, and `metadata` is an explicit dictionary reserved for schema diagnostics; M02 writes an empty resolution ID and empty metadata. `time_authority` contains exactly `has_trusted_anchor`, `trusted_anchor_utc_msec`, `trusted_source_id`, `foreground_credited_since_anchor_msec`, `pending_trusted_reconciliation`, and `last_sample_diagnostic_code`. The M01 no-anchor runtime sentinel `trusted_anchor_utc_msec = -1` is encoded as `has_trusted_anchor = false`, `trusted_anchor_utc_msec = "0"`, empty `trusted_source_id`, and foreground credit `"0"`; decoding reconstructs the runtime sentinel. Anchored saves require `has_trusted_anchor = true`, a non-empty source ID, and non-negative anchor/foreground credit.
 
 Stable M02 diagnostics include `SAVE_INT_*` integer errors, `SAVE_SCHEMA_*` validation errors, `SAVE_CODEC_*` codec errors, `SAVE_MIGRATION_*` migration errors, and `SAVE_TRANSACTION_FAILED` storage orchestration failures. Fixtures live under `tests/fixtures/saves/`.
+
+## Approved M03 catalog and scaffold contract
+
+The M03 prompt approval accepts the structure and values below only as editable prototype scaffold, not final balance.
+
+### Catalog identity and compatibility
+
+- Root path: `content/prototype_content_catalog.tres`.
+- Current revision: `prototype-content-r1`.
+- Compatible save revisions, canonically sorted and duplicate-free: `prototype-content-r1`, `prototype-m02`.
+- Required first-class gameplay/content definitions: fifty-four non-channel definitions plus six `OutputChannelDefinition` records, for sixty total.
+- Required terminology: one `CoreTerminologyDefinition` containing the twenty `TERM_...` entries in §5.8.
+- Required inline Trait identities: `TRAIT_OLD_DRILL` and `TRAIT_UNCLOSED_LEDGER`, with editable names and stable modifiers.
+- New saves receive the registry's current revision explicitly. Persistence retains no content-owned default and does not import `ContentRegistry`.
+- Unknown revisions fail with `CONTENT_REVISION_INCOMPATIBLE` before simulation.
+
+### Naming and terminology policy
+
+- `display_name` and optional localization fields are mutable presentation data; IDs and references are stable.
+- Rebuilding a registry after changing **Unclosed Ledger**, a Recollection name, or another entity name changes only normalized presentation text.
+- Changing `TERM_THRESHOLD` changes the shared player-facing noun but leaves `THR_...` IDs and save compatibility untouched.
+- The production catalog uses `RES_ESSENCE`, `CHANNEL_GLOAMWOOD_ESSENCE`, and `CHANNEL_BROKEN_WATCH_ESSENCE`. The deprecated dual terminology is rejected.
+- Text-only naming changes do not require a schema migration. A content revision may stay the same for a pure presentation edit, or advance while retaining previous compatibility for release bookkeeping.
+
+### Finite modifier grammar
+
+Approved M03 metric tokens:
+
+```text
+SOULS_RETURNED_RATE
+ESSENCE_YIELD
+MASTERY_RATE
+DISCOVERY_RATE
+FORECAST_UNCERTAINTY
+RETINUE_CONTRIBUTION
+SUPPORT_CONSUMPTION
+SETTLED_OUTPUT
+OUTPUT_CHANNEL_RATE
+```
+
+Approved operations are `ADD`, `MULTIPLY`, and exceptional `OVERRIDE`. Approved target scopes are `REAPING_TOTAL`, `RETINUE_OWN_CONTRIBUTION`, `OUTPUT_CHANNEL`, and `FORECAST_ONLY`. Approved conditions are `ALWAYS`, `THRESHOLD_HAS_ANY_TAG`, `RETINUE_CATEGORY`, `OUTPUT_ITEM`, `OUTPUT_KIND`, `SUPPORT_STATE`, and `THRESHOLD_LIFECYCLE`.
+
+M03 validates and normalizes this grammar; it does not execute a complete modifier stack.
+
+### Provisional production and progression data
+
+| Content | Prototype scaffold value |
+|---|---|
+| Gloamwood / Broken Watch base returned-soul rate | `1.0` per `1,000 ms` |
+| Prototype cycle duration | `60,000 ms` |
+| Base active Form Mastery | `1.0` per `60,000 ms` |
+| Settled output multiplier | `0.25` |
+| Both Essence channels | `1.0` per `10,000 ms` |
+| Gloamwood Soldier Soul channel | `1.0` per `300,000 ms`; Common; initially Unknown |
+| Gloamwood Scribe Form Soul channel | `1.0` per `28,800,000 ms` (8 hours); Uncommon; progress display enabled after identification |
+| Broken Watch Provisions channel | `1.0` per `30,000 ms`; Common; initially Unknown |
+| Broken Watch Man-at-Arms Form Soul channel | `1.0` per `86,400,000 ms` (24 hours); Uncommon; progress display enabled after identification |
+| Provisions identification | six base discovery cycles; Scribe's `+100%` discovery reaches it in approximately three |
+| Provisions charting | twelve base discovery cycles |
+| Scribe awakening | one `SOUL_FORM_SCRIBE` plus `50` Essence |
+| Soldier Company support consumption | one Ration per `300,000 ms`; reduced-effect floor `0.50` |
+| Archive restore / Weave / Muster | `25` Essence each |
+| Larder restore | `25` Essence plus `20` Provisions |
+| Larder recipe | `10` Provisions → `10` Rations in `120,000 ms`; default target `50` |
+| Optional Recollections | `50` Essence each |
+| Quicker Reckoning | `+10%` returned-soul rate |
+| Names Kept | `+10%` Whole-Soul output-channel rate |
+| Open Ledgers | `+25%` discovery rate; forecast uncertainty × `0.90` |
+| 10,000 regional resonance | `50` Essence and expose all three optional Recollections |
+| Provisions onboarding buffer | `20%` of restoration plus first-batch Provisions, producing a current floor of `36` |
+| 25,000 regional milestone | enabled scaffold trigger with no locked reward; does not gate the tutorial |
+
+### Prototype Form and Retinue modifiers
+
+- Man-at-Arms / **The Old Drill**: `+15%` returned-soul rate at Settlement or Martial Thresholds; `+10%` Martial Retinue contribution. Slots: Martial; Martial/Logistics.
+- Scribe / **Unclosed Ledger**: `+100%` discovery rate; forecast uncertainty × `0.50`. Slots: Specialist; Logistics/Extraction.
+- Soldier Company: twelve reserved Soldier Souls; provisional `+30%` own returned-soul contribution, `+20%` Essence, and `+15%` Mastery. Stacking remains centralized and provisional.
+
+All floats are normalized once to `FixedPoint.SCALE = 1_000_000`; normalized runtime data contains no authoritative floats. M03 uses one documented conversion path: validate that the authored value is finite and within range, multiply by `SCALE`, round to the nearest integer subunit using Godot's deterministic integer-rounding helper, and retain only the integer result. Values finer than one subunit are rounded rather than creating a second precision model.
