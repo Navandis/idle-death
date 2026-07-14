@@ -94,3 +94,19 @@ Create a temporary failing file under `tests/unit/infrastructure/`, run a focuse
 - Milestones: `docs/codex/MILESTONES.md`
 - Prototype source of truth: `docs/design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md`
 - Idle Fork source of truth: `docs/design/IDLE_FORK_SOURCE_OF_TRUTH.md`
+
+## M01 deterministic foundation
+
+The repository now includes a scene-independent M01 foundation for later simulation work:
+
+- centralized fixed-point arithmetic in `src/domain/fixed_point.gd` with `1_000_000` subunits per whole fractional unit;
+- a minimal `GameState` timeline in `src/domain/game_state.gd`;
+- separate trusted-time accounting in `src/domain/time_authority_state.gd`;
+- monotonic and trusted-time contracts under `src/platform/time/`;
+- non-mutating trusted-time planning plus explicit commit in `src/simulation/time_reconciliation_service.gd`.
+
+Focused M01 validation can be run with:
+
+```sh
+./tools/test/run_gut.sh -- -gtest=res://tests/unit/m01/test_fixed_point.gd -gtest=res://tests/unit/m01/test_time_authority.gd -gtest=res://tests/unit/m01/test_source_ownership.gd
+```

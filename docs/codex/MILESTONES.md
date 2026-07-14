@@ -282,7 +282,7 @@ No gameplay save format is introduced. Test fixtures must not write persistent u
 
 **Definition status:** Approved  
 **Prompt status:** Approved  
-**Implementation status:** Not started  
+**Implementation status:** Implemented in current M01 PR; owner Windows verification pending.  
 **Recommended Codex task size:** Medium; one pure-foundation pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M01-deterministic-time-foundation.md`
 
@@ -352,7 +352,7 @@ The exact file list remains subject to repository inspection. Expected areas are
 #### Manual verification
 
 - Codex creates `tools/test/owner/run_m01_owner_verification.ps1` under `OWNER_VERIFICATION_WORKFLOW.md`.
-- The owner runs one PowerShell entry point against the PR head; it executes the full/focused Windows suite and deterministic trace and writes a UTF-8 log under `tools/test/owner/logs/`.
+- The owner runs one PowerShell entry point with `-CommitSha <PR_HEAD_SHA>` against the PR head; it rejects a checked-out commit mismatch when Git CLI is available, continues when Git CLI is unavailable, executes the full/focused Windows suite and deterministic trace, and writes a UTF-8 log under `tools/test/owner/logs/`.
 - No separate visual or editor checklist is required because M01 has no player-facing presentation.
 
 #### Demonstration path
@@ -369,6 +369,12 @@ State classes expose explicit primitive conversion hooks where useful, but no fi
 #### Documentation updates
 
 - `ARCHITECTURE.md`, `DATA_AND_CONTENT_CONTRACTS.md`, `IMPLEMENTATION_RULES.md`, `TESTING_AND_VALIDATION.md`, `DECISIONS.md`, and `MILESTONES.md`; `OWNER_VERIFICATION_WORKFLOW.md` changes only if implementation exposes a generic workflow defect.
+
+#### Implementation record
+
+- Added `FixedPoint`, minimal `GameState`, separate `TimeAuthorityState`, monotonic/trusted-time contracts, fake providers, and `TimeReconciliationService`.
+- Added focused M01 GUT tests, source-ownership test, deterministic trace, and owner PowerShell verification package.
+- Linux/Codex full suite, focused M01 suite, and deterministic trace passed for this PR head. Owner Windows verification remains pending until the owner runs the PowerShell package.
 
 #### Known risks
 

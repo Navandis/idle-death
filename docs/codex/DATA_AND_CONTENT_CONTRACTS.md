@@ -1152,3 +1152,27 @@ Update this document, applicable tests, and the decision log when a pull request
 - save schema version, migration path, or content-revision compatibility.
 
 A code change is incomplete when this contract describes a state shape or identifier that the implementation no longer uses.
+
+## M01 concrete runtime contracts
+
+M01 introduces these runtime-only contracts. They are not a save schema and do not create JSON fields.
+
+### `GameState`
+
+- `simulation_time_msec: int` — non-negative authoritative simulation timeline in milliseconds.
+- Advanced only by validated elapsed-time operations.
+- Does not contain `TimeAuthorityState`, inventory, Reapings, Halls, tutorial, reports, or save metadata.
+
+### `TimeAuthorityState`
+
+- `trusted_anchor_utc_msec: int` — accepted external trusted UTC anchor in milliseconds, or `-1` when no anchor exists.
+- `trusted_source_id: String` — stable source ID for the accepted anchor.
+- `foreground_credited_since_anchor_msec: int` — foreground elapsed milliseconds already credited after the anchor.
+- `pending_reconciliation: bool` — true when trusted time was unavailable and closed-session credit must remain pending.
+- `last_diagnostic_code: String` — stable diagnostic from the latest commit or rejection.
+
+### Fixed-point values
+
+- `FixedPoint.SCALE = 1_000_000` subunits per whole fractional unit.
+- Fixed-point flow helpers accept non-negative inputs and return typed result dictionaries with stable failure codes.
+- Explicit-period accumulation stores and returns its arithmetic carry in the same units as the period denominator. The caller owns the single durable progress/carry record for a future flow key.

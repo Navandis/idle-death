@@ -937,3 +937,27 @@ The generated log records the requested PR head or commit, detected commit when 
 
 Scripts must return nonzero on automated failure, verify cleanup of any temporary fixtures, and rerun the clean regression suite after intentional-failure or corruption checks. Logs are uploaded or quoted as validation evidence and are never committed. Visual, editor, audio, A/B, functional, and live Steam observations remain explicit owner results and cannot be inferred from the script log.
 
+
+## M01 validation commands
+
+M01 adds a focused deterministic numeric/time foundation suite and trace.
+
+Codex/Linux focused suite:
+
+```sh
+./tools/test/run_gut.sh -- -gtest=res://tests/unit/m01/test_fixed_point.gd -gtest=res://tests/unit/m01/test_time_authority.gd -gtest=res://tests/unit/m01/test_source_ownership.gd
+```
+
+Deterministic trace:
+
+```sh
+godot --headless --path . -s res://tools/test/m01/m01_deterministic_trace.gd
+```
+
+Owner Windows verification:
+
+```powershell
+./tools/test/owner/run_m01_owner_verification.ps1 -CommitSha <PR_HEAD_SHA>
+```
+
+The owner script logs the requested `-CommitSha`, compares it with the detected checkout only when Git CLI is available, continues with GitHub Desktop checkouts when Git CLI is unavailable, runs the full suite, focused M01 suite, source-ownership check, explicit trace import preflight, and trace, then writes a generated UTF-8 log under `tools/test/owner/logs/`. Logs remain ignored and are not committed.

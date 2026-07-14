@@ -1190,3 +1190,13 @@ This table maps protected design requirements to their primary architecture sect
 | `P90-SAFE-12` — Save-safe exactly-once events | Sections 17 and 20 |
 | `P90-SAFE-13` — Scripted four excluded from Reaping counters | Section 11.4 |
 | `P90-SAFE-14` — No local wall-clock offline credit | Sections 9.3–9.6 and 20.5 |
+
+## M01 implemented deterministic time and fixed-point foundation
+
+M01 adds the first scene-independent runtime foundation without adding gameplay production or persistence:
+
+- `GameState` owns only `simulation_time_msec`, a non-negative authoritative timeline advanced through validated elapsed-time operations.
+- `TimeAuthorityState` remains separate from `GameState` and owns trusted anchor UTC milliseconds, source ID, foreground credit since anchor, pending reconciliation, and the last diagnostic.
+- `FixedPoint` owns the single `1_000_000` subunit scale for fractional state. Discrete counts such as inventory, backlog, and tethers remain unscaled integers.
+- `TimeReconciliationService` separates non-mutating trusted-time planning from commit. This lets later save/offline milestones simulate candidate elapsed time and commit the simulation result, anchor update, and foreground-credit reset transactionally.
+- `ProcessMonotonicClock` is the only M01 adapter that reads Godot's process-monotonic clock. Authoritative simulation receives elapsed milliseconds and does not query wall-clock, calendar, timezone, file timestamp, Steam, or registry APIs.
