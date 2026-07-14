@@ -718,3 +718,11 @@ Before marking a task complete, verify:
 - [ ] No unrelated refactor or new dependency was introduced.
 - [ ] Documentation and decision records are synchronized.
 - [ ] Assumptions and limitations are disclosed in the final response.
+
+## M01 concrete implementation notes
+
+- Use `src/domain/fixed_point.gd` for all M01 fixed-point scale conversion, explicit-period accumulation, whole-unit extraction, residual carry, and checked overflow behavior.
+- Use `src/domain/game_state.gd` only for the minimal authoritative simulation timeline until a later milestone adds real gameplay state.
+- Keep `src/domain/time_authority_state.gd` paired with, but not embedded in, `GameState`.
+- Use `src/simulation/time_reconciliation_service.gd` for foreground credit and trusted-time planning/commit. Planning must remain non-mutating.
+- Do not add direct clock reads to domain or simulation code. `src/platform/time/process_monotonic_clock.gd` is the approved process-monotonic adapter; trusted-time providers remain injected.
