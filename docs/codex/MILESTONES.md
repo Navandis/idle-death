@@ -352,7 +352,7 @@ The exact file list remains subject to repository inspection. Expected areas are
 #### Manual verification
 
 - Codex creates `tools/test/owner/run_m01_owner_verification.ps1` under `OWNER_VERIFICATION_WORKFLOW.md`.
-- The owner runs one PowerShell entry point with `-CommitSha <PR_HEAD_SHA>` against the PR head; it rejects a checked-out commit mismatch, executes the full/focused Windows suite and deterministic trace, and writes a UTF-8 log under `tools/test/owner/logs/`.
+- The owner runs one PowerShell entry point with `-CommitSha <PR_HEAD_SHA>` against the PR head; it rejects a checked-out commit mismatch when Git CLI is available, continues when Git CLI is unavailable, executes the full/focused Windows suite and deterministic trace, and writes a UTF-8 log under `tools/test/owner/logs/`.
 - No separate visual or editor checklist is required because M01 has no player-facing presentation.
 
 #### Demonstration path
