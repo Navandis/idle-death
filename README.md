@@ -110,3 +110,29 @@ Focused M01 validation can be run with:
 ```sh
 ./tools/test/run_gut.sh -- -gtest=res://tests/unit/m01/test_fixed_point.gd -gtest=res://tests/unit/m01/test_time_authority.gd -gtest=res://tests/unit/m01/test_source_ownership.gd
 ```
+
+## M02 persistence checks
+
+The prototype persistence foundation writes the default development save set under `user://saves/` through `SaveFileSet`; tests and traces inject disposable roots and do not use the normal user save directory.
+
+Focused persistence tests:
+
+```bash
+./tools/test/run_gut.sh -- -gdir=res://tests/unit/persistence -gdir=res://tests/integration/save_load
+```
+
+Headless real-file persistence trace:
+
+```bash
+godot --headless --path . -s res://tools/test/m02/m02_persistence_trace.gd -- --save-root /tmp/death-idle-m02-trace
+```
+
+Owner Windows filesystem verification:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass `
+    -File .\tools\test\owner\run_m02_owner_verification.ps1 `
+    -CommitSha "<PR_HEAD_SHA>"
+```
+
+The save format is recoverable and exact for the prototype schema; it is not encryption, DRM, anti-tamper, or a final commercial container.

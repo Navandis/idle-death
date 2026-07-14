@@ -1,0 +1,1 @@
+{"codec_id":"JSON_V1","content_revision":"prototype-m02","game":{"simulation_time_msec":"0"},"save_revision":"1","schema_version":"1","time_authority":{"foreground_credited_since_anchor_msec":"0","has_trusted_anchor":false,"last_diagnostic_code":"TIME_OK","pending_reconciliation":false,"trusted_anchor_utc_msec":"0","trusted_source_id":""}}

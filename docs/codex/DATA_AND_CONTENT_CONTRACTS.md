@@ -1182,3 +1182,11 @@ M01 introduces these runtime-only contracts. They are not a save schema and do n
 - Fixed-point flow helpers accept non-negative inputs and return typed result dictionaries with stable failure codes.
 - Explicit-period accumulation stores and returns its arithmetic carry in the same units as the period denominator. The caller owns the single durable progress/carry record for a future flow key.
 
+
+## M02 schema-version-1 save contract
+
+Schema version 1 is the frozen minimal M01 persistence snapshot. Top-level keys are exactly `codec_id`, `schema_version`, `save_revision`, `content_revision`, `game`, and `time_authority`. `codec_id` must be `JSON_V1`. `schema_version`, `save_revision`, `game.simulation_time_msec`, `time_authority.trusted_anchor_utc_msec`, and `time_authority.foreground_credited_since_anchor_msec` are canonical signed-64-bit decimal strings, with non-negative policies for current schema fields. JSON numeric values in these fields are invalid.
+
+`game` contains exactly `simulation_time_msec`. `time_authority` contains exactly `has_trusted_anchor`, `trusted_anchor_utc_msec`, `trusted_source_id`, `foreground_credited_since_anchor_msec`, `pending_reconciliation`, and `last_diagnostic_code`. The M01 no-anchor runtime sentinel `trusted_anchor_utc_msec = -1` is encoded as `has_trusted_anchor = false`, `trusted_anchor_utc_msec = "0"`, empty `trusted_source_id`, and foreground credit `"0"`; decoding reconstructs the runtime sentinel. Anchored saves require `has_trusted_anchor = true`, a non-empty source ID, and non-negative anchor/foreground credit.
+
+Stable M02 diagnostics include `SAVE_INT_*` integer errors, `SAVE_SCHEMA_*` validation errors, `SAVE_CODEC_*` codec errors, `SAVE_MIGRATION_*` migration errors, and `SAVE_TRANSACTION_FAILED` storage orchestration failures. Fixtures live under `tests/fixtures/saves/`.

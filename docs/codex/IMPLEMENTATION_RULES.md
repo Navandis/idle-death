@@ -735,3 +735,7 @@ Before marking a task complete, verify:
 - Use `src/simulation/time_reconciliation_service.gd` for foreground credit and trusted-time planning/commit. Planning must remain non-mutating.
 - Do not add direct clock reads to domain or simulation code. `src/platform/time/process_monotonic_clock.gd` is the approved process-monotonic adapter; trusted-time providers remain injected.
 
+
+## M02 persistence conventions
+
+Persistence code must keep runtime state, primitive schema mapping, byte codec, migrations, storage, and save/load orchestration separate. Authoritative integers at the JSON boundary use `SaveInt64` canonical decimal strings, not JSON numbers. Save selection uses validated schema `save_revision`, not filenames, local time, file modification time, Steam, registry data, or path metadata. Invalid or suspect files are retained for diagnosis instead of silently deleted during load.

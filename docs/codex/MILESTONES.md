@@ -26,7 +26,7 @@ After M01 completion:
 - Linux/Codex Cloud and owner-run Windows M00 verification passed, including failure propagation and clean recovery.
 - M01 added `FixedPoint`, the minimal `GameState` simulation timeline, separate `TimeAuthorityState`, monotonic and trusted-time contracts, `TimeReconciliationService`, fakes, focused tests, a deterministic trace, and the milestone-specific Windows verification script.
 - M01 Linux/Codex and owner-run Windows verification passed, including the full suite, focused numeric/time tests, source-ownership checks, import preflight, deterministic trusted-time trace, and long-horizon fixed-point trace.
-- The repository still has no content registry, production Reaping simulation, persistence implementation, or gameplay UI.
+- M02 adds the first persistence implementation for minimal M01 runtime state; the repository still has no content registry, production Reaping simulation, or gameplay UI.
 - Existing dry-run assets and scene work are preserved unless a scoped milestone explicitly replaces or integrates them.
 
 ## 3. Milestone rules
@@ -81,7 +81,7 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 |---|---|---|---|---|---|
 | M00 | Repository, Godot, GUT, and Codex Cloud harness | Approved | Approved | Merged | Passed |
 | M01 | Deterministic numeric and time-authority foundation | Approved | Approved | Merged | Passed |
-| M02 | Versioned save codec and atomic storage | Approved | Approved | Not started | — |
+| M02 | Versioned save codec and atomic storage | Approved | Approved | Pull request open | Partial |
 | M03 | Content catalog, canonical IDs, and configurable prototype data | Approved | Not drafted | Not started | — |
 | M04 | Persistent Reaping simulation vertical slice | Approved | Not drafted | Not started | — |
 | M05 | Persistent application shell, navigation, and debug access | Approved | Not drafted | Not started | — |
