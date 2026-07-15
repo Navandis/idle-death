@@ -3,7 +3,7 @@
 **Document role:** Canonical test strategy, commands, fixture rules, and manual validation flows
 **Repository path:** `docs/codex/TESTING_AND_VALIDATION.md`
 **Document status:** Approved validation plan through M03 with lettered-slice governance
-**Validation revision:** 10
+**Validation revision:** 11
 **Last updated:** 2026-07-15
 **Engine target:** Godot 4.7 standard build, GDScript only
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)  
@@ -33,6 +33,8 @@ M01 merged through PR #5. Linux/Codex and owner-run Windows verification passed 
 M02 merged through PR #6 and passed codec, schema, migration, atomic-storage, corruption-recovery, and Windows filesystem verification.
 
 M03 merged through PR #7 at merge commit `5e2b9b23878c9280f75b987cc9ad567d8980030d` from final head `971cdaa0fd46f641ec7409148e259d54f953d8c7`. Linux/Codex and owner-run Windows verification passed the full and focused content suites, import, deterministic semantic catalog trace, artifact audit, and Godot Inspector checklist. The repository now uses lettered implementation slices under `DEC-0033`.
+
+Accepted `DEC-0034` resolves the M04A schema choice: schema version 2 will be the current writer, schema version 1 remains a frozen supported input, and M04A must implement a transactional production `v1 -> v2` migration. Reset remains an explicit fallback rather than the compatibility path.
 
 ## 2. Pinned test and platform dependencies
 
@@ -604,7 +606,19 @@ At least one valid committed snapshot must remain loadable.
 
 ### 9.4 Migration fixtures
 
-Keep one fixture for every supported historical schema. Test sequential migration to current schema and the resulting runtime invariants.
+Keep one immutable fixture for every supported historical schema. Test each source with its own version-specific validator before sequential migration to the current schema.
+
+For M04A specifically:
+
+- retain a canonical schema-version-1 foundation fixture;
+- add representative valid and invalid schema-version-2 fixtures;
+- prove that `v1 -> v2` preserves simulation time, all `TimeAuthorityState` wire fields, content revision, metadata, offline-resolution ID, and source save revision during the pure transform;
+- prove that the persisted upgrade increments save revision exactly once;
+- prove that the migration adds only canonical empty gameplay maps and tether capacity zero;
+- prove that a successful upgrade retains a recoverable prior valid snapshot;
+- prove that source validation, migration, target validation, content/domain validation, revision-overflow, and atomic-write failures preserve the original and expose no migrated live state;
+- prove that an already-current version-2 load does not rewrite the file or increment revision;
+- prove that an unknown future version is rejected without overwrite.
 
 ### 9.5 Interrupted offline resolution
 
@@ -1176,3 +1190,115 @@ Before merge, the pull-request handoff and owner evidence must state:
 - cleanup and final PASS/FAIL.
 
 M04A through M04E receive separate focused suites, traces, and owner logs. No unsplit M04 verification package is valid.
+
+## 21. M04A schema-version-2 validation package
+
+M04A introduces the first production schema migration and the first typed gameplay-state subset. Its verification boundary is separate from M04B dispatch and M04C simulation.
+
+### 21.1 Focused Linux/Codex checks
+
+The realized prompt may adjust exact filenames while preserving this scope. The expected focused command is:
+
+```bash
+./tools/test/run_gut.sh -- \
+  -gdir=res://tests/unit/m04a \
+  -gdir=res://tests/integration/m04a
+```
+
+Also run:
+
+```bash
+godot --headless --path . --import
+godot --headless --path . -s res://tools/test/m04a/m04a_state_persistence_trace.gd
+./tools/test/run_gut.sh
+git diff --check
+```
+
+Required focused groups:
+
+1. typed gameplay-state construction and validation;
+2. deep-clone isolation at every nested collection;
+3. version-1 historical validator and immutable fixture;
+4. version-2 exact key/type/integer-string validator;
+5. current runtime mapper round trip;
+6. production `v1 -> v2` pure migration;
+7. content/domain compatibility before persisted upgrade;
+8. transactional migration persistence and failure injection;
+9. already-current no-rewrite behavior;
+10. unknown future-schema rejection.
+
+### 21.2 Required migration trace
+
+`tools/test/m04a/m04a_state_persistence_trace.gd` must use a caller-supplied disposable save root and demonstrate:
+
+1. construct and validate the representative M04A Gloamwood/Man-at-Arms state;
+2. clone it, mutate nested state, and prove the baseline is unchanged;
+3. save/load schema version 2 exactly;
+4. create a canonical schema-version-1 primary;
+5. load it as a working candidate;
+6. preserve its simulation/time-authority/content fields;
+7. add only canonical empty gameplay state;
+8. persist schema version 2 with save revision incremented once;
+9. retain the version-1 source as a recoverable backup under the ordinary M02 transaction;
+10. reload the version-2 primary without another rewrite;
+11. report stable PASS markers and exit zero.
+
+Failure-injection tests may remain in memory/injected storage; the owner trace does not deliberately damage the normal user save directory.
+
+### 21.3 Owner Windows package
+
+Codex must create:
+
+```text
+tools/test/owner/run_m04a_owner_verification.ps1
+```
+
+Expected invocation:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass `
+    -File .\tools\test\owner\run_m04a_owner_verification.ps1 `
+    -CommitSha "<PR_HEAD_SHA>"
+```
+
+The script is Windows PowerShell 5.1 compatible, resolves the repository and Godot console executable through the canonical contract, keeps Git CLI optional, and writes:
+
+```text
+tools/test/owner/logs/M04A-owner-verification-<UTC>-<sha>.log
+```
+
+Required order:
+
+1. Godot 4.7 validation;
+2. full GUT suite before;
+3. focused M04A suite;
+4. explicit import;
+5. real-file M04A state/migration trace in a unique Windows temporary directory;
+6. verification that the version-1 source or backup and the upgraded version-2 primary have the expected roles/revisions;
+7. cleanup and proof that the isolated directory is absent;
+8. full clean GUT suite after;
+9. artifact audit that tolerates prior ignored owner logs;
+10. standardized summary.
+
+Expected summary:
+
+```text
+Automated result: PASS
+Failed step count: 0
+Pending interactive checks: None for M04A
+Cleanup result: PASS
+Log path: <generated path>
+```
+
+No Inspector, visual, audio, gameplay, or Steam checklist is required for M04A.
+
+### 21.4 Merge evidence
+
+M04A cannot merge until:
+
+- Linux/Codex focused, trace, and full regression pass;
+- the owner Windows log passes against the exact PR head;
+- schema version 1 fixture and validator remain present;
+- schema version 2 is current and new saves write it;
+- migration failure preserves the original candidate;
+- the actual review surface remains within the approved prompt assessment or received an owner-approved revision.

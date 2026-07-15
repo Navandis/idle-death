@@ -3,7 +3,7 @@
 **Document role:** Approved implementation sequence and acceptance map for the 0–90 minute prototype  
 **Repository path:** `docs/codex/MILESTONES.md`  
 **Document status:** Approved rolling-wave milestone map  
-**Milestone-map revision:** 12  
+**Milestone-map revision:** 13  
 **Last updated:** 2026-07-15  
 **Primary context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md), [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md), [Architecture](ARCHITECTURE.md), [Data contracts](DATA_AND_CONTENT_CONTRACTS.md), [Testing](TESTING_AND_VALIDATION.md), [Owner verification](OWNER_VERIFICATION_WORKFLOW.md), [Milestone recalibration](MILESTONE_RECALIBRATION_PROPOSAL.md), and [Decisions](DECISIONS.md)
 
@@ -105,7 +105,7 @@ A conceptual epic uses `Prompt: Not applicable` and `Implementation: Not directl
 | `GATE-SAVE-SCHEMA` | M02 merge | Freeze schema-version-1 key spelling and representative fixtures before gameplay state depends on it. |
 | `GATE-CONTENT-CATALOG` | M03 merge | Validate one explicit typed catalog containing the required prototype IDs, `RES_ESSENCE`, stable `CHANNEL_...` sources, centralized `TERM_...` terminology, editable names independent of IDs, normalized values, content-revision compatibility, deterministic ordering, and editor-inspectable `.tres` definitions before simulation depends on content. |
 | `GATE-SLICE-SCOPE` | Every post-M03 prompt approval | Complete the `DEC-0033` scope assessment. Split the work or record an explicit owner-approved exception when a mandatory review trigger is crossed. |
-| `GATE-GAMEPLAY-SCHEMA` | M04A prompt approval | Choose and document either a real next save-schema version with sequential migration or an explicit owner-approved prototype reset policy. M02 schema version 1 may not be silently extended with gameplay fields. |
+| `GATE-GAMEPLAY-SCHEMA` | M04A implementation and merge | Satisfied for prompt drafting by accepted `DEC-0034`: M04A introduces schema version 2 with a production sequential `v1 -> v2` migration. M04A must implement and verify the transactional upgrade, historical fixture, failure preservation, and owner Windows path before merge. |
 | `GATE-STEAM-TIME` | The applicable M06 slice prompt/implementation | Satisfied for prompt drafting by `DEC-0024`: use pinned GodotSteam 4.20 and development App ID `480`. M06 must still verify license footprint, wrapper API, explicit initialization, and live Windows behavior. |
 | `GATE-PRODUCTION-OFFLINE` | The final applicable M16 slice merge | Fake-provider automation plus the owner-run Windows/GodotSteam connected, unavailable, reconnect, clock-change, and repeated-load checks must pass. |
 | `RELEASE-GATE-STEAM-APP` | Before external Steam Playtest or commercial distribution | Replace development App ID `480` with Death Idle's assigned App ID and validate package ownership, launch-through-Steam behavior, export contents, and absence of development-only App ID aids. |
@@ -119,7 +119,7 @@ A conceptual epic uses `Prompt: Not applicable` and `Implementation: Not directl
 
 `GATE-CONTENT-CATALOG` was satisfied by M03. PR #7 merged on 2026-07-15 at merge commit `5e2b9b23878c9280f75b987cc9ad567d8980030d`; its final head was `971cdaa0fd46f641ec7409148e259d54f953d8c7`. Linux/Codex and owner Windows verification passed the full and focused suites, explicit import, semantic catalog trace, artifact audit, and Godot Inspector checklist.
 
-`GATE-SLICE-SCOPE` is now mandatory for every post-M03 prompt. `GATE-GAMEPLAY-SCHEMA` remains pending and blocks M04A prompt approval until the owner approves the migration or reset policy.
+`GATE-SLICE-SCOPE` is mandatory for every post-M03 prompt. `GATE-GAMEPLAY-SCHEMA` is satisfied for M04A prompt drafting by accepted `DEC-0034`. M04A implementation must still pass the schema-version-2 migration and owner-verification gates before merge.
 
 
 When trusted time is unavailable, the approved behavior is to grant no guessed closed-session progress, retain pending reconciliation, and continue monotonic foreground production. No milestone may introduce a local-device-time fallback.
@@ -133,7 +133,7 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 | M02 | Versioned save codec and atomic storage | Completed milestone | Approved | Approved | Merged | Passed |
 | M03 | Content catalog, canonical IDs, and configurable prototype data | Completed milestone | Approved | Approved | Merged | Passed |
 | M04 | Persistent Reaping simulation vertical slice | Conceptual epic | Approved | Not applicable | Not directly executable | — |
-| M04A | Gameplay state and persistence foundation | Implementation slice | Approved | Not drafted | Not started | — |
+| M04A | Gameplay state and persistence foundation | Implementation slice | Approved | Drafted | Not started | — |
 | M04B | Dispatch, recall, and assignment integrity | Implementation slice | Approved | Not drafted | Not started | — |
 | M04C | Single-Reaping core resolver | Implementation slice | Approved | Not drafted | Not started | — |
 | M04D | Output channels and long-horizon acquisition progress | Implementation slice | Approved | Not drafted | Not started | — |
@@ -164,7 +164,7 @@ M00 → M01 → M02 → M03
 
 | Slice | Requires | Unlocks |
 |---|---|---|
-| M04A | M03 Passed; `GATE-SLICE-SCOPE`; `GATE-GAMEPLAY-SCHEMA` | M04B |
+| M04A | M03 Passed; `GATE-GAMEPLAY-SCHEMA` satisfied by `DEC-0034`; prompt-level `GATE-SLICE-SCOPE` review | M04B |
 | M04B | M04A Merged and Passed | M04C |
 | M04C | M04B Merged and Passed | M04D |
 | M04D | M04C Merged and Passed | M04E |
@@ -771,91 +771,127 @@ M04 is complete only when M04A through M04E are all Merged and Passed. No `M04-p
 **Work item type:** Implementation slice  
 **Parent epic:** M04  
 **Definition status:** Approved  
-**Prompt status:** Not drafted  
+**Prompt status:** Drafted  
 **Implementation status:** Not started  
 **Verification status:** —  
-**Recommended Codex task size:** Small-medium; one authoritative-state and persistence pull request.  
+**Recommended Codex task size:** Small-medium; one authoritative-state and schema-migration pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M04A-gameplay-state-persistence-foundation.md`
 
 #### Purpose
 
-Create the smallest scene-independent gameplay aggregate that later assignment and simulation slices can use without mixing in elapsed production.
+Create the smallest scene-independent gameplay aggregate that later assignment and simulation slices can use, and establish the first production save migration without mixing in elapsed production.
 
 #### Player or developer outcome
 
-A developer can construct one valid Gloamwood/Man-at-Arms fixture, validate it, deep-clone it, save it, load it, and compare every authoritative field exactly.
+A developer can construct one valid Gloamwood/Man-at-Arms state fixture, validate it against the M03 catalog, deep-clone it, save it as schema version 2, load it exactly, and migrate a real schema-version-1 foundation save transactionally without losing the original valid bytes.
 
 #### Dependencies
 
-- M03 Merged and Passed.
-- `GATE-SLICE-SCOPE` satisfied for the M04A prompt.
-- `GATE-GAMEPLAY-SCHEMA` resolved before prompt approval.
+- M03 Merged and Passed; `GATE-CONTENT-CATALOG` satisfied.
+- `GATE-GAMEPLAY-SCHEMA` satisfied for prompt drafting by accepted `DEC-0034`.
+- `GATE-SLICE-SCOPE` must be completed in the M04A prompt before approval.
+- Existing M02 codec, migration registry, primary/temporary/backup storage, and failure injection remain the persistence foundation.
 
 #### Included scope
 
-- Add the minimal `InventoryState`, `FormState`, `ThresholdState`, `ReapingState`, and counter/aggregate fields required by M04B–M04E.
-- Extend `GameState` through explicit typed ownership; do not use an untyped global gameplay dictionary as domain authority.
-- Implement deterministic validation and deep cloning.
-- Reference M03 definitions only by canonical ID.
-- Implement the owner-approved save-schema transition or reset policy, fixtures, mapper/validator updates, and exact round trip.
-- Add focused state/persistence tests and one headless state trace.
+- Add typed `InventoryState`, `InventoryEntryState`, `FormState`, `ThresholdState`, `ThresholdAcquisitionState`, `ReapingState`, and `ProgressionState` owned by `GameState`.
+- Implement deterministic state validation, exact explicit deep cloning, and a hand-calculable Gloamwood/Man-at-Arms fixture. No generic reflection serializer or object dump is permitted.
+- Validate canonical IDs and authored bounds through the already-built M03 `ContentRegistry` while keeping `SaveService` content-agnostic.
+- Introduce schema-version constants for frozen version 1 and current version 2, preserve a version-1 validator/fixture, and add a version-dispatching validator.
+- Implement the exact version-2 wire shape and explicit runtime mapping in `DATA_AND_CONTENT_CONTRACTS.md`.
+- Implement the production sequential `v1 -> v2` primitive-dictionary migration accepted in `DEC-0034`.
+- Add a scene-independent runtime persistence coordinator or equivalent working-candidate boundary that validates schema, migration, domain state, and content compatibility, atomically persists a required upgrade, and exposes live runtime state only after success.
+- Preserve the original version-1 candidate on every migration, validation, revision-overflow, or write failure. Already-current version-2 loads must not rewrite automatically.
+- Add immutable schema-version-1 and representative schema-version-2 fixtures, focused tests, a deterministic real-file headless trace, and one Windows owner-verification script/log package.
+- Update maintained documentation made inaccurate by the implementation.
 
 #### Explicit non-goals
 
-- Dispatch, recall, tether commands, or assignment mutation.
-- Elapsed production, simulation boundaries, output-channel accumulation, forecasts, reports, or UI.
-- Steam or trusted closed-session reconciliation changes.
+- Dispatch, recall, tether grants, assignment commands, or assignment mutation.
+- Elapsed production, backlog reduction, Essence gain, Mastery gain, channel accumulation, forecasts, reports, milestones, guarantees, or progression effects.
+- New-game story/bootstrap behavior, opening-four state, tutorial state, Halls, Recollections, or player-facing save/reset UI.
+- Steam initialization, trusted-time-provider changes, closed-session resolution changes, Steam Cloud, multiple slots, encryption, compression, binary codecs, or anti-tamper claims.
+- Updating schema version for speculative later substates. Later persisted meaning changes use later explicit schema decisions/migrations.
 
 #### Expected files or subsystems
 
-- `src/domain/state/` minimal gameplay-state classes.
-- `src/persistence/` schema/migration/reset changes approved by the gate.
-- `tests/unit/domain/`, `tests/unit/persistence/`, and representative save fixtures.
-- `tools/test/m04a/` state/round-trip trace.
-- `tools/test/owner/run_m04a_owner_verification.ps1` if the approved prompt selects a milestone-specific script.
+- `src/domain/` or `src/domain/state/` typed gameplay-state classes and validation/clone support.
+- `src/persistence/save_envelope.gd`, version-aware validators/mappers, production migration registration, and a narrow validated-runtime load/save coordinator.
+- Existing `SaveService`, codec, and storage modified only as required for version-aware candidates and transactional upgrade persistence.
+- `tests/unit/m04a/`, `tests/integration/m04a/`, and immutable save fixtures.
+- `tools/test/m04a/m04a_state_persistence_trace.gd`.
+- `tools/test/owner/run_m04a_owner_verification.ps1` and ignored generated logs.
+- Documentation listed by the approved prompt.
 
 #### Data and content required
 
-- `FORM_MAN_AT_ARMS`, `THR_GLOAMWOOD`, `WRIT_STANDARD`, `RES_ESSENCE`, and `prototype-content-r1`.
-- Test fixtures may use small counts while preserving exact production IDs and units.
+- Schema version 1 remains the frozen M02 input; schema version 2 becomes the current M04A writer.
+- Codec ID remains `JSON_V1`.
+- M03 catalog revision compatibility remains independent of schema migration.
+- Representative state uses `FORM_MAN_AT_ARMS`, `THR_GLOAMWOOD`, `WRIT_STANDARD`, `RES_ESSENCE`, and applicable Gloamwood channel IDs.
+- Migration default adds empty gameplay maps and command-tether capacity zero; it grants or unlocks nothing.
 
 #### Acceptance criteria
 
-- A valid fixture constructs and validates without a scene tree.
-- Cloning creates a deep independent aggregate with exact equality before mutation.
-- Invalid negative counts, unresolved IDs, contradictory lifecycle/assignment fields, and unsupported enum values fail without partial live-state mutation.
-- The approved schema/reset policy is explicit; schema version 1 is not silently extended.
-- State round trips exactly through primitive mapping and the production codec/storage path.
-- M02 foundation saves follow the approved migration or reset result with actionable diagnostics.
-- No dispatch or elapsed production occurs in this slice.
+- A valid typed fixture constructs and validates without a scene tree, clock, Steam client, or UI.
+- Clone mutation cannot affect the baseline at any nesting depth.
+- Invalid negative counts, reservation over-commitment, unresolved/wrong-type IDs, contradictory lifecycle state, invalid channel ownership/carry, inactive/active Reaping contradictions, and tether over-capacity fail without partial live mutation.
+- Version-1 key spelling/meaning and validator remain intact after version 2 becomes current.
+- Version-2 snapshots use the exact approved key set and canonical integer-string rules.
+- The production `v1 -> v2` migration preserves all version-1 authority and adds only canonical empty gameplay state.
+- Migration validates source and target, preserves content revision, and never invents progress or achievements.
+- A required migrated upgrade increments save revision once and is atomically persisted before runtime state is exposed.
+- Migration or write failure preserves the original valid version-1 bytes and exposes no migrated live state.
+- A successful upgrade retains a recoverable prior valid snapshot under the M02 transaction rules.
+- Already-current version-2 load performs no automatic rewrite or revision increment.
+- Unknown future schema and incompatible content revision are rejected without overwrite.
+- New saves write schema version 2 and the current content revision explicitly through the validated coordinator.
+- A developer reset, if implemented, is explicit, preserves/archive the old file, and is not used as the supported migration path.
+- Linux full/focused tests, Windows owner automation, real-file trace, cleanup, and clean regression pass before merge.
 
 #### Automated verification
 
-- State construction, validation, deep-clone isolation, and exact equality.
-- Primitive and byte round trips, migration/reset fixtures, malformed-input matrix, and full regression.
-- Headless trace showing construct → clone → save → load → exact compare.
+- Typed construction, domain validation, clone isolation, and exact equality.
+- Version-1 and version-2 structural validators and malformed-input matrices.
+- Exact runtime ↔ primitive ↔ JSON ↔ primitive ↔ runtime round trips.
+- Sequential migration, missing-step, future-version, revision-overflow, incompatible-content, and already-current no-rewrite tests.
+- Atomic failure injection at every migration-upgrade write boundary, proving original/fallback preservation and no live-state exposure.
+- Real-file trace with version-1 primary, successful version-2 upgrade, save-revision increment, prior-version backup, exact time-state preservation, and cleanup.
+- Full regression suite.
 
 #### Manual verification
 
-- Owner automation only unless implementation introduces an unexpected editor-specific Resource or filesystem behavior.
-- No gameplay/visual checklist is expected.
+- Codex creates `tools/test/owner/run_m04a_owner_verification.ps1` under `OWNER_VERIFICATION_WORKFLOW.md`.
+- The owner runs one PowerShell entry point against the PR head. It uses an isolated Windows temporary directory, runs full/focused suites, import, the real-file migration trace, cleanup, and the clean full suite again, then writes one UTF-8 log.
+- Git CLI remains optional. Prior ignored owner logs do not fail artifact checks.
+- No visual or Inspector checklist is required because M04A adds no player-facing UI or authored Resource type.
 
 #### Demonstration path
 
-- Build the one-operation fixture.
-- Clone and mutate the clone to prove isolation.
-- Save and load the original.
-- Print exact authoritative equality and schema result.
+- Construct and validate the Gloamwood/Man-at-Arms fixture.
+- Deep-clone it and mutate nested inventory, Threshold, and acquisition values to prove isolation.
+- Save and reload a version-2 snapshot and compare exact state.
+- Write a canonical version-1 foundation save in an isolated directory.
+- Load it through the migration coordinator, persist version 2, verify revision increment and version-1 backup, and compare preserved simulation/time-authority fields plus canonical empty gameplay defaults.
+- Clean the isolated directory and rerun the full suite.
 
 #### Save/load expectations
 
-This slice owns the first gameplay-state save transition. The prompt must contain the separately approved schema-version/migration or reset decision and representative historical fixtures.
+M04A makes schema version 2 current. Version 1 remains a supported historical input with an immutable fixture and production migration. Migration works on a candidate, validates domain/content compatibility, persists atomically, and exposes runtime only after success. The current JSON codec and primary/temporary/backup roles remain unchanged.
+
+#### Documentation updates
+
+- `DECISIONS.md`, `DATA_AND_CONTENT_CONTRACTS.md`, `ARCHITECTURE.md`, `IMPLEMENTATION_RULES.md`, `TESTING_AND_VALIDATION.md`, `MILESTONES.md`, and `README.md` where implementation makes them inaccurate.
+- `OWNER_VERIFICATION_WORKFLOW.md` changes only if implementation exposes a generic workflow defect.
 
 #### Known risks
 
-- Accidentally making persistence dictionaries the domain model.
-- Silent schema-v1 expansion.
-- Shallow copies leaking mutations between baseline and forecast fixtures.
+- Accidentally making primitive save dictionaries the domain model.
+- Validating a historical snapshot against the current schema before migration.
+- Persisting an upgrade before content/domain validation or exposing runtime before write success.
+- Losing the selected version-1 candidate during primary/backup rotation.
+- Shallow copies leaking changes between baseline and candidate.
+- Scope growth into dispatch, production, or new-game bootstrap.
 
 #### Follow-on dependencies
 

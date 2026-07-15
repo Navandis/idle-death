@@ -3,8 +3,8 @@
 **Document role:** Canonical prototype data, runtime-state, ID, and serialization contracts  
 **Repository path:** `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`  
 **Document status:** Approved architecture contract  
-**Revision:** 7  
-**Last updated:** 2026-07-14
+**Revision:** 8  
+**Last updated:** 2026-07-15
 
 ## 1. Purpose
 
@@ -596,7 +596,7 @@ Runtime classes use typed fields and explicit `to_save_data()` / `from_save_data
 
 | Field | Type | Rule |
 |---|---|---|
-| `schema_version` | runtime `int` | Current prototype begins at 1; JSON wire value is a canonical decimal string |
+| `schema_version` | runtime `int` | Schema version 1 is the frozen M02 input contract; accepted `DEC-0034` authorizes M04A to make version 2 the current write schema. JSON wire values are canonical decimal strings. |
 | `codec_id` | `StringName` | Identifies the byte codec, initially `JSON_V1` |
 | `content_revision` | `String` | Identifies the validated content catalog revision used by this snapshot |
 | `save_revision` | runtime `int` | Increases on each successful snapshot; JSON wire value is a decimal string |
@@ -628,6 +628,8 @@ Rules:
 - changing the binding implementation must not change the meaning of `STEAM_SERVER_TIME` or invalidate otherwise compatible saves.
 
 ### 9.3 GameState
+
+The table below is the full prototype direction. Implementation is staged by lettered slices. M04A implements only `simulation_time_msec`, inventory entries/reservations, Form state, Threshold state including acquisition records, Reaping records, and command-tether capacity. Halls, Recollections, story, tutorial, and report history remain deferred and must not be added merely to make the full table exist early.
 
 | Field | Type | Source of truth |
 |---|---|---|
@@ -1300,6 +1302,222 @@ Schema version 1 is the frozen minimal M01 persistence snapshot. Top-level keys 
 
 Stable M02 diagnostics include `SAVE_INT_*` integer errors, `SAVE_SCHEMA_*` validation errors, `SAVE_CODEC_*` codec errors, `SAVE_MIGRATION_*` migration errors, and `SAVE_TRANSACTION_FAILED` storage orchestration failures. Fixtures live under `tests/fixtures/saves/`.
 
+
+
+## Approved M04A schema-version-2 and migration contract
+
+Accepted `DEC-0034` resolves `GATE-GAMEPLAY-SCHEMA`. The rules below are the approved M04A target. They do not describe the current executable schema until M04A merges.
+
+### Schema-version constants and dispatch
+
+Persistence keeps explicit constants for every supported schema:
+
+```text
+SCHEMA_VERSION_V1 = 1
+SCHEMA_VERSION_V2 = 2
+CURRENT_SCHEMA_VERSION = 2
+```
+
+`validate_v1()` remains a historical validator and compares against `SCHEMA_VERSION_V1`, never against `CURRENT_SCHEMA_VERSION`. `validate_v2()` owns the new exact key set. A version-dispatch function selects the correct source validator before migration.
+
+The byte codec remains:
+
+```text
+codec_id = JSON_V1
+```
+
+Schema evolution does not imply a new codec.
+
+### Version-2 top-level structure
+
+Top-level key spelling remains:
+
+```text
+codec_id
+schema_version
+save_revision
+content_revision
+time_authority
+last_offline_resolution_id
+metadata
+game_state
+```
+
+The version-2 `game_state` key set is exactly:
+
+```text
+simulation_time_msec
+inventory
+forms
+thresholds
+reapings
+progression
+```
+
+Representative empty version-2 shape:
+
+```json
+{
+  "codec_id": "JSON_V1",
+  "schema_version": "2",
+  "save_revision": "1",
+  "content_revision": "prototype-content-r1",
+  "time_authority": {
+    "has_trusted_anchor": false,
+    "trusted_anchor_utc_msec": "0",
+    "trusted_source_id": "",
+    "foreground_credited_since_anchor_msec": "0",
+    "pending_trusted_reconciliation": false,
+    "last_sample_diagnostic_code": "TIME_SAMPLE_NONE"
+  },
+  "last_offline_resolution_id": "",
+  "metadata": {},
+  "game_state": {
+    "simulation_time_msec": "0",
+    "inventory": {"entries": {}},
+    "forms": {},
+    "thresholds": {},
+    "reapings": {},
+    "progression": {"command_tether_capacity": "0"}
+  }
+}
+```
+
+The example diagnostic string is illustrative; the implementation preserves the existing valid M01 diagnostic contract.
+
+### M04A runtime-state subset
+
+All maps are keyed by canonical IDs. Mutable player state is represented by typed runtime classes; dictionaries are serialization and indexed-collection boundaries, not the object model.
+
+#### `InventoryState`
+
+```text
+entries: item-ID -> InventoryEntryState
+```
+
+`InventoryEntryState` contains:
+
+| Field | Type | Rule |
+|---|---|---|
+| `total` | `int` | Non-negative unscaled whole count |
+| `reservations` | reservation-ID-to-`int` | Non-negative; sorted by canonical key in snapshots; sum cannot exceed total |
+
+M04A implements structure, validation, cloning, and round trip only. Spending and reservation commands remain later work.
+
+#### `FormState`
+
+| Field | Type | Rule |
+|---|---|---|
+| `revealed` | `bool` | Visibility/progression state |
+| `awakened` | `bool` | Whether normal or narrative awakening has occurred |
+| `mastery_subunits` | `int` | Non-negative fixed-point value |
+| `awakened_by` | `StringName` | Empty when unawakened; stable diagnostic/source token when awakened |
+
+M04A does not implement awakening or Mastery gain.
+
+#### `ThresholdState`
+
+| Field | Type | Rule |
+|---|---|---|
+| `knowledge_state` | enum string | `UNKNOWN`, `DETECTED`, or `CHARTED` |
+| `availability_state` | enum string | `LOCKED` or `AVAILABLE` |
+| `lifecycle_state` | enum string | `OVERDUE` or `SETTLED` |
+| `remaining_backlog` | `int` | `0..authored initial backlog` |
+| `persistent_returns_total` | `int` | Non-negative; excludes the scripted opening four |
+| `familiarity_subunits` | `int` | Non-negative fixed-point value; no M04A behavior |
+| `channel_acquisition` | channel-ID-to-`ThresholdAcquisitionState` | Durable whole-output work owned by Threshold plus channel |
+
+Zero backlog requires `SETTLED`; a positive backlog requires `OVERDUE` until a later approved rule says otherwise.
+
+`ThresholdAcquisitionState` contains:
+
+| Field | Type | Rule |
+|---|---|---|
+| `progress_subunits` | `int` | `0 <= value < FixedPoint.SCALE` |
+| `rate_carry_units` | `int` | Non-negative; when content is available it must be lower than the channel's stable `period_msec` |
+| `total_banked_units` | `int` | Non-negative diagnostic/report total; inventory remains ownership authority |
+
+M04A stores and validates representative values but performs no accumulation.
+
+#### `ReapingState`
+
+The `reapings` map is keyed by Threshold ID and contains at most one record per Threshold.
+
+| Field | Type | Rule |
+|---|---|---|
+| `threshold_id` | `StringName` | Must match the map key and a Threshold state/content definition |
+| `is_active` | `bool` | Only active records occupy a tether or later produce output |
+| `form_id` | `StringName` | Valid Form ID; active records require an awakened Form state |
+| `writ_id` | `StringName` | Valid Writ ID |
+| `retinue_ids` | ordered array | Sorted and duplicate-free; M04A fixture uses an empty array and implements no Retinue behavior |
+| `assignment_revision` | `int` | Non-negative, monotonically increased only by later assignment commands |
+| `cycle_phase_msec` | `int` | Non-negative; no M04A advancement |
+| `completed_cycle_count` | `int` | Non-negative; no M04A advancement |
+| `flow_carry_units` | flow-ID-to-`int` | Non-negative operation-owned carries; M04A permits empty or representative fixture values |
+| `started_simulation_msec` | `int` | Non-negative and no later than current simulation time |
+| `last_configuration_change_simulation_msec` | `int` | Non-negative and no later than current simulation time |
+
+M04A constructs a valid fixture directly but implements no dispatch, recall, or production command.
+
+#### `ProgressionState`
+
+| Field | Type | Rule |
+|---|---|---|
+| `command_tether_capacity` | `int` | Non-negative unscaled count |
+
+Tether occupancy is derived from active Reaping records and may not exceed capacity. M04A implements no grant or dispatch behavior.
+
+### Version-2 wire rules
+
+- Every authoritative integer is a canonical signed-64-bit decimal string in the primitive snapshot and JSON.
+- Every set-like array is sorted and duplicate-free.
+- Map keys are stable canonical IDs or stable owner/reservation/flow IDs, never display names or filenames.
+- Runtime objects, Resources, Nodes, Callables, and floats never enter the snapshot.
+- The schema validator checks structure, primitive types, integer encoding, and cross-field rules without constructing live state.
+- The domain validator checks canonical IDs, content types, authored backlog bounds, channel ownership/periods, reservation totals, lifecycle consistency, Form awakening consistency, Reaping references, and tether capacity.
+- Invalid construction, mapping, or validation returns a working-candidate failure and does not partially mutate live state.
+
+### Canonical `v1 -> v2` migration
+
+The production migration:
+
+1. validates the source with the frozen version-1 validator;
+2. deep-copies the primitive snapshot;
+3. changes only `schema_version` to `"2"`;
+4. preserves the complete version-1 envelope, time-authority fields, `content_revision`, metadata, offline-resolution ID, save revision, and simulation time;
+5. adds:
+
+```json
+{
+  "inventory": {"entries": {}},
+  "forms": {},
+  "thresholds": {},
+  "reapings": {},
+  "progression": {"command_tether_capacity": "0"}
+}
+```
+
+6. validates the full version-2 snapshot;
+7. maps and validates typed runtime state and content compatibility before any persistence or live-state adoption.
+
+The migration does not awaken a Form, unlock a Threshold, add items, create a Reaping, change content revision, or infer story progress.
+
+The pure transform preserves `save_revision`. The transactional upgrade increments revision once, checks overflow, writes through the existing temporary/validate/backup/promote transaction, and returns runtime state only after that write succeeds. Already-current version-2 snapshots do not rewrite on load.
+
+### Historical-support and reset policy
+
+- Keep at least one immutable schema-version-1 fixture permanently while version 1 is supported.
+- Keep version-specific validators and migration tests.
+- Reject unknown future versions without file mutation.
+- On migration or upgrade-write failure, preserve the original candidate and any valid fallback.
+- A developer reset may be offered separately, but it must be explicit and preserve/archive the incompatible file. It is not a substitute for the supported `v1 -> v2` path.
+- Before any public save baseline is distributed, migration history may be consolidated only through another owner-approved decision. Publicly supported baselines retain their migration path.
+
+### Content-revision interaction
+
+Schema migration preserves the source `content_revision`. Before simulation or persisted upgrade, the caller supplies the validated `ContentRegistry` compatibility result. Persistence remains catalog-agnostic and never imports production `.tres` files. A later ordinary save writes the current catalog revision explicitly.
+
+
 ## Approved M03 catalog and scaffold contract
 
 The M03 prompt approval accepts the structure and values below only as editable prototype scaffold, not final balance.
@@ -1378,7 +1596,3 @@ M03 validates and normalizes this grammar; it does not execute a complete modifi
 - Soldier Company: twelve reserved Soldier Souls; provisional `+30%` own returned-soul contribution, `+20%` Essence, and `+15%` Mastery. Stacking remains centralized and provisional.
 
 All floats are normalized once to `FixedPoint.SCALE = 1_000_000`; normalized runtime data contains no authoritative floats. M03 uses one documented conversion path: validate that the authored value is finite and within range, multiply by `SCALE`, round to the nearest integer subunit using Godot's deterministic integer-rounding helper, and retain only the integer result. Values finer than one subunit are rounded rather than creating a second precision model.
-
-## M03 realized catalog contract
-
-The current production content revision is `prototype-content-r1`. Compatible save revisions are exactly `prototype-content-r1` and `prototype-m02`. The root catalog lives at `content/prototype_content_catalog.tres`, contains sixty required production definitions, and references `content/terminology/core_terms.tres` for the twenty required `TERM_...` entries. Essence uses only `RES_ESSENCE`, `CHANNEL_GLOAMWOOD_ESSENCE`, `CHANNEL_BROKEN_WATCH_ESSENCE`, and `TERM_ESSENCE`. Output channels declare explicit discovery state, qualitative frequency, and acquisition-progress presentation metadata. Terminology entries declare singular and plural fallback text plus optional localization keys. Derived guarantees reference source definitions and expose a deterministic content-only preview; they do not duplicate source costs as fixed authority.

@@ -3,7 +3,7 @@
 **Document role:** Durable record of approved and proposed design and architecture decisions  
 **Repository path:** `docs/codex/DECISIONS.md`  
 **Document status:** Approved architecture and active decision record  
-**Revision:** 10  
+**Revision:** 11  
 **Last updated:** 2026-07-15
 
 ## 1. How to use this file
@@ -63,6 +63,7 @@ Rules:
 | `DEC-0031` | Stable canonical IDs and mutable player-facing language | Accepted | 2026-07-14 |
 | `DEC-0032` | Essence is the sole resource term and canonical ID | Accepted | 2026-07-14 |
 | `DEC-0033` | Rolling-wave implementation slices and review-surface guardrails | Accepted | 2026-07-15 |
+| `DEC-0034` | Schema version 2 and sequential migration are the gameplay-state compatibility path | Accepted | 2026-07-15 |
 
 ---
 
@@ -1416,11 +1417,77 @@ The existing milestone map already requires focused, reviewable pull requests. T
 
 ---
 
+## `DEC-0034` — Schema version 2 and sequential migration are the gameplay-state compatibility path
+
+**Status:** Accepted  
+**Date:** 2026-07-15  
+**Decision type:** Persistence compatibility and schema evolution  
+**Refines:** `DEC-0011`, `DEC-0022`, `DEC-0029`, `DEC-0033`
+
+### Context
+
+M02 froze schema version 1 as the exact minimal snapshot for M01's simulation timeline and trusted-time accounting. Its `game_state` contains only `simulation_time_msec`. M04A introduces the first durable gameplay state: inventory, Forms, Thresholds, Reaping assignment records, Threshold-owned channel progress, and command-tether capacity.
+
+Silently adding those fields to schema version 1 would destroy the meaning of a frozen schema. Resetting every prototype save would be cheaper in the short term, but it would defer the real migration path until public builds have more state, more users, and a larger compatibility surface. The existing persistence architecture already separates runtime state, primitive schema, codec, migration, validation, and atomic storage, so the first production migration can be established while version 1 is still small.
+
+### Decision
+
+- M04A introduces save schema version 2 as the current write schema.
+- Schema version 1 remains an immutable supported input. Its key spelling and field meaning never change.
+- Schema migrations are sequential transformations of deep-copied primitive dictionaries. They are independent of JSON bytes, filesystem paths, scenes, Nodes, Resources, and local device time.
+- The production `v1 -> v2` step must validate the source as schema version 1 before transforming it.
+- The pure migration step:
+  - sets `schema_version` to canonical string `"2"`;
+  - preserves `codec_id`, `save_revision`, `content_revision`, `time_authority`, `last_offline_resolution_id`, `metadata`, and `game_state.simulation_time_msec` exactly;
+  - adds the canonical empty M04A gameplay substates defined in `DATA_AND_CONTENT_CONTRACTS.md`;
+  - does not invent inventory, awakened Forms, Threshold progress, Reapings, rewards, or story completion;
+  - preserves the source `content_revision`; schema migration does not silently perform a content migration.
+- The pure migration does not increment `save_revision`. A successful persisted upgrade increments it exactly once before the new schema-version-2 snapshot is committed.
+- Loading a historical save uses a working candidate. The complete sequence is: decode, identify version, validate the historical schema, migrate sequentially, validate schema version 2, map to typed runtime state, validate domain/content compatibility, atomically persist the upgraded snapshot, and only then expose the runtime candidate as committed.
+- If migration, validation, content compatibility, save-revision increment, or atomic persistence fails, no migrated runtime is exposed and the original valid bytes remain available. Temporary or suspect files follow the existing M02 recovery policy.
+- When the selected source is a valid version-1 primary and upgrade succeeds, normal primary/backup rotation retains that source as the prior valid backup. When a backup is selected because the primary is invalid, the existing invalid-primary preservation rules still apply.
+- New saves write only the current schema. Already-current version-2 saves load without an automatic rewrite or save-revision increment.
+- Unknown future schema versions are rejected without overwrite.
+- Every supported historical schema retains at least one immutable fixture, version-specific validator coverage, and a sequential migration test to the current version.
+- A debug/development reset command may exist as an explicit fallback, but reset is not the ordinary compatibility path. It must preserve or archive the incompatible save and require an explicit developer or player action; it never silently deletes a save.
+- Internal-only migration history may be consolidated before any external demo, Steam Playtest, early-access, or commercial save is distributed only through another explicit owner-approved decision. Once a public baseline is distributed, its required migration path cannot be replaced by a silent reset.
+- A schema version changes when persisted structure or meaning changes. It does not increment automatically for every milestone, content-only tuning change, or presentation change.
+- Content revision and save-schema version remain separate compatibility dimensions. `ContentRegistry` owns content-revision compatibility; persistence receives the compatible/current revision policy from the caller and does not import the production catalog.
+
+### Consequences
+
+- M04A must implement the first production migration rather than only a test seam.
+- Future schema work becomes additive maintenance through `v1 -> v2 -> v3...`, not a later persistence-architecture rewrite.
+- The codec ID remains `JSON_V1`; changing the schema does not require changing the byte codec.
+- Version-specific validators and fixtures remain in the repository even after the current writer advances.
+- Migration persistence becomes a transactional load concern and must be failure-injected like an ordinary save.
+- Prototype testers can retain supported progress across schema changes, while explicit reset remains available for unsupported development states.
+- `GATE-GAMEPLAY-SCHEMA` is satisfied for M04A prompt drafting. M04A implementation must still prove every migration and owner-verification criterion before merge.
+
+### Alternatives considered
+
+- **Extend schema version 1 in place:** rejected because it would make the same version number describe incompatible key sets and meanings.
+- **Use a prototype reset as the primary policy:** rejected because it postpones the production migration architecture, breaks longer playtests, and increases later refactoring risk.
+- **Auto-upgrade before domain/content validation:** rejected because a structurally valid but incompatible candidate must not replace a valid historical save.
+- **Change the JSON codec ID with every schema:** rejected because schema and byte representation are independent contracts.
+- **Migrate directly from every old version to the newest:** rejected because explicit sequential steps are easier to test, reason about, and retire deliberately.
+- **Persist guessed gameplay defaults such as an awakened Form or available Threshold:** rejected because version-1 saves contain no evidence for those accomplishments.
+
+### Affected documents
+
+- `docs/codex/MILESTONES.md`
+- `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`
+- `docs/codex/TESTING_AND_VALIDATION.md`
+- `docs/codex/milestone-prompts/M04A-gameplay-state-persistence-foundation.md`
+
+---
+
 ## 3. Current approval state
 
-- `DEC-0001` through `DEC-0033` are Accepted.
+- `DEC-0001` through `DEC-0034` are Accepted.
 - M03 prompt approval accepted `DEC-0029` through `DEC-0032`, including explicit revision compatibility, stable channel IDs, editable player-facing language, centralized terminology, and Essence as the single resource identity.
 - M01 prompt approval accepted `DEC-0026`; long-horizon source ownership is recorded in `DEC-0027`; prospective, non-compounding rate-change semantics are recorded in `DEC-0028`.
 - The Phase 6 architecture is approved with trusted-time, save-format, cross-machine testing, GodotSteam, owner-verification, fixed-point, Threshold-channel ownership, content compatibility, naming, and terminology refinements recorded in `DEC-0021` through `DEC-0032`.
 - The post-M03 implementation workflow uses conceptual epics, lettered slices, rolling-wave planning, and review-surface guardrails under `DEC-0033`.
+- `DEC-0034` resolves `GATE-GAMEPLAY-SCHEMA`: M04A introduces schema version 2 through a production sequential migration from frozen schema version 1; reset remains only an explicit fallback.
 - Future changes preserve decision IDs for wording clarifications and create a new decision only when semantics, ownership, compatibility, or security posture changes.
