@@ -13,7 +13,7 @@ operation = "MULTIPLY"
 scope = "REAPING_TOTAL"
 condition = "THRESHOLD_HAS_ANY_TAG"
 value = 1.15
-target_id = ""
+condition_values = ["TAG_SETTLEMENT", "TAG_MARTIAL"]
 
 [sub_resource type="Resource" id="ModifierDefinition_2"]
 script = ExtResource("2_ModifierDefinition")
@@ -22,7 +22,7 @@ operation = "MULTIPLY"
 scope = "RETINUE_OWN_CONTRIBUTION"
 condition = "RETINUE_CATEGORY"
 value = 1.1
-target_id = ""
+condition_values = ["MARTIAL"]
 
 [sub_resource type="Resource" id="RateDefinition_3"]
 script = ExtResource("3_RateDefinition")

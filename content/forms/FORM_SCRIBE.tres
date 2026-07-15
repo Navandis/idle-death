@@ -13,7 +13,7 @@ operation = "MULTIPLY"
 scope = "REAPING_TOTAL"
 condition = "ALWAYS"
 value = 2.0
-target_id = ""
+condition_values = []
 
 [sub_resource type="Resource" id="ModifierDefinition_2"]
 script = ExtResource("2_ModifierDefinition")
@@ -22,7 +22,7 @@ operation = "MULTIPLY"
 scope = "FORECAST_ONLY"
 condition = "ALWAYS"
 value = 0.5
-target_id = ""
+condition_values = []
 
 [sub_resource type="Resource" id="RateDefinition_3"]
 script = ExtResource("3_RateDefinition")

@@ -521,7 +521,8 @@ This milestone establishes schema version 1, codec ID, transaction rules, and ba
 **Definition status:** Approved  
 **Prompt status:** Approved  
 **Implementation status:** Pull request open  
-**Verification status:** Partial — Linux/Codex checks pass; owner Windows automation and Inspector checklist remain pending.  
+**Verification status:** Partial — corrected Linux/Codex checks pass; corrected owner Windows automation and Inspector checklist remain pending.
+
 **Recommended Codex task size:** Medium-large but bounded to authored data, normalization, validation, save-revision compatibility, and developer verification.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M03-content-catalog-prototype-data.md`
 
@@ -567,7 +568,7 @@ The Godot editor loads one explicit prototype catalog containing the approved Fo
 - `content/prototype_content_catalog.tres` plus referenced production `.tres` definitions.
 - `tests/unit/content/`, `tests/integration/content/`, and fixture Resources or builders.
 - `tools/test/m03/m03_content_catalog_trace.gd`.
-- `tools/test/owner/run_m03_owner_verification.ps1` and ignored generated logs.
+- `tools/test/owner/run_m03_owner_verification.ps1` and ignored generated logs; prior ignored owner logs must not cause artifact-audit failure.
 - `docs/codex/owner-checklists/M03-owner-verification.md`.
 - Focused persistence changes that require an explicit content revision and validate compatibility without importing content into `SaveService`.
 

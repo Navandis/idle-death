@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="ResonanceDefinition" load_steps=6 format=3]
+[gd_resource type="Resource" script_class="ResonanceDefinition" load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://src/content/definitions/resonance_definition.gd" id="1_ResonanceDefinition"]
 [ext_resource type="Script" path="res://src/content/subresources/item_amount_definition.gd" id="2_ItemAmountDefinition"]
@@ -11,8 +11,16 @@ quantity = 50
 
 [sub_resource type="Resource" id="ProgressionEffectDefinition_2"]
 script = ExtResource("3_ProgressionEffectDefinition")
-id = "RESONANCE_REGION_10000_EFFECT"
+id = "RECORD_REGION_10000"
 kind = "RECORD_RESONANCE"
+item_amounts = []
+target_ids = ["RESONANCE_REGION_10000"]
+quantity = 0
+
+[sub_resource type="Resource" id="ProgressionEffectDefinition_3"]
+script = ExtResource("3_ProgressionEffectDefinition")
+id = "EXPOSE_OPTIONAL_RECOLLECTIONS"
+kind = "EXPOSE_RECOLLECTIONS"
 item_amounts = []
 target_ids = ["REC_QUICKER_RECKONING", "REC_NAMES_KEPT", "REC_OPEN_LEDGERS"]
 quantity = 0
@@ -27,4 +35,4 @@ enabled = true
 notes = ""
 trigger_milestone_id = "MS_REGION_REAPING_10000"
 rewards = [SubResource("ItemAmountDefinition_1")]
-effects = [SubResource("ProgressionEffectDefinition_2")]
+effects = [SubResource("ProgressionEffectDefinition_2"), SubResource("ProgressionEffectDefinition_3")]

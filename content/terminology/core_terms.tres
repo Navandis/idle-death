@@ -6,122 +6,182 @@
 [sub_resource type="Resource" id="TermDefinition_1"]
 script = ExtResource("2_TermDefinition")
 id = "TERM_ESSENCE"
-fallback_text = "Essence"
-localization_key = ""
+singular_display_name = "Essence"
+plural_display_name = "Essence"
+singular_localization_key = ""
+plural_localization_key = ""
+notes = ""
 
 [sub_resource type="Resource" id="TermDefinition_2"]
 script = ExtResource("2_TermDefinition")
 id = "TERM_FORM"
-fallback_text = "Form"
-localization_key = ""
+singular_display_name = "Form"
+plural_display_name = "Forms"
+singular_localization_key = ""
+plural_localization_key = ""
+notes = ""
 
 [sub_resource type="Resource" id="TermDefinition_3"]
 script = ExtResource("2_TermDefinition")
 id = "TERM_TRAIT"
-fallback_text = "Trait"
-localization_key = ""
+singular_display_name = "Trait"
+plural_display_name = "Traits"
+singular_localization_key = ""
+plural_localization_key = ""
+notes = ""
 
 [sub_resource type="Resource" id="TermDefinition_4"]
 script = ExtResource("2_TermDefinition")
 id = "TERM_ART"
-fallback_text = "Art"
-localization_key = ""
+singular_display_name = "Art"
+plural_display_name = "Arts"
+singular_localization_key = ""
+plural_localization_key = ""
+notes = ""
 
 [sub_resource type="Resource" id="TermDefinition_5"]
 script = ExtResource("2_TermDefinition")
 id = "TERM_THRESHOLD"
-fallback_text = "Threshold"
-localization_key = ""
+singular_display_name = "Threshold"
+plural_display_name = "Thresholds"
+singular_localization_key = ""
+plural_localization_key = ""
+notes = ""
 
 [sub_resource type="Resource" id="TermDefinition_6"]
 script = ExtResource("2_TermDefinition")
 id = "TERM_REAPING"
-fallback_text = "Reaping"
-localization_key = ""
+singular_display_name = "Reaping"
+plural_display_name = "Reapings"
+singular_localization_key = ""
+plural_localization_key = ""
+notes = ""
 
 [sub_resource type="Resource" id="TermDefinition_7"]
 script = ExtResource("2_TermDefinition")
 id = "TERM_WRIT"
-fallback_text = "Writ"
-localization_key = ""
+singular_display_name = "Writ"
+plural_display_name = "Writs"
+singular_localization_key = ""
+plural_localization_key = ""
+notes = ""
 
 [sub_resource type="Resource" id="TermDefinition_8"]
 script = ExtResource("2_TermDefinition")
 id = "TERM_RETINUE"
-fallback_text = "Retinue"
-localization_key = ""
+singular_display_name = "Retinue"
+plural_display_name = "Retinues"
+singular_localization_key = ""
+plural_localization_key = ""
+notes = ""
 
 [sub_resource type="Resource" id="TermDefinition_9"]
 script = ExtResource("2_TermDefinition")
 id = "TERM_RECOLLECTION"
-fallback_text = "Recollection"
-localization_key = ""
+singular_display_name = "Recollection"
+plural_display_name = "Recollections"
+singular_localization_key = ""
+plural_localization_key = ""
+notes = ""
 
 [sub_resource type="Resource" id="TermDefinition_10"]
 script = ExtResource("2_TermDefinition")
 id = "TERM_HALL"
-fallback_text = "Hall"
-localization_key = ""
+singular_display_name = "Hall"
+plural_display_name = "Halls"
+singular_localization_key = ""
+plural_localization_key = ""
+notes = ""
 
 [sub_resource type="Resource" id="TermDefinition_11"]
 script = ExtResource("2_TermDefinition")
 id = "TERM_SOULWEAVE"
-fallback_text = "Soulweave"
-localization_key = ""
+singular_display_name = "Soulweave"
+plural_display_name = "Soulweaves"
+singular_localization_key = ""
+plural_localization_key = ""
+notes = ""
 
 [sub_resource type="Resource" id="TermDefinition_12"]
 script = ExtResource("2_TermDefinition")
 id = "TERM_MASTERY"
-fallback_text = "Mastery"
-localization_key = ""
+singular_display_name = "Mastery"
+plural_display_name = "Mastery"
+singular_localization_key = ""
+plural_localization_key = ""
+notes = ""
 
 [sub_resource type="Resource" id="TermDefinition_13"]
 script = ExtResource("2_TermDefinition")
 id = "TERM_COMMAND_TETHER"
-fallback_text = "Command Tether"
-localization_key = ""
+singular_display_name = "Command Tether"
+plural_display_name = "Command Tethers"
+singular_localization_key = ""
+plural_localization_key = ""
+notes = ""
 
 [sub_resource type="Resource" id="TermDefinition_14"]
 script = ExtResource("2_TermDefinition")
 id = "TERM_WHOLE_SOUL"
-fallback_text = "Whole Soul"
-localization_key = ""
+singular_display_name = "Whole Soul"
+plural_display_name = "Whole Souls"
+singular_localization_key = ""
+plural_localization_key = ""
+notes = ""
 
 [sub_resource type="Resource" id="TermDefinition_15"]
 script = ExtResource("2_TermDefinition")
 id = "TERM_FORM_SOUL"
-fallback_text = "Form Soul"
-localization_key = ""
+singular_display_name = "Form Soul"
+plural_display_name = "Form Souls"
+singular_localization_key = ""
+plural_localization_key = ""
+notes = ""
 
 [sub_resource type="Resource" id="TermDefinition_16"]
 script = ExtResource("2_TermDefinition")
 id = "TERM_CALLING_SOUL"
-fallback_text = "Calling Soul"
-localization_key = ""
+singular_display_name = "Calling Soul"
+plural_display_name = "Calling Souls"
+singular_localization_key = ""
+plural_localization_key = ""
+notes = ""
 
 [sub_resource type="Resource" id="TermDefinition_17"]
 script = ExtResource("2_TermDefinition")
 id = "TERM_DENIZEN_SOUL"
-fallback_text = "Denizen Soul"
-localization_key = ""
+singular_display_name = "Denizen Soul"
+plural_display_name = "Denizen Souls"
+singular_localization_key = ""
+plural_localization_key = ""
+notes = ""
 
 [sub_resource type="Resource" id="TermDefinition_18"]
 script = ExtResource("2_TermDefinition")
 id = "TERM_STORE"
-fallback_text = "Store"
-localization_key = ""
+singular_display_name = "Store"
+plural_display_name = "Stores"
+singular_localization_key = ""
+plural_localization_key = ""
+notes = ""
 
 [sub_resource type="Resource" id="TermDefinition_19"]
 script = ExtResource("2_TermDefinition")
 id = "TERM_SEAL"
-fallback_text = "Seal"
-localization_key = ""
+singular_display_name = "Seal"
+plural_display_name = "Seals"
+singular_localization_key = ""
+plural_localization_key = ""
+notes = ""
 
 [sub_resource type="Resource" id="TermDefinition_20"]
 script = ExtResource("2_TermDefinition")
 id = "TERM_REAPING_REPORT"
-fallback_text = "Reaping Report"
-localization_key = ""
+singular_display_name = "Reaping Report"
+plural_display_name = "Reaping Reports"
+singular_localization_key = ""
+plural_localization_key = ""
+notes = ""
 
 [resource]
 script = ExtResource("1_CoreTerminologyDefinition")

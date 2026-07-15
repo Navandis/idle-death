@@ -11,7 +11,7 @@ operation = "MULTIPLY"
 scope = "RETINUE_OWN_CONTRIBUTION"
 condition = "RETINUE_CATEGORY"
 value = 1.3
-target_id = ""
+condition_values = ["MARTIAL"]
 
 [sub_resource type="Resource" id="ModifierDefinition_2"]
 script = ExtResource("2_ModifierDefinition")
@@ -20,7 +20,7 @@ operation = "MULTIPLY"
 scope = "REAPING_TOTAL"
 condition = "ALWAYS"
 value = 1.2
-target_id = ""
+condition_values = []
 
 [sub_resource type="Resource" id="ModifierDefinition_3"]
 script = ExtResource("2_ModifierDefinition")
@@ -29,7 +29,7 @@ operation = "MULTIPLY"
 scope = "REAPING_TOTAL"
 condition = "ALWAYS"
 value = 1.15
-target_id = ""
+condition_values = []
 
 [sub_resource type="Resource" id="ItemAmountDefinition_4"]
 script = ExtResource("3_ItemAmountDefinition")

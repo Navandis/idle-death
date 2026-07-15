@@ -14,6 +14,7 @@ counter_kind = "REGIONAL_OUTPUT"
 subject_id = ""
 target_count = 25000
 prerequisite_ids = ["MS_REGION_REAPING_10000"]
+required_awakened_form_ids = []
 guarantee_ids = []
 resonance_id = ""
 effects = []

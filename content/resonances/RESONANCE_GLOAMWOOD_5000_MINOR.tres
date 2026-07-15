@@ -1,15 +1,31 @@
-[gd_resource type="Resource" script_class="ResonanceDefinition" load_steps=4 format=3]
+[gd_resource type="Resource" script_class="ResonanceDefinition" load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://src/content/definitions/resonance_definition.gd" id="1_ResonanceDefinition"]
 [ext_resource type="Script" path="res://src/content/subresources/progression_effect_definition.gd" id="2_ProgressionEffectDefinition"]
 
 [sub_resource type="Resource" id="ProgressionEffectDefinition_1"]
 script = ExtResource("2_ProgressionEffectDefinition")
-id = "RESONANCE_GLOAMWOOD_5000_MINOR_EFFECT"
+id = "RECORD_GLOAMWOOD_5000_MINOR"
 kind = "RECORD_RESONANCE"
+item_amounts = []
+target_ids = ["RESONANCE_GLOAMWOOD_5000_MINOR"]
+quantity = 0
+
+[sub_resource type="Resource" id="ProgressionEffectDefinition_2"]
+script = ExtResource("2_ProgressionEffectDefinition")
+id = "UNLOCK_BROKEN_WATCH"
+kind = "UNLOCK_THRESHOLD"
 item_amounts = []
 target_ids = ["THR_BROKEN_WATCH"]
 quantity = 0
+
+[sub_resource type="Resource" id="ProgressionEffectDefinition_3"]
+script = ExtResource("2_ProgressionEffectDefinition")
+id = "ADD_SECOND_COMMAND_TETHER"
+kind = "ADD_COMMAND_TETHERS"
+item_amounts = []
+target_ids = []
+quantity = 1
 
 [resource]
 script = ExtResource("1_ResonanceDefinition")
@@ -21,4 +37,4 @@ enabled = true
 notes = ""
 trigger_milestone_id = "MS_GLOAMWOOD_REAPING_5000"
 rewards = []
-effects = [SubResource("ProgressionEffectDefinition_1")]
+effects = [SubResource("ProgressionEffectDefinition_1"), SubResource("ProgressionEffectDefinition_2"), SubResource("ProgressionEffectDefinition_3")]

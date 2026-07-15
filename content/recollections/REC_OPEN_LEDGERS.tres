@@ -16,7 +16,7 @@ operation = "MULTIPLY"
 scope = "REAPING_TOTAL"
 condition = "ALWAYS"
 value = 1.25
-target_id = ""
+condition_values = []
 
 [sub_resource type="Resource" id="ModifierDefinition_3"]
 script = ExtResource("3_ModifierDefinition")
@@ -25,7 +25,7 @@ operation = "MULTIPLY"
 scope = "FORECAST_ONLY"
 condition = "ALWAYS"
 value = 0.9
-target_id = ""
+condition_values = []
 
 [resource]
 script = ExtResource("1_RecollectionDefinition")

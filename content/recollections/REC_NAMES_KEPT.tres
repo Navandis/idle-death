@@ -16,7 +16,7 @@ operation = "MULTIPLY"
 scope = "OUTPUT_CHANNEL"
 condition = "OUTPUT_KIND"
 value = 1.1
-target_id = ""
+condition_values = ["WHOLE_SOUL"]
 
 [resource]
 script = ExtResource("1_RecollectionDefinition")

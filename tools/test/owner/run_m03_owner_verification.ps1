@@ -174,11 +174,28 @@ if ($GodotVersionPassed) {
         Run-Step "M03 content catalog trace" "$ResolvedGodot --headless --path $RepoRoot -s res://tools/test/m03/m03_content_catalog_trace.gd" { Invoke-GodotCommand @("--headless", "--path", "$RepoRoot", "-s", "res://tools/test/m03/m03_content_catalog_trace.gd") }
     }
     else { Write-SkippedStep "M03 content catalog trace" "prerequisite failed: Explicit import preflight" }
-    Run-Step "Artifact and temporary-file audit" "git status --short plus owner log guard" {
-        $Status = ""
-        if ($GitCommand) { $Status = (& git status --short 2>&1) -join "`n"; Write-Output $Status }
-        $BadLogs = Get-ChildItem -LiteralPath $LogDir -File -ErrorAction SilentlyContinue | Where-Object { $_.FullName -ne $LogPath }
-        if ($BadLogs) { throw "Unexpected committed/generated owner logs found: $($BadLogs.Name -join ', ')" }
+    Run-Step "Artifact and temporary-file audit" "current log, .gitignore, tracked-log, and temp artifact checks" {
+        if (-not (Test-Path -LiteralPath $LogPath -PathType Leaf)) { throw "Current owner verification log was not created: $LogPath" }
+        $GitIgnorePath = Join-Path $RepoRoot ".gitignore"
+        if (-not (Test-Path -LiteralPath $GitIgnorePath -PathType Leaf)) { throw ".gitignore is missing." }
+        $GitIgnoreText = Get-Content -LiteralPath $GitIgnorePath -Raw
+        if ($GitIgnoreText -notmatch '(?m)^/tools/test/owner/logs/$') { throw ".gitignore must contain /tools/test/owner/logs/ so owner evidence remains local." }
+        $PriorLogs = Get-ChildItem -LiteralPath $LogDir -Filter "*.log" -File -ErrorAction SilentlyContinue
+        Write-Output "Owner log directory may contain ignored prior evidence; found $($PriorLogs.Count) .log file(s)."
+        if ($GitCommand) {
+            $TrackedLogs = (& git ls-files -- "tools/test/owner/logs/*.log" 2>&1)
+            if ($LASTEXITCODE -ne 0) { throw "git ls-files failed while checking tracked owner logs: $($TrackedLogs -join "`n")" }
+            if ($TrackedLogs.Count -gt 0) { throw "Owner logs are tracked and must be removed from the index: $($TrackedLogs -join ', ')" }
+            $Status = (& git status --short 2>&1) -join "`n"
+            Write-Output $Status
+        }
+        else {
+            Write-Output "Git CLI unavailable; tracked-log detection skipped. The repository ignore rule was verified."
+        }
+        $TemporaryArtifacts = @()
+        $TemporaryArtifacts += Get-ChildItem -LiteralPath (Join-Path $RepoRoot "content") -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -match '(^tmp_|\\.tmp$|\\.bak$|\\.orig$)' }
+        $TemporaryArtifacts += Get-ChildItem -LiteralPath $RepoRoot -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -in @("steam_appid.txt", "godot.log") }
+        if ($TemporaryArtifacts.Count -gt 0) { throw "Prohibited temporary/generated artifacts found outside ignored owner logs: $($TemporaryArtifacts.FullName -join ', ')" }
         Write-Output "Artifact audit complete."
     }
     Run-Step "Full GUT suite after M03 trace" "tools\\test\\run_gut.ps1 -GodotBin <resolved>" { Invoke-GutWrapper }

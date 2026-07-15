@@ -5,13 +5,13 @@
 [resource]
 script = ExtResource("1_ThresholdDefinition")
 id = "THR_GLOAMWOOD"
-display_name = "Gloamwood"
+display_name = "Gloamwood Hamlet"
 description = "Prototype scaffold definition."
 localization_key = ""
 enabled = true
 notes = ""
 tags = ["TAG_FOREST", "TAG_SETTLEMENT"]
-standing_backlog = 10000
+standing_backlog = 1000000
 settled_multiplier = 0.25
 channel_ids = ["CHANNEL_GLOAMWOOD_ESSENCE", "CHANNEL_GLOAMWOOD_SOLDIER_SOULS", "CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS"]
 discovery_state = "CHARTED"

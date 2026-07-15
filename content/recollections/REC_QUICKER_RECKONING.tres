@@ -16,7 +16,7 @@ operation = "MULTIPLY"
 scope = "REAPING_TOTAL"
 condition = "ALWAYS"
 value = 1.1
-target_id = ""
+condition_values = []
 
 [resource]
 script = ExtResource("1_RecollectionDefinition")
