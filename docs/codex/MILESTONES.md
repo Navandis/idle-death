@@ -86,7 +86,7 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 | M00 | Repository, Godot, GUT, and Codex Cloud harness | Approved | Approved | Merged | Passed |
 | M01 | Deterministic numeric and time-authority foundation | Approved | Approved | Merged | Passed |
 | M02 | Versioned save codec and atomic storage | Approved | Approved | Merged | Passed |
-| M03 | Content catalog, canonical IDs, and configurable prototype data | Approved | Approved | Not started | — |
+| M03 | Content catalog, canonical IDs, and configurable prototype data | Approved | Approved | Pull request open | Partial |
 | M04 | Persistent Reaping simulation vertical slice | Approved | Not drafted | Not started | — |
 | M05 | Persistent application shell, navigation, and debug access | Approved | Not drafted | Not started | — |
 | M06 | Steam trusted-time adapter and transactional offline resolution | Approved | Not drafted | Not started | — |
@@ -520,7 +520,8 @@ This milestone establishes schema version 1, codec ID, transaction rules, and ba
 
 **Definition status:** Approved  
 **Prompt status:** Approved  
-**Implementation status:** Not started  
+**Implementation status:** Pull request open  
+**Verification status:** Partial — Linux/Codex checks pass; owner Windows automation and Inspector checklist remain pending.  
 **Recommended Codex task size:** Medium-large but bounded to authored data, normalization, validation, save-revision compatibility, and developer verification.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M03-content-catalog-prototype-data.md`
 
@@ -647,7 +648,8 @@ Schema version 1 and its key spelling remain unchanged. New-save calls pass the 
 
 **Definition status:** Approved  
 **Prompt status:** Not drafted  
-**Implementation status:** Not started  
+**Implementation status:** Pull request open  
+**Verification status:** Partial — Linux/Codex checks pass; owner Windows automation and Inspector checklist remain pending.  
 **Recommended Codex task size:** Medium-large but bounded to one operation and three core streams.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M04-persistent-reaping-simulation.md`
 
@@ -753,7 +755,8 @@ Schema version 1 gains Reaping, Threshold, inventory, progression, and report fi
 
 **Definition status:** Approved  
 **Prompt status:** Not drafted  
-**Implementation status:** Not started  
+**Implementation status:** Pull request open  
+**Verification status:** Partial — Linux/Codex checks pass; owner Windows automation and Inspector checklist remain pending.  
 **Recommended Codex task size:** Medium; one application-shell pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M05-application-shell-navigation-debug.md`
 
@@ -851,7 +854,8 @@ Startup and shutdown use M02 storage. Current screen, hover, and animation state
 
 **Definition status:** Approved  
 **Prompt status:** Not drafted  
-**Implementation status:** Not started  
+**Implementation status:** Pull request open  
+**Verification status:** Partial — Linux/Codex checks pass; owner Windows automation and Inspector checklist remain pending.  
 **Recommended Codex task size:** Medium with mandatory owner-run Windows integration checks.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M06-steam-trusted-time-adapter.md`
 
@@ -1000,7 +1004,8 @@ The trusted anchor, simulation time at anchor, foreground credited since anchor,
 
 **Definition status:** Approved  
 **Prompt status:** Not drafted  
-**Implementation status:** Not started  
+**Implementation status:** Pull request open  
+**Verification status:** Partial — Linux/Codex checks pass; owner Windows automation and Inspector checklist remain pending.  
 **Recommended Codex task size:** Medium; one orchestration-framework pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M07-dialogue-tutorial-framework.md`
 
@@ -1096,7 +1101,8 @@ Tutorial, story checkpoint, skip/help, and presented-notice fields persist. Tran
 
 **Definition status:** Approved  
 **Prompt status:** Not drafted  
-**Implementation status:** Not started  
+**Implementation status:** Pull request open  
+**Verification status:** Partial — Linux/Codex checks pass; owner Windows automation and Inspector checklist remain pending.  
 **Recommended Codex task size:** Medium-large but limited to Beats 1–4.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M08-opening-first-dispatch.md`
 
@@ -1198,7 +1204,8 @@ Checkpoint after every tutorial transition, the four-return transaction, Brand c
 
 **Definition status:** Approved  
 **Prompt status:** Not drafted  
-**Implementation status:** Not started  
+**Implementation status:** Pull request open  
+**Verification status:** Partial — Linux/Codex checks pass; owner Windows automation and Inspector checklist remain pending.  
 **Recommended Codex task size:** Medium; one Beat-5 pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M09-archive-recollections-soulweave.md`
 
@@ -1295,7 +1302,8 @@ Checkpoint after Archive restoration, Recollection purchase, tutorial transition
 
 **Definition status:** Approved  
 **Prompt status:** Not drafted  
-**Implementation status:** Not started  
+**Implementation status:** Pull request open  
+**Verification status:** Partial — Linux/Codex checks pass; owner Windows automation and Inspector checklist remain pending.  
 **Recommended Codex task size:** Medium-large but bounded to Beat 6 and one Retinue.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M10-first-report-soldier-company.md`
 
@@ -1394,7 +1402,8 @@ Checkpoint at milestone, Writ transition, guarantee, report snapshot/archive, Re
 
 **Definition status:** Approved  
 **Prompt status:** Not drafted  
-**Implementation status:** Not started  
+**Implementation status:** Pull request open  
+**Verification status:** Partial — Linux/Codex checks pass; owner Windows automation and Inspector checklist remain pending.  
 **Recommended Codex task size:** Small-medium; one Beat-7 pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M11-scribe-awakening-form-comparison.md`
 
@@ -1491,7 +1500,8 @@ Checkpoint at milestone/top-ups, protection changes, awakening, tutorial present
 
 **Definition status:** Approved  
 **Prompt status:** Not drafted  
-**Implementation status:** Not started  
+**Implementation status:** Pull request open  
+**Verification status:** Partial — Linux/Codex checks pass; owner Windows automation and Inspector checklist remain pending.  
 **Recommended Codex task size:** Medium; one Beat-8 pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M12-broken-watch-second-tether.md`
 
@@ -1590,7 +1600,8 @@ Checkpoint at milestone/resonance, Threshold knowledge/availability, tether gran
 
 **Definition status:** Approved  
 **Prompt status:** Not drafted  
-**Implementation status:** Not started  
+**Implementation status:** Pull request open  
+**Verification status:** Partial — Linux/Codex checks pass; owner Windows automation and Inspector checklist remain pending.  
 **Recommended Codex task size:** Medium; one Beat-9 pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M13-discovery-provisions-forecasts.md`
 
@@ -1690,7 +1701,8 @@ Checkpoint on discovery state transitions and tutorial progression; hidden resou
 
 **Definition status:** Approved  
 **Prompt status:** Not drafted  
-**Implementation status:** Not started  
+**Implementation status:** Pull request open  
+**Verification status:** Partial — Linux/Codex checks pass; owner Windows automation and Inspector checklist remain pending.  
 **Recommended Codex task size:** Medium-large but bounded to one Hall, one recipe, one Store, and one consumer.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M14-larder-rations-support.md`
 
@@ -1790,7 +1802,8 @@ Checkpoint at guarantee, Hall restoration/activation/target changes, support tra
 
 **Definition status:** Approved  
 **Prompt status:** Not drafted  
-**Implementation status:** Not started  
+**Implementation status:** Pull request open  
+**Verification status:** Partial — Linux/Codex checks pass; owner Windows automation and Inspector checklist remain pending.  
 **Recommended Codex task size:** Small-medium; one Beat-11 pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M15-second-resonance-recollection-choice.md`
 
@@ -1886,7 +1899,8 @@ Checkpoint at milestone/resonance/reward, choice availability, purchase, objecti
 
 **Definition status:** Approved  
 **Prompt status:** Not drafted  
-**Implementation status:** Not started  
+**Implementation status:** Pull request open  
+**Verification status:** Partial — Linux/Codex checks pass; owner Windows automation and Inspector checklist remain pending.  
 **Recommended Codex task size:** Medium; one Beat-12/offline-UX pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M16-offline-return-welcome-back.md`
 
@@ -2011,7 +2025,8 @@ Create checkpoints before and after the offline transaction, after report snapsh
 
 **Definition status:** Approved  
 **Prompt status:** Not drafted  
-**Implementation status:** Not started  
+**Implementation status:** Pull request open  
+**Verification status:** Partial — Linux/Codex checks pass; owner Windows automation and Inspector checklist remain pending.  
 **Recommended Codex task size:** Medium-large acceptance pass with no new major subsystem; split only when defects are independently reviewable.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M17-prototype-integration-acceptance.md`
 

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="GuaranteeDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/content/definitions/guarantee_definition.gd" id="1_GuaranteeDefinition"]
+
+[resource]
+script = ExtResource("1_GuaranteeDefinition")
+id = "GUA_SCRIBE_AWAKENING_COST_FLOOR"
+display_name = "Scribe Awakening Cost Floor"
+description = "Prototype scaffold definition."
+localization_key = ""
+enabled = true
+notes = ""
+policy = "DERIVED_COST_FLOOR"
+item_id = "RES_ESSENCE"
+floor_quantity = 50
+source_cost_ids = []

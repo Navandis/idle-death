@@ -1,12 +1,20 @@
-[gd_resource type="Resource" script_class="ContentDefinition" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="HallDefinition" load_steps=4 format=3]
 
-[ext_resource type="Script" path="res://src/content/content_definition.gd" id="1_def"]
+[ext_resource type="Script" path="res://src/content/definitions/hall_definition.gd" id="1_HallDefinition"]
+[ext_resource type="Script" path="res://src/content/subresources/item_amount_definition.gd" id="2_ItemAmountDefinition"]
+
+[sub_resource type="Resource" id="ItemAmountDefinition_1"]
+script = ExtResource("2_ItemAmountDefinition")
+item_id = "RES_ESSENCE"
+quantity = 25
 
 [resource]
-script = ExtResource("1_def")
+script = ExtResource("1_HallDefinition")
 id = "HALL_ARCHIVE"
-kind = "hall"
 display_name = "Archive"
 description = "Prototype scaffold definition."
 localization_key = ""
-data = {"cost_item_id": "RES_ESSENCE", "cost": 25}
+enabled = true
+notes = ""
+restoration_costs = [SubResource("ItemAmountDefinition_1")]
+unlocks_feature_id = "FEATURE_ARCHIVE"

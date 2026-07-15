@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="MilestoneDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/content/definitions/milestone_definition.gd" id="1_MilestoneDefinition"]
+
+[resource]
+script = ExtResource("1_MilestoneDefinition")
+id = "MS_GLOAMWOOD_REAPING_2500"
+display_name = "Gloamwood 2500"
+description = "Prototype scaffold definition."
+localization_key = ""
+enabled = true
+notes = ""
+counter_kind = "REAPING_OUTPUT"
+subject_id = "THR_GLOAMWOOD"
+target_count = 2500
+prerequisite_ids = []
+guarantee_ids = ["GUA_ARCHIVE_WEAVE_COST_FLOOR"]
+resonance_id = ""
+effects = []

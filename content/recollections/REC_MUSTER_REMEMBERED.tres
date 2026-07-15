@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="RecollectionDefinition" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://src/content/definitions/recollection_definition.gd" id="1_RecollectionDefinition"]
+[ext_resource type="Script" path="res://src/content/subresources/item_amount_definition.gd" id="2_ItemAmountDefinition"]
+[ext_resource type="Script" path="res://src/content/subresources/progression_effect_definition.gd" id="3_ProgressionEffectDefinition"]
+
+[sub_resource type="Resource" id="ItemAmountDefinition_1"]
+script = ExtResource("2_ItemAmountDefinition")
+item_id = "RES_ESSENCE"
+quantity = 25
+
+[sub_resource type="Resource" id="ProgressionEffectDefinition_2"]
+script = ExtResource("3_ProgressionEffectDefinition")
+id = "REC_MUSTER_REMEMBERED_EFFECT"
+kind = "UNLOCK_FEATURE"
+item_amounts = []
+target_ids = ["FEATURE_MUSTER"]
+quantity = 0
+
+[resource]
+script = ExtResource("1_RecollectionDefinition")
+id = "REC_MUSTER_REMEMBERED"
+display_name = "Muster Remembered"
+description = "Prototype scaffold definition."
+localization_key = ""
+enabled = true
+notes = ""
+costs = [SubResource("ItemAmountDefinition_1")]
+prerequisite_ids = ["REC_WEAVE_REMEMBERED"]
+repeatable = false
+effects = [SubResource("ProgressionEffectDefinition_2")]
+modifiers = []

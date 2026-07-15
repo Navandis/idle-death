@@ -1,12 +1,63 @@
-[gd_resource type="Resource" script_class="ContentDefinition" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="FormDefinition" load_steps=12 format=3]
 
-[ext_resource type="Script" path="res://src/content/content_definition.gd" id="1_def"]
+[ext_resource type="Script" path="res://src/content/definitions/form_definition.gd" id="1_FormDefinition"]
+[ext_resource type="Script" path="res://src/content/subresources/modifier_definition.gd" id="2_ModifierDefinition"]
+[ext_resource type="Script" path="res://src/content/subresources/rate_definition.gd" id="3_RateDefinition"]
+[ext_resource type="Script" path="res://src/content/subresources/trait_definition.gd" id="4_TraitDefinition"]
+[ext_resource type="Script" path="res://src/content/subresources/item_amount_definition.gd" id="5_ItemAmountDefinition"]
+
+[sub_resource type="Resource" id="ModifierDefinition_1"]
+script = ExtResource("2_ModifierDefinition")
+metric = "SOULS_RETURNED_RATE"
+operation = "MULTIPLY"
+scope = "REAPING_TOTAL"
+condition = "THRESHOLD_HAS_ANY_TAG"
+value = 1.15
+target_id = ""
+
+[sub_resource type="Resource" id="ModifierDefinition_2"]
+script = ExtResource("2_ModifierDefinition")
+metric = "RETINUE_CONTRIBUTION"
+operation = "MULTIPLY"
+scope = "RETINUE_OWN_CONTRIBUTION"
+condition = "RETINUE_CATEGORY"
+value = 1.1
+target_id = ""
+
+[sub_resource type="Resource" id="RateDefinition_3"]
+script = ExtResource("3_RateDefinition")
+amount_per_period = 1.0
+period_msec = 1000
+
+[sub_resource type="Resource" id="RateDefinition_4"]
+script = ExtResource("3_RateDefinition")
+amount_per_period = 1.0
+period_msec = 60000
+
+[sub_resource type="Resource" id="TraitDefinition_5"]
+script = ExtResource("4_TraitDefinition")
+id = "TRAIT_OLD_DRILL"
+display_name = "Old Drill"
+description = "Prototype trait scaffold."
+localization_key = ""
+modifiers = [SubResource("ModifierDefinition_1"), SubResource("ModifierDefinition_2")]
+
+[sub_resource type="Resource" id="ItemAmountDefinition_6"]
+script = ExtResource("5_ItemAmountDefinition")
+item_id = "SOUL_FORM_MAN_AT_ARMS"
+quantity = 1
 
 [resource]
-script = ExtResource("1_def")
+script = ExtResource("1_FormDefinition")
 id = "FORM_MAN_AT_ARMS"
-kind = "form"
 display_name = "Man-at-Arms"
 description = "Prototype scaffold definition."
 localization_key = ""
-data = {"base_returned_souls_per_second": 1.0, "base_mastery_per_minute": 1.0, "cycle_msec": 60000, "traits": [{"id": "TRAIT_OLD_DRILL", "name": "Old Drill", "modifiers": [{"metric": "SOULS_RETURNED_RATE", "operation": "MULTIPLY", "scope": "REAPING_TOTAL", "condition": "THRESHOLD_HAS_ANY_TAG", "value": 1.1}]}], "slot_affinities": ["MARTIAL", "MARTIAL_OR_LOGISTICS"]}
+enabled = true
+notes = ""
+base_returned_souls_rate = SubResource("RateDefinition_3")
+active_mastery_rate = SubResource("RateDefinition_4")
+cycle_duration_msec = 60000
+traits = [SubResource("TraitDefinition_5")]
+slot_affinities = ["MARTIAL", "MARTIAL_OR_LOGISTICS"]
+awakening_costs = [SubResource("ItemAmountDefinition_6")]

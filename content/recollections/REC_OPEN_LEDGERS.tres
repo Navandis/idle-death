@@ -1,0 +1,42 @@
+[gd_resource type="Resource" script_class="RecollectionDefinition" load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://src/content/definitions/recollection_definition.gd" id="1_RecollectionDefinition"]
+[ext_resource type="Script" path="res://src/content/subresources/item_amount_definition.gd" id="2_ItemAmountDefinition"]
+[ext_resource type="Script" path="res://src/content/subresources/modifier_definition.gd" id="3_ModifierDefinition"]
+
+[sub_resource type="Resource" id="ItemAmountDefinition_1"]
+script = ExtResource("2_ItemAmountDefinition")
+item_id = "RES_ESSENCE"
+quantity = 50
+
+[sub_resource type="Resource" id="ModifierDefinition_2"]
+script = ExtResource("3_ModifierDefinition")
+metric = "DISCOVERY_RATE"
+operation = "MULTIPLY"
+scope = "REAPING_TOTAL"
+condition = "ALWAYS"
+value = 1.25
+target_id = ""
+
+[sub_resource type="Resource" id="ModifierDefinition_3"]
+script = ExtResource("3_ModifierDefinition")
+metric = "FORECAST_UNCERTAINTY"
+operation = "MULTIPLY"
+scope = "FORECAST_ONLY"
+condition = "ALWAYS"
+value = 0.9
+target_id = ""
+
+[resource]
+script = ExtResource("1_RecollectionDefinition")
+id = "REC_OPEN_LEDGERS"
+display_name = "Open Ledgers"
+description = "Prototype scaffold definition."
+localization_key = ""
+enabled = true
+notes = ""
+costs = [SubResource("ItemAmountDefinition_1")]
+prerequisite_ids = ["MS_REGION_REAPING_10000"]
+repeatable = false
+effects = []
+modifiers = [SubResource("ModifierDefinition_2"), SubResource("ModifierDefinition_3")]

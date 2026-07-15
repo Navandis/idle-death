@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="GuaranteeDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/content/definitions/guarantee_definition.gd" id="1_GuaranteeDefinition"]
+
+[resource]
+script = ExtResource("1_GuaranteeDefinition")
+id = "GUA_PROVISIONS_ONBOARDING_FLOOR"
+display_name = "Provisions Onboarding Floor"
+description = "Prototype scaffold definition."
+localization_key = ""
+enabled = true
+notes = ""
+policy = "FIXED_ITEM_FLOOR"
+item_id = "RES_PROVISIONS"
+floor_quantity = 36
+source_cost_ids = []

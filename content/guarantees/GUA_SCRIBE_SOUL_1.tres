@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="GuaranteeDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/content/definitions/guarantee_definition.gd" id="1_GuaranteeDefinition"]
+
+[resource]
+script = ExtResource("1_GuaranteeDefinition")
+id = "GUA_SCRIBE_SOUL_1"
+display_name = "Scribe Soul One"
+description = "Prototype scaffold definition."
+localization_key = ""
+enabled = true
+notes = ""
+policy = "FIXED_ITEM_FLOOR"
+item_id = "SOUL_FORM_SCRIBE"
+floor_quantity = 1
+source_cost_ids = []

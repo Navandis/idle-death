@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="MilestoneDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/content/definitions/milestone_definition.gd" id="1_MilestoneDefinition"]
+
+[resource]
+script = ExtResource("1_MilestoneDefinition")
+id = "MS_REGION_REAPING_25000"
+display_name = "Region 25000"
+description = "Prototype scaffold definition."
+localization_key = ""
+enabled = true
+notes = ""
+counter_kind = "REGIONAL_OUTPUT"
+subject_id = ""
+target_count = 25000
+prerequisite_ids = ["MS_REGION_REAPING_10000"]
+guarantee_ids = []
+resonance_id = ""
+effects = []

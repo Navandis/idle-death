@@ -1,8 +1,128 @@
-[gd_resource type="Resource" script_class="CoreTerminologyDefinition" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="CoreTerminologyDefinition" load_steps=23 format=3]
 
-[ext_resource type="Script" path="res://src/content/core_terminology_definition.gd" id="1_term"]
+[ext_resource type="Script" path="res://src/content/definitions/core_terminology_definition.gd" id="1_CoreTerminologyDefinition"]
+[ext_resource type="Script" path="res://src/content/subresources/term_definition.gd" id="2_TermDefinition"]
+
+[sub_resource type="Resource" id="TermDefinition_1"]
+script = ExtResource("2_TermDefinition")
+id = "TERM_ESSENCE"
+fallback_text = "Essence"
+localization_key = ""
+
+[sub_resource type="Resource" id="TermDefinition_2"]
+script = ExtResource("2_TermDefinition")
+id = "TERM_FORM"
+fallback_text = "Form"
+localization_key = ""
+
+[sub_resource type="Resource" id="TermDefinition_3"]
+script = ExtResource("2_TermDefinition")
+id = "TERM_TRAIT"
+fallback_text = "Trait"
+localization_key = ""
+
+[sub_resource type="Resource" id="TermDefinition_4"]
+script = ExtResource("2_TermDefinition")
+id = "TERM_ART"
+fallback_text = "Art"
+localization_key = ""
+
+[sub_resource type="Resource" id="TermDefinition_5"]
+script = ExtResource("2_TermDefinition")
+id = "TERM_THRESHOLD"
+fallback_text = "Threshold"
+localization_key = ""
+
+[sub_resource type="Resource" id="TermDefinition_6"]
+script = ExtResource("2_TermDefinition")
+id = "TERM_REAPING"
+fallback_text = "Reaping"
+localization_key = ""
+
+[sub_resource type="Resource" id="TermDefinition_7"]
+script = ExtResource("2_TermDefinition")
+id = "TERM_WRIT"
+fallback_text = "Writ"
+localization_key = ""
+
+[sub_resource type="Resource" id="TermDefinition_8"]
+script = ExtResource("2_TermDefinition")
+id = "TERM_RETINUE"
+fallback_text = "Retinue"
+localization_key = ""
+
+[sub_resource type="Resource" id="TermDefinition_9"]
+script = ExtResource("2_TermDefinition")
+id = "TERM_RECOLLECTION"
+fallback_text = "Recollection"
+localization_key = ""
+
+[sub_resource type="Resource" id="TermDefinition_10"]
+script = ExtResource("2_TermDefinition")
+id = "TERM_HALL"
+fallback_text = "Hall"
+localization_key = ""
+
+[sub_resource type="Resource" id="TermDefinition_11"]
+script = ExtResource("2_TermDefinition")
+id = "TERM_SOULWEAVE"
+fallback_text = "Soulweave"
+localization_key = ""
+
+[sub_resource type="Resource" id="TermDefinition_12"]
+script = ExtResource("2_TermDefinition")
+id = "TERM_MASTERY"
+fallback_text = "Mastery"
+localization_key = ""
+
+[sub_resource type="Resource" id="TermDefinition_13"]
+script = ExtResource("2_TermDefinition")
+id = "TERM_COMMAND_TETHER"
+fallback_text = "Command Tether"
+localization_key = ""
+
+[sub_resource type="Resource" id="TermDefinition_14"]
+script = ExtResource("2_TermDefinition")
+id = "TERM_WHOLE_SOUL"
+fallback_text = "Whole Soul"
+localization_key = ""
+
+[sub_resource type="Resource" id="TermDefinition_15"]
+script = ExtResource("2_TermDefinition")
+id = "TERM_FORM_SOUL"
+fallback_text = "Form Soul"
+localization_key = ""
+
+[sub_resource type="Resource" id="TermDefinition_16"]
+script = ExtResource("2_TermDefinition")
+id = "TERM_CALLING_SOUL"
+fallback_text = "Calling Soul"
+localization_key = ""
+
+[sub_resource type="Resource" id="TermDefinition_17"]
+script = ExtResource("2_TermDefinition")
+id = "TERM_DENIZEN_SOUL"
+fallback_text = "Denizen Soul"
+localization_key = ""
+
+[sub_resource type="Resource" id="TermDefinition_18"]
+script = ExtResource("2_TermDefinition")
+id = "TERM_STORE"
+fallback_text = "Store"
+localization_key = ""
+
+[sub_resource type="Resource" id="TermDefinition_19"]
+script = ExtResource("2_TermDefinition")
+id = "TERM_SEAL"
+fallback_text = "Seal"
+localization_key = ""
+
+[sub_resource type="Resource" id="TermDefinition_20"]
+script = ExtResource("2_TermDefinition")
+id = "TERM_REAPING_REPORT"
+fallback_text = "Reaping Report"
+localization_key = ""
 
 [resource]
-script = ExtResource("1_term")
-id = "TERM_CATALOG_CORE"
-terms = {"TERM_ESSENCE": "Essence", "TERM_FORM": "Form", "TERM_TRAIT": "Trait", "TERM_ART": "Art", "TERM_THRESHOLD": "Threshold", "TERM_REAPING": "Reaping", "TERM_WRIT": "Writ", "TERM_RETINUE": "Retinue", "TERM_RECOLLECTION": "Recollection", "TERM_HALL": "Hall", "TERM_SOULWEAVE": "Soulweave", "TERM_MASTERY": "Mastery", "TERM_COMMAND_TETHER": "Command Tether", "TERM_WHOLE_SOUL": "Whole Soul", "TERM_FORM_SOUL": "Form Soul", "TERM_CALLING_SOUL": "Calling Soul", "TERM_DENIZEN_SOUL": "Denizen Soul", "TERM_STORE": "Store", "TERM_SEAL": "Seal", "TERM_REAPING_REPORT": "Reaping Report"}
+script = ExtResource("1_CoreTerminologyDefinition")
+terms = [SubResource("TermDefinition_1"), SubResource("TermDefinition_2"), SubResource("TermDefinition_3"), SubResource("TermDefinition_4"), SubResource("TermDefinition_5"), SubResource("TermDefinition_6"), SubResource("TermDefinition_7"), SubResource("TermDefinition_8"), SubResource("TermDefinition_9"), SubResource("TermDefinition_10"), SubResource("TermDefinition_11"), SubResource("TermDefinition_12"), SubResource("TermDefinition_13"), SubResource("TermDefinition_14"), SubResource("TermDefinition_15"), SubResource("TermDefinition_16"), SubResource("TermDefinition_17"), SubResource("TermDefinition_18"), SubResource("TermDefinition_19"), SubResource("TermDefinition_20")]

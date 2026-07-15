@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="NarrativeIdentityDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/content/definitions/narrative_identity_definition.gd" id="1_NarrativeIdentityDefinition"]
+
+[resource]
+script = ExtResource("1_NarrativeIdentityDefinition")
+id = "DIALOGUE_OPENING_AWAKENING"
+display_name = "Dialogue Opening Awakening"
+description = "Prototype scaffold definition."
+localization_key = ""
+enabled = true
+notes = ""
+narrative_kind = "DIALOGUE"
+presentation_only = true

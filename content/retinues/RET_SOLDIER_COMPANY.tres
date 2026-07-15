@@ -1,12 +1,52 @@
-[gd_resource type="Resource" script_class="ContentDefinition" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="RetinueDefinition" load_steps=8 format=3]
 
-[ext_resource type="Script" path="res://src/content/content_definition.gd" id="1_def"]
+[ext_resource type="Script" path="res://src/content/definitions/retinue_definition.gd" id="1_RetinueDefinition"]
+[ext_resource type="Script" path="res://src/content/subresources/modifier_definition.gd" id="2_ModifierDefinition"]
+[ext_resource type="Script" path="res://src/content/subresources/item_amount_definition.gd" id="3_ItemAmountDefinition"]
+
+[sub_resource type="Resource" id="ModifierDefinition_1"]
+script = ExtResource("2_ModifierDefinition")
+metric = "RETINUE_CONTRIBUTION"
+operation = "MULTIPLY"
+scope = "RETINUE_OWN_CONTRIBUTION"
+condition = "RETINUE_CATEGORY"
+value = 1.3
+target_id = ""
+
+[sub_resource type="Resource" id="ModifierDefinition_2"]
+script = ExtResource("2_ModifierDefinition")
+metric = "ESSENCE_YIELD"
+operation = "MULTIPLY"
+scope = "REAPING_TOTAL"
+condition = "ALWAYS"
+value = 1.2
+target_id = ""
+
+[sub_resource type="Resource" id="ModifierDefinition_3"]
+script = ExtResource("2_ModifierDefinition")
+metric = "MASTERY_RATE"
+operation = "MULTIPLY"
+scope = "REAPING_TOTAL"
+condition = "ALWAYS"
+value = 1.15
+target_id = ""
+
+[sub_resource type="Resource" id="ItemAmountDefinition_4"]
+script = ExtResource("3_ItemAmountDefinition")
+item_id = "SOUL_CALLING_SOLDIER"
+quantity = 12
 
 [resource]
-script = ExtResource("1_def")
+script = ExtResource("1_RetinueDefinition")
 id = "RET_SOLDIER_COMPANY"
-kind = "retinue"
 display_name = "Soldier Company"
 description = "Prototype scaffold definition."
 localization_key = ""
-data = {"required_soldier_souls": 12, "category": "MARTIAL", "support_capacity": 12, "modifiers": [{"metric": "RETINUE_CONTRIBUTION", "operation": "ADD", "scope": "RETINUE_OWN_CONTRIBUTION", "condition": "RETINUE_CATEGORY", "value": 1.0}]}
+enabled = true
+notes = ""
+required_items = [SubResource("ItemAmountDefinition_4")]
+support_item_id = "STORE_RATIONS"
+support_period_msec = 300000
+reduced_support_floor = 0.5
+slot_categories = ["MARTIAL"]
+modifiers = [SubResource("ModifierDefinition_1"), SubResource("ModifierDefinition_2"), SubResource("ModifierDefinition_3")]

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="GuaranteeDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/content/definitions/guarantee_definition.gd" id="1_GuaranteeDefinition"]
+
+[resource]
+script = ExtResource("1_GuaranteeDefinition")
+id = "GUA_SOLDIER_SOULS_12"
+display_name = "Soldier Souls Twelve"
+description = "Prototype scaffold definition."
+localization_key = ""
+enabled = true
+notes = ""
+policy = "FIXED_ITEM_FLOOR"
+item_id = "SOUL_CALLING_SOLDIER"
+floor_quantity = 12
+source_cost_ids = []

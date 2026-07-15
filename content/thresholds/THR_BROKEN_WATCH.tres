@@ -1,12 +1,17 @@
-[gd_resource type="Resource" script_class="ContentDefinition" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="ThresholdDefinition" load_steps=2 format=3]
 
-[ext_resource type="Script" path="res://src/content/content_definition.gd" id="1_def"]
+[ext_resource type="Script" path="res://src/content/definitions/threshold_definition.gd" id="1_ThresholdDefinition"]
 
 [resource]
-script = ExtResource("1_def")
+script = ExtResource("1_ThresholdDefinition")
 id = "THR_BROKEN_WATCH"
-kind = "threshold"
 display_name = "Broken Watch"
 description = "Prototype scaffold definition."
 localization_key = ""
-data = {"tags": ["TAG_ROAD", "TAG_MARTIAL"], "standing_backlog": 25000, "settled_multiplier": 0.25, "channel_ids": ["CHANNEL_BROKEN_WATCH_ESSENCE", "CHANNEL_BROKEN_WATCH_PROVISIONS", "CHANNEL_BROKEN_WATCH_MAN_AT_ARMS_FORM_SOULS"], "discovery_state": "UNKNOWN"}
+enabled = true
+notes = ""
+tags = ["TAG_ROAD", "TAG_MARTIAL"]
+standing_backlog = 25000
+settled_multiplier = 0.25
+channel_ids = ["CHANNEL_BROKEN_WATCH_ESSENCE", "CHANNEL_BROKEN_WATCH_PROVISIONS", "CHANNEL_BROKEN_WATCH_MAN_AT_ARMS_FORM_SOULS"]
+discovery_state = "UNKNOWN"

@@ -1,12 +1,29 @@
-[gd_resource type="Resource" script_class="ContentDefinition" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="OutputChannelDefinition" load_steps=4 format=3]
 
-[ext_resource type="Script" path="res://src/content/content_definition.gd" id="1_def"]
+[ext_resource type="Script" path="res://src/content/definitions/output_channel_definition.gd" id="1_OutputChannelDefinition"]
+[ext_resource type="Script" path="res://src/content/subresources/rate_definition.gd" id="2_RateDefinition"]
+
+[sub_resource type="Resource" id="RateDefinition_1"]
+script = ExtResource("2_RateDefinition")
+amount_per_period = 1.0
+period_msec = 10000
 
 [resource]
-script = ExtResource("1_def")
+script = ExtResource("1_OutputChannelDefinition")
 id = "CHANNEL_GLOAMWOOD_ESSENCE"
-kind = "channel"
 display_name = "Gloamwood Essence"
 description = "Prototype scaffold definition."
 localization_key = ""
-data = {"source_threshold_id": "THR_GLOAMWOOD_HAMLET", "output_item_id": "RES_ESSENCE", "output_kind": "COMMON", "rate_per_period": 1.0, "period_msec": 10000, "settled_multiplier": 0.25, "requires_progress_display": false, "progression_required": false}
+enabled = true
+notes = ""
+source_threshold_id = "THR_GLOAMWOOD"
+output_item_id = "RES_ESSENCE"
+output_kind = "RESOURCE"
+rate = SubResource("RateDefinition_1")
+settled_multiplier = 0.25
+progression_required = false
+starts_hidden = false
+requires_progress_display = false
+identification_cycles_base = 0
+identification_cycles_scribe = 0
+charting_cycles_base = 0

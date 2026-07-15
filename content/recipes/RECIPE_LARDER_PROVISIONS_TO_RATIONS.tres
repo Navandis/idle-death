@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="RecipeDefinition" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://src/content/definitions/recipe_definition.gd" id="1_RecipeDefinition"]
+[ext_resource type="Script" path="res://src/content/subresources/item_amount_definition.gd" id="2_ItemAmountDefinition"]
+
+[sub_resource type="Resource" id="ItemAmountDefinition_1"]
+script = ExtResource("2_ItemAmountDefinition")
+item_id = "RES_PROVISIONS"
+quantity = 10
+
+[sub_resource type="Resource" id="ItemAmountDefinition_2"]
+script = ExtResource("2_ItemAmountDefinition")
+item_id = "STORE_RATIONS"
+quantity = 10
+
+[resource]
+script = ExtResource("1_RecipeDefinition")
+id = "RECIPE_LARDER_PROVISIONS_TO_RATIONS"
+display_name = "Larder Provisions to Rations"
+description = "Prototype scaffold definition."
+localization_key = ""
+enabled = true
+notes = ""
+hall_id = "HALL_LARDER"
+input = SubResource("ItemAmountDefinition_1")
+output = SubResource("ItemAmountDefinition_2")
+duration_msec = 120000
+default_target_quantity = 50

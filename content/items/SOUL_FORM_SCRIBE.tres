@@ -1,12 +1,14 @@
-[gd_resource type="Resource" script_class="ContentDefinition" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="ItemDefinition" load_steps=2 format=3]
 
-[ext_resource type="Script" path="res://src/content/content_definition.gd" id="1_def"]
+[ext_resource type="Script" path="res://src/content/definitions/item_definition.gd" id="1_ItemDefinition"]
 
 [resource]
-script = ExtResource("1_def")
+script = ExtResource("1_ItemDefinition")
 id = "SOUL_FORM_SCRIBE"
-kind = "item"
 display_name = "Scribe Form Soul"
 description = "Prototype scaffold definition."
 localization_key = ""
-data = {"inventory_kind": "whole"}
+enabled = true
+notes = ""
+item_kind = "FORM_SOUL"
+whole_units_only = true
