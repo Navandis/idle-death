@@ -3,7 +3,7 @@
 **Document role:** Approved implementation sequence and acceptance map for the 0–90 minute prototype  
 **Repository path:** `docs/codex/MILESTONES.md`  
 **Document status:** Approved rolling-wave milestone map  
-**Milestone-map revision:** 13  
+**Milestone-map revision:** 14  
 **Last updated:** 2026-07-15  
 **Primary context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md), [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md), [Architecture](ARCHITECTURE.md), [Data contracts](DATA_AND_CONTENT_CONTRACTS.md), [Testing](TESTING_AND_VALIDATION.md), [Owner verification](OWNER_VERIFICATION_WORKFLOW.md), [Milestone recalibration](MILESTONE_RECALIBRATION_PROPOSAL.md), and [Decisions](DECISIONS.md)
 
@@ -133,7 +133,7 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 | M02 | Versioned save codec and atomic storage | Completed milestone | Approved | Approved | Merged | Passed |
 | M03 | Content catalog, canonical IDs, and configurable prototype data | Completed milestone | Approved | Approved | Merged | Passed |
 | M04 | Persistent Reaping simulation vertical slice | Conceptual epic | Approved | Not applicable | Not directly executable | — |
-| M04A | Gameplay state and persistence foundation | Implementation slice | Approved | Drafted | Not started | — |
+| M04A | Gameplay state and persistence foundation | Implementation slice | Approved | Approved | Not started | — |
 | M04B | Dispatch, recall, and assignment integrity | Implementation slice | Approved | Not drafted | Not started | — |
 | M04C | Single-Reaping core resolver | Implementation slice | Approved | Not drafted | Not started | — |
 | M04D | Output channels and long-horizon acquisition progress | Implementation slice | Approved | Not drafted | Not started | — |
@@ -771,7 +771,7 @@ M04 is complete only when M04A through M04E are all Merged and Passed. No `M04-p
 **Work item type:** Implementation slice  
 **Parent epic:** M04  
 **Definition status:** Approved  
-**Prompt status:** Drafted  
+**Prompt status:** Approved  
 **Implementation status:** Not started  
 **Verification status:** —  
 **Recommended Codex task size:** Small-medium; one authoritative-state and schema-migration pull request.  
@@ -789,7 +789,7 @@ A developer can construct one valid Gloamwood/Man-at-Arms state fixture, validat
 
 - M03 Merged and Passed; `GATE-CONTENT-CATALOG` satisfied.
 - `GATE-GAMEPLAY-SCHEMA` satisfied for prompt drafting by accepted `DEC-0034`.
-- `GATE-SLICE-SCOPE` must be completed in the M04A prompt before approval.
+- `GATE-SLICE-SCOPE` is satisfied by the approved M04A prompt's completed scope assessment.
 - Existing M02 codec, migration registry, primary/temporary/backup storage, and failure injection remain the persistence foundation.
 
 #### Included scope

@@ -2,7 +2,7 @@
 
 **Prompt version:** v0.1  
 **Prompt date:** 2026-07-15  
-**Prompt status:** Draft  
+**Prompt status:** Approved  
 **Work item type:** Implementation slice  
 **Parent conceptual epic:** `M04 — Persistent Reaping simulation vertical slice`  
 **Milestone definition:** `docs/codex/MILESTONES.md` — `### M04A — Gameplay state and persistence foundation`  
