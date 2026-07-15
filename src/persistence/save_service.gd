@@ -29,7 +29,7 @@ func save_runtime(game_state: GameState, time_state: TimeAuthorityState, save_re
 	return save_snapshot(snapshot)
 
 func save_snapshot(snapshot: Dictionary) -> Dictionary:
-	var validation := SaveSchemaValidator.validate_v1(snapshot)
+	var validation := SaveSchemaValidator.validate_v2(snapshot)
 	if not validation.ok:
 		return validation
 	var encoded := codec.encode(snapshot)
@@ -72,7 +72,7 @@ func load_snapshot() -> Dictionary:
 	if valid.is_empty():
 		return {"ok": false, "code": ERR_NO_VALID_SAVE, "diagnostics": diagnostics}
 	valid.sort_custom(func(a, b): return a.save_revision > b.save_revision)
-	return {"ok": true, "code": OK, "snapshot": valid[0].snapshot, "save_revision": valid[0].save_revision, "selected_role": valid[0].role, "diagnostics": diagnostics}
+	return {"ok": true, "code": OK, "snapshot": valid[0].snapshot, "save_revision": valid[0].save_revision, "selected_role": valid[0].role, "diagnostics": diagnostics, "migration_required": valid[0].get("migration_required", false)}
 
 func load_runtime() -> Dictionary:
 	var loaded := load_snapshot()
@@ -114,10 +114,10 @@ func _read_candidate(path: String, role: String) -> Dictionary:
 	var migrated := migration_registry.migrate(decoded.snapshot, schema_parse.value)
 	if not migrated.ok:
 		return {"ok": false, "role": role, "path": path, "code": migrated.code}
-	var validation := SaveSchemaValidator.validate_v1(migrated.snapshot)
+	var validation := SaveSchemaValidator.validate_v2(migrated.snapshot)
 	if not validation.ok:
 		return {"ok": false, "role": role, "path": path, "code": validation.code, "field_path": validation.get("field_path", "")}
-	return {"ok": true, "role": role, "path": path, "snapshot": migrated.snapshot, "save_revision": validation.save_revision}
+	return {"ok": true, "role": role, "path": path, "snapshot": migrated.snapshot, "save_revision": validation.save_revision, "migration_required": migrated.get("migrated", false)}
 
 func _preserve_invalid_primary(existing: Dictionary) -> Dictionary:
 	for counter in range(0, 100):
