@@ -1096,3 +1096,19 @@ The checklist must cover:
 9. no import/parser errors and no arbitrary script callback/expression fields in authored content.
 
 M03 merge requires both the owner script log and explicit checklist result.
+
+## M03 content catalog checks
+
+M03 added the focused content suite:
+
+```sh
+./tools/test/run_gut.sh -- -gdir=res://tests/unit/content -gdir=res://tests/integration/content
+```
+
+The developer trace is:
+
+```sh
+godot --headless --path . -s res://tools/test/m03/m03_content_catalog_trace.gd
+```
+
+Owner Windows verification uses `tools/test/owner/run_m03_owner_verification.ps1` and the Inspector checklist at `docs/codex/owner-checklists/M03-owner-verification.md`.

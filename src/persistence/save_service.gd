@@ -22,7 +22,9 @@ func _init(storage_value: SaveStorage, file_set_value: SaveFileSet) -> void:
 	storage = storage_value
 	file_set = file_set_value
 
-func save_runtime(game_state: GameState, time_state: TimeAuthorityState, save_revision: int, content_revision: String = SaveEnvelope.DEFAULT_CONTENT_REVISION) -> Dictionary:
+func save_runtime(game_state: GameState, time_state: TimeAuthorityState, save_revision: int, content_revision: String) -> Dictionary:
+	if content_revision.strip_edges() == "":
+		return {"ok": false, "code": "SAVE_CONTENT_REVISION_REQUIRED"}
 	var snapshot := SaveSchemaMapper.runtime_to_snapshot(game_state, time_state, save_revision, content_revision)
 	return save_snapshot(snapshot)
 
@@ -94,7 +96,7 @@ func persist_reconciliation_candidate(game_state: GameState, time_state: TimeAut
 	var commit := TimeReconciliationService.new().commit_trusted_reconciliation(game_copy, time_copy, plan)
 	if not commit.ok:
 		return commit
-	var saved := save_runtime(game_copy, time_copy, save_revision)
+	var saved := save_runtime(game_copy, time_copy, save_revision, plan.get("content_revision", ""))
 	if not saved.ok:
 		return saved
 	return {"ok": true, "code": OK, "game_state": game_copy, "time_authority_state": time_copy, "save_revision": save_revision}

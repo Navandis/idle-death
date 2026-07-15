@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ThresholdDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/content/definitions/threshold_definition.gd" id="1_ThresholdDefinition"]
+
+[resource]
+script = ExtResource("1_ThresholdDefinition")
+id = "THR_GLOAMWOOD"
+display_name = "Gloamwood Hamlet"
+description = "Prototype scaffold definition."
+localization_key = ""
+enabled = true
+notes = ""
+tags = ["TAG_FOREST", "TAG_SETTLEMENT"]
+standing_backlog = 1000000
+settled_multiplier = 0.25
+channel_ids = ["CHANNEL_GLOAMWOOD_ESSENCE", "CHANNEL_GLOAMWOOD_SOLDIER_SOULS", "CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS"]
+discovery_state = "CHARTED"

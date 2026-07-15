@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="HallDefinition" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://src/content/definitions/hall_definition.gd" id="1_HallDefinition"]
+[ext_resource type="Script" path="res://src/content/subresources/item_amount_definition.gd" id="2_ItemAmountDefinition"]
+
+[sub_resource type="Resource" id="ItemAmountDefinition_1"]
+script = ExtResource("2_ItemAmountDefinition")
+item_id = "RES_ESSENCE"
+quantity = 25
+
+[sub_resource type="Resource" id="ItemAmountDefinition_2"]
+script = ExtResource("2_ItemAmountDefinition")
+item_id = "RES_PROVISIONS"
+quantity = 20
+
+[resource]
+script = ExtResource("1_HallDefinition")
+id = "HALL_LARDER"
+display_name = "Larder"
+description = "Prototype scaffold definition."
+localization_key = ""
+enabled = true
+notes = ""
+restoration_costs = [SubResource("ItemAmountDefinition_1"), SubResource("ItemAmountDefinition_2")]
+unlocks_feature_id = "FEATURE_LARDER"

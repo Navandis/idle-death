@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="WritDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/content/definitions/writ_definition.gd" id="1_WritDefinition"]
+
+[resource]
+script = ExtResource("1_WritDefinition")
+id = "WRIT_STANDARD"
+display_name = "Standard Writ"
+description = "Prototype scaffold definition."
+localization_key = ""
+enabled = true
+notes = ""
+transition_milestone_id = ""
+transition_to_writ_id = ""
+effects = []

@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="RecollectionDefinition" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://src/content/definitions/recollection_definition.gd" id="1_RecollectionDefinition"]
+[ext_resource type="Script" path="res://src/content/subresources/item_amount_definition.gd" id="2_ItemAmountDefinition"]
+[ext_resource type="Script" path="res://src/content/subresources/modifier_definition.gd" id="3_ModifierDefinition"]
+
+[sub_resource type="Resource" id="ItemAmountDefinition_1"]
+script = ExtResource("2_ItemAmountDefinition")
+item_id = "RES_ESSENCE"
+quantity = 50
+
+[sub_resource type="Resource" id="ModifierDefinition_2"]
+script = ExtResource("3_ModifierDefinition")
+metric = "OUTPUT_CHANNEL_RATE"
+operation = "MULTIPLY"
+scope = "OUTPUT_CHANNEL"
+condition = "OUTPUT_KIND"
+value = 1.1
+condition_values = ["WHOLE_SOUL"]
+
+[resource]
+script = ExtResource("1_RecollectionDefinition")
+id = "REC_NAMES_KEPT"
+display_name = "Names Kept"
+description = "Prototype scaffold definition."
+localization_key = ""
+enabled = true
+notes = ""
+costs = [SubResource("ItemAmountDefinition_1")]
+prerequisite_ids = ["MS_REGION_REAPING_10000"]
+repeatable = false
+effects = []
+modifiers = [SubResource("ModifierDefinition_2")]

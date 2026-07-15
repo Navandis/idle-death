@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/content/definitions/item_definition.gd" id="1_ItemDefinition"]
+
+[resource]
+script = ExtResource("1_ItemDefinition")
+id = "RES_PROVISIONS"
+display_name = "Provisions"
+description = "Prototype scaffold definition."
+localization_key = ""
+enabled = true
+notes = ""
+item_kind = "RESOURCE"
+whole_units_only = true

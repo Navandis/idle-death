@@ -136,3 +136,14 @@ powershell -NoProfile -ExecutionPolicy Bypass `
 ```
 
 The save format is recoverable and exact for the prototype schema; it is not encryption, DRM, anti-tamper, or a final commercial container.
+
+## M03 content catalog
+
+The prototype content catalog is rooted at `content/prototype_content_catalog.tres` and declares revision `prototype-content-r1` with explicit compatibility for `prototype-content-r1` and legacy foundation saves using `prototype-m02`. The root catalog references typed `.tres` resources explicitly; gameplay code should build `ContentRegistry` rather than scanning content directories or keying mechanics from display names.
+
+Focused M03 checks:
+
+```sh
+./tools/test/run_gut.sh -- -gdir=res://tests/unit/content -gdir=res://tests/integration/content
+godot --headless --path . -s res://tools/test/m03/m03_content_catalog_trace.gd
+```

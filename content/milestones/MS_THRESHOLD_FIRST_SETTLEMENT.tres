@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="MilestoneDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/content/definitions/milestone_definition.gd" id="1_MilestoneDefinition"]
+
+[resource]
+script = ExtResource("1_MilestoneDefinition")
+id = "MS_THRESHOLD_FIRST_SETTLEMENT"
+display_name = "First Settlement"
+description = "Prototype scaffold definition."
+localization_key = ""
+enabled = true
+notes = ""
+counter_kind = "SETTLEMENT"
+subject_id = ""
+target_count = 1
+prerequisite_ids = []
+required_awakened_form_ids = []
+guarantee_ids = []
+resonance_id = ""
+effects = []

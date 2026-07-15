@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="TutorialStepDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/content/definitions/tutorial_step_definition.gd" id="1_TutorialStepDefinition"]
+
+[resource]
+script = ExtResource("1_TutorialStepDefinition")
+id = "TUT_11_LARDER"
+display_name = "Tut 11 Larder"
+description = "Prototype scaffold definition."
+localization_key = ""
+enabled = true
+notes = ""
+sequence_index = 11
+presentation_event_id = "TUT_11_LARDER_PRESENT"
+presentation_only = true

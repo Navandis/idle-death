@@ -10,7 +10,7 @@ extends RefCounted
 const OK := "OK"
 const ERR_SCHEMA := "SAVE_SCHEMA_INVALID"
 
-static func runtime_to_snapshot(game_state: GameState, time_state: TimeAuthorityState, save_revision: int, content_revision: String = SaveEnvelope.DEFAULT_CONTENT_REVISION) -> Dictionary:
+static func runtime_to_snapshot(game_state: GameState, time_state: TimeAuthorityState, save_revision: int, content_revision: String) -> Dictionary:
 	var has_anchor := time_state.has_anchor()
 	return {
 		"codec_id": SaveEnvelope.CODEC_JSON_V1,

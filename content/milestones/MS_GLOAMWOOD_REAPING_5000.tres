@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="MilestoneDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/content/definitions/milestone_definition.gd" id="1_MilestoneDefinition"]
+
+[resource]
+script = ExtResource("1_MilestoneDefinition")
+id = "MS_GLOAMWOOD_REAPING_5000"
+display_name = "Gloamwood 5000"
+description = "Prototype scaffold definition."
+localization_key = ""
+enabled = true
+notes = ""
+counter_kind = "REAPING_OUTPUT"
+subject_id = "THR_GLOAMWOOD"
+target_count = 5000
+prerequisite_ids = []
+required_awakened_form_ids = ["FORM_SCRIBE"]
+guarantee_ids = []
+resonance_id = "RESONANCE_GLOAMWOOD_5000_MINOR"
+effects = []

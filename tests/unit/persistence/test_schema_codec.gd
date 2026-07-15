@@ -7,7 +7,7 @@ func _snapshot(anchor := false) -> Dictionary:
 		t.trusted_anchor_utc_msec = 1710000000000
 		t.trusted_source_id = "fake"
 		t.foreground_credited_since_anchor_msec = 25
-	return SaveSchemaMapper.runtime_to_snapshot(g, t, 7)
+	return SaveSchemaMapper.runtime_to_snapshot(g, t, 7, "prototype-content-r1")
 
 func test_unanchored_runtime_wire_mapping_round_trips() -> void:
 	var snapshot := _snapshot(false)

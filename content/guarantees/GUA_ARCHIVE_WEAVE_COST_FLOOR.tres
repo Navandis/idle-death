@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="GuaranteeDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/content/definitions/guarantee_definition.gd" id="1_GuaranteeDefinition"]
+
+[resource]
+script = ExtResource("1_GuaranteeDefinition")
+id = "GUA_ARCHIVE_WEAVE_COST_FLOOR"
+display_name = "Archive Weave Cost Floor"
+description = "Prototype scaffold definition."
+localization_key = ""
+enabled = true
+notes = ""
+policy = "DERIVED_COST_FLOOR"
+item_id = "RES_ESSENCE"
+minimum_amount = 0
+source_definition_ids = ["HALL_ARCHIVE", "REC_WEAVE_REMEMBERED"]
+derived_policy_id = "SUM_REMAINING_COSTS"
+buffer_multiplier = 1.0

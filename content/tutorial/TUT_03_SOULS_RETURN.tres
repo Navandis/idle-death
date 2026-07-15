@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="TutorialStepDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/content/definitions/tutorial_step_definition.gd" id="1_TutorialStepDefinition"]
+
+[resource]
+script = ExtResource("1_TutorialStepDefinition")
+id = "TUT_03_SOULS_RETURN"
+display_name = "Tut 03 Souls Return"
+description = "Prototype scaffold definition."
+localization_key = ""
+enabled = true
+notes = ""
+sequence_index = 3
+presentation_event_id = "TUT_03_SOULS_RETURN_PRESENT"
+presentation_only = true

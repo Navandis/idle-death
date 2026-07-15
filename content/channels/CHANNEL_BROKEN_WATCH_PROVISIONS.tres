@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="OutputChannelDefinition" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://src/content/definitions/output_channel_definition.gd" id="1_OutputChannelDefinition"]
+[ext_resource type="Script" path="res://src/content/subresources/rate_definition.gd" id="2_RateDefinition"]
+
+[sub_resource type="Resource" id="RateDefinition_1"]
+script = ExtResource("2_RateDefinition")
+amount_per_period = 1.0
+period_msec = 30000
+
+[resource]
+script = ExtResource("1_OutputChannelDefinition")
+id = "CHANNEL_BROKEN_WATCH_PROVISIONS"
+display_name = "Broken Watch Provisions"
+description = "Prototype scaffold definition."
+localization_key = ""
+enabled = true
+notes = ""
+source_threshold_id = "THR_BROKEN_WATCH"
+output_item_id = "RES_PROVISIONS"
+output_kind = "RESOURCE"
+rate = SubResource("RateDefinition_1")
+settled_multiplier = 0.25
+progression_required = false
+initial_discovery_state = "UNKNOWN"
+frequency_tier = "COMMON"
+identified_frequency_label = "Common source"
+frequency_localization_key = ""
+show_acquisition_progress = false
+identification_cycles_base = 6
+identification_cycles_scribe = 3
+charting_cycles_base = 12
