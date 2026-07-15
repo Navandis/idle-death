@@ -3,20 +3,20 @@
 **Document role:** Reusable authoring template for one bounded Codex implementation milestone  
 **Repository path:** `docs/codex/PROMPT_TEMPLATE.md`  
 **Document status:** Phase 8 approved  
-**Template revision:** 3  
-**Last updated:** 2026-07-14  
-**Companion documents:** [Milestones](MILESTONES.md), [Architecture](ARCHITECTURE.md), [Data and content contracts](DATA_AND_CONTENT_CONTRACTS.md), [Implementation rules](IMPLEMENTATION_RULES.md), [Testing and validation](TESTING_AND_VALIDATION.md), [Owner verification workflow](OWNER_VERIFICATION_WORKFLOW.md), [Decisions](DECISIONS.md), [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md), and [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md)
+**Template revision:** 4  
+**Last updated:** 2026-07-15  
+**Companion documents:** [Milestones](MILESTONES.md), [Architecture](ARCHITECTURE.md), [Data and content contracts](DATA_AND_CONTENT_CONTRACTS.md), [Implementation rules](IMPLEMENTATION_RULES.md), [Testing and validation](TESTING_AND_VALIDATION.md), [Owner verification workflow](OWNER_VERIFICATION_WORKFLOW.md), [Decisions](DECISIONS.md), [Milestone recalibration](MILESTONE_RECALIBRATION_PROPOSAL.md), [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md), and [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md)
 
 ## 1. Purpose
 
-Use this template to create one versioned prompt for one approved milestone in `docs/codex/MILESTONES.md`.
+Use this template to create one versioned prompt for one approved implementation slice in `docs/codex/MILESTONES.md`. Under `DEC-0033`, conceptual epics are planning containers and never receive direct implementation prompts.
 
 The template standardizes scope, traceability, verification, save/load expectations, and Codex handoff reporting. It does not replace the milestone definition, design sources, architecture, accepted decisions, or root `AGENTS.md`.
 
 Do not use this file itself as an implementation prompt. An instantiated prompt belongs under:
 
 ```text
-docs/codex/milestone-prompts/M[NN]-[short-kebab-case-title].md
+docs/codex/milestone-prompts/M[NN][LETTER]-[short-kebab-case-title].md
 ```
 
 Copy only the section beginning with `# Milestone [[MILESTONE_ID]]` through the end of `## Final response format`. Replace every placeholder and remove all template-author notes before requesting approval or execution.
@@ -25,17 +25,20 @@ Copy only the section beginning with `# Milestone [[MILESTONE_ID]]` through the 
 
 Before drafting a milestone prompt:
 
-1. Read the current milestone definition, dependencies, decision gates, and status in `docs/codex/MILESTONES.md`.
-2. Re-read all accepted decisions that affect the milestone.
-3. Inspect the current repository rather than relying on the state that existed when the milestone map was written.
-4. Confirm that required prior milestones are merged and that their documented verification is not failed or blocked.
-5. Identify the smallest implementation result that satisfies the approved milestone without importing later-milestone work.
-6. Add exact requirement labels, decision IDs, paths, commands, and observable pass conditions.
-7. Keep provisional balance values configurable and identify their status explicitly.
-8. Separate checks Codex can run from checks the project owner must run on the Windows Godot machine.
-9. Decide the owner verification package under `OWNER_VERIFICATION_WORKFLOW.md`: canonical wrapper only, milestone-specific PowerShell script, script plus interactive checklist, or a justified direct command/checklist file.
-10. Use `Not applicable` with a reason when a mandatory section does not apply. Do not delete the section.
-11. Update the prompt version and date whenever an approved prompt changes materially.
+1. Read the current implementation-slice definition, its parent conceptual epic, dependencies, decision gates, and status in `docs/codex/MILESTONES.md`.
+2. Confirm that the selected work item is directly executable. Do not instantiate a prompt for a conceptual epic.
+3. Re-read all accepted decisions that affect the slice, especially `DEC-0033`.
+4. Inspect the current repository rather than relying on the state that existed when the milestone map was written.
+5. Confirm that required prior slices are merged and that their documented verification is not failed or blocked.
+6. Identify one primary subsystem owner and the smallest concrete result that satisfies the slice without importing later-slice work.
+7. Complete the scope and review-surface assessment: risk dimensions, cross-layer seams, estimated source/test files, estimated code/test lines, authored-data volume, owner package, and guardrail result.
+8. Split the work or obtain explicit owner approval when a mandatory review trigger is crossed.
+9. Add exact requirement labels, decision IDs, paths, commands, and observable pass conditions.
+10. Keep provisional balance values configurable and identify their status explicitly.
+11. Separate checks Codex can run from checks the project owner must run on the Windows Godot machine.
+12. Decide the owner verification package under `OWNER_VERIFICATION_WORKFLOW.md`: canonical wrapper only, milestone-specific PowerShell script, script plus interactive checklist, or a justified direct command/checklist file.
+13. Use `Not applicable` with a reason when a mandatory section does not apply. Do not delete the section.
+14. Update the prompt version and date whenever an approved prompt changes materially.
 
 Once implementation has started, do not silently rewrite the prompt. A material change requires a new prompt version, an explanation of what changed, and any necessary update to `MILESTONES.md` or `DECISIONS.md`.
 
@@ -76,12 +79,29 @@ A milestone-specific PowerShell script must write a UTF-8 log under the ignored 
 
 The prompt must name the expected script/checklist paths and the exact owner invocation. Generated logs are evidence to upload or quote, not files to commit.
 
+### 2.4 Scope assessment and split gate
+
+Every post-M03 implementation prompt must contain a completed **Scope and review-surface assessment**. The assessment is a planning control, not a promise that an exact line count can be predicted.
+
+Normal targets under `DEC-0033` are:
+
+- one primary subsystem owner;
+- one principal behavior or state transition;
+- no more than two cross-layer integration seams;
+- approximately 10–25 non-documentation source/test files;
+- approximately 500–1,200 non-documentation code/test lines, excluding `.uid` files and repetitive authored data;
+- one focused owner-verification package.
+
+Mandatory split review is triggered by four or more risk dimensions, more than one primary subsystem owner, more than one save transition, native/platform work mixed with unrelated gameplay, production-catalog bulk mixed with a new framework, a forecast above approximately 35 source/test files, or a forecast above approximately 1,500 code/test lines.
+
+A trigger does not create an automatic rejection. The prompt must either split the work or record the specific owner-approved reason that the task remains coherent. During implementation, material growth beyond the approved assessment is a stop-and-report condition.
+
 ## 3. Placeholder and identifier rules
 
 - Replace every `[[REQUIRED_PLACEHOLDER]]` before the prompt is approved.
 - Remove any `[[OPTIONAL: ...]]` item that does not apply.
 - Use ISO dates in `YYYY-MM-DD` format.
-- Use the exact milestone ID from `MILESTONES.md`.
+- Use the exact implementation-slice ID from `MILESTONES.md`, including its letter suffix such as `M04A`.
 - Give required behaviors stable local IDs such as `RB-01`.
 - Give state transitions stable local IDs such as `ST-01`.
 - Give acceptance criteria stable local IDs such as `AC-01`.
@@ -91,13 +111,16 @@ The prompt must name the expected script/checklist paths and the exact owner inv
 
 ---
 
-# Milestone [[MILESTONE_ID]]: [[MILESTONE_TITLE]]
+# Implementation slice [[MILESTONE_ID]]: [[MILESTONE_TITLE]]
 
 **Prompt version:** [[PROMPT_VERSION]]  
 **Prompt date:** [[YYYY-MM-DD]]  
 **Prompt status:** [[Draft | Approved]]  
-**Milestone definition:** `docs/codex/MILESTONES.md` - [[EXACT MILESTONE HEADING]]  
+**Work item type:** Implementation slice  
+**Parent conceptual epic:** [[PARENT EPIC ID AND HEADING]]  
+**Milestone definition:** `docs/codex/MILESTONES.md` - [[EXACT IMPLEMENTATION-SLICE HEADING]]  
 **Recommended task size:** [[TASK SIZE FROM MILESTONE MAP]]  
+**Scope-gate result:** [[Within guardrails | Owner-approved exception with exact reason]]  
 **Expected base branch or ref:** [[BASE BRANCH, COMMIT, OR "current default branch after required dependencies merge"]]  
 **Planned prompt path:** `docs/codex/milestone-prompts/[[PROMPT_FILENAME]].md`
 
@@ -111,8 +134,9 @@ Before editing:
 2. Read every document and section listed under **Authoritative context**.
 3. Inspect the repository state, relevant implementation, tests, addon metadata, and `git status`.
 4. Verify the dependencies and baseline assumptions in this prompt.
-5. Briefly state the proposed approach, expected files, and verification plan before making non-trivial edits.
+5. Briefly state the proposed approach, primary subsystem owner, expected files, expected cross-layer seams, verification plan, and whether the repository still fits the approved scope assessment before making non-trivial edits.
 6. Report any material mismatch between this prompt and the repository before implementing dependent behavior.
+7. Stop before broadening the task when actual implementation needs another primary owner, another risk dimension, or material growth beyond the approved review surface.
 
 During implementation:
 
@@ -126,6 +150,7 @@ During implementation:
 - Run all Codex-executable verification listed in this prompt.
 - State honestly which owner-run Windows, visual, audio, or Steam checks remain pending.
 - Do not create, rewrite, or broaden the current milestone prompt or any future milestone prompt. Report a material prompt defect and wait for an owner-approved revision.
+- Track material scope growth against the approved assessment. Stop and report before crossing a mandatory split trigger or adding an unapproved subsystem owner.
 
 Do not describe the milestone as complete when an acceptance criterion is failed, blocked, or unverified. A pull request may be ready for owner testing while verification remains `Partial`, but a listed merge gate must receive explicit passing evidence before merge. Owner silence is not a passing result.
 
@@ -181,6 +206,41 @@ Verify this table before editing. If the repository is materially ahead of, behi
 | [[OWNER-RUN OR EXTERNAL PREREQUISITE]] | [[STATE]] | [[PR | Merge | Later release gate]] | [[EVIDENCE]] |
 
 Do not weaken a dependency gate to make the task appear complete. A prerequisite that is intentionally deferred must be identified as deferred and must not be required by this milestone's acceptance criteria.
+
+## Scope and review-surface assessment
+
+Complete this table before prompt approval. Use informed estimates and name uncertainty rather than inventing precision.
+
+| Assessment item | Approved estimate or result |
+|---|---|
+| Parent conceptual epic | [[EPIC ID]] |
+| Primary subsystem owner | [[ONE OWNER]] |
+| Principal behavior/state transition | [[ONE PRINCIPAL RESULT]] |
+| New authoritative state ownership | [[None | Describe]] |
+| Save-schema or migration change | [[None | One change and gate]] |
+| Deterministic algorithm/boundary work | [[None | Describe]] |
+| New player-facing UI flow | [[None | Describe one flow]] |
+| Native/platform integration | [[None | Describe]] |
+| Bulk authored content | [[None | Small fixture set | Describe exception]] |
+| Live/offline/forecast equivalence | [[None | Describe]] |
+| Exactly-once/transactional progression | [[None | Describe]] |
+| Independently testable domain services | [[COUNT AND NAMES]] |
+| Cross-layer integration seams | [[0–2 NORMALLY; NAME THEM]] |
+| Estimated non-documentation source/test files | [[ESTIMATE]] |
+| Estimated non-documentation code/test line delta | [[ESTIMATE; EXCLUDE `.uid` AND REPETITIVE AUTHORED DATA]] |
+| Owner verification package | [[PACKAGE AND PATHS]] |
+| Mandatory split trigger crossed? | [[No | Yes, split performed | Yes, owner-approved exception]] |
+| Exception rationale/approval evidence | [[Not applicable | EXACT RATIONALE]] |
+
+Rules:
+
+- Four or more risk dimensions require split review.
+- More than one primary subsystem owner requires split review.
+- A forecast above approximately 35 source/test files or 1,500 code/test lines requires split review.
+- Native/platform work may not be mixed with unrelated gameplay without explicit owner approval.
+- Production-catalog bulk may not be mixed with a new framework without explicit owner approval.
+- Estimates do not authorize extra work. Scope remains defined by the approved behaviors and acceptance criteria.
+- If implementation materially exceeds this assessment, Codex stops and reports the difference before continuing.
 
 ## Scope
 
@@ -323,6 +383,7 @@ Each criterion must be binary and observable. Map every criterion to evidence th
 | `AC-03` | [[BINARY OBSERVABLE CONDITION]] | [[EVIDENCE]] | [[Yes | No]] |
 | `AC-04` | All changed non-trivial GDScript follows the repository documentation and junior-reviewer comment rules. | Review changed scripts against `AGENTS.md` and `IMPLEMENTATION_RULES.md`. | Yes |
 | `AC-05` | All maintained documents made inaccurate by this change are updated in the same pull request. | Changed-file review and link validation. | Yes |
+| `AC-06` | The implementation remains within the approved slice and review-surface assessment, or any material scope growth received a separately approved prompt revision before implementation continued. | Compare planned and actual subsystem owners, risk dimensions, changed source/test files, and code/test line delta. | Yes |
 
 Completion rules:
 
@@ -441,6 +502,7 @@ Stop before implementing or expanding the affected part when any of the followin
 8. A platform API is unavailable or behaves differently enough that the documented adapter contract cannot be implemented honestly.
 9. A proposed solution would use local device time for closed-session rewards or weaken trusted-time reconciliation.
 10. The milestone is too large for one reviewable pull request and needs an approved split.
+11. Actual work introduces another primary subsystem owner, crosses another risk dimension, or materially exceeds the approved file/line estimate or cross-layer seams.
 
 Do not stop for ordinary local implementation choices that are already bounded by the architecture, naming rules, tests, and acceptance criteria. Make the smallest clear choice, document it, and report it under assumptions when appropriate.
 
@@ -458,6 +520,7 @@ The completed task must provide:
 - synchronized documentation;
 - junior-readable comments for non-obvious code;
 - a complete changed-file inventory;
+- an actual-versus-estimated review-surface summary, including non-documentation source/test file count, code/test line delta, subsystem owners, and any approved deviation;
 - exact verification evidence and disclosed pending checks;
 - no temporary failing tests, generated logs, local paths, secrets, or unrelated changes.
 
@@ -473,7 +536,7 @@ Summarize the resulting behavior and the milestone outcome. Do not list unverifi
 
 ### Files changed
 
-List every added, modified, renamed, or deleted file and its purpose. Note any expected file that was not changed and why when that matters to review.
+List every added, modified, renamed, or deleted file and its purpose. Note any expected file that was not changed and why when that matters to review. Report actual non-documentation source/test file count and code/test line delta against the approved estimate.
 
 ### Verification
 
@@ -512,6 +575,9 @@ Do not approve or execute an instantiated prompt until all applicable items are 
 - [ ] Prompt version, date, status, milestone heading, and planned path are correct.
 - [ ] The current repository was inspected after the latest dependency milestone merged.
 - [ ] Exact design labels, architecture sections, data contracts, test sections, and decision IDs are cited.
+- [ ] The work item is an approved implementation slice, not a conceptual epic.
+- [ ] The scope assessment identifies one primary owner, risk dimensions, seams, file/line estimates, and the selected owner package.
+- [ ] Every mandatory split trigger is absent, resolved by a split, or supported by explicit owner approval.
 - [ ] Scope fits one focused task and does not include future-milestone behavior.
 - [ ] Non-goals name the most likely scope-creep paths.
 - [ ] Repository-state assumptions identify what exists and what does not.

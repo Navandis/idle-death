@@ -1,11 +1,11 @@
 # Death Idle — Remaining Milestone Recalibration Proposal
 
-**Document role:** Proposed decomposition policy and revised implementation slicing after M03  
+**Document role:** Approved decomposition policy and revised implementation slicing after M03  
 **Repository path:** `docs/codex/MILESTONE_RECALIBRATION_PROPOSAL.md`  
-**Status:** Draft awaiting owner approval  
-**Date:** 2026-07-15  
+**Status:** Approved and adopted by the project governance package  
+**Approval date:** 2026-07-15  
 **Applies to:** Unstarted implementation work from M04 onward  
-**Does not yet supersede:** `docs/codex/MILESTONES.md`
+**Adoption:** Implemented by `DEC-0033`, `MILESTONES.md` revision 12, `PROMPT_TEMPLATE.md` revision 4, and `TESTING_AND_VALIDATION.md` revision 10
 
 ## 1. Why recalibration is necessary
 
@@ -24,7 +24,7 @@ The difficulty was not only algorithmic complexity. Several defects were simple 
 
 The existing milestone rules already require one focused, reviewable pull request and permit splitting. The current M04 definition does not meet that practical standard: it combines authoritative state, persistence, dispatch, simulation, independent output channels, long-horizon progress, rate-change boundaries, forecast cloning, report accumulation, multiple resolution modes, and a developer harness.
 
-No M04 implementation prompt should be drafted until this recalibration is approved and the canonical milestone map is updated.
+No unsplit M04 implementation prompt may be drafted. The canonical milestone map now treats M04 as a conceptual epic and defines M04A–M04E as the approved implementation slices.
 
 ## 2. Planning conclusion
 
@@ -275,9 +275,9 @@ Each slice's log must identify:
 - cleanup;
 - final PASS/FAIL.
 
-## 9. Documentation changes after approval
+## 9. Adopted governance changes
 
-Approval of this proposal should produce a repository-ready governance package that:
+The approved governance package:
 
 1. records M03 as merged and passed at final head `971cdaa0fd46f641ec7409148e259d54f953d8c7` and merge commit `5e2b9b23878c9280f75b987cc9ad567d8980030d`;
 2. adds an accepted decision for rolling milestone decomposition and review-surface guardrails;
@@ -288,19 +288,14 @@ Approval of this proposal should produce a repository-ready governance package t
 7. updates `PROMPT_TEMPLATE.md` with mandatory risk-dimension and scope-estimate fields;
 8. updates `TESTING_AND_VALIDATION.md` with per-slice owner evidence rules.
 
-No M04A implementation prompt should be generated in the same package. The governance update should be reviewed first; M04A prompt drafting begins only after the revised map is approved and committed.
+No M04A implementation prompt is included in this governance package. After these files are committed, the next planning step is to resolve `GATE-GAMEPLAY-SCHEMA` and then draft M04A through the ordinary prompt-approval workflow.
 
-## 10. Approval choices
+## 10. Approval record
 
-The recommended approval is:
+The project owner approved the following on 2026-07-15:
 
 ```text
 Approve the rolling-wave model, the review-surface guardrails, the lettered ID strategy, and the M04A–M04E decomposition. Treat later decompositions as preliminary until each conceptual epic is reached.
 ```
 
-Alternative choices:
-
-- approve the guardrails but use sequential renumbering instead of lettered IDs;
-- approve only the M04 split and defer changes to M05–M17;
-- request a different target size or a different M04 boundary.
-
+This approval authorizes the governance changes only. Each implementation-slice prompt still requires separate drafting, review, and owner approval.

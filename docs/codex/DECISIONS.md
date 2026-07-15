@@ -3,8 +3,8 @@
 **Document role:** Durable record of approved and proposed design and architecture decisions  
 **Repository path:** `docs/codex/DECISIONS.md`  
 **Document status:** Approved architecture and active decision record  
-**Revision:** 9  
-**Last updated:** 2026-07-14
+**Revision:** 10  
+**Last updated:** 2026-07-15
 
 ## 1. How to use this file
 
@@ -62,6 +62,7 @@ Rules:
 | `DEC-0030` | Output channels are first-class catalog definitions with stable `CHANNEL_...` IDs | Accepted | 2026-07-14 |
 | `DEC-0031` | Stable canonical IDs and mutable player-facing language | Accepted | 2026-07-14 |
 | `DEC-0032` | Essence is the sole resource term and canonical ID | Accepted | 2026-07-14 |
+| `DEC-0033` | Rolling-wave implementation slices and review-surface guardrails | Accepted | 2026-07-15 |
 
 ---
 
@@ -1345,10 +1346,81 @@ The design sources used both **Essence** and the earlier label **Corrupted Essen
 
 ---
 
+## `DEC-0033` — Rolling-wave implementation slices and review-surface guardrails
+
+**Status:** Accepted  
+**Date:** 2026-07-15  
+**Decision type:** Project governance and implementation planning  
+**Refines:** `DEC-0025`
+
+### Context
+
+M03 ultimately passed, but one implementation pull request changed 131 files and added 3,347 lines. Its broad review surface combined Resource-family design, sixty production definitions, terminology, normalization, persistence compatibility, tests, traces, owner automation, Inspector checks, and documentation. Several defects were individually simple—wrong IDs, values, mappings, condition operands, and effect declarations—but became difficult to detect because too many correctness domains changed together.
+
+The existing milestone map already requires focused, reviewable pull requests. The original M04 definition nevertheless combines authoritative state, save evolution, assignment commands, deterministic simulation, output channels, long-horizon progress, rate changes, forecasts, reports, and a developer harness. Later conceptual milestones contain similar multi-domain combinations.
+
+### Decision
+
+- Treat M04 through M17 as conceptual epics. A conceptual epic defines an approved outcome and boundary but is not directly executable and receives no Codex implementation prompt.
+- Use lettered implementation slices such as `M04A`, `M04B`, and `M04C`. Only an approved implementation slice receives a versioned prompt and pull request.
+- Apply rolling-wave planning: inspect the merged repository immediately before each slice, confirm dependencies and tests, reassess risk dimensions, and draft only the next slice prompt.
+- Approve M04A through M04E as the immediate decomposition of the Reaping-simulation epic. Later epic decompositions remain preliminary until their planning turn.
+- A normal slice should have one primary subsystem owner, one principal behavior or state transition, no more than two cross-layer integration seams, one demonstration, and one focused owner-verification package.
+- Before prompt approval, assess these risk dimensions:
+  - new authoritative state ownership;
+  - save-schema or migration changes;
+  - deterministic simulation or boundary algorithms;
+  - a new player-facing UI flow;
+  - native or platform integration;
+  - bulk authored content;
+  - live, offline, or forecast equivalence;
+  - exactly-once progression or transactional guarantees;
+  - multiple independently testable domain services.
+- Four or more risk dimensions trigger mandatory split review.
+- Use these planning signals rather than mechanical merge quotas:
+  - normally one primary subsystem owner;
+  - normally zero or one new authoritative aggregate family;
+  - normally zero or one save transition;
+  - normally zero or one new player-facing flow;
+  - approximately 10–25 non-documentation source/test files;
+  - approximately 500–1,200 non-documentation code/test lines, excluding `.uid` files and repetitive authored data.
+- A forecast above approximately 35 source/test files or 1,500 code/test lines triggers mandatory split review or an explicit owner-approved exception.
+- Do not mix native/platform integration with unrelated gameplay work, or production-catalog bulk with a new framework, without explicit owner approval.
+- Every future prompt records the scope assessment, expected changed areas, estimated review surface, owner package, and guardrail result.
+- If implementation materially exceeds the approved estimate, introduces another risk dimension, or requires another primary owner, Codex stops and reports the growth before continuing.
+- A later slice may reuse prior infrastructure or validation helpers, but its evidence must remain slice-specific and must identify exactly which slice failed or passed.
+
+### Consequences
+
+- The project will use more, smaller pull requests and more explicit dependency handoffs.
+- Conceptual epic numbers remain stable for design and architecture references, while lettered slice IDs give implementation work precise scope.
+- Review effort shifts earlier into scope assessment, reducing late correction loops and making simple data mistakes easier to isolate.
+- Line and file estimates remain planning triggers. A coherent task is not rejected solely for crossing a number, but the exception must be visible and approved.
+- The next implementation prompt is M04A only after its gameplay-schema gate is resolved. No unsplit M04 prompt is valid.
+- M05–M17 preliminary splits may change after repository inspection; this decision does not freeze speculative future class or file layouts.
+
+### Alternatives considered
+
+- **Keep the original M04–M17 tasks unchanged:** rejected because M03 demonstrated that broad review surfaces increase avoidable implementation and content errors.
+- **Renumber every remaining milestone sequentially:** rejected because existing decisions and architecture references already use M06, M16, M17, and other conceptual IDs.
+- **Use hard file or line limits as merge rules:** rejected because repetitive data, migrations, and focused tests can vary materially in size without changing conceptual coherence.
+- **Fully specify every future lettered slice now:** rejected because later boundaries should use the actual merged repository rather than speculative state.
+- **Allow Codex to split its own approved prompt during implementation:** rejected because prompt scope and dependency changes require owner-visible planning and approval.
+
+### Affected documents
+
+- `docs/codex/MILESTONE_RECALIBRATION_PROPOSAL.md`
+- `docs/codex/MILESTONES.md`
+- `docs/codex/PROMPT_TEMPLATE.md`
+- `docs/codex/TESTING_AND_VALIDATION.md`
+
+---
+
 ## 3. Current approval state
 
-- `DEC-0001` through `DEC-0032` are Accepted.
+- `DEC-0001` through `DEC-0033` are Accepted.
 - M03 prompt approval accepted `DEC-0029` through `DEC-0032`, including explicit revision compatibility, stable channel IDs, editable player-facing language, centralized terminology, and Essence as the single resource identity.
 - M01 prompt approval accepted `DEC-0026`; long-horizon source ownership is recorded in `DEC-0027`; prospective, non-compounding rate-change semantics are recorded in `DEC-0028`.
 - The Phase 6 architecture is approved with trusted-time, save-format, cross-machine testing, GodotSteam, owner-verification, fixed-point, Threshold-channel ownership, content compatibility, naming, and terminology refinements recorded in `DEC-0021` through `DEC-0032`.
+- The post-M03 implementation workflow uses conceptual epics, lettered slices, rolling-wave planning, and review-surface guardrails under `DEC-0033`.
 - Future changes preserve decision IDs for wording clarifications and create a new decision only when semantics, ownership, compatibility, or security posture changes.

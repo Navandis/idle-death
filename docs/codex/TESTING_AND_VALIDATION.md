@@ -2,9 +2,9 @@
 
 **Document role:** Canonical test strategy, commands, fixture rules, and manual validation flows
 **Repository path:** `docs/codex/TESTING_AND_VALIDATION.md`
-**Document status:** Approved architecture validation plan through M02 with M03 package approved
-**Validation revision:** 9
-**Last updated:** 2026-07-14
+**Document status:** Approved validation plan through M03 with lettered-slice governance
+**Validation revision:** 10
+**Last updated:** 2026-07-15
 **Engine target:** Godot 4.7 standard build, GDScript only
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)  
 **Owner evidence companion:** [OWNER_VERIFICATION_WORKFLOW.md](OWNER_VERIFICATION_WORKFLOW.md)
@@ -28,7 +28,11 @@ M00 has added the approved automated harness:
 
 M00 merged through PR #4. Linux/Codex Cloud and owner-run Windows verification passed, including full and focused GUT execution, outside-root invocation, main-scene/editor smoke, passive Steam configuration, intentional failing-test propagation, cleanup, and clean recovery. Future milestones use the same canonical wrappers and the owner evidence package described in `OWNER_VERIFICATION_WORKFLOW.md`.
 
-M01 merged through PR #5. Linux/Codex and owner-run Windows verification passed the full suite, focused fixed-point/time/source-ownership suite, import preflight, trusted-time reconciliation trace, long-horizon 24-hour fixed-point trace, cleanup, and generated-log checks. M02 builds persistence on the resulting `GameState`, `TimeAuthorityState`, `FixedPoint`, and `TimeReconciliationService` contracts.
+M01 merged through PR #5. Linux/Codex and owner-run Windows verification passed the full suite, focused fixed-point/time/source-ownership suite, import preflight, trusted-time reconciliation trace, long-horizon 24-hour fixed-point trace, cleanup, and generated-log checks.
+
+M02 merged through PR #6 and passed codec, schema, migration, atomic-storage, corruption-recovery, and Windows filesystem verification.
+
+M03 merged through PR #7 at merge commit `5e2b9b23878c9280f75b987cc9ad567d8980030d` from final head `971cdaa0fd46f641ec7409148e259d54f953d8c7`. Linux/Codex and owner-run Windows verification passed the full and focused content suites, import, deterministic semantic catalog trace, artifact audit, and Godot Inspector checklist. The repository now uses lettered implementation slices under `DEC-0033`.
 
 ## 2. Pinned test and platform dependencies
 
@@ -875,6 +879,10 @@ Do not hide failures behind a wrapper that always exits successfully.
 
 Every Codex pull request reports:
 
+### Scope assessment versus actual
+
+Record the implementation-slice ID, parent epic, primary subsystem owner, risk dimensions, expected and actual non-documentation source/test file count, expected and actual code/test line delta, cross-layer seams, and any owner-approved deviation. A conceptual epic is not a valid pull-request task.
+
 ### Automated commands run
 
 List each exact command and result, grouped as Codex Cloud/Linux and owner-run Windows. Do not merge the categories or infer one from the other.
@@ -910,7 +918,7 @@ M17 may record representative prototype baselines, but the shipping codec, Steam
 
 ## 18. Definition of validated
 
-A milestone is validated only when:
+An implementation slice is validated only when:
 
 - all acceptance criteria have an automated or manual verification method;
 - applicable automated tests pass;
@@ -921,7 +929,10 @@ A milestone is validated only when:
 - trusted-time accounting, unavailable behavior, and duplicate-prevention are tested when offline resolution changes;
 - exactly-once behavior is tested when progression changes;
 - the exact manual demonstration path is recorded;
-- limitations are disclosed rather than inferred away.
+- limitations are disclosed rather than inferred away;
+- actual scope remains within the approved slice assessment, or implementation stopped until a revised owner-approved prompt existed.
+
+A conceptual epic is complete only when every required implementation slice is merged and passed; an epic-level summary does not substitute for slice evidence.
 
 ## 19. Owner verification packages and generated logs
 
@@ -944,6 +955,33 @@ The generated log records the requested PR head or commit, detected commit when 
 
 Scripts must return nonzero on automated failure, verify cleanup of any temporary fixtures, and rerun the clean regression suite after intentional-failure or corruption checks. Logs are uploaded or quoted as validation evidence and are never committed. Visual, editor, audio, A/B, functional, and live Steam observations remain explicit owner results and cannot be inferred from the script log.
 
+
+
+### 19.1 Lettered implementation-slice evidence
+
+Under `DEC-0033`, every lettered slice has its own evidence boundary.
+
+- Use the slice ID in script, checklist, trace, fixture, and log names where practical, for example `run_m04a_owner_verification.ps1` and `M04A-owner-verification-<UTC>-<sha>.log`.
+- The generated log identifies the slice ID and parent conceptual epic.
+- Run the focused tests for the slice and the full regression suite. A later slice's full suite preserves prior regressions but does not replace the earlier slice's missing focused evidence.
+- A trace or demonstration proves only the slice's outcome. Do not build one full-epic harness that obscures which slice failed.
+- A slice that changes authoritative state must include exact state validation, cloning where applicable, save-schema/reset handling, fixtures, and round-trip evidence in that slice.
+- A slice that changes deterministic resolution must include repeatability, equivalent-chunk, boundary, and zero-progress-loop checks appropriate to its scope.
+- A slice that introduces exactly-once progression must include duplicate/reload evidence in that slice.
+- A slice that changes presentation, editor-authored Resources, audio, live Steam behavior, or gameplay observation requires the matching explicit owner checklist.
+- A slice with no visual, editor, or platform-specific behavior may use an automated owner log only and state why no interactive checklist is required.
+- A later slice may reuse a prior PowerShell helper, but the top-level entry point and summary remain slice-specific.
+- Owner logs from earlier slices remain valid local evidence and must not be deleted merely to run a later script; they remain ignored and untracked.
+
+Every slice log ends with:
+
+```text
+Automated result: PASS|FAIL
+Failed step count:
+Pending interactive checks:
+Cleanup result: PASS|FAIL
+Log path:
+```
 
 ## M01 validation commands
 
@@ -1097,18 +1135,44 @@ The checklist must cover:
 
 M03 merge requires both the owner script log and explicit checklist result.
 
-## M03 content catalog checks
+## M03 completion record
 
-M03 added the focused content suite:
+M03 merged through PR #7 on 2026-07-15 at merge commit `5e2b9b23878c9280f75b987cc9ad567d8980030d` from final head `971cdaa0fd46f641ec7409148e259d54f953d8c7`.
 
-```sh
-./tools/test/run_gut.sh -- -gdir=res://tests/unit/content -gdir=res://tests/integration/content
-```
+Linux/Codex and owner evidence established:
 
-The developer trace is:
+- the typed production catalog contains the exact sixty approved definitions and twenty terminology entries;
+- full Windows suite before and after the trace: `42/42` tests and `496` assertions each;
+- focused M03 suite: `13/13` tests and `243` assertions;
+- explicit import, semantic catalog trace, and artifact audit passed;
+- Gloamwood/Broken Watch values, discovery metadata, modifier operands, milestone/guarantee mappings, derived guarantee previews, resonance effects, terminology, rename isolation, and content compatibility passed the trace;
+- the Godot Inspector checklist passed with no parser, import, or Resource errors;
+- automated result `PASS`, failed step count `0`, cleanup `PASS`.
 
-```sh
-godot --headless --path . -s res://tools/test/m03/m03_content_catalog_trace.gd
-```
+`GATE-CONTENT-CATALOG` is satisfied.
 
-Owner Windows verification uses `tools/test/owner/run_m03_owner_verification.ps1` and the Inspector checklist at `docs/codex/owner-checklists/M03-owner-verification.md`.
+## 20. Rolling-wave slice validation and scope evidence
+
+The post-M03 implementation sequence uses conceptual epics and lettered slices under `DEC-0033`.
+
+Before a slice prompt is approved, its validation plan must state:
+
+1. the slice ID and parent epic;
+2. focused test directories/files;
+3. the trace or demonstration entry point;
+4. whether authoritative state or save compatibility changes;
+5. whether deterministic chunking, exactly-once, editor, visual, Windows, or live-platform checks apply;
+6. the owner package and exact invocation;
+7. the expected review surface and any approved exception.
+
+Before merge, the pull-request handoff and owner evidence must state:
+
+- actual source/test files changed;
+- actual code/test line delta, excluding `.uid` files and repetitive authored data;
+- whether another subsystem owner or risk dimension appeared;
+- whether implementation remained within the approved assessment;
+- every focused/full command and exit code;
+- every pending interactive check;
+- cleanup and final PASS/FAIL.
+
+M04A through M04E receive separate focused suites, traces, and owner logs. No unsplit M04 verification package is valid.

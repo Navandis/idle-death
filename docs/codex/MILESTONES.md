@@ -2,20 +2,20 @@
 
 **Document role:** Approved implementation sequence and acceptance map for the 0–90 minute prototype  
 **Repository path:** `docs/codex/MILESTONES.md`  
-**Document status:** Phase 7 approved  
-**Milestone-map revision:** 11  
-**Last updated:** 2026-07-14  
-**Primary context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md), [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md), [Architecture](ARCHITECTURE.md), [Data contracts](DATA_AND_CONTENT_CONTRACTS.md), [Testing](TESTING_AND_VALIDATION.md), [Owner verification](OWNER_VERIFICATION_WORKFLOW.md), and [Decisions](DECISIONS.md)
+**Document status:** Approved rolling-wave milestone map  
+**Milestone-map revision:** 12  
+**Last updated:** 2026-07-15  
+**Primary context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md), [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md), [Architecture](ARCHITECTURE.md), [Data contracts](DATA_AND_CONTENT_CONTRACTS.md), [Testing](TESTING_AND_VALIDATION.md), [Owner verification](OWNER_VERIFICATION_WORKFLOW.md), [Milestone recalibration](MILESTONE_RECALIBRATION_PROPOSAL.md), and [Decisions](DECISIONS.md)
 
 ## 1. Purpose and authority
 
-This file divides the approved prototype architecture and first-session sequence into reviewable Codex tasks. It defines scope and acceptance, not the implementation prompt text. The owner approved this map in Phase 7. Phase 8 created the approved reusable prompt template. Phase 9 creates one versioned milestone prompt at a time.
+This file divides the approved prototype architecture and first-session sequence into reviewable work items. It defines scope and acceptance, not the implementation prompt text. The owner approved the original map in Phase 7 and approved the post-M03 rolling-wave recalibration on 2026-07-15. From M04 onward, M04–M17 are conceptual epics; only approved lettered implementation slices receive versioned Codex prompts.
 
 Use the source hierarchy in `AGENTS.md`. A milestone definition cannot weaken a protected design invariant or accepted decision. When repository state later differs from an assumption here, update this file and record any architecture/design decision before drafting that milestone's prompt.
 
 ## 2. Current repository baseline
 
-After M02 completion:
+After M03 completion:
 
 - Godot 4.7, GDScript, the 1920 × 1080 reference viewport, resizing/stretch settings, and a temporary dry-run main scene exist.
 - `AGENTS.md`, project Codex configuration, the maintained design sources, the architecture documents, the approved `PROMPT_TEMPLATE.md`, and `OWNER_VERIFICATION_WORKFLOW.md` are present in the repository.
@@ -27,7 +27,9 @@ After M02 completion:
 - M01 added `FixedPoint`, the minimal `GameState` simulation timeline, separate `TimeAuthorityState`, monotonic and trusted-time contracts, `TimeReconciliationService`, fakes, focused tests, a deterministic trace, and the milestone-specific Windows verification script.
 - M01 Linux/Codex and owner-run Windows verification passed, including the full suite, focused numeric/time tests, source-ownership checks, import preflight, deterministic trusted-time trace, and long-horizon fixed-point trace.
 - M02 added the frozen schema-version-1 mapper/validator, canonical signed-64-bit JSON strings, migration seam, atomic primary/temporary/backup storage, corrupt-file retention, persistence tests, trace, and Windows verification package.
-- The repository still has no content registry, production Reaping simulation, or gameplay UI.
+- M03 added the typed explicit content catalog, exact canonical IDs, six stable output channels, centralized singular/plural terminology, deterministic normalization/validation, content-revision compatibility, focused tests, trace, Windows automation, and Inspector checklist.
+- M03 merged through PR #7 at final head `971cdaa0fd46f641ec7409148e259d54f953d8c7` and merge commit `5e2b9b23878c9280f75b987cc9ad567d8980030d`; Linux/Codex and owner Windows/Inspector verification passed.
+- The repository still has no gameplay-state expansion beyond the minimal M01 timeline, production Reaping simulation, application shell, or player-facing gameplay UI.
 - Existing dry-run assets and scene work are preserved unless a scoped milestone explicitly replaces or integrates them.
 
 ## 3. Milestone rules
@@ -44,18 +46,54 @@ Every milestone must:
 8. update this status map and every maintained contract made inaccurate by the change;
 9. preserve junior-readable code and comments under `AGENTS.md` and `IMPLEMENTATION_RULES.md`;
 10. stop for owner approval when a listed decision gate is reached;
-11. package owner-run merge gates under `OWNER_VERIFICATION_WORKFLOW.md`, preferring one milestone-specific PowerShell entry point with a generated log and a separate checklist only for interactive observations.
+11. package owner-run merge gates under `OWNER_VERIFICATION_WORKFLOW.md`, preferring one milestone-specific PowerShell entry point with a generated log and a separate checklist only for interactive observations;
+12. identify one primary subsystem owner and one principal behavior or state transition for every implementation slice;
+13. complete the `DEC-0033` scope assessment before prompt approval;
+14. stop and report material scope growth before adding another subsystem owner, risk dimension, or cross-layer seam;
+15. issue prompts only for directly executable implementation slices, never for conceptual epics.
 
-A milestone may be split after implementation begins only when the split preserves a demonstrable result and the dependency/status tables are updated first. Do not merge several later milestones merely because Codex can generate a large diff.
+A conceptual epic may be decomposed only through an approved map update. A slice may be split after implementation begins only when the split preserves a demonstrable result and the dependency/status tables are updated before work continues. Do not merge later work merely because Codex can generate a large diff.
+
+### 3.1 Review-surface guardrails
+
+These are planning triggers, not mechanical merge quotas.
+
+| Guardrail | Normal target | Mandatory split review |
+|---|---:|---:|
+| Primary subsystem owners | 1 | More than 1 |
+| New authoritative aggregate families | 0–1 | More than 2 |
+| Save-schema transitions | 0–1 | More than 1 |
+| New player-facing flows/screens | 0–1 | More than 1 |
+| New platform/native integrations | 0–1 | Any platform work mixed with unrelated gameplay |
+| Risk dimensions | 0–3 | 4 or more |
+| Cross-layer integration seams | 0–2 | More than 2 |
+| Non-documentation source/test files | Approximately 10–25 | Forecast above approximately 35 |
+| Non-documentation code/test line delta, excluding `.uid` and repetitive authored data | Approximately 500–1,200 | Forecast above approximately 1,500 |
+| Bulk `.tres` content | Small fixture set | Production-catalog bulk mixed with a new framework |
+
+A trigger requires a split or an explicit owner-approved exception. Estimates do not authorize extra work, and crossing a number does not automatically invalidate an otherwise coherent slice.
 
 ## 4. Status vocabulary
+
+### 4.1 Work-item types
+
+| Type | Meaning |
+|---|---|
+| Completed milestone | Historical directly executed milestone from M00–M03. |
+| Conceptual epic | Approved outcome and dependency container; not directly executable and receives no prompt. |
+| Implementation slice | Bounded lettered task that may receive one approved prompt and pull request. |
+| Release gate | Required decision or validation outside the prototype implementation sequence. |
+
+### 4.2 Status values
 
 | Field | Values |
 |---|---|
 | Definition | Proposed, Approved, Superseded |
-| Prompt | Not drafted, Drafted, Approved, Superseded |
-| Implementation | Not started, In progress, Pull request open, Merged, Rework required |
+| Prompt | Not applicable, Not drafted, Drafted, Approved, Superseded |
+| Implementation | Not directly executable, Not started, In progress, Pull request open, Merged, Rework required |
 | Verification | —, Partial, Passed, Failed, Blocked |
+
+A conceptual epic uses `Prompt: Not applicable` and `Implementation: Not directly executable`. Its completion is derived from the required slices; it does not receive an epic-level implementation pull request.
 
 ## 5. Decision and dependency gates
 
@@ -66,8 +104,10 @@ A milestone may be split after implementation begins only when the split preserv
 | `GATE-FIXED-POINT` | M01 merge | Implement accepted `DEC-0026`: one centralized scale of `1_000_000` for fractional state, unscaled discrete counts, explicit-period accumulation, checked 64-bit arithmetic, canonical carries, documented bounds, and cross-platform tests including one-item-per-8-hours and one-item-per-24-hours cases. |
 | `GATE-SAVE-SCHEMA` | M02 merge | Freeze schema-version-1 key spelling and representative fixtures before gameplay state depends on it. |
 | `GATE-CONTENT-CATALOG` | M03 merge | Validate one explicit typed catalog containing the required prototype IDs, `RES_ESSENCE`, stable `CHANNEL_...` sources, centralized `TERM_...` terminology, editable names independent of IDs, normalized values, content-revision compatibility, deterministic ordering, and editor-inspectable `.tres` definitions before simulation depends on content. |
-| `GATE-STEAM-TIME` | M06 prompt/implementation | Satisfied for prompt drafting by `DEC-0024`: use pinned GodotSteam 4.20 and development App ID `480`. M06 must still verify license footprint, wrapper API, explicit initialization, and live Windows behavior. |
-| `GATE-PRODUCTION-OFFLINE` | M16 merge | Fake-provider automation plus the owner-run Windows/GodotSteam connected, unavailable, reconnect, clock-change, and repeated-load checks must pass. |
+| `GATE-SLICE-SCOPE` | Every post-M03 prompt approval | Complete the `DEC-0033` scope assessment. Split the work or record an explicit owner-approved exception when a mandatory review trigger is crossed. |
+| `GATE-GAMEPLAY-SCHEMA` | M04A prompt approval | Choose and document either a real next save-schema version with sequential migration or an explicit owner-approved prototype reset policy. M02 schema version 1 may not be silently extended with gameplay fields. |
+| `GATE-STEAM-TIME` | The applicable M06 slice prompt/implementation | Satisfied for prompt drafting by `DEC-0024`: use pinned GodotSteam 4.20 and development App ID `480`. M06 must still verify license footprint, wrapper API, explicit initialization, and live Windows behavior. |
+| `GATE-PRODUCTION-OFFLINE` | The final applicable M16 slice merge | Fake-provider automation plus the owner-run Windows/GodotSteam connected, unavailable, reconnect, clock-change, and repeated-load checks must pass. |
 | `RELEASE-GATE-STEAM-APP` | Before external Steam Playtest or commercial distribution | Replace development App ID `480` with Death Idle's assigned App ID and validate package ownership, launch-through-Steam behavior, export contents, and absence of development-only App ID aids. |
 | `RELEASE-GATE-SAVE` | Before commercial release, not this prototype map | Profile realistic full-game saves and choose the final codec/threat model under `DEC-0022`. JSON may remain; binary/compression/encryption are not assumed security. |
 
@@ -77,68 +117,117 @@ A milestone may be split after implementation begins only when the split preserv
 
 `GATE-SAVE-SCHEMA` was satisfied by M02. PR #6 merged on 2026-07-14 at merge commit `480a9eae2fe0c3591503da56b07c272be74ec027`; its final head was `0dd0c1d5c799db45aa4a8387d93750e02b2e485f`. Linux/Codex passed the focused persistence suite (`17/17` tests), full suite (`29/29` tests), and real-file trace. The owner passed the same Windows full/focused suites, explicit import, revision-1/revision-2 rotation, corrupt-primary rejection, backup selection, retained corrupt bytes, isolated-directory cleanup, and final clean regression rerun.
 
+`GATE-CONTENT-CATALOG` was satisfied by M03. PR #7 merged on 2026-07-15 at merge commit `5e2b9b23878c9280f75b987cc9ad567d8980030d`; its final head was `971cdaa0fd46f641ec7409148e259d54f953d8c7`. Linux/Codex and owner Windows verification passed the full and focused suites, explicit import, semantic catalog trace, artifact audit, and Godot Inspector checklist.
+
+`GATE-SLICE-SCOPE` is now mandatory for every post-M03 prompt. `GATE-GAMEPLAY-SCHEMA` remains pending and blocks M04A prompt approval until the owner approves the migration or reset policy.
+
+
 When trusted time is unavailable, the approved behavior is to grant no guessed closed-session progress, retain pending reconciliation, and continue monotonic foreground production. No milestone may introduce a local-device-time fallback.
 
 ## 6. Milestone status map
 
-| ID | Milestone | Definition | Prompt | Implementation | Verification |
-|---|---|---|---|---|---|
-| M00 | Repository, Godot, GUT, and Codex Cloud harness | Approved | Approved | Merged | Passed |
-| M01 | Deterministic numeric and time-authority foundation | Approved | Approved | Merged | Passed |
-| M02 | Versioned save codec and atomic storage | Approved | Approved | Merged | Passed |
-| M03 | Content catalog, canonical IDs, and configurable prototype data | Approved | Approved | Pull request open | Partial |
-| M04 | Persistent Reaping simulation vertical slice | Approved | Not drafted | Not started | — |
-| M05 | Persistent application shell, navigation, and debug access | Approved | Not drafted | Not started | — |
-| M06 | Steam trusted-time adapter and transactional offline resolution | Approved | Not drafted | Not started | — |
-| M07 | Dialogue and save-safe tutorial orchestration framework | Approved | Not drafted | Not started | — |
-| M08 | Opening sequence, scripted four returns, Brand, and first dispatch | Approved | Not drafted | Not started | — |
-| M09 | Archive, Recollections, and Soulweave horizon | Approved | Not drafted | Not started | — |
-| M10 | First report, Emergency-to-Standard transition, and Soldier Company | Approved | Not drafted | Not started | — |
-| M11 | Scribe guarantee, player-driven awakening, and Form comparison | Approved | Not drafted | Not started | — |
-| M12 | Broken Watch, minor resonance, second tether, and concurrent Reapings | Approved | Not drafted | Not started | — |
-| M13 | Discovery states, hidden Provisions, and forecast confidence | Approved | Not drafted | Not started | — |
-| M14 | Larder, Rations, support pressure, and graceful degradation | Approved | Not drafted | Not started | — |
-| M15 | Regional 10,000 resonance, optional Recollection choice, and objectives | Approved | Not drafted | Not started | — |
-| M16 | Offline forecast, welcome-back report, and guided-opening completion | Approved | Not drafted | Not started | — |
-| M17 | Complete 0–90 minute integration, resilience, pacing, and acceptance pass | Approved | Not drafted | Not started | — |
+| ID | Work item | Type | Definition | Prompt | Implementation | Verification |
+|---|---|---|---|---|---|---|
+| M00 | Repository, Godot, GUT, and Codex Cloud harness | Completed milestone | Approved | Approved | Merged | Passed |
+| M01 | Deterministic numeric and time-authority foundation | Completed milestone | Approved | Approved | Merged | Passed |
+| M02 | Versioned save codec and atomic storage | Completed milestone | Approved | Approved | Merged | Passed |
+| M03 | Content catalog, canonical IDs, and configurable prototype data | Completed milestone | Approved | Approved | Merged | Passed |
+| M04 | Persistent Reaping simulation vertical slice | Conceptual epic | Approved | Not applicable | Not directly executable | — |
+| M04A | Gameplay state and persistence foundation | Implementation slice | Approved | Not drafted | Not started | — |
+| M04B | Dispatch, recall, and assignment integrity | Implementation slice | Approved | Not drafted | Not started | — |
+| M04C | Single-Reaping core resolver | Implementation slice | Approved | Not drafted | Not started | — |
+| M04D | Output channels and long-horizon acquisition progress | Implementation slice | Approved | Not drafted | Not started | — |
+| M04E | Forecast clone, report accumulator, and simulation harness | Implementation slice | Approved | Not drafted | Not started | — |
+| M05 | Persistent application shell, navigation, and debug access | Conceptual epic | Approved | Not applicable | Not directly executable | — |
+| M06 | Steam trusted-time adapter and transactional offline resolution | Conceptual epic | Approved | Not applicable | Not directly executable | — |
+| M07 | Dialogue and save-safe tutorial orchestration framework | Conceptual epic | Approved | Not applicable | Not directly executable | — |
+| M08 | Opening sequence, scripted four returns, Brand, and first dispatch | Conceptual epic | Approved | Not applicable | Not directly executable | — |
+| M09 | Archive, Recollections, and Soulweave horizon | Conceptual epic | Approved | Not applicable | Not directly executable | — |
+| M10 | First report, Emergency-to-Standard transition, and Soldier Company | Conceptual epic | Approved | Not applicable | Not directly executable | — |
+| M11 | Scribe guarantee, player-driven awakening, and Form comparison | Conceptual epic | Approved | Not applicable | Not directly executable | — |
+| M12 | Broken Watch, minor resonance, second tether, and concurrent Reapings | Conceptual epic | Approved | Not applicable | Not directly executable | — |
+| M13 | Discovery states, hidden Provisions, and forecast confidence | Conceptual epic | Approved | Not applicable | Not directly executable | — |
+| M14 | Larder, Rations, support pressure, and graceful degradation | Conceptual epic | Approved | Not applicable | Not directly executable | — |
+| M15 | Regional 10,000 resonance, optional Recollection choice, and objectives | Conceptual epic | Approved | Not applicable | Not directly executable | — |
+| M16 | Offline forecast, welcome-back report, and guided-opening completion | Conceptual epic | Approved | Not applicable | Not directly executable | — |
+| M17 | Complete 0–90 minute integration, resilience, pacing, and acceptance pass | Conceptual epic | Approved | Not applicable | Not directly executable | — |
 
 ## 7. Dependency sequence
 
+### 7.1 Exact near-term implementation sequence
+
 ```text
-M00
- └─ M01
-     └─ M02
-         └─ M03
-             └─ M04
-                 └─ M05
-                     ├─ M06  (approved Steam-time dependency required)
-                     └─ M07
-                         └─ M08
-                             └─ M09
-                                 └─ M10
-                                     └─ M11
-                                         └─ M12
-                                             └─ M13
-                                                 └─ M14
-                                                     └─ M15
-                                                         └─ M16  (also requires M06)
-                                                             └─ M17
+M00 → M01 → M02 → M03
+                      └─ GATE-GAMEPLAY-SCHEMA
+                          └─ M04A → M04B → M04C → M04D → M04E
 ```
 
-M06 is intentionally implemented early enough to retire the trusted-time/platform risk before the final offline-return UX. The owner has selected GodotSteam 4.20 and App ID `480` for development, so M06 prompt drafting is no longer blocked by dependency choice. M07–M15 may still use fake trusted-time sources, but M16 cannot merge until M06 and its owner-run Windows verification are complete.
+| Slice | Requires | Unlocks |
+|---|---|---|
+| M04A | M03 Passed; `GATE-SLICE-SCOPE`; `GATE-GAMEPLAY-SCHEMA` | M04B |
+| M04B | M04A Merged and Passed | M04C |
+| M04C | M04B Merged and Passed | M04D |
+| M04D | M04C Merged and Passed | M04E |
+| M04E | M04D Merged and Passed | M05 decomposition and prompt drafting |
 
-## 8. Changes from the starting hypothesis
+### 7.2 Conceptual dependency sequence after M04E
 
-The starting M00–M13 hypothesis was useful, but this map makes several deliberate changes:
+```text
+M04E
+ └─ M05 implementation slices, defined under rolling-wave review
+     ├─ M06 implementation slices  (approved Steam-time dependency required)
+     └─ M07 implementation slices
+         └─ M08 implementation slices
+             └─ M09 implementation slices
+                 └─ M10 implementation slices
+                     └─ M11 implementation slice(s)
+                         └─ M12 implementation slices
+                             └─ M13 implementation slices
+                                 └─ M14 implementation slices
+                                     └─ M15 implementation slice(s)
+                                         └─ M16 implementation slices  (also requires M06 completion)
+                                             └─ M17 implementation slices
+```
 
-- **State/time and persistence are split.** Exact numeric/trusted-time accounting (M01) and disk codec/atomic recovery (M02) are different failure domains and are easier to review separately.
-- **The content catalog precedes simulation.** M03 prevents the first production slice from hard-coding Forms, Thresholds, milestones, or guarantees.
-- **The core Reaping is proven before the application shell.** M04 makes deterministic behavior testable without scenes; M05 then proves the approved lifetime and presentation boundary.
-- **Trusted external time receives its own early milestone.** M06 is the sole narrow Steam exception and a dependency-risk milestone, while M16 remains the player-facing offline/report experience.
-- **Dialogue/tutorial framework precedes real beats.** M07 proves save/skip/queue behavior with a mock sequence before narrative content depends on it.
-- **The first-session beats are smaller vertical slices.** Archive/Soulweave, Soldier Company, Scribe, Broken Watch, discovery, Larder, and the second resonance remain separate reviewable pull requests.
-- **Reports are introduced incrementally.** M04 creates the accumulator, M10 creates the first player-facing report/history behavior, and M16 completes welcome-back/offline presentation.
-- **Final integration adds no major system.** M17 is an acceptance, resilience, tuning, and measurement pass rather than a container for unfinished features.
+The post-M04E entries above are conceptual dependencies, not approved prompt IDs. Their preliminary decompositions remain subject to repository inspection and owner approval immediately before each epic. M06 remains early enough to retire the trusted-time/platform risk before M16. M07–M15 may use fake trusted-time providers, but the final applicable M16 slice cannot merge until the M06 live Windows gate is complete.
+
+## 8. Recalibrated planning model
+
+M03 demonstrated that a technically coherent architecture can still become an unsafe implementation task when too many independent correctness domains change at once. The project therefore uses the rolling-wave model in `DEC-0033`.
+
+### 8.1 Conceptual epics versus implementation slices
+
+- M04–M17 preserve durable product and architecture outcomes.
+- A conceptual epic never receives a direct prompt or implementation pull request.
+- Lettered slices are the only directly executable post-M03 work items.
+- Each slice is reassessed against the merged repository immediately before prompt drafting.
+- Later decompositions are planning defaults rather than frozen class or file designs.
+
+### 8.2 Preliminary decomposition of later conceptual epics
+
+| Conceptual epic | Preliminary slices | Rationale |
+|---|---|---|
+| M05 application shell | `M05A` GameApp/GameSession lifetime and startup persistence; `M05B` navigation, read models, resizing, and debug access | Separates lifecycle authority from presentation/tooling |
+| M06 Steam trusted time | `M06A` GodotSteam bridge/provider and fake-bridge tests; `M06B` transactional offline lifecycle, reconnect, and live Windows proof | Separates native API risk from save/simulation integration |
+| M07 dialogue/tutorial framework | `M07A` dialogue presentation and persisted sequence cursor; `M07B` tutorial coordinator, skip/help, and pending reconstruction | Avoids one framework task owning two orchestration systems |
+| M08 opening slice | `M08A` Beats 1–3 through Brand; `M08B` first player-facing dispatch | Separates one-time story transactions from Reaping UI integration |
+| M09 Archive/Soulweave | `M09A` Archive restoration and Recollection purchase; `M09B` Soulweave topology and Form detail | Separates domain transactions from a thirty-position UI |
+| M10 report/Soldier Company | `M10A` 1,000 boundary, Emergency transition, and first report; `M10B` Muster, reservation ledger, and Soldier Company | Separates boundary/report correctness from reservations |
+| M11 Scribe | May remain one slice if the fresh assessment stays within guardrails | Current outcome is comparatively cohesive |
+| M12 Broken Watch/concurrency | `M12A` resonance, Threshold unlock, and tether grant; `M12B` second Reaping, reassignment, and map integration | Separates exactly-once progression from concurrency |
+| M13 discovery | `M13A` discovery state and hidden banking; `M13B` forecast confidence, disclosure UI, and acquisition-progress presentation | Separates authority from presentation |
+| M14 Larder/support | `M14A` Hall/recipe simulation and onboarding guarantee; `M14B` Ration consumption, reduced effect, recovery, and UI | Separates producer and consumer/degradation logic |
+| M15 regional resonance | May remain one slice if the fresh assessment stays within guardrails | Current outcome is smaller but still requires reassessment |
+| M16 offline-return UX | `M16A` forecast/report-history presentation; `M16B` trusted welcome-back, pending state, and tutorial completion | Separates projection UI from live trusted return |
+| M17 acceptance | `M17A` functional/softlock/end-to-end acceptance; `M17B` pacing, telemetry, responsive layout, accessibility, and performance | Separates correctness repair from tuning and measurement |
+
+### 8.3 Changes from the starting hypothesis
+
+- State/time, persistence, and content were correctly separated into M01–M03.
+- M04 is now split into five approved implementation slices rather than one large vertical-slice pull request.
+- Later first-session outcomes remain conceptually ordered but are decomposed only when their repository state is known.
+- Reports, forecasts, trusted time, and presentation remain incremental rather than becoming catch-all work.
+- M17 remains an acceptance epic and may not absorb unfinished major systems.
 
 ## 9. Detailed milestone definitions
 
@@ -520,9 +609,8 @@ This milestone establishes schema version 1, codec ID, transaction rules, and ba
 
 **Definition status:** Approved  
 **Prompt status:** Approved  
-**Implementation status:** Pull request open  
-**Verification status:** Partial — corrected Linux/Codex checks pass; corrected owner Windows automation and Inspector checklist remain pending.
-
+**Implementation status:** Merged through PR #7  
+**Verification status:** Passed  
 **Recommended Codex task size:** Medium-large but bounded to authored data, normalization, validation, save-revision compatibility, and developer verification.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M03-content-catalog-prototype-data.md`
 
@@ -631,6 +719,16 @@ Schema version 1 and its key spelling remain unchanged. New-save calls pass the 
 - `DECISIONS.md` records accepted `DEC-0029` through `DEC-0032`.
 - Design source-of-truth files change only if an approved content identity changes.
 
+#### Completion record
+
+- PR #7 merged on 2026-07-15.
+- Final PR head: `971cdaa0fd46f641ec7409148e259d54f953d8c7`.
+- Merge commit: `5e2b9b23878c9280f75b987cc9ad567d8980030d`.
+- Added typed definition families and subresources, one explicit grouped catalog, the exact sixty canonical definitions, twenty singular/plural terminology entries, deterministic normalization/validation, revision compatibility, and content-only derived previews.
+- Corrected and validated Threshold backlogs/tags, channel discovery/frequency metadata, modifier operands, milestone/guarantee mappings, resonance effects, and editable naming isolation.
+- Linux/Codex and owner Windows verification passed the full suite (`42/42`, `496` assertions), focused M03 suite (`13/13`, `243` assertions), import, semantic trace, artifact audit, and Inspector checklist.
+- `GATE-CONTENT-CATALOG` is satisfied.
+
 #### Known risks
 
 - Overbuilding a generic rules engine instead of the finite prototype grammar.
@@ -641,125 +739,450 @@ Schema version 1 and its key spelling remain unchanged. New-save calls pass the 
 
 #### Follow-on dependencies
 
-- M04 and every content-driven milestone.
+- M04A–M04E and every later content-driven implementation slice.
 
 ---
 
 ### M04 — Persistent Reaping simulation vertical slice
 
+**Work item type:** Conceptual epic  
 **Definition status:** Approved  
-**Prompt status:** Not drafted  
-**Implementation status:** Pull request open  
-**Verification status:** Partial — Linux/Codex checks pass; owner Windows automation and Inspector checklist remain pending.  
-**Recommended Codex task size:** Medium-large but bounded to one operation and three core streams.  
-**Planned prompt file:** `docs/codex/milestone-prompts/M04-persistent-reaping-simulation.md`
+**Prompt status:** Not applicable — no direct epic prompt  
+**Implementation status:** Not directly executable  
+**Verification status:** —  
+**Decomposition:** M04A → M04B → M04C → M04D → M04E
 
 #### Purpose
 
-Prove the core idle machinery before narrative and production UI are layered over it.
+Prove the core idle machinery before narrative and production UI are layered over it, while keeping state, commands, simulation, long-horizon channels, forecasts, and reports reviewable as separate slices.
+
+#### Epic outcome
+
+After M04A–M04E pass, one Gloamwood Reaping led by Man-at-Arms can be constructed, dispatched, advanced deterministically, saved, loaded, recalled, redispatched, forecast on a clone, and reported without claim-gating. Backlog, Essence, Mastery, and configured output channels use one scene-independent rules path.
+
+#### Epic completion rule
+
+M04 is complete only when M04A through M04E are all Merged and Passed. No `M04-persistent-reaping-simulation.md` prompt is valid.
+
+---
+
+### M04A — Gameplay state and persistence foundation
+
+**Work item type:** Implementation slice  
+**Parent epic:** M04  
+**Definition status:** Approved  
+**Prompt status:** Not drafted  
+**Implementation status:** Not started  
+**Verification status:** —  
+**Recommended Codex task size:** Small-medium; one authoritative-state and persistence pull request.  
+**Planned prompt file:** `docs/codex/milestone-prompts/M04A-gameplay-state-persistence-foundation.md`
+
+#### Purpose
+
+Create the smallest scene-independent gameplay aggregate that later assignment and simulation slices can use without mixing in elapsed production.
 
 #### Player or developer outcome
 
-Through tests and a developer harness, one Gloamwood Reaping led by Man-at-Arms persists across updates, auto-banks backlog progress, Essence, and Mastery, produces report deltas, forecasts the same rules on a clone, and survives save/load.
+A developer can construct one valid Gloamwood/Man-at-Arms fixture, validate it, deep-clone it, save it, load it, and compare every authoritative field exactly.
 
 #### Dependencies
 
-- M01
-- M02
-- M03
+- M03 Merged and Passed.
+- `GATE-SLICE-SCOPE` satisfied for the M04A prompt.
+- `GATE-GAMEPLAY-SCHEMA` resolved before prompt approval.
 
 #### Included scope
 
-- Implement scene-independent Threshold, Form, Reaping, inventory, progression-counter, and report-accumulator runtime state needed for one operation.
-- Implement dispatch validation, one tether, one Reaping per Threshold, and assignment revision.
-- Implement the global segmented `SimulationEngine` for one active Reaping with independent backlog, Essence, Mastery, and configured prototype channels.
-- Implement live, supplied-duration offline, forecast-clone, and debug-advance modes through the same resolver.
-- Implement stable boundary ordering, fixed-point residuals, zero-duration loop protection, and aggregate report deltas.
-- Implement Threshold-owned accumulated progress for a deterministic whole-unit test channel under `DEC-0027`; assignment changes alter future rate without resetting prior progress.
-- Extend schema version 1 and save fixtures for the new state.
+- Add the minimal `InventoryState`, `FormState`, `ThresholdState`, `ReapingState`, and counter/aggregate fields required by M04B–M04E.
+- Extend `GameState` through explicit typed ownership; do not use an untyped global gameplay dictionary as domain authority.
+- Implement deterministic validation and deep cloning.
+- Reference M03 definitions only by canonical ID.
+- Implement the owner-approved save-schema transition or reset policy, fixtures, mapper/validator updates, and exact round trip.
+- Add focused state/persistence tests and one headless state trace.
 
 #### Explicit non-goals
 
-- Opening narrative, direct four-soul action, tutorial UI, Archive, Retinues, Halls, second Threshold, discovery presentation, or Steam adapter.
-- Final production formula or balance.
-- Player-facing report screen.
+- Dispatch, recall, tether commands, or assignment mutation.
+- Elapsed production, simulation boundaries, output-channel accumulation, forecasts, reports, or UI.
+- Steam or trusted closed-session reconciliation changes.
 
 #### Expected files or subsystems
 
-The exact file list remains subject to repository inspection. Expected areas are:
-
-- `src/domain/state/` Reaping-related state
-- `src/domain/services/` dispatch and inventory services
-- `src/simulation/simulation_engine.gd`, rate plans, boundary helpers, result/trace types
-- Report accumulator and forecast service foundation
-- Simulation, persistence, and integration tests
-- Developer runner or debug command that does not create a second formula
+- `src/domain/state/` minimal gameplay-state classes.
+- `src/persistence/` schema/migration/reset changes approved by the gate.
+- `tests/unit/domain/`, `tests/unit/persistence/`, and representative save fixtures.
+- `tools/test/m04a/` state/round-trip trace.
+- `tools/test/owner/run_m04a_owner_verification.ps1` if the approved prompt selects a milestone-specific script.
 
 #### Data and content required
 
-- `FORM_MAN_AT_ARMS`, `THR_GLOAMWOOD`, `WRIT_STANDARD`, Essence, Mastery, and a small deterministic test channel configuration, including a one-item-per-24-hours long-horizon fixture.
+- `FORM_MAN_AT_ARMS`, `THR_GLOAMWOOD`, `WRIT_STANDARD`, `RES_ESSENCE`, and `prototype-content-r1`.
+- Test fixtures may use small counts while preserving exact production IDs and units.
 
 #### Acceptance criteria
 
-- One valid dispatch occupies one tether and persists until an explicit assignment change.
-- Resolving one interval or equivalent chunks yields identical authoritative state.
-- Backlog, Essence, Mastery, and each configured channel resolve independently and auto-bank immediately.
-- Forecast from a clone does not mutate baseline state and matches a committed supplied-duration run.
-- Opening or clearing a report accumulator is not required to receive output.
-- Save/load preserves operation, residuals, counters, inventory, and report accumulator exactly.
-- No screen, Node path, rendered frame, or clock read is required by domain or simulation tests.
-- Reconfiguring, recalling, redispatching, and settling the test Threshold preserves its long-horizon channel progress and exact carry; whole inventory is banked only at completion.
-- A rate-changing loadout or global modifier resolves the old rate to the boundary, leaves stored progress and carry unchanged, and applies the newly derived numerator or multiplier only to future time against the channel's stable normalized period.
-- A four-hour fixture at `50.0%` progress remains `50.0%` after a twenty-percent rate increase while its ETA changes from two hours to one hour forty minutes; repeated recall/redispatch with unchanged state does not shorten it again.
+- A valid fixture constructs and validates without a scene tree.
+- Cloning creates a deep independent aggregate with exact equality before mutation.
+- Invalid negative counts, unresolved IDs, contradictory lifecycle/assignment fields, and unsupported enum values fail without partial live-state mutation.
+- The approved schema/reset policy is explicit; schema version 1 is not silently extended.
+- State round trips exactly through primitive mapping and the production codec/storage path.
+- M02 foundation saves follow the approved migration or reset result with actionable diagnostics.
+- No dispatch or elapsed production occurs in this slice.
 
 #### Automated verification
 
-- Repeatability, chunking, online/offline/forecast equivalence.
-- Dispatch/capacity tests.
-- Independent-channel and report-banking tests.
-- Save round trip with residuals.
-- Stable ordering and zero-time-loop tests.
-- Long-horizon channel progress tests across rate changes, recall/redispatch, settlement, whole-unit extraction, and save round trip.
+- State construction, validation, deep-clone isolation, and exact equality.
+- Primitive and byte round trips, migration/reset fixtures, malformed-input matrix, and full regression.
+- Headless trace showing construct → clone → save → load → exact compare.
 
 #### Manual verification
 
-- Run the developer harness, advance by a known interval, inspect exact state and report deltas, save/reload, and advance again.
+- Owner automation only unless implementation introduces an unexpected editor-specific Resource or filesystem behavior.
+- No gameplay/visual checklist is expected.
 
 #### Demonstration path
 
-- Dispatch Gloamwood through a debug command.
-- Show backlog, Essence, and Mastery changing.
-- Open another temporary screen or leave the harness view while advancing.
-- Forecast one hour, commit the same supplied interval on a clone, and compare exact results.
+- Build the one-operation fixture.
+- Clone and mutate the clone to prove isolation.
+- Save and load the original.
+- Print exact authoritative equality and schema result.
 
 #### Save/load expectations
 
-Schema version 1 gains Reaping, Threshold, inventory, progression, and report fields with representative fixtures and migrations/reset policy documented.
-
-#### Documentation updates
-
-- `ARCHITECTURE.md`, `DATA_AND_CONTENT_CONTRACTS.md`, `TESTING_AND_VALIDATION.md`, and `MILESTONES.md`.
+This slice owns the first gameplay-state save transition. The prompt must contain the separately approved schema-version/migration or reset decision and representative historical fixtures.
 
 #### Known risks
 
-- Boundary logic can become too generic too early.
-- Float leakage or unsorted iteration can break equivalence.
-- Developer harness could accidentally become an alternate rules path.
+- Accidentally making persistence dictionaries the domain model.
+- Silent schema-v1 expansion.
+- Shallow copies leaking mutations between baseline and forecast fixtures.
 
 #### Follow-on dependencies
 
-- M05, M06, M08, and every later gameplay milestone.
+- M04B.
+
+---
+
+### M04B — Dispatch, recall, and assignment integrity
+
+**Work item type:** Implementation slice  
+**Parent epic:** M04  
+**Definition status:** Approved  
+**Prompt status:** Not drafted  
+**Implementation status:** Not started  
+**Verification status:** —  
+**Recommended Codex task size:** Small-medium; one command/assignment pull request.  
+**Planned prompt file:** `docs/codex/milestone-prompts/M04B-dispatch-recall-assignment-integrity.md`
+
+#### Purpose
+
+Establish valid persistent assignment state before any elapsed production depends on it.
+
+#### Player or developer outcome
+
+Through commands and tests, Man-at-Arms can be dispatched to Gloamwood, recalled, and redispatched while one tether, one-Reaping-per-Threshold, and assignment revision remain exact.
+
+#### Dependencies
+
+- M04A Merged and Passed.
+- `GATE-SLICE-SCOPE` satisfied for the M04B prompt.
+
+#### Included scope
+
+- Add dispatch, recall, and redispatch commands through focused domain/application services.
+- Validate awakened Form, available Threshold, supported Writ, tether capacity, and duplicate occupancy.
+- Maintain one active Reaping per Threshold and one tether per Reaping.
+- Increment assignment revision only on committed assignment changes.
+- Preserve assignment state across save/load.
+- Add invalid-command no-mutation tests and a headless assignment trace.
+
+#### Explicit non-goals
+
+- Elapsed production, backlog reduction, Essence, Mastery, output channels, forecasts, reports, UI, or tutorial flow.
+- Retinue assignment or second tether.
+
+#### Acceptance criteria
+
+- A valid dispatch creates one active assignment and occupies one tether.
+- Invalid Form, Threshold, Writ, capacity, or duplicate-Threshold commands fail without partial mutation.
+- Recall frees the tether and leaves durable Threshold-owned state intact.
+- Redispatch uses the existing Threshold state and increments assignment revision exactly once.
+- Repeating the same invalid or stale command cannot duplicate a Reaping or tether.
+- Save/load preserves active/inactive assignment, tether occupancy, Form/Writ IDs, and assignment revision.
+- No elapsed production occurs merely because an assignment exists.
+
+#### Automated verification
+
+- Dispatch/capacity/duplicate/stale-command matrix.
+- Recall and redispatch idempotency.
+- Assignment save round trip and malformed-assignment rejection.
+- Full regression and deterministic assignment trace.
+
+#### Manual verification
+
+- Owner automation only; no player-facing UI exists yet.
+
+#### Demonstration path
+
+- Construct the M04A fixture.
+- Dispatch Man-at-Arms with Standard Writ.
+- Show one tether occupied.
+- Recall, save/load, and redispatch.
+- Show exact assignment-revision changes and zero production delta.
+
+#### Save/load expectations
+
+Assignment fields and tether occupancy round trip through the M04A-approved schema policy. This slice must not introduce another undocumented save transition.
+
+#### Follow-on dependencies
+
+- M04C.
+
+---
+
+### M04C — Single-Reaping core resolver
+
+**Work item type:** Implementation slice  
+**Parent epic:** M04  
+**Definition status:** Approved  
+**Prompt status:** Not drafted  
+**Implementation status:** Not started  
+**Verification status:** —  
+**Recommended Codex task size:** Medium; one deterministic core-stream simulation pull request.  
+**Planned prompt file:** `docs/codex/milestone-prompts/M04C-single-reaping-core-resolver.md`
+
+#### Purpose
+
+Implement one deterministic elapsed-time resolver for Gloamwood backlog, Essence, and Man-at-Arms Mastery before item channels or projection systems are added.
+
+#### Player or developer outcome
+
+A developer can supply elapsed milliseconds to one active Reaping and obtain exact backlog, Essence, Mastery, lifecycle, and residual state that is invariant under equivalent chunking.
+
+#### Dependencies
+
+- M04B Merged and Passed.
+- `GATE-SLICE-SCOPE` satisfied for the M04C prompt.
+
+#### Included scope
+
+- Add the scene-independent core `SimulationEngine` path for one active Reaping.
+- Resolve backlog returns, Essence, and active Form Mastery from normalized M03 content.
+- Preserve fixed-point residuals and integer time units.
+- Implement deterministic boundary ordering, Overdue-to-Settled transition for core streams, and zero-duration-loop protection.
+- Expose supplied-duration and debug-advance adapters that call the same resolver.
+- Persist core counters, lifecycle state, and residuals.
+
+#### Explicit non-goals
+
+- Item output channels, discovery, long-horizon progress, loadout rate changes, forecasts, reports, milestones, guarantees, UI, or trusted-time adapters.
+
+#### Acceptance criteria
+
+- One interval and equivalent chunks produce identical authoritative state.
+- Backlog never becomes negative; zero backlog transitions lifecycle exactly once.
+- Essence banks immediately and Mastery accumulates independently from backlog.
+- Inactive or recalled assignments produce no progress.
+- The resolver reads no clock, scene, frame, input, Steam, or UI state.
+- A zero-time boundary without state change fails clearly rather than looping.
+- Save/load preserves core progress and residuals exactly.
+
+#### Automated verification
+
+- Repeatability and chunking matrices.
+- Backlog/Essence/Mastery independence.
+- Overdue-to-Settled core transition.
+- Inactive assignment, invalid elapsed, overflow, and zero-time-loop failures.
+- Save round trip and full regression.
+
+#### Manual verification
+
+- Owner automation and deterministic trace only; no visual checklist.
+
+#### Demonstration path
+
+- Dispatch the M04B fixture.
+- Advance a small hand-calculable interval once and in chunks.
+- Print identical backlog, Essence, Mastery, lifecycle, and residual state.
+- Save/load and repeat.
+
+#### Save/load expectations
+
+Persist every new core counter and residual through the M04A-approved schema policy with exact integer strings and fixtures.
+
+#### Follow-on dependencies
+
+- M04D.
+
+---
+
+### M04D — Output channels and long-horizon acquisition progress
+
+**Work item type:** Implementation slice  
+**Parent epic:** M04  
+**Definition status:** Approved  
+**Prompt status:** Not drafted  
+**Implementation status:** Not started  
+**Verification status:** —  
+**Recommended Codex task size:** Medium; one Threshold-channel accumulation pull request.  
+**Planned prompt file:** `docs/codex/milestone-prompts/M04D-output-channels-long-horizon-progress.md`
+
+#### Purpose
+
+Add Threshold-owned item-channel accumulation and prove that long-horizon normalized work survives configuration changes without compounding bonuses.
+
+#### Player or developer outcome
+
+Configured Gloamwood channels bank whole items while preserving exact partial progress and carry through recall, redispatch, rate changes, settlement, and save/load.
+
+#### Dependencies
+
+- M04C Merged and Passed.
+- `GATE-SLICE-SCOPE` satisfied for the M04D prompt.
+- Accepted `DEC-0027`, `DEC-0028`, and M03 channel contracts.
+
+#### Included scope
+
+- Accumulate configured M03 item channels independently from backlog, Essence, and Mastery.
+- Store durable progress by `Threshold ID + Channel ID`.
+- Extract whole inventory units and retain normalized progress/carry.
+- Freeze progress while inactive and resume it on redispatch.
+- Resolve the old rate to a command/modifier boundary, then derive future rate from immutable baseline plus current bounded modifier context.
+- Preserve progress through Overdue-to-Settled when the channel remains available.
+- Persist inventory, per-channel progress, and carry.
+
+#### Explicit non-goals
+
+- Player-facing progress bars, discovery disclosure, Retinue/Recollection purchase systems, forecast UI, reports, randomness, or additional Thresholds.
+- A complete future modifier framework; implement only the bounded rate-plan seam required by the tested contexts.
+
+#### Acceptance criteria
+
+- One-item-per-eight-hours and one-item-per-twenty-four-hours channels reach exact quarter progress and whole extraction.
+- Whole inventory remains unscaled; no fractional Soul is stored.
+- Recall freezes and redispatch resumes the same Threshold/channel progress.
+- Changing the future rate preserves stored normalized work and exact carry.
+- A four-hour fixture at `50.0%` remains `50.0%` after a 20% future rate increase while ETA changes from two hours to one hour forty minutes.
+- Repeating recall/redispatch with unchanged state does not apply the bonus again.
+- Effective rate is re-derived from baseline content rather than the prior effective rate.
+- Equivalent chunks and save/load yield identical inventory, progress, and carry.
+- Settlement does not reset a retained channel.
+
+#### Automated verification
+
+- Eight-/twenty-four-hour exact cases and multiple-whole extraction.
+- Recall/redispatch, rate-boundary, non-compounding, settlement, overflow, and chunking matrices.
+- Threshold/channel ownership validation and save round trip.
+- Full regression and long-horizon trace.
+
+#### Manual verification
+
+- Owner automation only; disclosure and progress-bar observation remain M13.
+
+#### Demonstration path
+
+- Advance the long-horizon fixture to partial progress.
+- Recall, change the bounded rate context, redispatch, and compare progress versus ETA.
+- Complete one whole item, save/load, and prove exact carry.
+
+#### Save/load expectations
+
+Persist per-channel progress and arithmetic carry with one documented owner. Unknown disclosure does not remove or rewrite authoritative progress.
+
+#### Follow-on dependencies
+
+- M04E.
+
+---
+
+### M04E — Forecast clone, report accumulator, and simulation harness
+
+**Work item type:** Implementation slice  
+**Parent epic:** M04  
+**Definition status:** Approved  
+**Prompt status:** Not drafted  
+**Implementation status:** Not started  
+**Verification status:** —  
+**Recommended Codex task size:** Medium; one projection/report/developer-harness pull request.  
+**Planned prompt file:** `docs/codex/milestone-prompts/M04E-forecast-report-simulation-harness.md`
+
+#### Purpose
+
+Complete the non-UI Reaping epic by adding clone-based forecast, already-applied report deltas, and one deterministic developer demonstration without creating another rules path.
+
+#### Player or developer outcome
+
+A developer can forecast one hour on a deep clone, commit the same supplied interval separately, compare exact results, inspect already-applied report deltas, clear/snapshot the accumulator without changing inventory, and repeat after save/load.
+
+#### Dependencies
+
+- M04D Merged and Passed.
+- `GATE-SLICE-SCOPE` satisfied for the M04E prompt.
+
+#### Included scope
+
+- Add forecast service on a deep clone using the M04C/M04D resolver.
+- Provide supplied-duration live, offline-fixture, forecast, and debug adapters with one rule path; no trusted-time acquisition is added.
+- Add report accumulator entries for already-committed deltas and bounded snapshot/clear foundations needed by later UI.
+- Persist report state only if it becomes authoritative in this slice.
+- Add a deterministic developer harness/trace and slice-specific owner script.
+
+#### Explicit non-goals
+
+- Player-facing report or forecast screens, application shell, Steam time, welcome-back UX, tutorial, narrative, milestones, or claim buttons.
+
+#### Acceptance criteria
+
+- Forecast never mutates baseline state, saves, reports, tutorial state, or inventory.
+- Forecast and separately committed supplied-duration runs match exactly under unchanged state/content.
+- Live/supplied-duration/offline-fixture/debug modes use the same resolver and normalized content.
+- Gains exist in authoritative inventory before report inspection.
+- Clearing or snapshotting the report accumulator changes no inventory, backlog, Mastery, or channel progress.
+- Report state round trips exactly when serialized.
+- The harness exposes one traceable rules path and no duplicate formula.
+
+#### Automated verification
+
+- Forecast non-mutation and equivalence.
+- Mode-equivalence and repeatability.
+- Report-versus-inventory integrity, clear/snapshot behavior, and duplicate prevention.
+- Save round trip where applicable, full regression, and final M04 developer trace.
+
+#### Manual verification
+
+- Owner runs one M04E PowerShell package and uploads the log.
+- No player-facing visual checklist is expected; the application shell belongs to M05.
+
+#### Demonstration path
+
+- Load the M04D fixture.
+- Forecast one hour.
+- Commit the same interval on a separate clone.
+- Print exact state equality and report deltas.
+- Clear/snapshot the accumulator and prove inventory is unchanged.
+
+#### Save/load expectations
+
+Any report state introduced here follows the M04A-approved schema policy. Forecasts create no save and mutate no baseline state.
+
+#### Follow-on dependencies
+
+- M05 conceptual epic; define and approve its actual slices before prompt drafting.
 
 ---
 
 ### M05 — Persistent application shell, navigation, and debug access
 
+**Work item type:** Conceptual epic  
 **Definition status:** Approved  
-**Prompt status:** Not drafted  
-**Implementation status:** Pull request open  
-**Verification status:** Partial — Linux/Codex checks pass; owner Windows automation and Inspector checklist remain pending.  
-**Recommended Codex task size:** Medium; one application-shell pull request.  
-**Planned prompt file:** `docs/codex/milestone-prompts/M05-application-shell-navigation-debug.md`
+**Prompt status:** Not applicable — decompose before drafting  
+**Implementation status:** Not directly executable  
+**Verification status:** —  
+**Recommended planning action:** Reassess and approve lettered slices under `DEC-0033` immediately before implementation.  
+**Planned prompt file:** Not applicable — no direct epic prompt.
+
+> This section defines a conceptual outcome and boundary. It is not a Codex task. Use the preliminary split in §8 only as a starting hypothesis, then approve the actual lettered slice definitions from the current repository.
+
 
 #### Purpose
 
@@ -853,12 +1276,16 @@ Startup and shutdown use M02 storage. Current screen, hover, and animation state
 
 ### M06 — Steam trusted-time adapter and transactional offline resolution
 
+**Work item type:** Conceptual epic  
 **Definition status:** Approved  
-**Prompt status:** Not drafted  
-**Implementation status:** Pull request open  
-**Verification status:** Partial — Linux/Codex checks pass; owner Windows automation and Inspector checklist remain pending.  
-**Recommended Codex task size:** Medium with mandatory owner-run Windows integration checks.  
-**Planned prompt file:** `docs/codex/milestone-prompts/M06-steam-trusted-time-adapter.md`
+**Prompt status:** Not applicable — decompose before drafting  
+**Implementation status:** Not directly executable  
+**Verification status:** —  
+**Recommended planning action:** Reassess and approve lettered slices under `DEC-0033` immediately before implementation.  
+**Planned prompt file:** Not applicable — no direct epic prompt.
+
+> This section defines a conceptual outcome and boundary. It is not a Codex task. Use the preliminary split in §8 only as a starting hypothesis, then approve the actual lettered slice definitions from the current repository.
+
 
 #### Purpose
 
@@ -1003,12 +1430,16 @@ The trusted anchor, simulation time at anchor, foreground credited since anchor,
 
 ### M07 — Dialogue and save-safe tutorial orchestration framework
 
+**Work item type:** Conceptual epic  
 **Definition status:** Approved  
-**Prompt status:** Not drafted  
-**Implementation status:** Pull request open  
-**Verification status:** Partial — Linux/Codex checks pass; owner Windows automation and Inspector checklist remain pending.  
-**Recommended Codex task size:** Medium; one orchestration-framework pull request.  
-**Planned prompt file:** `docs/codex/milestone-prompts/M07-dialogue-tutorial-framework.md`
+**Prompt status:** Not applicable — decompose before drafting  
+**Implementation status:** Not directly executable  
+**Verification status:** —  
+**Recommended planning action:** Reassess and approve lettered slices under `DEC-0033` immediately before implementation.  
+**Planned prompt file:** Not applicable — no direct epic prompt.
+
+> This section defines a conceptual outcome and boundary. It is not a Codex task. Use the preliminary split in §8 only as a starting hypothesis, then approve the actual lettered slice definitions from the current repository.
+
 
 #### Purpose
 
@@ -1100,12 +1531,16 @@ Tutorial, story checkpoint, skip/help, and presented-notice fields persist. Tran
 
 ### M08 — Opening sequence, scripted four returns, Brand, and first dispatch
 
+**Work item type:** Conceptual epic  
 **Definition status:** Approved  
-**Prompt status:** Not drafted  
-**Implementation status:** Pull request open  
-**Verification status:** Partial — Linux/Codex checks pass; owner Windows automation and Inspector checklist remain pending.  
-**Recommended Codex task size:** Medium-large but limited to Beats 1–4.  
-**Planned prompt file:** `docs/codex/milestone-prompts/M08-opening-first-dispatch.md`
+**Prompt status:** Not applicable — decompose before drafting  
+**Implementation status:** Not directly executable  
+**Verification status:** —  
+**Recommended planning action:** Reassess and approve lettered slices under `DEC-0033` immediately before implementation.  
+**Planned prompt file:** Not applicable — no direct epic prompt.
+
+> This section defines a conceptual outcome and boundary. It is not a Codex task. Use the preliminary split in §8 only as a starting hypothesis, then approve the actual lettered slice definitions from the current repository.
+
 
 #### Purpose
 
@@ -1203,12 +1638,16 @@ Checkpoint after every tutorial transition, the four-return transaction, Brand c
 
 ### M09 — Archive, Recollections, and Soulweave horizon
 
+**Work item type:** Conceptual epic  
 **Definition status:** Approved  
-**Prompt status:** Not drafted  
-**Implementation status:** Pull request open  
-**Verification status:** Partial — Linux/Codex checks pass; owner Windows automation and Inspector checklist remain pending.  
-**Recommended Codex task size:** Medium; one Beat-5 pull request.  
-**Planned prompt file:** `docs/codex/milestone-prompts/M09-archive-recollections-soulweave.md`
+**Prompt status:** Not applicable — decompose before drafting  
+**Implementation status:** Not directly executable  
+**Verification status:** —  
+**Recommended planning action:** Reassess and approve lettered slices under `DEC-0033` immediately before implementation.  
+**Planned prompt file:** Not applicable — no direct epic prompt.
+
+> This section defines a conceptual outcome and boundary. It is not a Codex task. Use the preliminary split in §8 only as a starting hypothesis, then approve the actual lettered slice definitions from the current repository.
+
 
 #### Purpose
 
@@ -1301,12 +1740,16 @@ Checkpoint after Archive restoration, Recollection purchase, tutorial transition
 
 ### M10 — First report, Emergency-to-Standard transition, and Soldier Company
 
+**Work item type:** Conceptual epic  
 **Definition status:** Approved  
-**Prompt status:** Not drafted  
-**Implementation status:** Pull request open  
-**Verification status:** Partial — Linux/Codex checks pass; owner Windows automation and Inspector checklist remain pending.  
-**Recommended Codex task size:** Medium-large but bounded to Beat 6 and one Retinue.  
-**Planned prompt file:** `docs/codex/milestone-prompts/M10-first-report-soldier-company.md`
+**Prompt status:** Not applicable — decompose before drafting  
+**Implementation status:** Not directly executable  
+**Verification status:** —  
+**Recommended planning action:** Reassess and approve lettered slices under `DEC-0033` immediately before implementation.  
+**Planned prompt file:** Not applicable — no direct epic prompt.
+
+> This section defines a conceptual outcome and boundary. It is not a Codex task. Use the preliminary split in §8 only as a starting hypothesis, then approve the actual lettered slice definitions from the current repository.
+
 
 #### Purpose
 
@@ -1401,12 +1844,16 @@ Checkpoint at milestone, Writ transition, guarantee, report snapshot/archive, Re
 
 ### M11 — Scribe guarantee, player-driven awakening, and Form comparison
 
+**Work item type:** Conceptual epic  
 **Definition status:** Approved  
-**Prompt status:** Not drafted  
-**Implementation status:** Pull request open  
-**Verification status:** Partial — Linux/Codex checks pass; owner Windows automation and Inspector checklist remain pending.  
-**Recommended Codex task size:** Small-medium; one Beat-7 pull request.  
-**Planned prompt file:** `docs/codex/milestone-prompts/M11-scribe-awakening-form-comparison.md`
+**Prompt status:** Not applicable — decompose before drafting  
+**Implementation status:** Not directly executable  
+**Verification status:** —  
+**Recommended planning action:** Reassess and approve lettered slices under `DEC-0033` immediately before implementation.  
+**Planned prompt file:** Not applicable — no direct epic prompt.
+
+> This section defines a conceptual outcome and boundary. It is not a Codex task. Use the preliminary split in §8 only as a starting hypothesis, then approve the actual lettered slice definitions from the current repository.
+
 
 #### Purpose
 
@@ -1499,12 +1946,16 @@ Checkpoint at milestone/top-ups, protection changes, awakening, tutorial present
 
 ### M12 — Broken Watch, minor resonance, second tether, and concurrent Reapings
 
+**Work item type:** Conceptual epic  
 **Definition status:** Approved  
-**Prompt status:** Not drafted  
-**Implementation status:** Pull request open  
-**Verification status:** Partial — Linux/Codex checks pass; owner Windows automation and Inspector checklist remain pending.  
-**Recommended Codex task size:** Medium; one Beat-8 pull request.  
-**Planned prompt file:** `docs/codex/milestone-prompts/M12-broken-watch-second-tether.md`
+**Prompt status:** Not applicable — decompose before drafting  
+**Implementation status:** Not directly executable  
+**Verification status:** —  
+**Recommended planning action:** Reassess and approve lettered slices under `DEC-0033` immediately before implementation.  
+**Planned prompt file:** Not applicable — no direct epic prompt.
+
+> This section defines a conceptual outcome and boundary. It is not a Codex task. Use the preliminary split in §8 only as a starting hypothesis, then approve the actual lettered slice definitions from the current repository.
+
 
 #### Purpose
 
@@ -1599,12 +2050,16 @@ Checkpoint at milestone/resonance, Threshold knowledge/availability, tether gran
 
 ### M13 — Discovery states, hidden Provisions, and forecast confidence
 
+**Work item type:** Conceptual epic  
 **Definition status:** Approved  
-**Prompt status:** Not drafted  
-**Implementation status:** Pull request open  
-**Verification status:** Partial — Linux/Codex checks pass; owner Windows automation and Inspector checklist remain pending.  
-**Recommended Codex task size:** Medium; one Beat-9 pull request.  
-**Planned prompt file:** `docs/codex/milestone-prompts/M13-discovery-provisions-forecasts.md`
+**Prompt status:** Not applicable — decompose before drafting  
+**Implementation status:** Not directly executable  
+**Verification status:** —  
+**Recommended planning action:** Reassess and approve lettered slices under `DEC-0033` immediately before implementation.  
+**Planned prompt file:** Not applicable — no direct epic prompt.
+
+> This section defines a conceptual outcome and boundary. It is not a Codex task. Use the preliminary split in §8 only as a starting hypothesis, then approve the actual lettered slice definitions from the current repository.
+
 
 #### Purpose
 
@@ -1700,12 +2155,16 @@ Checkpoint on discovery state transitions and tutorial progression; hidden resou
 
 ### M14 — Larder, Rations, support pressure, and graceful degradation
 
+**Work item type:** Conceptual epic  
 **Definition status:** Approved  
-**Prompt status:** Not drafted  
-**Implementation status:** Pull request open  
-**Verification status:** Partial — Linux/Codex checks pass; owner Windows automation and Inspector checklist remain pending.  
-**Recommended Codex task size:** Medium-large but bounded to one Hall, one recipe, one Store, and one consumer.  
-**Planned prompt file:** `docs/codex/milestone-prompts/M14-larder-rations-support.md`
+**Prompt status:** Not applicable — decompose before drafting  
+**Implementation status:** Not directly executable  
+**Verification status:** —  
+**Recommended planning action:** Reassess and approve lettered slices under `DEC-0033` immediately before implementation.  
+**Planned prompt file:** Not applicable — no direct epic prompt.
+
+> This section defines a conceptual outcome and boundary. It is not a Codex task. Use the preliminary split in §8 only as a starting hypothesis, then approve the actual lettered slice definitions from the current repository.
+
 
 #### Purpose
 
@@ -1801,12 +2260,16 @@ Checkpoint at guarantee, Hall restoration/activation/target changes, support tra
 
 ### M15 — Regional 10,000 resonance, optional Recollection choice, and objectives
 
+**Work item type:** Conceptual epic  
 **Definition status:** Approved  
-**Prompt status:** Not drafted  
-**Implementation status:** Pull request open  
-**Verification status:** Partial — Linux/Codex checks pass; owner Windows automation and Inspector checklist remain pending.  
-**Recommended Codex task size:** Small-medium; one Beat-11 pull request.  
-**Planned prompt file:** `docs/codex/milestone-prompts/M15-second-resonance-recollection-choice.md`
+**Prompt status:** Not applicable — decompose before drafting  
+**Implementation status:** Not directly executable  
+**Verification status:** —  
+**Recommended planning action:** Reassess and approve lettered slices under `DEC-0033` immediately before implementation.  
+**Planned prompt file:** Not applicable — no direct epic prompt.
+
+> This section defines a conceptual outcome and boundary. It is not a Codex task. Use the preliminary split in §8 only as a starting hypothesis, then approve the actual lettered slice definitions from the current repository.
+
 
 #### Purpose
 
@@ -1898,12 +2361,16 @@ Checkpoint at milestone/resonance/reward, choice availability, purchase, objecti
 
 ### M16 — Offline forecast, welcome-back report, and guided-opening completion
 
+**Work item type:** Conceptual epic  
 **Definition status:** Approved  
-**Prompt status:** Not drafted  
-**Implementation status:** Pull request open  
-**Verification status:** Partial — Linux/Codex checks pass; owner Windows automation and Inspector checklist remain pending.  
-**Recommended Codex task size:** Medium; one Beat-12/offline-UX pull request.  
-**Planned prompt file:** `docs/codex/milestone-prompts/M16-offline-return-welcome-back.md`
+**Prompt status:** Not applicable — decompose before drafting  
+**Implementation status:** Not directly executable  
+**Verification status:** —  
+**Recommended planning action:** Reassess and approve lettered slices under `DEC-0033` immediately before implementation.  
+**Planned prompt file:** Not applicable — no direct epic prompt.
+
+> This section defines a conceptual outcome and boundary. It is not a Codex task. Use the preliminary split in §8 only as a starting hypothesis, then approve the actual lettered slice definitions from the current repository.
+
 
 #### Purpose
 
@@ -2024,12 +2491,16 @@ Create checkpoints before and after the offline transaction, after report snapsh
 
 ### M17 — Complete 0–90 minute integration, resilience, pacing, and acceptance pass
 
+**Work item type:** Conceptual epic  
 **Definition status:** Approved  
-**Prompt status:** Not drafted  
-**Implementation status:** Pull request open  
-**Verification status:** Partial — Linux/Codex checks pass; owner Windows automation and Inspector checklist remain pending.  
-**Recommended Codex task size:** Medium-large acceptance pass with no new major subsystem; split only when defects are independently reviewable.  
-**Planned prompt file:** `docs/codex/milestone-prompts/M17-prototype-integration-acceptance.md`
+**Prompt status:** Not applicable — decompose before drafting  
+**Implementation status:** Not directly executable  
+**Verification status:** —  
+**Recommended planning action:** Reassess and approve lettered slices under `DEC-0033` immediately before implementation.  
+**Planned prompt file:** Not applicable — no direct epic prompt.
+
+> This section defines a conceptual outcome and boundary. It is not a Codex task. Use the preliminary split in §8 only as a starting hypothesis, then approve the actual lettered slice definitions from the current repository.
+
 
 #### Purpose
 
@@ -2128,18 +2599,19 @@ The final prototype save path is exercised after every tutorial state, one-time 
 
 | Prototype segment | Primary milestone |
 |---|---|
-| Technical/test foundation | M00–M06 |
-| Tutorial/dialogue infrastructure | M07 |
-| Beats 1–4 / `TUT_00_BOOT`–`TUT_04_FIRST_DISPATCH` | M08 |
-| Beat 5 / `TUT_05_ARCHIVE`–`TUT_06_SOULWEAVE` | M09 |
-| Beat 6 / `TUT_07_RETINUE` | M10 |
-| Beat 7 / `TUT_08_SCRIBE` | M11 |
-| Beat 8 / `TUT_09_SECOND_THRESHOLD` | M12 |
-| Beat 9 / `TUT_10_DISCOVERY` | M13 |
-| Beat 10 / `TUT_11_LARDER` | M14 |
-| Beat 11 / `TUT_12_SEAL_CHOICE` | M15 |
-| Beat 12 / `TUT_13_COMPLETE` | M16 |
-| Full path, deviations, pacing, telemetry, and acceptance | M17 |
+| Technical, persistence, and content foundation | M00–M03 |
+| Core Reaping implementation | M04A–M04E |
+| Application/platform/tutorial infrastructure | Lettered slices under M05–M07 |
+| Beats 1–4 / `TUT_00_BOOT`–`TUT_04_FIRST_DISPATCH` | Lettered slices under M08 |
+| Beat 5 / `TUT_05_ARCHIVE`–`TUT_06_SOULWEAVE` | Lettered slices under M09 |
+| Beat 6 / `TUT_07_RETINUE` | Lettered slices under M10 |
+| Beat 7 / `TUT_08_SCRIBE` | Lettered slices under M11 |
+| Beat 8 / `TUT_09_SECOND_THRESHOLD` | Lettered slices under M12 |
+| Beat 9 / `TUT_10_DISCOVERY` | Lettered slices under M13 |
+| Beat 10 / `TUT_11_LARDER` | Lettered slices under M14 |
+| Beat 11 / `TUT_12_SEAL_CHOICE` | Lettered slices under M15 |
+| Beat 12 / `TUT_13_COMPLETE` | Lettered slices under M16 |
+| Full path, deviations, pacing, telemetry, and acceptance | Lettered slices under M17 |
 
 ## 11. Cross-milestone safeguards
 
@@ -2158,6 +2630,9 @@ The following are never deferred merely because a later milestone adds fuller pr
 - hidden production remains real before discovery;
 - any valid two-Reaping arrangement remains recoverable;
 - all authoritative changes extend tests and save fixtures when introduced.
+- conceptual epics never receive direct implementation prompts; only approved slices do;
+- frozen save schemas are never silently extended; each state-changing slice follows an approved migration or reset policy;
+- material scope growth stops for owner-visible replanning rather than being absorbed into the current pull request.
 
 ## 12. Post-prototype release gate `RG01` — Save format, Steam Cloud, and threat model
 
@@ -2192,14 +2667,22 @@ Create or update a dedicated accepted decision record and, when implementation i
 
 ## 13. Status and maintenance procedure
 
-When a definition is approved, change only its Definition column to **Approved**. Phase 8 adds `PROMPT_TEMPLATE.md`; Phase 9 creates one prompt at a time and updates Prompt status. Implementation pull requests update Implementation and Verification status only after the relevant checks have actually run.
+When a definition is approved, change only its Definition column to **Approved**. A conceptual epic never advances to Prompt or Implementation status. The planning workflow creates one lettered slice prompt at a time and updates Prompt status only when that prompt actually exists. Implementation pull requests update Implementation and Verification status only after the relevant checks have actually run.
 
-When a milestone reveals a planning problem:
+Before each new slice prompt:
+
+1. inspect the merged repository and prior-slice evidence;
+2. confirm the parent epic and exact dependency state;
+3. complete the `DEC-0033` scope assessment and `GATE-SLICE-SCOPE` review;
+4. resolve any listed decision gate, including `GATE-GAMEPLAY-SCHEMA` before M04A;
+5. draft only the next slice prompt and obtain owner approval.
+
+When a slice reveals a planning problem:
 
 1. stop the affected prompt or implementation;
-2. identify the conflicting source or missing dependency;
+2. identify the conflicting source, missing dependency, new subsystem owner, or scope-growth trigger;
 3. update this map and, when necessary, `DECISIONS.md` and the architecture/contracts;
 4. preserve superseded definitions or prompt versions through Git history and explicit status rather than silently changing accepted scope;
-5. resume only after the revised definition is approved.
+5. resume only after the revised definition or prompt is approved.
 
 The commercial save-format/threat-model review remains a release gate, not an excuse to add encryption, binary encoding, Steam Cloud, or a backend to the 0–90 minute prototype without a new approved milestone.
