@@ -3,8 +3,8 @@
 **Document role:** Approved implementation sequence and acceptance map for the 0–90 minute prototype  
 **Repository path:** `docs/codex/MILESTONES.md`  
 **Document status:** Approved rolling-wave milestone map  
-**Milestone-map revision:** 14  
-**Last updated:** 2026-07-15  
+**Milestone-map revision:** 15  
+**Last updated:** 2026-07-16  
 **Primary context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md), [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md), [Architecture](ARCHITECTURE.md), [Data contracts](DATA_AND_CONTENT_CONTRACTS.md), [Testing](TESTING_AND_VALIDATION.md), [Owner verification](OWNER_VERIFICATION_WORKFLOW.md), [Milestone recalibration](MILESTONE_RECALIBRATION_PROPOSAL.md), and [Decisions](DECISIONS.md)
 
 ## 1. Purpose and authority
@@ -15,7 +15,7 @@ Use the source hierarchy in `AGENTS.md`. A milestone definition cannot weaken a 
 
 ## 2. Current repository baseline
 
-After M03 completion:
+After M04A completion:
 
 - Godot 4.7, GDScript, the 1920 × 1080 reference viewport, resizing/stretch settings, and a temporary dry-run main scene exist.
 - `AGENTS.md`, project Codex configuration, the maintained design sources, the architecture documents, the approved `PROMPT_TEMPLATE.md`, and `OWNER_VERIFICATION_WORKFLOW.md` are present in the repository.
@@ -29,7 +29,9 @@ After M03 completion:
 - M02 added the frozen schema-version-1 mapper/validator, canonical signed-64-bit JSON strings, migration seam, atomic primary/temporary/backup storage, corrupt-file retention, persistence tests, trace, and Windows verification package.
 - M03 added the typed explicit content catalog, exact canonical IDs, six stable output channels, centralized singular/plural terminology, deterministic normalization/validation, content-revision compatibility, focused tests, trace, Windows automation, and Inspector checklist.
 - M03 merged through PR #7 at final head `971cdaa0fd46f641ec7409148e259d54f953d8c7` and merge commit `5e2b9b23878c9280f75b987cc9ad567d8980030d`; Linux/Codex and owner Windows/Inspector verification passed.
-- The repository still has no gameplay-state expansion beyond the minimal M01 timeline, production Reaping simulation, application shell, or player-facing gameplay UI.
+- M04A added typed inventory, Form, Threshold/acquisition, Reaping, and tether-capacity state; explicit deep cloning and content-aware validation; schema version 2; immutable v1/v2 fixtures; a production `v1 -> v2` migration; preserved-envelope upgrade persistence; focused tests; a real-file trace; and a corrected Windows owner package.
+- M04A merged through PR #8 at final head `04b12d8ba2edeecbf13f252216249341469b40a8` and merge commit `673ad884357fc742a0a26dbb542d5b8d9fe557c9`; Linux/Codex and owner Windows verification passed.
+- The repository still has no dispatch/recall command service, elapsed Reaping production, application shell, or player-facing gameplay UI.
 - Existing dry-run assets and scene work are preserved unless a scoped milestone explicitly replaces or integrates them.
 
 ## 3. Milestone rules
@@ -106,6 +108,7 @@ A conceptual epic uses `Prompt: Not applicable` and `Implementation: Not directl
 | `GATE-CONTENT-CATALOG` | M03 merge | Validate one explicit typed catalog containing the required prototype IDs, `RES_ESSENCE`, stable `CHANNEL_...` sources, centralized `TERM_...` terminology, editable names independent of IDs, normalized values, content-revision compatibility, deterministic ordering, and editor-inspectable `.tres` definitions before simulation depends on content. |
 | `GATE-SLICE-SCOPE` | Every post-M03 prompt approval | Complete the `DEC-0033` scope assessment. Split the work or record an explicit owner-approved exception when a mandatory review trigger is crossed. |
 | `GATE-GAMEPLAY-SCHEMA` | M04A implementation and merge | Satisfied for prompt drafting by accepted `DEC-0034`: M04A introduces schema version 2 with a production sequential `v1 -> v2` migration. M04A must implement and verify the transactional upgrade, historical fixture, failure preservation, and owner Windows path before merge. |
+| `GATE-REAPING-ASSIGNMENT` | M04B prompt approval | Approve `DEC-0035` or a revised assignment contract covering stable recalled Reaping identity, revision guards, Form exclusivity, tether derivation, and nonzero carry handling before Codex implements commands. |
 | `GATE-STEAM-TIME` | The applicable M06 slice prompt/implementation | Satisfied for prompt drafting by `DEC-0024`: use pinned GodotSteam 4.20 and development App ID `480`. M06 must still verify license footprint, wrapper API, explicit initialization, and live Windows behavior. |
 | `GATE-PRODUCTION-OFFLINE` | The final applicable M16 slice merge | Fake-provider automation plus the owner-run Windows/GodotSteam connected, unavailable, reconnect, clock-change, and repeated-load checks must pass. |
 | `RELEASE-GATE-STEAM-APP` | Before external Steam Playtest or commercial distribution | Replace development App ID `480` with Death Idle's assigned App ID and validate package ownership, launch-through-Steam behavior, export contents, and absence of development-only App ID aids. |
@@ -119,9 +122,7 @@ A conceptual epic uses `Prompt: Not applicable` and `Implementation: Not directl
 
 `GATE-CONTENT-CATALOG` was satisfied by M03. PR #7 merged on 2026-07-15 at merge commit `5e2b9b23878c9280f75b987cc9ad567d8980030d`; its final head was `971cdaa0fd46f641ec7409148e259d54f953d8c7`. Linux/Codex and owner Windows verification passed the full and focused suites, explicit import, semantic catalog trace, artifact audit, and Godot Inspector checklist.
 
-`GATE-SLICE-SCOPE` is mandatory for every post-M03 prompt. `GATE-GAMEPLAY-SCHEMA` is satisfied for M04A prompt drafting by accepted `DEC-0034`. M04A implementation must still pass the schema-version-2 migration and owner-verification gates before merge.
-
-M04A correction status: implementation evidence is present on PR #8 through typed state, schema-v2 mapping, immutable v1/v2 fixtures, migration-preservation tests, and a corrected owner package. `GATE-GAMEPLAY-SCHEMA` remains pending owner rerun at the current PR head; do not mark M04A Passed or Merged until that Windows evidence is supplied.
+`GATE-SLICE-SCOPE` is mandatory for every post-M03 prompt. `GATE-GAMEPLAY-SCHEMA` is fully satisfied by M04A: schema version 2, immutable historical support, migration preservation, Linux/Codex verification, and owner Windows verification passed. `GATE-REAPING-ASSIGNMENT` is pending owner approval of proposed `DEC-0035` with the M04B prompt.
 
 
 When trusted time is unavailable, the approved behavior is to grant no guessed closed-session progress, retain pending reconciliation, and continue monotonic foreground production. No milestone may introduce a local-device-time fallback.
@@ -135,8 +136,8 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 | M02 | Versioned save codec and atomic storage | Completed milestone | Approved | Approved | Merged | Passed |
 | M03 | Content catalog, canonical IDs, and configurable prototype data | Completed milestone | Approved | Approved | Merged | Passed |
 | M04 | Persistent Reaping simulation vertical slice | Conceptual epic | Approved | Not applicable | Not directly executable | — |
-| M04A | Gameplay state and persistence foundation | Implementation slice | Approved | Approved | Pull request open | Partial |
-| M04B | Dispatch, recall, and assignment integrity | Implementation slice | Approved | Not drafted | Not started | — |
+| M04A | Gameplay state and persistence foundation | Implementation slice | Approved | Approved | Merged | Passed |
+| M04B | Dispatch, recall, and assignment integrity | Implementation slice | Approved | Drafted | Not started | — |
 | M04C | Single-Reaping core resolver | Implementation slice | Approved | Not drafted | Not started | — |
 | M04D | Output channels and long-horizon acquisition progress | Implementation slice | Approved | Not drafted | Not started | — |
 | M04E | Forecast clone, report accumulator, and simulation harness | Implementation slice | Approved | Not drafted | Not started | — |
@@ -774,11 +775,10 @@ M04 is complete only when M04A through M04E are all Merged and Passed. No `M04-p
 **Parent epic:** M04  
 **Definition status:** Approved  
 **Prompt status:** Approved  
-**Implementation status:** Pull request open
-**Verification status:** Partial
+**Implementation status:** Merged through PR #8  
+**Verification status:** Passed  
 **Recommended Codex task size:** Small-medium; one authoritative-state and schema-migration pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M04A-gameplay-state-persistence-foundation.md`
-**Current PR head:** see PR handoff for the exact post-correction commit; Linux/Codex evidence includes immutable fixtures, schema-v2 mapping, preserved v1 envelope migration, corrected owner package, and expanded focused tests. Owner Windows rerun remains required before Passed/Merged.
 
 #### Purpose
 
@@ -887,14 +887,28 @@ M04A makes schema version 2 current. Version 1 remains a supported historical in
 - `DECISIONS.md`, `DATA_AND_CONTENT_CONTRACTS.md`, `ARCHITECTURE.md`, `IMPLEMENTATION_RULES.md`, `TESTING_AND_VALIDATION.md`, `MILESTONES.md`, and `README.md` where implementation makes them inaccurate.
 - `OWNER_VERIFICATION_WORKFLOW.md` changes only if implementation exposes a generic workflow defect.
 
+#### Completion record
+
+- PR #8 merged on 2026-07-16.
+- Final PR head: `04b12d8ba2edeecbf13f252216249341469b40a8`.
+- Merge commit: `673ad884357fc742a0a26dbb542d5b8d9fe557c9`.
+- Added typed gameplay-state families, deep-clone isolation, content-aware validation, schema version 2, frozen schema-version-1 support, immutable v1/v2 fixtures, and a production sequential migration.
+- Corrected the upgrade path so non-empty metadata, offline-resolution identity, content revision, simulation time, and time-authority state remain preserved before only the save revision changes.
+- Added expanded state/schema/migration failure matrices, StringName-to-wire-key normalization, a real-file trace, and a Windows PowerShell owner package with guaranteed cleanup and artifact auditing.
+- Linux/Codex focused/import/trace/full checks passed.
+- Owner Windows verification passed against the final head:
+  - full suite before and after: `59/59` tests and `722` assertions;
+  - focused M04A: `16/16` tests and `207` assertions;
+  - import, six trace markers, cleanup, cleanup proof, artifact audit, and final summary passed;
+  - failed step count `0`; no interactive checks required.
+- Final pull-request scope: 28 changed files, 1,352 additions, and 61 deletions; it remained inside the approved M04A guardrails.
+- `GATE-GAMEPLAY-SCHEMA` is satisfied.
+
 #### Known risks
 
-- Accidentally making primitive save dictionaries the domain model.
-- Validating a historical snapshot against the current schema before migration.
-- Persisting an upgrade before content/domain validation or exposing runtime before write success.
-- Losing the selected version-1 candidate during primary/backup rotation.
-- Shallow copies leaking changes between baseline and candidate.
-- Scope growth into dispatch, production, or new-game bootstrap.
+- Future schema changes still require explicit versioning and migrations.
+- Assignment services must not mutate persistence primitives directly.
+- M04B must preserve the stable state/carry ownership established here.
 
 #### Follow-on dependencies
 
@@ -907,7 +921,7 @@ M04A makes schema version 2 current. Version 1 remains a supported historical in
 **Work item type:** Implementation slice  
 **Parent epic:** M04  
 **Definition status:** Approved  
-**Prompt status:** Not drafted  
+**Prompt status:** Drafted  
 **Implementation status:** Not started  
 **Verification status:** —  
 **Recommended Codex task size:** Small-medium; one command/assignment pull request.  
@@ -924,54 +938,62 @@ Through commands and tests, Man-at-Arms can be dispatched to Gloamwood, recalled
 #### Dependencies
 
 - M04A Merged and Passed.
-- `GATE-SLICE-SCOPE` satisfied for the M04B prompt.
+- `GATE-SLICE-SCOPE` is completed in the M04B draft and must be approved with the prompt.
+- `GATE-REAPING-ASSIGNMENT` is pending approval of proposed `DEC-0035`.
 
 #### Included scope
 
-- Add dispatch, recall, and redispatch commands through focused domain/application services.
-- Validate awakened Form, available Threshold, supported Writ, tether capacity, and duplicate occupancy.
-- Maintain one active Reaping per Threshold and one tether per Reaping.
-- Increment assignment revision only on committed assignment changes.
-- Preserve assignment state across save/load.
-- Add invalid-command no-mutation tests and a headless assignment trace.
+- Add one focused Reaping assignment service with initial dispatch, recall, and redispatch of an inactive record.
+- Use typed command inputs/results, stable rejection codes, ordered assignment events, and save-checkpoint requests.
+- Validate awakened and active-unique Form, available Threshold, enabled Writ, exact expected revision, tether capacity, and duplicate occupancy before mutation.
+- Retain one stable Reaping record per Threshold through recall; derive tether occupancy from active records.
+- Increment assignment revision exactly once only on committed changes; check overflow and stale input.
+- Preserve Threshold-owned state and frozen operation phase/carries. Reject a changed Form/Writ with unresolved rate-dependent phase/carry until later resolution exists.
+- Preserve assignment state across schema-v2 save/load without a schema bump.
+- Add invalid-command no-mutation tests, a headless assignment/save trace, and one M04B Windows owner package.
 
 #### Explicit non-goals
 
-- Elapsed production, backlog reduction, Essence, Mastery, output channels, forecasts, reports, UI, or tutorial flow.
-- Retinue assignment or second tether.
+- Elapsed production, command-time advancement, backlog reduction, Essence, Mastery, output channels, forecasts, reports, UI, or tutorial flow.
+- Active in-place Form/Writ reconfiguration with nonzero production state; M04C/M04D own resolve-before-change behavior.
+- Retinue assignment, support buffers, second tether grants, or second-Threshold progression.
 
 #### Acceptance criteria
 
-- A valid dispatch creates one active assignment and occupies one tether.
-- Invalid Form, Threshold, Writ, capacity, or duplicate-Threshold commands fail without partial mutation.
-- Recall frees the tether and leaves durable Threshold-owned state intact.
-- Redispatch uses the existing Threshold state and increments assignment revision exactly once.
-- Repeating the same invalid or stale command cannot duplicate a Reaping or tether.
-- Save/load preserves active/inactive assignment, tether occupancy, Form/Writ IDs, and assignment revision.
-- No elapsed production occurs merely because an assignment exists.
+- A valid initial dispatch creates revision 1, one active assignment, one derived occupied tether, and one committed event without advancing simulation time.
+- Invalid Form, Threshold, Writ, capacity, duplicate Threshold, already-assigned Form, or stale revision fails without partial mutation.
+- Recall retains the stable record, freezes operation-owned state, frees the derived tether, and increments the revision once.
+- Redispatch of the inactive record increments once, preserves the original start timestamp and Threshold-owned progress, and updates the configuration timestamp.
+- Repeating or replaying a stale command cannot duplicate a Reaping, tether, event, or revision increment.
+- Changed Form/Writ with nonzero rate-dependent operation state is rejected until later resolve-before-change support exists.
+- Save/load preserves active/inactive assignment, Form/Writ IDs, revision, timestamps, frozen phase/carries, and Threshold progress.
+- No schema bump, elapsed production, clock read, or file write occurs inside the assignment service.
 
 #### Automated verification
 
-- Dispatch/capacity/duplicate/stale-command matrix.
-- Recall and redispatch idempotency.
-- Assignment save round trip and malformed-assignment rejection.
-- Full regression and deterministic assignment trace.
+- Dispatch/capacity/duplicate/Form-exclusivity/stale-revision matrix.
+- Recall/redispatch continuity, overflow, no-op, and resolve-required cases.
+- Typed result/event/save-checkpoint contract.
+- Active and inactive schema-v2 round trips and malformed-assignment rejection.
+- Full regression, deterministic assignment trace, and owner Windows package.
 
 #### Manual verification
 
-- Owner automation only; no player-facing UI exists yet.
+- Codex creates `tools/test/owner/run_m04b_owner_verification.ps1`; the owner runs one generated-log package against the PR head.
+- No editor, visual, gameplay, audio, A/B, or Steam checklist is required because M04B exposes no player-facing UI.
 
 #### Demonstration path
 
-- Construct the M04A fixture.
-- Dispatch Man-at-Arms with Standard Writ.
-- Show one tether occupied.
-- Recall, save/load, and redispatch.
-- Show exact assignment-revision changes and zero production delta.
+- Construct an available Gloamwood, awakened Man-at-Arms, one-tether state at a known simulation cursor.
+- Dispatch with Standard Writ and show revision 1, one occupied tether, one event, and unchanged simulation time.
+- Reject duplicate/stale commands with exact state equality.
+- Save/load the active record.
+- Recall to revision 2, prove tether release and preserved Threshold/operation state, then save/load inactive state.
+- Redispatch to revision 3, prove one tether occupied again, and show zero production delta.
 
 #### Save/load expectations
 
-Assignment fields and tether occupancy round trip through the M04A-approved schema policy. This slice must not introduce another undocumented save transition.
+Schema version 2 already persists every M04B field. Active and inactive records, revisions, timestamps, and frozen operation/Threshold state round trip exactly. Tether occupancy remains derived and is not serialized. M04B does not bump the schema.
 
 #### Follow-on dependencies
 

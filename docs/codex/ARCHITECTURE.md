@@ -3,8 +3,8 @@
 **Document role:** Maintained implementation architecture for the 0-90 minute prototype  
 **Repository path:** `docs/codex/ARCHITECTURE.md`  
 **Document status:** Approved architecture  
-**Architecture revision:** 6  
-**Last updated:** 2026-07-14  
+**Architecture revision:** 7  
+**Last updated:** 2026-07-16  
 **Engine target:** Godot 4.7, GDScript only  
 **Primary design context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md) and [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md)
 
@@ -1233,7 +1233,32 @@ The prototype default save file set is `user://saves/death_idle_m02.json`, `user
 
 M03 introduces `ContentCatalog` as the explicit root authored Resource, typed per-family definition Resources (`ItemDefinition`, `FormDefinition`, `ThresholdDefinition`, `OutputChannelDefinition`, and the other M03 families), bounded subresources, and `CoreTerminologyDefinition` as text `.tres` authoring records; `ContentRegistry` is the all-or-nothing validation and normalization boundary. Runtime code reads copied registry dictionaries, not mutable source Resources. Persistence remains content-agnostic: callers pass a non-empty content revision and content compatibility is checked by the content layer after schema validation.
 
+## M04A realized gameplay-state persistence
 
-## M04A realized gameplay-state persistence correction
+M04A adds a typed `GameState` aggregate for inventory, Forms, Thresholds/acquisition, Reapings, and progression while keeping content Resources, clocks, trusted-time provider state, UI, and production simulation outside the aggregate. Schema version dispatch preserves frozen v1 validation and maps current runtime state through schema v2. During v1-to-v2 upgrade, the coordinator validates the migrated primitive candidate, constructs and validates runtime state, increments only `save_revision` on a deep copy of the migrated primitive snapshot, and persists that exact envelope before exposing runtime. This preserves v1 metadata, offline-resolution identity, content revision, time authority, and simulation time instead of rebuilding the envelope from runtime defaults.
 
-M04A adds a typed `GameState` aggregate for inventory, Forms, Thresholds/acquisition, Reapings, and progression while keeping content Resources, clocks, trusted-time provider state, UI, and production simulation outside the aggregate. Schema version dispatch now preserves frozen v1 validation and maps current runtime state through schema v2. During v1-to-v2 upgrade, the coordinator validates the migrated primitive candidate, constructs and validates runtime state, increments only `save_revision` on a deep copy of the migrated primitive snapshot, and persists that exact envelope before exposing runtime. This preserves v1 metadata, offline-resolution identity, content revision, time authority, and simulation time instead of rebuilding the envelope from runtime defaults.
+M04A also establishes immutable schema-v1 and representative schema-v2 fixtures, explicit wire-key normalization, deep-clone isolation, and the owner-run migration trace. Schema v2 contains structural Reaping records but no dispatch or production command.
+
+## Proposed M04B Reaping-assignment command boundary
+
+Subject to approval of `DEC-0035`, M04B adds one focused `ReapingAssignmentService` or equivalent domain service. The service owns initial dispatch, recall, and redispatch of an inactive Reaping record. It does not own elapsed-time resolution, file persistence, tutorial flow, presentation, Retinue assignment, or production.
+
+The intended command flow is:
+
+```text
+typed command
+    -> validate current GameState and ContentRegistry
+    -> verify expected assignment revision
+    -> build one candidate ReapingState / candidate GameState
+    -> validate the complete candidate
+    -> commit one Reaping-map insertion or replacement
+    -> return ActionResult + ordered assignment event(s)
+```
+
+The service uses `GameState.simulation_time_msec` as the committed command boundary and never samples a clock. Initial dispatch creates revision 1. Recall and redispatch each increment exactly once. Failed or stale commands commit nothing.
+
+A recalled record remains in `GameState.reapings` with `is_active = false`; its Threshold-owned progress, original start time, operation phase, and carries remain available for later resolution. Occupied tether count is always derived from active records. One Form may lead at most one active Reaping.
+
+M04B does not reinterpret nonzero rate-dependent phase/carry under a different Form or Writ. A changed redispatch with unresolved operation progress is rejected until M04C/M04D can resolve and normalize the old rate context. Same-configuration redispatch may resume frozen state.
+
+Successful assignment commands request a save checkpoint through their result. The assignment service does not call `SaveService`; tests and later `GameSession` orchestration persist the already-committed state through the existing schema-v2 coordinator.

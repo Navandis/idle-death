@@ -3,8 +3,8 @@
 **Document role:** Canonical prototype data, runtime-state, ID, and serialization contracts  
 **Repository path:** `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`  
 **Document status:** Approved architecture contract  
-**Revision:** 8  
-**Last updated:** 2026-07-15
+**Revision:** 9  
+**Last updated:** 2026-07-16
 
 ## 1. Purpose
 
@@ -736,7 +736,8 @@ Rules:
 | Field | Type | Rule |
 |---|---|---|
 | `threshold_id` | `StringName` | Key and reference must agree |
-| `form_id` | `StringName` | Must be awakened and valid |
+| `is_active` | `bool` | Active records occupy one tether; inactive records retain assignment continuity without producing |
+| `form_id` | `StringName` | Must be awakened and valid when active |
 | `writ_id` | `StringName` | Must be available |
 | `retinue_ids` | ordered array | Must match reservations and slots |
 | `assignment_revision` | `int` | Increments after each committed configuration change |
@@ -1596,3 +1597,151 @@ M03 validates and normalizes this grammar; it does not execute a complete modifi
 - Soldier Company: twelve reserved Soldier Souls; provisional `+30%` own returned-soul contribution, `+20%` Essence, and `+15%` Mastery. Stacking remains centralized and provisional.
 
 All floats are normalized once to `FixedPoint.SCALE = 1_000_000`; normalized runtime data contains no authoritative floats. M03 uses one documented conversion path: validate that the authored value is finite and within range, multiply by `SCALE`, round to the nearest integer subunit using Godot's deterministic integer-rounding helper, and retain only the integer result. Values finer than one subunit are rounded rather than creating a second precision model.
+
+## Proposed M04B assignment command contract
+
+This section is proposed with `DEC-0035` and becomes authoritative when the M04B prompt is approved.
+
+### Stable Reaping identity
+
+- `GameState.reapings` is keyed by Threshold ID.
+- At most one record exists for a Threshold.
+- Recall sets `is_active = false`; it does not delete the record.
+- Threshold discovery and acquisition state remains in `ThresholdState` and is never copied into or cleared by assignment commands.
+- Operation-owned cycle phase and carries remain in the stable Reaping record.
+- Occupied tether count is derived as the number of active Reaping records.
+- One Form ID may appear on at most one active Reaping.
+
+### Command inputs
+
+M04B uses explicit typed command values or strongly typed method parameters. Arbitrary command dictionaries are not authoritative.
+
+#### Initial dispatch
+
+Required inputs:
+
+| Field | Type | Rule |
+|---|---|---|
+| `threshold_id` | `StringName` | Existing state and enabled Threshold definition; state must be `AVAILABLE` |
+| `form_id` | `StringName` | Existing revealed/awakened Form state and enabled Form definition |
+| `writ_id` | `StringName` | Enabled Writ definition |
+| `expected_absent` | `bool` or command type invariant | Initial dispatch requires no existing Reaping record for the Threshold |
+
+Success creates revision 1 at the current simulation cursor. It does not advance that cursor.
+
+#### Recall
+
+Required inputs:
+
+| Field | Type | Rule |
+|---|---|---|
+| `threshold_id` | `StringName` | Existing active Reaping record |
+| `expected_assignment_revision` | `int` | Must exactly equal the current non-negative/positive revision |
+
+Success sets inactive, increments the revision once, and records the current simulation cursor as the configuration-change time.
+
+#### Redispatch
+
+Required inputs:
+
+| Field | Type | Rule |
+|---|---|---|
+| `threshold_id` | `StringName` | Existing inactive Reaping record |
+| `form_id` | `StringName` | Valid awakened Form, not active elsewhere |
+| `writ_id` | `StringName` | Valid enabled Writ |
+| `expected_assignment_revision` | `int` | Must exactly equal the current revision |
+
+Success reactivates the same record and increments the revision once.
+
+### Revision and timestamp rules
+
+- First dispatch uses `assignment_revision = 1`.
+- Every committed recall or redispatch adds exactly one after checked signed-64-bit overflow validation.
+- Failed, duplicate, no-op, stale, or unsupported commands do not increment.
+- `started_simulation_msec` is set once when the stable record is created.
+- `last_configuration_change_simulation_msec` is set to the current committed `GameState.simulation_time_msec` on every successful command.
+- Assignment commands never accept a device timestamp or trusted epoch.
+- `started_simulation_msec <= last_configuration_change_simulation_msec <= simulation_time_msec`.
+
+### Form, Threshold, Writ, and tether validation
+
+Before mutation:
+
+- the current `GameState` and `ContentRegistry` must be valid;
+- the Threshold must exist in both state and content and be `AVAILABLE`;
+- the Form must exist in state/content, be revealed and awakened, and not lead another active Reaping;
+- the Writ must be an enabled Writ definition;
+- initial dispatch requires no record at that Threshold;
+- recall requires an active record;
+- redispatch requires an inactive record;
+- active Reaping count after the command must not exceed `command_tether_capacity`;
+- no persisted occupied-tether counter is introduced.
+
+M04B does not require tutorial/new-game unlock state or a Writ-specific progression set that does not yet exist. The current content `enabled` flag plus the runtime state preconditions are the available contract. Later tutorial milestones decide which valid command is presented.
+
+### Frozen operation state and changed redispatch
+
+Recall freezes operation-owned state.
+
+- Same-Form/same-Writ redispatch preserves cycle phase and operation carries.
+- Changing Form or Writ is allowed in M04B only when rate-dependent cycle phase and operation carry are canonically zero.
+- If a requested change would reinterpret nonzero rate-dependent state, return `REAPING_RESOLUTION_REQUIRED` without mutation.
+- M04C/M04D later resolve elapsed time under the old setup and normalize any affected carry before committing an active reassignment.
+- Retinue changes are not part of M04B.
+
+### Action result
+
+A successful or failed command returns one typed result conforming to §11. Expected successful fields include:
+
+- `success = true`;
+- empty `error_code`;
+- a change summary naming Threshold, Form, Writ, active state, new revision, and derived occupied tether count;
+- one ordered event;
+- `save_checkpoint_requested = true`.
+
+Expected event types:
+
+```text
+REAPING_DISPATCHED
+REAPING_RECALLED
+REAPING_REDISPATCHED
+```
+
+These are committed fact records, not content definitions and not an event-sourced save history.
+
+Required stable rejection categories include:
+
+```text
+REAPING_STATE_INVALID
+REAPING_THRESHOLD_NOT_FOUND
+REAPING_THRESHOLD_UNAVAILABLE
+REAPING_FORM_NOT_FOUND
+REAPING_FORM_NOT_AWAKENED
+REAPING_FORM_ALREADY_ASSIGNED
+REAPING_WRIT_NOT_FOUND
+REAPING_RECORD_EXISTS
+REAPING_RECORD_NOT_FOUND
+REAPING_ALREADY_ACTIVE
+REAPING_ALREADY_INACTIVE
+REAPING_TETHER_CAPACITY_EXCEEDED
+REAPING_STALE_ASSIGNMENT_REVISION
+REAPING_ASSIGNMENT_REVISION_OVERFLOW
+REAPING_RESOLUTION_REQUIRED
+```
+
+The implementation may refine names before prompt approval only if the resulting table remains stable, typed, and documented. Expected invalid player actions do not call `push_error()` as their ordinary control flow.
+
+### Persistence
+
+M04B uses schema version 2 without a schema bump. The existing mapper already persists:
+
+- active state;
+- Form/Writ IDs;
+- assignment revision;
+- cycle phase and completed-cycle count;
+- flow carries;
+- start and configuration timestamps;
+- Threshold-owned progress;
+- tether capacity.
+
+The M04B save tests prove active and inactive records round-trip exactly. The command service requests a checkpoint but does not perform file I/O.

@@ -3,8 +3,8 @@
 **Document role:** Durable record of approved and proposed design and architecture decisions  
 **Repository path:** `docs/codex/DECISIONS.md`  
 **Document status:** Approved architecture and active decision record  
-**Revision:** 11  
-**Last updated:** 2026-07-15
+**Revision:** 12  
+**Last updated:** 2026-07-16
 
 ## 1. How to use this file
 
@@ -64,6 +64,7 @@ Rules:
 | `DEC-0032` | Essence is the sole resource term and canonical ID | Accepted | 2026-07-14 |
 | `DEC-0033` | Rolling-wave implementation slices and review-surface guardrails | Accepted | 2026-07-15 |
 | `DEC-0034` | Schema version 2 and sequential migration are the gameplay-state compatibility path | Accepted | 2026-07-15 |
+| `DEC-0035` | Reaping records persist through recall; assignment commands are revision-guarded and Form-exclusive | Proposed | 2026-07-16 |
 
 ---
 
@@ -1482,12 +1483,98 @@ Silently adding those fields to schema version 1 would destroy the meaning of a 
 
 ---
 
+## `DEC-0035` — Reaping records persist through recall; assignment commands are revision-guarded and Form-exclusive
+
+**Status:** Proposed  
+**Date:** 2026-07-16  
+**Decision type:** Reaping assignment identity, command safety, and capacity semantics  
+**Refines:** `DEC-0012`, `DEC-0019`, `DEC-0020`, `DEC-0027`, `DEC-0028`
+
+### Context
+
+M04A introduced one persisted `ReapingState` record per Threshold, including `is_active`, Form and Writ IDs, assignment revision, cycle phase, operation-owned carries, and simulation-timeline context. M04B must now define what initial dispatch, recall, and redispatch mean before elapsed production depends on those fields.
+
+Several implementation choices would be observable later:
+
+- deleting a Reaping on recall would discard operation identity and make cycle/carry continuity ambiguous;
+- recreating a Reaping on every redispatch could reset progress or create recall exploits;
+- allowing stale UI commands to overwrite a newer assignment could duplicate or reverse player actions;
+- allowing one Form to lead multiple active Reapings would duplicate a unique Soulform assignment;
+- changing Form or Writ while unresolved operation-owned phase/carry exists could reinterpret that carry under a different rate context.
+
+The prototype is single-threaded, but repeated input, delayed presentation, save/load, and future forecast commands still require a clear revision contract.
+
+### Proposed decision
+
+- `GameState.reapings` continues to contain at most one stable `ReapingState` per Threshold.
+- Initial dispatch creates the record when none exists:
+  - `is_active = true`;
+  - `assignment_revision = 1`;
+  - `started_simulation_msec` and `last_configuration_change_simulation_msec` equal the current `GameState.simulation_time_msec`;
+  - operation phase, completed-cycle count, Retinue list, and operation-owned carries begin at their canonical empty values.
+- Recall does not delete the Reaping record. It:
+  - requires the caller's `expected_assignment_revision` to match;
+  - changes only the active/configuration facts owned by the command;
+  - sets `is_active = false`;
+  - increments `assignment_revision` exactly once;
+  - updates `last_configuration_change_simulation_msec` to the current simulation cursor;
+  - preserves `started_simulation_msec`, Form/Writ IDs, cycle phase, completed-cycle count, operation-owned carries, and every Threshold-owned discovery/acquisition record.
+- Redispatch operates on the existing inactive record. It:
+  - requires an exact expected revision;
+  - validates the requested Form and Writ completely;
+  - sets `is_active = true`;
+  - increments the revision exactly once;
+  - updates the configuration timestamp;
+  - preserves the record's original start time and all state not explicitly changed.
+- The occupied tether count remains derived from active Reaping records. No persisted occupied-tether field is added.
+- A Form may lead at most one active Reaping at a time in the prototype.
+- A Threshold may have at most one active Reaping, and every active Reaping consumes exactly one tether.
+- Duplicate or stale commands return a stable rejection and leave the authoritative state byte-for-byte/equality-equivalent to its pre-command value. They do not silently succeed or increment the revision.
+- M04B commands do not advance simulation time or read a clock. They operate at the current committed simulation cursor. Later command orchestration resolves elapsed time to that cursor before invoking the assignment service.
+- M04B does not implement active in-place Form/Writ/Retinue reconfiguration. It implements initial dispatch, recall, and redispatch of an inactive record.
+- Redispatch with an unchanged Form/Writ preserves frozen operation phase/carry. A request to change Form or Writ while rate-dependent operation phase/carry is nonzero returns a stable `resolution required` rejection in M04B. M04C/M04D later resolve and normalize the old configuration before such a change can commit.
+- M04B introduces no save-schema version bump. Schema version 2 already persists the required fields.
+- A successful command returns one typed action result, ordered assignment event records, and `save_checkpoint_requested = true`. The domain service does not write files itself.
+
+### Consequences
+
+- Recall becomes a pause in assignment activity rather than destruction of an operation record.
+- Redispatch cannot erase Threshold-owned rare-output progress or operation continuity.
+- Tether capacity remains deterministic and cannot drift from Reaping activity.
+- Revision guards prevent delayed or repeated UI input from overwriting a newer assignment.
+- Future two-Reaping play can rely on one unique leading Form per active Reaping.
+- M04C and M04D receive an explicit handoff: resolve old-rate state before changing a nonzero rate context rather than reinterpreting carries.
+- Later Retinue assignment extends the same stable record and revision rule; M04B does not implement that behavior.
+- The first tutorial dispatch may later select `WRIT_EMERGENCY_FIRST_RETURN`, but M04B's developer trace uses `WRIT_STANDARD` and does not implement tutorial or milestone behavior.
+
+### Alternatives considered
+
+- **Delete the Reaping record on recall:** rejected because it discards operation identity, revision history, cycle/carry continuity, and future report context.
+- **Create a new record on every redispatch:** rejected because it makes recall a potential reset exploit and complicates persistent assignment semantics.
+- **Allow one Form to lead several active Reapings:** rejected for the prototype because Forms are unique active assignments and the required two-Reaping state uses two awakened Forms.
+- **Omit expected revisions because the prototype is single-threaded:** rejected because repeated input and stale view models can still submit obsolete commands.
+- **Always reset cycle/carry on a changed redispatch:** rejected because it would silently destroy earned fractional work.
+- **Always preserve nonzero carry across a changed Form/Writ:** rejected until M04C/M04D can prove denominator/rate-context compatibility.
+- **Write the save inside the assignment service:** rejected because domain mutation and file transaction ownership remain separate.
+
+### Affected documents
+
+- `docs/codex/ARCHITECTURE.md`
+- `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`
+- `docs/codex/MILESTONES.md`
+- `docs/codex/TESTING_AND_VALIDATION.md`
+- `docs/codex/milestone-prompts/M04B-dispatch-recall-assignment-integrity.md`
+
+---
+
 ## 3. Current approval state
 
 - `DEC-0001` through `DEC-0034` are Accepted.
+- `DEC-0035` is Proposed and awaits owner approval with the M04B prompt.
 - M03 prompt approval accepted `DEC-0029` through `DEC-0032`, including explicit revision compatibility, stable channel IDs, editable player-facing language, centralized terminology, and Essence as the single resource identity.
 - M01 prompt approval accepted `DEC-0026`; long-horizon source ownership is recorded in `DEC-0027`; prospective, non-compounding rate-change semantics are recorded in `DEC-0028`.
 - The Phase 6 architecture is approved with trusted-time, save-format, cross-machine testing, GodotSteam, owner-verification, fixed-point, Threshold-channel ownership, content compatibility, naming, and terminology refinements recorded in `DEC-0021` through `DEC-0032`.
 - The post-M03 implementation workflow uses conceptual epics, lettered slices, rolling-wave planning, and review-surface guardrails under `DEC-0033`.
-- `DEC-0034` resolves `GATE-GAMEPLAY-SCHEMA`: M04A introduces schema version 2 through a production sequential migration from frozen schema version 1; reset remains only an explicit fallback.
+- `DEC-0034` resolved `GATE-GAMEPLAY-SCHEMA`; M04A implemented and verified schema version 2 plus the production sequential migration from frozen schema version 1.
+- M04B planning proposes `DEC-0035` for stable recalled Reaping records, revision-guarded assignment commands, and one active Reaping per Form.
 - Future changes preserve decision IDs for wording clarifications and create a new decision only when semantics, ownership, compatibility, or security posture changes.

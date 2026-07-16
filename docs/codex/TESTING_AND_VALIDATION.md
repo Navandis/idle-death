@@ -2,9 +2,9 @@
 
 **Document role:** Canonical test strategy, commands, fixture rules, and manual validation flows
 **Repository path:** `docs/codex/TESTING_AND_VALIDATION.md`
-**Document status:** Approved validation plan through M03 with lettered-slice governance
-**Validation revision:** 11
-**Last updated:** 2026-07-15
+**Document status:** Approved validation plan through M04A with M04B draft
+**Validation revision:** 12
+**Last updated:** 2026-07-16
 **Engine target:** Godot 4.7 standard build, GDScript only
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)  
 **Owner evidence companion:** [OWNER_VERIFICATION_WORKFLOW.md](OWNER_VERIFICATION_WORKFLOW.md)
@@ -34,7 +34,9 @@ M02 merged through PR #6 and passed codec, schema, migration, atomic-storage, co
 
 M03 merged through PR #7 at merge commit `5e2b9b23878c9280f75b987cc9ad567d8980030d` from final head `971cdaa0fd46f641ec7409148e259d54f953d8c7`. Linux/Codex and owner-run Windows verification passed the full and focused content suites, import, deterministic semantic catalog trace, artifact audit, and Godot Inspector checklist. The repository now uses lettered implementation slices under `DEC-0033`.
 
-Accepted `DEC-0034` resolves the M04A schema choice: schema version 2 will be the current writer, schema version 1 remains a frozen supported input, and M04A must implement a transactional production `v1 -> v2` migration. Reset remains an explicit fallback rather than the compatibility path.
+M04A merged through PR #8 at merge commit `673ad884357fc742a0a26dbb542d5b8d9fe557c9` from final head `04b12d8ba2edeecbf13f252216249341469b40a8`. Schema version 2 is current, version 1 remains a frozen supported input, and the production upgrade preserves the historical envelope before atomic persistence. Linux/Codex and owner Windows verification passed.
+
+M04B planning proposes `DEC-0035` for stable recalled Reaping records, revision-guarded commands, one active Reaping per Form, and safe handling of unresolved operation carry.
 
 ## 2. Pinned test and platform dependencies
 
@@ -1303,10 +1305,11 @@ M04A cannot merge until:
 - migration failure preserves the original candidate;
 - the actual review surface remains within the approved prompt assessment or received an owner-approved revision.
 
+## M04A realized correction and completion record
 
-## M04A correction verification
+M04A's final implementation and evidence supersede the planning-only wording above where counts or trace markers differ.
 
-Focused Linux/Codex command:
+### Realized focused command
 
 ```bash
 ./tools/test/run_gut.sh -- \
@@ -1314,17 +1317,177 @@ Focused Linux/Codex command:
   -gdir=res://tests/integration/m04a
 ```
 
-M04A fixtures are tracked at `tests/fixtures/saves/schema_v1_foundation.json` and `tests/fixtures/saves/schema_v2_m04a_representative.json`. The trace command is:
+Tracked compatibility fixtures:
+
+```text
+tests/fixtures/saves/schema_v1_foundation.json
+tests/fixtures/saves/schema_v2_m04a_representative.json
+```
+
+Realized trace markers:
+
+```text
+TRACE M04A typed_state_and_clone=PASS
+TRACE M04A v2_round_trip=PASS
+TRACE M04A v1_upgrade_preserved_authority=PASS
+TRACE M04A file_primary_schema=2_save_revision=13
+TRACE M04A file_backup_schema=1_save_revision=12
+TRACE M04A no_repeat_rewrite=PASS
+```
+
+Completion evidence:
+
+- PR #8 final head: `04b12d8ba2edeecbf13f252216249341469b40a8`.
+- Merge commit: `673ad884357fc742a0a26dbb542d5b8d9fe557c9`.
+- Full owner Windows suite before and after: `59/59` tests, `722` assertions, exit `0`.
+- Focused M04A owner Windows suite: `16/16` tests, `207` assertions, exit `0`.
+- Explicit import: pass.
+- All six trace markers: pass.
+- Cleanup and proof of isolated-directory absence: pass.
+- Artifact audit with prior ignored logs present: pass.
+- Failed step count: `0`.
+- Pending interactive checks: none.
+- Final review surface: 28 changed files, 1,352 additions, 61 deletions; within the approved guardrails.
+
+`GATE-GAMEPLAY-SCHEMA` is satisfied.
+
+## 22. M04B draft assignment validation package
+
+M04B is a command/assignment slice. It must not test production by waiting or advancing elapsed time.
+
+### 22.1 Focused Linux/Codex checks
+
+Expected focused command:
 
 ```bash
+./tools/test/run_gut.sh -- \
+  -gdir=res://tests/unit/m04b \
+  -gdir=res://tests/integration/m04b
+```
+
+Also run:
+
+```bash
+godot --headless --path . --import
+
 trace_root="$(mktemp -d)"
 godot --headless --path . \
-  -s res://tools/test/m04a/m04a_state_persistence_trace.gd \
+  -s res://tools/test/m04b/m04b_assignment_trace.gd \
   -- --save-root "$trace_root"
 trace_exit=$?
 rm -rf "$trace_root"
 test ! -e "$trace_root"
 test "$trace_exit" -eq 0
+
+./tools/test/run_gut.sh
+git diff --check
 ```
 
-Expected trace markers are `typed_state_and_clone=PASS`, `v2_round_trip=PASS`, `v1_upgrade_preserved_authority=PASS`, `file_primary_schema=2_save_revision=13`, `file_backup_schema=1_save_revision=12`, and `no_repeat_rewrite=PASS`. The Windows owner package is `tools/test/owner/run_m04a_owner_verification.ps1`; it resolves Godot through `-GodotBin`, `GODOT_BIN`, then `godot`/`godot4`, invokes the PowerShell GUT wrapper in-process with real `-GutArgs`, preserves prior ignored logs, audits artifacts, and cleans the isolated trace directory in `finally`.
+### 22.2 Required focused groups
+
+1. valid initial dispatch and revision 1;
+2. available Threshold, awakened Form, enabled Writ, and tether-capacity validation;
+3. one active Reaping per Threshold;
+4. one Form leading at most one active Reaping;
+5. exact expected-revision handling;
+6. duplicate, stale, already-active, and already-inactive rejection;
+7. checked assignment-revision overflow;
+8. recall retaining the stable inactive record and freeing the derived tether;
+9. same-configuration redispatch preserving frozen phase/carry;
+10. changed configuration with nonzero rate-dependent state returning `REAPING_RESOLUTION_REQUIRED`;
+11. exact timestamps at the unchanged simulation cursor;
+12. typed result, event, change-summary, and save-checkpoint contract;
+13. state equality after every failed command;
+14. active and inactive schema-v2 round trips;
+15. malformed assignment-state rejection;
+16. no clock, Steam, file-time, simulation, report, tutorial, or UI ownership.
+
+### 22.3 Assignment trace
+
+`tools/test/m04b/m04b_assignment_trace.gd` must use a supplied disposable save root and demonstrate:
+
+1. construct a valid available Gloamwood, awakened Man-at-Arms, one-tether baseline;
+2. dispatch Standard Writ;
+3. print revision 1, active count 1, occupied tethers 1, and unchanged simulation time;
+4. reject duplicate dispatch and one stale command with exact no-mutation comparison;
+5. save/load the active assignment;
+6. recall with the matching revision;
+7. print revision 2, active count 0, occupied tethers 0;
+8. prove Threshold acquisition state and operation phase/carry are unchanged;
+9. save/load the inactive assignment;
+10. redispatch with the matching revision;
+11. print revision 3, active count 1, occupied tethers 1;
+12. prove original start time is unchanged and configuration time equals the current simulation cursor;
+13. exit nonzero on any mismatch.
+
+Proposed markers:
+
+```text
+TRACE M04B dispatch_revision=1_tethers=1
+TRACE M04B duplicate_and_stale_rejected=PASS
+TRACE M04B active_round_trip=PASS
+TRACE M04B recall_revision=2_tethers=0
+TRACE M04B preserved_threshold_and_operation_state=PASS
+TRACE M04B inactive_round_trip=PASS
+TRACE M04B redispatch_revision=3_tethers=1
+TRACE M04B simulation_time_unchanged=PASS
+```
+
+### 22.4 Owner Windows package
+
+The M04B prompt requires:
+
+```text
+tools/test/owner/run_m04b_owner_verification.ps1
+```
+
+Expected invocation:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass `
+    -File .\tools\test\owner\run_m04b_owner_verification.ps1 `
+    -CommitSha "<PR_HEAD_SHA>"
+```
+
+The script follows the corrected M04A workflow:
+
+- Windows PowerShell 5.1 compatible;
+- repository root resolved from the script;
+- `-GodotBin`, `GODOT_BIN`, then `PATH`;
+- Git CLI optional with visual GitHub Desktop confirmation when unavailable;
+- one UTF-8 log using the PR head;
+- complete output and exit codes;
+- full suite before;
+- focused M04B suite;
+- explicit import;
+- assignment trace and marker verification using a stable captured trace buffer;
+- guaranteed cleanup in `finally`;
+- prior ignored log tolerance;
+- artifact audit;
+- full suite after;
+- standardized summary.
+
+Expected summary:
+
+```text
+Automated result: PASS
+Failed step count: 0
+Pending interactive checks: None for M04B
+Cleanup result: PASS
+Log path: <generated path>
+```
+
+No Inspector, visual, audio, gameplay, A/B, or Steam checklist is required because M04B has no player-facing presentation.
+
+### 22.5 M04B merge evidence
+
+M04B cannot merge until:
+
+- proposed `DEC-0035` or an owner-approved replacement assignment contract is Accepted;
+- Linux/Codex focused/import/trace/full checks pass;
+- the owner Windows package passes against the exact PR head;
+- schema version remains 2 and no undocumented migration is added;
+- every failed command proves no mutation;
+- active/inactive assignment round trips pass;
+- no elapsed production or later-slice behavior enters the diff;
+- actual review surface remains within the approved prompt assessment or receives an approved revision.
