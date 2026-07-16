@@ -1,0 +1,157 @@
+extends GutTest
+
+func _registry() -> ContentRegistry:
+	return ContentRegistry.build(load("res://content/prototype_content_catalog.tres"))
+
+func _service() -> ReapingAssignmentService:
+	return ReapingAssignmentService.new(_registry())
+
+func _base_state(time_msec := 1000, tethers := 1) -> GameState:
+	var state := GameState.new(time_msec)
+	state.progression.command_tether_capacity = tethers
+	state.forms[&"FORM_MAN_AT_ARMS"] = GameState.FormState.new(true, true, 0, &"TEST")
+	state.forms[&"FORM_SCRIBE"] = GameState.FormState.new(true, true, 0, &"TEST")
+	var gloamwood := GameState.ThresholdState.new()
+	gloamwood.knowledge_state = &"CHARTED"
+	gloamwood.availability_state = &"AVAILABLE"
+	gloamwood.lifecycle_state = &"OVERDUE"
+	gloamwood.remaining_backlog = 1000
+	gloamwood.channel_acquisition[&"CHANNEL_GLOAMWOOD_SOLDIER_SOULS"] = GameState.ThresholdAcquisitionState.new(250000, 10, 1)
+	state.thresholds[&"THR_GLOAMWOOD"] = gloamwood
+	var watch := GameState.ThresholdState.new()
+	watch.knowledge_state = &"CHARTED"
+	watch.availability_state = &"AVAILABLE"
+	watch.lifecycle_state = &"OVERDUE"
+	watch.remaining_backlog = 1000
+	state.thresholds[&"THR_BROKEN_WATCH"] = watch
+	return state
+
+func _dispatch_active(state: GameState, threshold_id := &"THR_GLOAMWOOD", form_id := &"FORM_MAN_AT_ARMS") -> ReapingAssignmentService.AssignmentResult:
+	return _service().dispatch(state, threshold_id, form_id, &"WRIT_STANDARD")
+
+func test_initial_dispatch_creates_threshold_scoped_operation_and_event() -> void:
+	var state := _base_state(0)
+	var result := _dispatch_active(state)
+	assert_true(result.success)
+	assert_true(result.save_checkpoint_requested)
+	assert_eq(result.assignment_revision, 1)
+	assert_eq(result.assignment_state_id, "THR_GLOAMWOOD@1")
+	assert_eq(result.occupied_tether_count, 1)
+	assert_eq(result.events[0].event_type, ReapingAssignmentService.EVENT_DISPATCHED)
+	var reaping: GameState.ReapingState = state.reapings[&"THR_GLOAMWOOD"]
+	assert_true(reaping.is_active)
+	assert_eq(reaping.started_simulation_msec, 0)
+	assert_eq(reaping.last_configuration_change_simulation_msec, 0)
+	assert_eq(state.simulation_time_msec, 0)
+	assert_eq(state.thresholds[&"THR_GLOAMWOOD"].channel_acquisition[&"CHANNEL_GLOAMWOOD_SOLDIER_SOULS"].progress_subunits, 250000)
+
+func test_duplicate_and_invalid_dispatch_reject_without_mutation() -> void:
+	var state := _base_state()
+	assert_true(_dispatch_active(state).success)
+	var before := state.deep_clone()
+	var duplicate := _dispatch_active(state)
+	assert_false(duplicate.success)
+	assert_eq(duplicate.error_code, ReapingAssignmentService.REAPING_RECORD_EXISTS)
+	_assert_same_reaping(before.reapings[&"THR_GLOAMWOOD"], state.reapings[&"THR_GLOAMWOOD"])
+	var no_tether := _base_state(1000, 0)
+	var capacity := _dispatch_active(no_tether)
+	assert_false(capacity.success)
+	assert_eq(capacity.error_code, ReapingAssignmentService.REAPING_TETHER_CAPACITY_EXCEEDED)
+	assert_false(no_tether.reapings.has(&"THR_GLOAMWOOD"))
+
+func test_recall_preserves_record_progress_and_frees_derived_tether() -> void:
+	var state := _base_state(1000)
+	assert_true(_dispatch_active(state).success)
+	state.reapings[&"THR_GLOAMWOOD"].cycle_phase_msec = 123
+	state.reapings[&"THR_GLOAMWOOD"].flow_carry_units[&"FLOW_TEST"] = 7
+	state.advance_simulation_time(500)
+	var result := _service().recall(state, &"THR_GLOAMWOOD", 1)
+	assert_true(result.success)
+	assert_eq(result.assignment_revision, 2)
+	assert_eq(result.occupied_tether_count, 0)
+	assert_eq(result.events[0].event_type, ReapingAssignmentService.EVENT_RECALLED)
+	var reaping: GameState.ReapingState = state.reapings[&"THR_GLOAMWOOD"]
+	assert_false(reaping.is_active)
+	assert_eq(reaping.started_simulation_msec, 1000)
+	assert_eq(reaping.last_configuration_change_simulation_msec, 1500)
+	assert_eq(reaping.cycle_phase_msec, 123)
+	assert_eq(reaping.flow_carry_units[&"FLOW_TEST"], 7)
+
+func test_stale_recall_and_repeat_recall_do_not_increment() -> void:
+	var state := _base_state()
+	assert_true(_dispatch_active(state).success)
+	var stale := _service().recall(state, &"THR_GLOAMWOOD", 0)
+	assert_false(stale.success)
+	assert_eq(stale.error_code, ReapingAssignmentService.REAPING_STALE_ASSIGNMENT_REVISION)
+	assert_eq(state.reapings[&"THR_GLOAMWOOD"].assignment_revision, 1)
+	assert_true(_service().recall(state, &"THR_GLOAMWOOD", 1).success)
+	var repeat := _service().recall(state, &"THR_GLOAMWOOD", 2)
+	assert_false(repeat.success)
+	assert_eq(repeat.error_code, ReapingAssignmentService.REAPING_ALREADY_INACTIVE)
+	assert_eq(state.reapings[&"THR_GLOAMWOOD"].assignment_revision, 2)
+
+func test_redispatch_same_loadout_preserves_first_start_and_frozen_state() -> void:
+	var state := _base_state(1000)
+	assert_true(_dispatch_active(state).success)
+	state.reapings[&"THR_GLOAMWOOD"].cycle_phase_msec = 5
+	state.reapings[&"THR_GLOAMWOOD"].flow_carry_units[&"FLOW_TEST"] = 2
+	assert_true(_service().recall(state, &"THR_GLOAMWOOD", 1).success)
+	state.advance_simulation_time(250)
+	var result := _service().redispatch(state, &"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD", 2)
+	assert_true(result.success)
+	assert_eq(result.assignment_revision, 3)
+	assert_eq(result.events[0].event_type, ReapingAssignmentService.EVENT_REDISPATCHED)
+	var reaping: GameState.ReapingState = state.reapings[&"THR_GLOAMWOOD"]
+	assert_true(reaping.is_active)
+	assert_eq(reaping.started_simulation_msec, 1000)
+	assert_eq(reaping.last_configuration_change_simulation_msec, 1250)
+	assert_eq(reaping.cycle_phase_msec, 5)
+	assert_eq(reaping.flow_carry_units[&"FLOW_TEST"], 2)
+
+func test_changed_redispatch_requires_resolution_for_nonzero_phase_or_carry() -> void:
+	var state := _base_state()
+	assert_true(_dispatch_active(state).success)
+	assert_true(_service().recall(state, &"THR_GLOAMWOOD", 1).success)
+	state.reapings[&"THR_GLOAMWOOD"].cycle_phase_msec = 1
+	var rejected := _service().redispatch(state, &"THR_GLOAMWOOD", &"FORM_SCRIBE", &"WRIT_STANDARD", 2)
+	assert_false(rejected.success)
+	assert_eq(rejected.error_code, ReapingAssignmentService.REAPING_RESOLUTION_REQUIRED)
+	assert_eq(state.reapings[&"THR_GLOAMWOOD"].form_id, &"FORM_MAN_AT_ARMS")
+	state.reapings[&"THR_GLOAMWOOD"].cycle_phase_msec = 0
+	var accepted := _service().redispatch(state, &"THR_GLOAMWOOD", &"FORM_SCRIBE", &"WRIT_STANDARD", 2)
+	assert_true(accepted.success)
+	assert_eq(state.reapings[&"THR_GLOAMWOOD"].form_id, &"FORM_SCRIBE")
+
+func test_form_exclusivity_and_same_loadout_on_different_threshold_identity() -> void:
+	var state := _base_state(1000, 2)
+	assert_true(_dispatch_active(state, &"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS").success)
+	var same_form := _dispatch_active(state, &"THR_BROKEN_WATCH", &"FORM_MAN_AT_ARMS")
+	assert_false(same_form.success)
+	assert_eq(same_form.error_code, ReapingAssignmentService.REAPING_FORM_ALREADY_ASSIGNED)
+	var other_form := _dispatch_active(state, &"THR_BROKEN_WATCH", &"FORM_SCRIBE")
+	assert_true(other_form.success)
+	assert_true(state.reapings.has(&"THR_GLOAMWOOD"))
+	assert_true(state.reapings.has(&"THR_BROKEN_WATCH"))
+	assert_eq(state.reapings[&"THR_GLOAMWOOD"].assignment_revision, 1)
+	assert_eq(state.reapings[&"THR_BROKEN_WATCH"].assignment_revision, 1)
+
+func test_revision_overflow_and_invalid_state_are_typed_failures() -> void:
+	var state := _base_state()
+	assert_true(_dispatch_active(state).success)
+	state.reapings[&"THR_GLOAMWOOD"].assignment_revision = FixedPoint.INT64_MAX
+	var overflow := _service().recall(state, &"THR_GLOAMWOOD", FixedPoint.INT64_MAX)
+	assert_false(overflow.success)
+	assert_eq(overflow.error_code, ReapingAssignmentService.REAPING_ASSIGNMENT_REVISION_OVERFLOW)
+	state.progression.command_tether_capacity = -1
+	var invalid := _service().dispatch(state, &"THR_BROKEN_WATCH", &"FORM_SCRIBE", &"WRIT_STANDARD")
+	assert_false(invalid.success)
+	assert_eq(invalid.error_code, ReapingAssignmentService.REAPING_STATE_INVALID)
+
+func _assert_same_reaping(expected: GameState.ReapingState, actual: GameState.ReapingState) -> void:
+	assert_eq(actual.threshold_id, expected.threshold_id)
+	assert_eq(actual.is_active, expected.is_active)
+	assert_eq(actual.form_id, expected.form_id)
+	assert_eq(actual.writ_id, expected.writ_id)
+	assert_eq(actual.assignment_revision, expected.assignment_revision)
+	assert_eq(actual.started_simulation_msec, expected.started_simulation_msec)
+	assert_eq(actual.last_configuration_change_simulation_msec, expected.last_configuration_change_simulation_msec)
