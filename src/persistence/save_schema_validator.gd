@@ -29,7 +29,7 @@ static func validate_v1(snapshot: Variant) -> Dictionary:
 	var schema := SaveInt64.parse(data.schema_version, false, "schema_version")
 	if not schema.ok:
 		return schema
-	if schema.value != SaveEnvelope.CURRENT_SCHEMA_VERSION:
+	if schema.value != SaveEnvelope.SCHEMA_VERSION_V1:
 		return _err(ERR_SCHEMA_VERSION, "schema_version")
 	var revision := SaveInt64.parse(data.save_revision, false, "save_revision")
 	if not revision.ok:
@@ -44,7 +44,7 @@ static func validate_v1(snapshot: Variant) -> Dictionary:
 		return _err(ERR_TYPE, "metadata")
 	if typeof(data.game_state) != TYPE_DICTIONARY:
 		return _err(ERR_TYPE, "game_state")
-	var game_keys := _require_keys(data.game_state, SaveEnvelope.GAME_KEYS, "game_state")
+	var game_keys := _require_keys(data.game_state, SaveEnvelope.GAME_KEYS_V1, "game_state")
 	if not game_keys.ok:
 		return game_keys
 	var sim := SaveInt64.parse(data.game_state.simulation_time_msec, false, "game_state.simulation_time_msec")
@@ -91,3 +91,133 @@ static func _looks_like_absolute_path(value: String) -> bool:
 
 static func _err(code: String, field_path: String) -> Dictionary:
 	return {"ok": false, "code": code, "field_path": field_path}
+
+
+static func validate_current(snapshot: Variant) -> Dictionary:
+	var version := get_schema_version(snapshot)
+	if not version.ok:
+		return version
+	if version.value == SaveEnvelope.SCHEMA_VERSION_V1:
+		return validate_v1(snapshot)
+	if version.value == SaveEnvelope.SCHEMA_VERSION_V2:
+		return validate_v2(snapshot)
+	return _err(ERR_SCHEMA_VERSION, "schema_version")
+
+
+static func get_schema_version(snapshot: Variant) -> Dictionary:
+	if typeof(snapshot) != TYPE_DICTIONARY:
+		return _err(ERR_NOT_DICTIONARY, "")
+	return SaveInt64.parse((snapshot as Dictionary).get("schema_version", ""), false, "schema_version")
+
+
+static func validate_v2(snapshot: Variant) -> Dictionary:
+	var base := _validate_common_envelope(snapshot, SaveEnvelope.SCHEMA_VERSION_V2, SaveEnvelope.GAME_KEYS_V2)
+	if not base.ok:
+		return base
+	var g: Dictionary = (snapshot as Dictionary).game_state
+	if typeof(g.inventory) != TYPE_DICTIONARY or not _require_keys(g.inventory, ["entries"], "game_state.inventory").ok:
+		return _err(ERR_TYPE, "game_state.inventory")
+	if typeof(g.inventory.entries) != TYPE_DICTIONARY or typeof(g.forms) != TYPE_DICTIONARY or typeof(g.thresholds) != TYPE_DICTIONARY or typeof(g.reapings) != TYPE_DICTIONARY:
+		return _err(ERR_TYPE, "game_state")
+	if typeof(g.progression) != TYPE_DICTIONARY:
+		return _err(ERR_TYPE, "game_state.progression")
+	var pkeys := _require_keys(g.progression, ["command_tether_capacity"], "game_state.progression")
+	if not pkeys.ok:
+		return pkeys
+	var tether := SaveInt64.parse(g.progression.command_tether_capacity, false, "game_state.progression.command_tether_capacity")
+	if not tether.ok:
+		return tether
+	var nested := _validate_v2_nested(g)
+	if not nested.ok:
+		return nested
+	base["command_tether_capacity"] = tether.value
+	return base
+
+
+static func _validate_common_envelope(snapshot: Variant, expected_version: int, game_keys: Array) -> Dictionary:
+	if typeof(snapshot) != TYPE_DICTIONARY:
+		return _err(ERR_NOT_DICTIONARY, "")
+	var data: Dictionary = snapshot
+	var keys_result := _require_keys(data, SaveEnvelope.TOP_LEVEL_KEYS, "")
+	if not keys_result.ok:
+		return keys_result
+	if data.codec_id != SaveEnvelope.CODEC_JSON_V1:
+		return _err(ERR_CODEC, "codec_id")
+	var schema := SaveInt64.parse(data.schema_version, false, "schema_version")
+	if not schema.ok or schema.value != expected_version:
+		return _err(ERR_SCHEMA_VERSION, "schema_version")
+	var revision := SaveInt64.parse(data.save_revision, false, "save_revision")
+	if not revision.ok:
+		return revision
+	if typeof(data.content_revision) != TYPE_STRING or (data.content_revision as String).is_empty():
+		return _err(ERR_CONTENT_REVISION, "content_revision")
+	if _looks_like_absolute_path(data.content_revision):
+		return _err(ERR_ABSOLUTE_PATH, "content_revision")
+	if typeof(data.last_offline_resolution_id) != TYPE_STRING or _looks_like_absolute_path(data.last_offline_resolution_id):
+		return _err(ERR_TYPE, "last_offline_resolution_id")
+	if typeof(data.metadata) != TYPE_DICTIONARY or typeof(data.game_state) != TYPE_DICTIONARY:
+		return _err(ERR_TYPE, "metadata")
+	var game_keys_result := _require_keys(data.game_state, game_keys, "game_state")
+	if not game_keys_result.ok:
+		return game_keys_result
+	var sim := SaveInt64.parse(data.game_state.simulation_time_msec, false, "game_state.simulation_time_msec")
+	if not sim.ok:
+		return sim
+	if typeof(data.time_authority) != TYPE_DICTIONARY:
+		return _err(ERR_TYPE, "time_authority")
+	var time_keys := _require_keys(data.time_authority, SaveEnvelope.TIME_AUTHORITY_KEYS, "time_authority")
+	if not time_keys.ok:
+		return time_keys
+	var t: Dictionary = data.time_authority
+	if typeof(t.has_trusted_anchor) != TYPE_BOOL or typeof(t.trusted_source_id) != TYPE_STRING or typeof(t.pending_trusted_reconciliation) != TYPE_BOOL or typeof(t.last_sample_diagnostic_code) != TYPE_STRING:
+		return _err(ERR_TYPE, "time_authority")
+	if t.last_sample_diagnostic_code.is_empty() or _looks_like_absolute_path(t.last_sample_diagnostic_code):
+		return _err(ERR_TYPE, "time_authority.last_sample_diagnostic_code")
+	var anchor := SaveInt64.parse(t.trusted_anchor_utc_msec, false, "time_authority.trusted_anchor_utc_msec")
+	if not anchor.ok:
+		return anchor
+	var foreground := SaveInt64.parse(t.foreground_credited_since_anchor_msec, false, "time_authority.foreground_credited_since_anchor_msec")
+	if not foreground.ok:
+		return foreground
+	if t.has_trusted_anchor:
+		if t.trusted_source_id.is_empty(): return _err(ERR_CROSS_FIELD, "time_authority.trusted_source_id")
+	else:
+		if anchor.value != 0 or foreground.value != 0 or not t.trusted_source_id.is_empty(): return _err(ERR_CROSS_FIELD, "time_authority")
+	return {"ok": true, "code": OK, "save_revision": revision.value, "simulation_time_msec": sim.value, "trusted_anchor_utc_msec": anchor.value, "foreground_credited_since_anchor_msec": foreground.value}
+
+static func _validate_v2_nested(g: Dictionary) -> Dictionary:
+	for item_id in g.inventory.entries.keys():
+		var entry = g.inventory.entries[item_id]
+		if typeof(entry) != TYPE_DICTIONARY: return _err(ERR_TYPE, "game_state.inventory.entries.%s" % item_id)
+		var k := _require_keys(entry, ["reservations", "total"], "game_state.inventory.entries.%s" % item_id); if not k.ok: return k
+		var total := SaveInt64.parse(entry.total, false, "game_state.inventory.entries.%s.total" % item_id); if not total.ok: return total
+		if typeof(entry.reservations) != TYPE_DICTIONARY: return _err(ERR_TYPE, "game_state.inventory.entries.%s.reservations" % item_id)
+		for rid in entry.reservations.keys():
+			var amount := SaveInt64.parse(entry.reservations[rid], false, "game_state.inventory.entries.%s.reservations.%s" % [item_id, rid]); if not amount.ok: return amount
+	for form_id in g.forms.keys():
+		var f = g.forms[form_id]; if typeof(f) != TYPE_DICTIONARY: return _err(ERR_TYPE, "game_state.forms.%s" % form_id)
+		var kf := _require_keys(f, ["awakened", "awakened_by", "mastery_subunits", "revealed"], "game_state.forms.%s" % form_id); if not kf.ok: return kf
+		if typeof(f.revealed) != TYPE_BOOL or typeof(f.awakened) != TYPE_BOOL or typeof(f.awakened_by) != TYPE_STRING: return _err(ERR_TYPE, "game_state.forms.%s" % form_id)
+		var m := SaveInt64.parse(f.mastery_subunits, false, "game_state.forms.%s.mastery_subunits" % form_id); if not m.ok: return m
+	for tid in g.thresholds.keys():
+		var t = g.thresholds[tid]; if typeof(t) != TYPE_DICTIONARY: return _err(ERR_TYPE, "game_state.thresholds.%s" % tid)
+		var kt := _require_keys(t, ["availability_state", "channel_acquisition", "familiarity_subunits", "knowledge_state", "lifecycle_state", "persistent_returns_total", "remaining_backlog"], "game_state.thresholds.%s" % tid); if not kt.ok: return kt
+		for fkey in ["knowledge_state", "availability_state", "lifecycle_state"]:
+			if typeof(t[fkey]) != TYPE_STRING: return _err(ERR_TYPE, "game_state.thresholds.%s.%s" % [tid, fkey])
+		for ikey in ["remaining_backlog", "persistent_returns_total", "familiarity_subunits"]:
+			var pi := SaveInt64.parse(t[ikey], false, "game_state.thresholds.%s.%s" % [tid, ikey]); if not pi.ok: return pi
+		if typeof(t.channel_acquisition) != TYPE_DICTIONARY: return _err(ERR_TYPE, "game_state.thresholds.%s.channel_acquisition" % tid)
+		for cid in t.channel_acquisition.keys():
+			var a = t.channel_acquisition[cid]; if typeof(a) != TYPE_DICTIONARY: return _err(ERR_TYPE, "game_state.thresholds.%s.channel_acquisition.%s" % [tid, cid])
+			var ka := _require_keys(a, ["progress_subunits", "rate_carry_units", "total_banked_units"], "game_state.thresholds.%s.channel_acquisition.%s" % [tid, cid]); if not ka.ok: return ka
+			for akey in ["progress_subunits", "rate_carry_units", "total_banked_units"]:
+				var ai := SaveInt64.parse(a[akey], false, "game_state.thresholds.%s.channel_acquisition.%s.%s" % [tid, cid, akey]); if not ai.ok: return ai
+	for rid in g.reapings.keys():
+		var r = g.reapings[rid]; if typeof(r) != TYPE_DICTIONARY: return _err(ERR_TYPE, "game_state.reapings.%s" % rid)
+		var kr := _require_keys(r, ["assignment_revision", "completed_cycle_count", "cycle_phase_msec", "flow_carry_units", "form_id", "is_active", "last_configuration_change_simulation_msec", "retinue_ids", "started_simulation_msec", "threshold_id", "writ_id"], "game_state.reapings.%s" % rid); if not kr.ok: return kr
+		if typeof(r.threshold_id) != TYPE_STRING or typeof(r.form_id) != TYPE_STRING or typeof(r.writ_id) != TYPE_STRING or typeof(r.is_active) != TYPE_BOOL or typeof(r.retinue_ids) != TYPE_ARRAY or typeof(r.flow_carry_units) != TYPE_DICTIONARY: return _err(ERR_TYPE, "game_state.reapings.%s" % rid)
+		for ikey in ["assignment_revision", "cycle_phase_msec", "completed_cycle_count", "started_simulation_msec", "last_configuration_change_simulation_msec"]:
+			var ri := SaveInt64.parse(r[ikey], false, "game_state.reapings.%s.%s" % [rid, ikey]); if not ri.ok: return ri
+		for flow in r.flow_carry_units.keys():
+			var fi := SaveInt64.parse(r.flow_carry_units[flow], false, "game_state.reapings.%s.flow_carry_units.%s" % [rid, flow]); if not fi.ok: return fi
+	return {"ok": true}

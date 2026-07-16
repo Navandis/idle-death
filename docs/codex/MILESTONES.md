@@ -121,6 +121,8 @@ A conceptual epic uses `Prompt: Not applicable` and `Implementation: Not directl
 
 `GATE-SLICE-SCOPE` is mandatory for every post-M03 prompt. `GATE-GAMEPLAY-SCHEMA` is satisfied for M04A prompt drafting by accepted `DEC-0034`. M04A implementation must still pass the schema-version-2 migration and owner-verification gates before merge.
 
+M04A correction status: implementation evidence is present on PR #8 through typed state, schema-v2 mapping, immutable v1/v2 fixtures, migration-preservation tests, and a corrected owner package. `GATE-GAMEPLAY-SCHEMA` remains pending owner rerun at the current PR head; do not mark M04A Passed or Merged until that Windows evidence is supplied.
+
 
 When trusted time is unavailable, the approved behavior is to grant no guessed closed-session progress, retain pending reconciliation, and continue monotonic foreground production. No milestone may introduce a local-device-time fallback.
 
@@ -133,7 +135,7 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 | M02 | Versioned save codec and atomic storage | Completed milestone | Approved | Approved | Merged | Passed |
 | M03 | Content catalog, canonical IDs, and configurable prototype data | Completed milestone | Approved | Approved | Merged | Passed |
 | M04 | Persistent Reaping simulation vertical slice | Conceptual epic | Approved | Not applicable | Not directly executable | — |
-| M04A | Gameplay state and persistence foundation | Implementation slice | Approved | Approved | Not started | — |
+| M04A | Gameplay state and persistence foundation | Implementation slice | Approved | Approved | Pull request open | Partial |
 | M04B | Dispatch, recall, and assignment integrity | Implementation slice | Approved | Not drafted | Not started | — |
 | M04C | Single-Reaping core resolver | Implementation slice | Approved | Not drafted | Not started | — |
 | M04D | Output channels and long-horizon acquisition progress | Implementation slice | Approved | Not drafted | Not started | — |
@@ -772,10 +774,11 @@ M04 is complete only when M04A through M04E are all Merged and Passed. No `M04-p
 **Parent epic:** M04  
 **Definition status:** Approved  
 **Prompt status:** Approved  
-**Implementation status:** Not started  
-**Verification status:** —  
+**Implementation status:** Pull request open
+**Verification status:** Partial
 **Recommended Codex task size:** Small-medium; one authoritative-state and schema-migration pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M04A-gameplay-state-persistence-foundation.md`
+**Current PR head:** see PR handoff for the exact post-correction commit; Linux/Codex evidence includes immutable fixtures, schema-v2 mapping, preserved v1 envelope migration, corrected owner package, and expanded focused tests. Owner Windows rerun remains required before Passed/Merged.
 
 #### Purpose
 
