@@ -3,7 +3,7 @@
 **Document role:** Canonical test strategy, commands, fixture rules, and manual validation flows
 **Repository path:** `docs/codex/TESTING_AND_VALIDATION.md`
 **Document status:** Approved validation plan through M04A with M04B draft
-**Validation revision:** 12
+**Validation revision:** 13
 **Last updated:** 2026-07-16
 **Engine target:** Godot 4.7 standard build, GDScript only
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)  
@@ -36,7 +36,7 @@ M03 merged through PR #7 at merge commit `5e2b9b23878c9280f75b987cc9ad567d898003
 
 M04A merged through PR #8 at merge commit `673ad884357fc742a0a26dbb542d5b8d9fe557c9` from final head `04b12d8ba2edeecbf13f252216249341469b40a8`. Schema version 2 is current, version 1 remains a frozen supported input, and the production upgrade preserves the historical envelope before atomic persistence. Linux/Codex and owner Windows verification passed.
 
-M04B planning proposes `DEC-0035` for stable recalled Reaping records, revision-guarded commands, one active Reaping per Form, and safe handling of unresolved operation carry.
+Accepted `DEC-0035` and the approved M04B v0.2 prompt define Threshold-scoped operation identity, loadout/assignment/episode identity layers, immutable first-start timestamps, stable recalled records, revision-guarded commands, one active Reaping per Form, and safe handling of unresolved operation carry.
 
 ## 2. Pinned test and platform dependencies
 
@@ -1351,7 +1351,7 @@ Completion evidence:
 
 `GATE-GAMEPLAY-SCHEMA` is satisfied.
 
-## 22. M04B draft assignment validation package
+## 22. M04B approved assignment validation package
 
 M04B is a command/assignment slice. It must not test production by waiting or advancing elapsed time.
 
@@ -1386,50 +1386,81 @@ git diff --check
 ### 22.2 Required focused groups
 
 1. valid initial dispatch and revision 1;
-2. available Threshold, awakened Form, enabled Writ, and tether-capacity validation;
-3. one active Reaping per Threshold;
-4. one Form leading at most one active Reaping;
-5. exact expected-revision handling;
-6. duplicate, stale, already-active, and already-inactive rejection;
-7. checked assignment-revision overflow;
-8. recall retaining the stable inactive record and freeing the derived tether;
-9. same-configuration redispatch preserving frozen phase/carry;
-10. changed configuration with nonzero rate-dependent state returning `REAPING_RESOLUTION_REQUIRED`;
-11. exact timestamps at the unchanged simulation cursor;
-12. typed result, event, change-summary, and save-checkpoint contract;
-13. state equality after every failed command;
-14. active and inactive schema-v2 round trips;
-15. malformed assignment-state rejection;
-16. no clock, Steam, file-time, simulation, report, tutorial, or UI ownership.
+2. Threshold ID as operation identity with no redundant UUID;
+3. canonical loadout tuple equality independent of operation identity;
+4. assignment-state identity as Threshold ID plus revision;
+5. activation episode identity from dispatch/redispatch revision;
+6. immutable `started_simulation_msec`, including valid zero;
+7. record existence as initialization rather than a timestamp sentinel;
+8. available Threshold, awakened Form, enabled Writ, and tether-capacity validation;
+9. one active Reaping per Threshold;
+10. one Form leading at most one active Reaping;
+11. exact expected-revision handling;
+12. duplicate, stale, already-active, and already-inactive rejection;
+13. checked assignment-revision overflow;
+14. recall retaining the stable inactive record and freeing the derived tether;
+15. same-configuration redispatch preserving frozen phase/carry;
+16. changed configuration with nonzero rate-dependent state returning `REAPING_RESOLUTION_REQUIRED`;
+17. same Threshold/same loadout creates a new episode without a new operation;
+18. same loadout/different Threshold uses an independent operation and revision sequence;
+19. different loadout/same Threshold retains the operation and first-start timestamp;
+20. returning to an earlier loadout creates a new episode and does not restore old state/rates;
+21. exact configuration timestamps at externally established simulation cursors;
+22. typed result, event, change-summary, operation ID, assignment-state ID, and save-checkpoint contract;
+23. state equality after every failed command;
+24. active and inactive schema-v2 round trips;
+25. malformed assignment-state rejection;
+26. no clock, Steam, file-time, simulation, report, tutorial, UI, or new identity field ownership.
 
 ### 22.3 Assignment trace
 
-`tools/test/m04b/m04b_assignment_trace.gd` must use a supplied disposable save root and demonstrate:
-
-1. construct a valid available Gloamwood, awakened Man-at-Arms, one-tether baseline;
-2. dispatch Standard Writ;
-3. print revision 1, active count 1, occupied tethers 1, and unchanged simulation time;
-4. reject duplicate dispatch and one stale command with exact no-mutation comparison;
-5. save/load the active assignment;
-6. recall with the matching revision;
-7. print revision 2, active count 0, occupied tethers 0;
-8. prove Threshold acquisition state and operation phase/carry are unchanged;
-9. save/load the inactive assignment;
-10. redispatch with the matching revision;
-11. print revision 3, active count 1, occupied tethers 1;
-12. prove original start time is unchanged and configuration time equals the current simulation cursor;
-13. exit nonzero on any mismatch.
-
-Proposed markers:
+`tools/test/m04b/m04b_assignment_trace.gd` must use a supplied disposable save root and demonstrate a scenario sequence equivalent to:
 
 ```text
+Gloamwood + loadout 1
+→ recall
+→ Gloamwood + loadout 3
+→ recall
+→ Broken Watch + loadout 3
+→ recall
+→ Gloamwood + loadout 1
+```
+
+The trace must:
+
+1. construct available Gloamwood/Broken Watch, awakened Man-at-Arms/Scribe, and one tether;
+2. establish known committed simulation cursors between commands without letting the assignment service advance time;
+3. dispatch loadout 1 to Gloamwood at revision 1 and capture the immutable first-start timestamp;
+4. reject duplicate and stale commands with exact no-mutation comparison;
+5. save/load the active Gloamwood assignment;
+6. recall to revision 2 and prove tether release plus full state preservation;
+7. redispatch a different zero-carry loadout to Gloamwood at revision 3 while preserving the same operation and first-start timestamp;
+8. recall Gloamwood to revision 4;
+9. dispatch the same loadout value to Broken Watch at its independent revision 1 and first-start timestamp;
+10. prove timestamps may coincide without identity collision;
+11. recall Broken Watch to revision 2;
+12. return loadout 1 to Gloamwood at revision 5;
+13. prove the final loadout equals the original value but is a new activation episode, not revision/episode 1;
+14. prove Threshold-owned Gloamwood progress never moved to Broken Watch;
+15. prove `started_simulation_msec` for each operation never changed;
+16. save/load representative active and inactive records;
+17. exit nonzero on any mismatch.
+
+Required markers:
+
+```text
+TRACE M04B operation_identity=THR_GLOAMWOOD
 TRACE M04B dispatch_revision=1_tethers=1
 TRACE M04B duplicate_and_stale_rejected=PASS
 TRACE M04B active_round_trip=PASS
 TRACE M04B recall_revision=2_tethers=0
+TRACE M04B different_loadout_same_threshold_same_operation=PASS
+TRACE M04B same_loadout_different_threshold_separate_operation=PASS
+TRACE M04B return_to_prior_loadout_new_episode=PASS
+TRACE M04B started_simulation_msec_immutable=PASS
+TRACE M04B zero_start_is_valid=PASS
 TRACE M04B preserved_threshold_and_operation_state=PASS
 TRACE M04B inactive_round_trip=PASS
-TRACE M04B redispatch_revision=3_tethers=1
 TRACE M04B simulation_time_unchanged=PASS
 ```
 
@@ -1483,7 +1514,7 @@ No Inspector, visual, audio, gameplay, A/B, or Steam checklist is required becau
 
 M04B cannot merge until:
 
-- proposed `DEC-0035` or an owner-approved replacement assignment contract is Accepted;
+- accepted `DEC-0035` remains the implemented assignment/identity contract;
 - Linux/Codex focused/import/trace/full checks pass;
 - the owner Windows package passes against the exact PR head;
 - schema version remains 2 and no undocumented migration is added;

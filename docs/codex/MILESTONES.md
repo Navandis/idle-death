@@ -3,7 +3,7 @@
 **Document role:** Approved implementation sequence and acceptance map for the 0–90 minute prototype  
 **Repository path:** `docs/codex/MILESTONES.md`  
 **Document status:** Approved rolling-wave milestone map  
-**Milestone-map revision:** 15  
+**Milestone-map revision:** 16  
 **Last updated:** 2026-07-16  
 **Primary context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md), [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md), [Architecture](ARCHITECTURE.md), [Data contracts](DATA_AND_CONTENT_CONTRACTS.md), [Testing](TESTING_AND_VALIDATION.md), [Owner verification](OWNER_VERIFICATION_WORKFLOW.md), [Milestone recalibration](MILESTONE_RECALIBRATION_PROPOSAL.md), and [Decisions](DECISIONS.md)
 
@@ -108,7 +108,7 @@ A conceptual epic uses `Prompt: Not applicable` and `Implementation: Not directl
 | `GATE-CONTENT-CATALOG` | M03 merge | Validate one explicit typed catalog containing the required prototype IDs, `RES_ESSENCE`, stable `CHANNEL_...` sources, centralized `TERM_...` terminology, editable names independent of IDs, normalized values, content-revision compatibility, deterministic ordering, and editor-inspectable `.tres` definitions before simulation depends on content. |
 | `GATE-SLICE-SCOPE` | Every post-M03 prompt approval | Complete the `DEC-0033` scope assessment. Split the work or record an explicit owner-approved exception when a mandatory review trigger is crossed. |
 | `GATE-GAMEPLAY-SCHEMA` | M04A implementation and merge | Satisfied for prompt drafting by accepted `DEC-0034`: M04A introduces schema version 2 with a production sequential `v1 -> v2` migration. M04A must implement and verify the transactional upgrade, historical fixture, failure preservation, and owner Windows path before merge. |
-| `GATE-REAPING-ASSIGNMENT` | M04B prompt approval | Approve `DEC-0035` or a revised assignment contract covering stable recalled Reaping identity, revision guards, Form exclusivity, tether derivation, and nonzero carry handling before Codex implements commands. |
+| `GATE-REAPING-ASSIGNMENT` | M04B prompt approval | Satisfied by accepted `DEC-0035`: Threshold-scoped operation identity, canonical loadout tuples, revision/episode identity, immutable first-start timestamps, stable recalled records, Form exclusivity, tether derivation, and nonzero carry handling. |
 | `GATE-STEAM-TIME` | The applicable M06 slice prompt/implementation | Satisfied for prompt drafting by `DEC-0024`: use pinned GodotSteam 4.20 and development App ID `480`. M06 must still verify license footprint, wrapper API, explicit initialization, and live Windows behavior. |
 | `GATE-PRODUCTION-OFFLINE` | The final applicable M16 slice merge | Fake-provider automation plus the owner-run Windows/GodotSteam connected, unavailable, reconnect, clock-change, and repeated-load checks must pass. |
 | `RELEASE-GATE-STEAM-APP` | Before external Steam Playtest or commercial distribution | Replace development App ID `480` with Death Idle's assigned App ID and validate package ownership, launch-through-Steam behavior, export contents, and absence of development-only App ID aids. |
@@ -122,7 +122,7 @@ A conceptual epic uses `Prompt: Not applicable` and `Implementation: Not directl
 
 `GATE-CONTENT-CATALOG` was satisfied by M03. PR #7 merged on 2026-07-15 at merge commit `5e2b9b23878c9280f75b987cc9ad567d8980030d`; its final head was `971cdaa0fd46f641ec7409148e259d54f953d8c7`. Linux/Codex and owner Windows verification passed the full and focused suites, explicit import, semantic catalog trace, artifact audit, and Godot Inspector checklist.
 
-`GATE-SLICE-SCOPE` is mandatory for every post-M03 prompt. `GATE-GAMEPLAY-SCHEMA` is fully satisfied by M04A: schema version 2, immutable historical support, migration preservation, Linux/Codex verification, and owner Windows verification passed. `GATE-REAPING-ASSIGNMENT` is pending owner approval of proposed `DEC-0035` with the M04B prompt.
+`GATE-SLICE-SCOPE` is mandatory for every post-M03 prompt. `GATE-GAMEPLAY-SCHEMA` is fully satisfied by M04A: schema version 2, immutable historical support, migration preservation, Linux/Codex verification, and owner Windows verification passed. `GATE-REAPING-ASSIGNMENT` and M04B `GATE-SLICE-SCOPE` are satisfied by accepted `DEC-0035` and the approved M04B v0.2 prompt.
 
 
 When trusted time is unavailable, the approved behavior is to grant no guessed closed-session progress, retain pending reconciliation, and continue monotonic foreground production. No milestone may introduce a local-device-time fallback.
@@ -137,7 +137,7 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 | M03 | Content catalog, canonical IDs, and configurable prototype data | Completed milestone | Approved | Approved | Merged | Passed |
 | M04 | Persistent Reaping simulation vertical slice | Conceptual epic | Approved | Not applicable | Not directly executable | — |
 | M04A | Gameplay state and persistence foundation | Implementation slice | Approved | Approved | Merged | Passed |
-| M04B | Dispatch, recall, and assignment integrity | Implementation slice | Approved | Drafted | Not started | — |
+| M04B | Dispatch, recall, and assignment integrity | Implementation slice | Approved | Approved | Not started | — |
 | M04C | Single-Reaping core resolver | Implementation slice | Approved | Not drafted | Not started | — |
 | M04D | Output channels and long-horizon acquisition progress | Implementation slice | Approved | Not drafted | Not started | — |
 | M04E | Forecast clone, report accumulator, and simulation harness | Implementation slice | Approved | Not drafted | Not started | — |
@@ -921,7 +921,7 @@ M04A makes schema version 2 current. Version 1 remains a supported historical in
 **Work item type:** Implementation slice  
 **Parent epic:** M04  
 **Definition status:** Approved  
-**Prompt status:** Drafted  
+**Prompt status:** Approved  
 **Implementation status:** Not started  
 **Verification status:** —  
 **Recommended Codex task size:** Small-medium; one command/assignment pull request.  
@@ -938,15 +938,17 @@ Through commands and tests, Man-at-Arms can be dispatched to Gloamwood, recalled
 #### Dependencies
 
 - M04A Merged and Passed.
-- `GATE-SLICE-SCOPE` is completed in the M04B draft and must be approved with the prompt.
-- `GATE-REAPING-ASSIGNMENT` is pending approval of proposed `DEC-0035`.
+- `GATE-SLICE-SCOPE` is satisfied by the approved M04B v0.2 prompt.
+- `GATE-REAPING-ASSIGNMENT` is satisfied by accepted `DEC-0035`.
 
 #### Included scope
 
-- Add one focused Reaping assignment service with initial dispatch, recall, and redispatch of an inactive record.
+- Add one focused Reaping assignment service with initial dispatch, recall, and redispatch of an inactive Threshold-scoped operation record.
+- Treat Threshold ID as operation identity, the canonical Form/Writ/Retinue tuple as loadout identity, Threshold+revision as assignment-state identity, and dispatch/redispatch revision as activation-episode identity.
 - Use typed command inputs/results, stable rejection codes, ordered assignment events, and save-checkpoint requests.
 - Validate awakened and active-unique Form, available Threshold, enabled Writ, exact expected revision, tether capacity, and duplicate occupancy before mutation.
 - Retain one stable Reaping record per Threshold through recall; derive tether occupancy from active records.
+- Set `started_simulation_msec` only on first dispatch, permit zero, preserve it forever under ordinary gameplay, and use record existence rather than a sentinel.
 - Increment assignment revision exactly once only on committed changes; check overflow and stale input.
 - Preserve Threshold-owned state and frozen operation phase/carries. Reject a changed Form/Writ with unresolved rate-dependent phase/carry until later resolution exists.
 - Preserve assignment state across schema-v2 save/load without a schema bump.
@@ -960,10 +962,11 @@ Through commands and tests, Man-at-Arms can be dispatched to Gloamwood, recalled
 
 #### Acceptance criteria
 
-- A valid initial dispatch creates revision 1, one active assignment, one derived occupied tether, and one committed event without advancing simulation time.
+- A valid initial dispatch creates the Threshold-scoped operation, immutable first-start timestamp, revision 1, one active assignment, one derived occupied tether, and one committed event without advancing simulation time.
 - Invalid Form, Threshold, Writ, capacity, duplicate Threshold, already-assigned Form, or stale revision fails without partial mutation.
 - Recall retains the stable record, freezes operation-owned state, frees the derived tether, and increments the revision once.
-- Redispatch of the inactive record increments once, preserves the original start timestamp and Threshold-owned progress, and updates the configuration timestamp.
+- Redispatch of the inactive record increments once, preserves the immutable first-start timestamp and Threshold-owned progress, and updates the configuration timestamp.
+- Same Threshold/same loadout, different Threshold/same loadout, same Threshold/different loadout, and return-to-prior-loadout scenarios retain the correct operation identity and always create a new assignment state/activation episode.
 - Repeating or replaying a stale command cannot duplicate a Reaping, tether, event, or revision increment.
 - Changed Form/Writ with nonzero rate-dependent operation state is rejected until later resolve-before-change support exists.
 - Save/load preserves active/inactive assignment, Form/Writ IDs, revision, timestamps, frozen phase/carries, and Threshold progress.
@@ -984,12 +987,13 @@ Through commands and tests, Man-at-Arms can be dispatched to Gloamwood, recalled
 
 #### Demonstration path
 
-- Construct an available Gloamwood, awakened Man-at-Arms, one-tether state at a known simulation cursor.
+- Construct available Gloamwood and Broken Watch records, awakened Man-at-Arms and Scribe, one tether, and known simulation cursors.
 - Dispatch with Standard Writ and show revision 1, one occupied tether, one event, and unchanged simulation time.
 - Reject duplicate/stale commands with exact state equality.
 - Save/load the active record.
 - Recall to revision 2, prove tether release and preserved Threshold/operation state, then save/load inactive state.
-- Redispatch to revision 3, prove one tether occupied again, and show zero production delta.
+- Exercise same-Threshold/same-loadout, same-loadout/different-Threshold, different-loadout/same-Threshold, and return-to-prior-loadout paths.
+- Prove Gloamwood retains one immutable first-start timestamp and independent revision sequence, Broken Watch owns its own operation/start/revision sequence, and every command has zero production delta.
 
 #### Save/load expectations
 

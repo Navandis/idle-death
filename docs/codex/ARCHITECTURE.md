@@ -3,7 +3,7 @@
 **Document role:** Maintained implementation architecture for the 0-90 minute prototype  
 **Repository path:** `docs/codex/ARCHITECTURE.md`  
 **Document status:** Approved architecture  
-**Architecture revision:** 7  
+**Architecture revision:** 8  
 **Last updated:** 2026-07-16  
 **Engine target:** Godot 4.7, GDScript only  
 **Primary design context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md) and [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md)
@@ -1239,9 +1239,29 @@ M04A adds a typed `GameState` aggregate for inventory, Forms, Thresholds/acquisi
 
 M04A also establishes immutable schema-v1 and representative schema-v2 fixtures, explicit wire-key normalization, deep-clone isolation, and the owner-run migration trace. Schema v2 contains structural Reaping records but no dispatch or production command.
 
-## Proposed M04B Reaping-assignment command boundary
+## Approved M04B Reaping identity and assignment-command boundary
 
-Subject to approval of `DEC-0035`, M04B adds one focused `ReapingAssignmentService` or equivalent domain service. The service owns initial dispatch, recall, and redispatch of an inactive Reaping record. It does not own elapsed-time resolution, file persistence, tutorial flow, presentation, Retinue assignment, or production.
+Accepted `DEC-0035` authorizes M04B to add one focused `ReapingAssignmentService` or equivalent domain service. The service owns initial dispatch, recall, and redispatch of an inactive Reaping record. It does not own elapsed-time resolution, file persistence, tutorial flow, presentation, Retinue assignment, or production.
+
+
+### Identity model
+
+M04B distinguishes four layers:
+
+| Layer | Identity | Meaning |
+|---|---|---|
+| Reaping operation | canonical Threshold ID | The stable operation record owned by one Threshold |
+| Loadout | canonical value tuple | Form, Writ, ordered Retinues, and later approved components |
+| Assignment state | Threshold ID + assignment revision | One committed version of that operation's assignment |
+| Activation episode | revision produced by dispatch/redispatch | One continuous active period until recall |
+
+`GameState.reapings[threshold_id]` is the operation identity. No separate UUID is persisted. Equal loadout tuples may operate different Thresholds without sharing state.
+
+`started_simulation_msec` is set once when the first successful dispatch creates the record. It is immutable for the lifetime of that Threshold-scoped operation, and `0` is valid. Record existence is the initialization fact. Recall, redispatch, Settlement, loadout changes, and save/load do not change or remove it. `last_configuration_change_simulation_msec` records later assignment boundaries.
+
+The same Threshold and same loadout after recall is the same operation and equal loadout value but a new activation episode. The same loadout at another Threshold belongs to another operation. A different loadout at the original Threshold still modifies the original operation. Returning to an earlier loadout does not restore an old assignment snapshot or historical effective rate.
+
+If future design allows multiple Reapings at one Threshold, the project must add a first-class instance ID and migration. M04B does not add anticipatory identity fields.
 
 The intended command flow is:
 
@@ -1257,7 +1277,7 @@ typed command
 
 The service uses `GameState.simulation_time_msec` as the committed command boundary and never samples a clock. Initial dispatch creates revision 1. Recall and redispatch each increment exactly once. Failed or stale commands commit nothing.
 
-A recalled record remains in `GameState.reapings` with `is_active = false`; its Threshold-owned progress, original start time, operation phase, and carries remain available for later resolution. Occupied tether count is always derived from active records. One Form may lead at most one active Reaping.
+A recalled record remains in `GameState.reapings` with `is_active = false`; its Threshold-owned progress, immutable first-start time, operation phase, and carries remain available for later resolution. Occupied tether count is always derived from active records. One Form may lead at most one active Reaping.
 
 M04B does not reinterpret nonzero rate-dependent phase/carry under a different Form or Writ. A changed redispatch with unresolved operation progress is rejected until M04C/M04D can resolve and normalize the old rate context. Same-configuration redispatch may resume frozen state.
 

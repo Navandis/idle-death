@@ -1,23 +1,31 @@
 # Implementation slice M04B: Dispatch, recall, and assignment integrity
 
-**Prompt version:** v0.1  
+**Prompt version:** v0.2  
 **Prompt date:** 2026-07-16  
-**Prompt status:** Draft  
+**Prompt status:** Approved  
 **Work item type:** Implementation slice  
 **Parent conceptual epic:** `M04 — Persistent Reaping simulation vertical slice`  
 **Milestone definition:** `docs/codex/MILESTONES.md` — `### M04B — Dispatch, recall, and assignment integrity`  
 **Recommended task size:** Small-medium; one command/assignment pull request  
-**Scope-gate result:** Within guardrails at draft; mandatory stop if actual work needs another primary owner, more than two cross-layer seams, more than approximately 30 non-documentation source/test files, or more than approximately 1,200 non-documentation code/test lines  
+**Scope-gate result:** Approved within guardrails; mandatory stop if actual work needs another primary owner, more than two cross-layer seams, more than approximately 30 non-documentation source/test files, or more than approximately 1,200 non-documentation code/test lines  
 **Expected base branch or ref:** current `main` after M04A merge commit `673ad884357fc742a0a26dbb542d5b8d9fe557c9`  
 **Planned prompt path:** `docs/codex/milestone-prompts/M04B-dispatch-recall-assignment-integrity.md`
 
 > This prompt authorizes only M04B's scene-independent Reaping assignment commands and their schema-v2 persistence proof. It does not authorize elapsed production, active in-place rate-context reconfiguration, Retinue assignment, tutorial behavior, player-facing UI, or any later implementation slice.
 
-## Approval dependency
+## Approval record
 
-This draft includes proposed `DEC-0035`. Approval of this prompt also accepts that decision unless the owner requests revised assignment semantics first.
+The owner approved M04B prompt v0.2 and accepted `DEC-0035` on 2026-07-16.
 
-Do not execute this prompt while `DEC-0035` remains Proposed.
+The approved identity model is:
+
+- operation = canonical Threshold ID;
+- loadout = canonical configuration value tuple;
+- assignment state = Threshold ID plus revision;
+- activation episode = revision produced by dispatch/redispatch;
+- `started_simulation_msec` = immutable first successful dispatch timestamp, with zero valid.
+
+Do not execute an alternate identity or record-deletion model without a new owner-approved decision.
 
 ## Execution protocol
 
@@ -45,7 +53,7 @@ During implementation:
 - Preserve Threshold-owned acquisition/discovery state and all state outside the assignment record.
 - Do not reinterpret nonzero rate-dependent phase/carry under a changed Form or Writ.
 - Do not call `SaveService` inside the domain assignment service. Return `save_checkpoint_requested = true`.
-- Add junior-readable comments explaining record identity, revision guards, candidate validation, tether derivation, and the M04C/M04D handoff.
+- Add junior-readable comments explaining the four identity layers, immutable first-start timestamp, revision guards, candidate validation, tether derivation, and the M04C/M04D handoff.
 - Add or update every test needed to prove the contract.
 - Create the M04B trace and Windows owner package.
 - Report exact commands, counts, markers, exit codes, and actual-versus-estimated scope.
@@ -56,7 +64,7 @@ Do not describe M04B as complete while any merge-gate criterion is failed, block
 
 ## Objective
 
-Implement typed initial-dispatch, recall, and inactive-record redispatch commands for the existing schema-v2 `GameState`. Commands must preserve one stable Reaping record per Threshold, derive tether occupancy from active records, guard mutations by assignment revision, enforce valid Form/Threshold/Writ/capacity relationships, preserve frozen progress, and round-trip exactly without advancing elapsed production.
+Implement typed initial-dispatch, recall, and inactive-record redispatch commands for the existing schema-v2 `GameState`. Commands must preserve one Threshold-scoped operation record, distinguish loadout/assignment/episode identity, preserve the immutable first-start timestamp, derive tether occupancy from active records, guard mutations by assignment revision, enforce valid Form/Threshold/Writ/capacity relationships, preserve frozen progress, and round-trip exactly without advancing elapsed production.
 
 ## Player or developer outcome
 
@@ -72,6 +80,9 @@ From focused tests and one headless trace, a developer can:
 - save and reload the inactive record;
 - redispatch it at revision 3;
 - prove the original start time persists, the configuration timestamp is current, and simulation time/output did not advance;
+- distinguish the same operation/same loadout/new episode from the same loadout on another Threshold;
+- return to an earlier loadout without restoring an old revision, episode, progress snapshot, or historical effective rate;
+- prove `started_simulation_msec` is set once, may equal zero, and never changes under ordinary assignment commands;
 - execute the complete Windows proof through one PowerShell command and shareable UTF-8 log.
 
 ## Authoritative context
@@ -83,9 +94,9 @@ From focused tests and one headless trace, a developer can:
 | 3 | `docs/codex/MILESTONE_RECALIBRATION_PROPOSAL.md` | §§2–8 | Review-surface policy |
 | 4 | `docs/codex/PROMPT_TEMPLATE.md` | §§2.1–2.4; scope assessment; completion rules | Prompt ownership and split gate |
 | 5 | `docs/codex/OWNER_VERIFICATION_WORKFLOW.md` | Complete script/log/cleanup/evidence rules | Required Windows package |
-| 6 | `docs/codex/DECISIONS.md` | `DEC-0007`, `DEC-0012`, `DEC-0018`–`DEC-0020`, `DEC-0023`, `DEC-0025`, `DEC-0027`, `DEC-0028`, `DEC-0033`, `DEC-0034`, proposed `DEC-0035` | State, commands, capacity, progress, scope |
-| 7 | `docs/codex/DATA_AND_CONTENT_CONTRACTS.md` | §§2–3, 9.3–9.9, 10–12; M04A schema contract; proposed M04B assignment contract | Exact state/result/event/command rules |
-| 8 | `docs/codex/ARCHITECTURE.md` | §§5–8, 9.1, 11.2–11.3, 20; M04A realized state; proposed M04B command boundary | Ownership and transaction flow |
+| 6 | `docs/codex/DECISIONS.md` | `DEC-0007`, `DEC-0012`, `DEC-0018`–`DEC-0020`, `DEC-0023`, `DEC-0025`, `DEC-0027`, `DEC-0028`, `DEC-0033`, `DEC-0034`, accepted `DEC-0035` | State, commands, capacity, progress, scope |
+| 7 | `docs/codex/DATA_AND_CONTENT_CONTRACTS.md` | §§2–3, 9.3–9.9, 10–12; M04A schema contract; approved M04B assignment contract | Exact state/result/event/command rules |
+| 8 | `docs/codex/ARCHITECTURE.md` | §§5–8, 9.1, 11.2–11.3, 20; M04A realized state; approved M04B command boundary | Ownership and transaction flow |
 | 9 | `docs/codex/IMPLEMENTATION_RULES.md` | State classes, commands/services, deterministic collections, diagnostics, persistence, junior-readable comments | Engineering conventions |
 | 10 | `docs/codex/TESTING_AND_VALIDATION.md` | §§3–6, 7.5, 9.1, 12, 15–22 | Commands, save round trips, owner evidence |
 | 11 | `docs/design/IDLE_FORK_SOURCE_OF_TRUTH.md` | `IF-REQ-01`, `IF-REQ-12`, `IF-REQ-15`, `IF-REQ-18`; persistent assignment model | Persistent, recoverable assignments |
@@ -154,16 +165,20 @@ Stop and request replanning before exceeding approximately 30 non-documentation 
 Implement only:
 
 1. one focused Reaping assignment service or equivalent owner;
-2. explicit initial dispatch, recall, and inactive-record redispatch;
-3. typed command inputs or typed command DTOs;
-4. typed action results and ordered assignment events;
-5. exact expected-revision and checked-overflow behavior;
-6. derived occupied tether count;
-7. one-active-Reaping-per-Threshold and one-active-Reaping-per-Form validation;
-8. preservation of stable Reaping/Threshold state;
-9. safe rejection of changed configuration with unresolved rate-dependent phase/carry;
-10. schema-v2 active/inactive round trips using the existing mapper/coordinator;
-11. focused tests, deterministic real-file trace, Windows owner script/log, and required documentation updates.
+2. Threshold-scoped operation identity with no redundant UUID;
+3. canonical loadout tuple, assignment-state identity, and activation-episode identity;
+4. immutable first-start timestamp semantics, including valid zero;
+5. explicit initial dispatch, recall, and inactive-record redispatch;
+6. typed command inputs or typed command DTOs;
+7. typed action results and ordered assignment events;
+8. exact expected-revision and checked-overflow behavior;
+9. derived occupied tether count;
+10. one-active-Reaping-per-Threshold and one-active-Reaping-per-Form validation;
+11. preservation of stable Reaping/Threshold state;
+12. safe rejection of changed configuration with unresolved rate-dependent phase/carry;
+13. same/different Threshold and loadout identity scenario tests;
+14. schema-v2 active/inactive round trips using the existing mapper/coordinator;
+15. focused tests, deterministic real-file trace, Windows owner script/log, and required documentation updates.
 
 Use the smallest architecture satisfying the contract. Do not build a general command framework.
 
@@ -181,61 +196,74 @@ Do not implement or refactor:
 8. reports, forecasts, read models, application shell, scenes, or player-facing presentation;
 9. Steam, trusted-time, offline reconciliation, Hall, or Recollection behavior;
 10. save-schema version 3, migration changes, speculative fields, or another codec;
-11. dependencies, autoloads, broad cleanup, or unrelated moves.
+11. a redundant Reaping UUID, persisted loadout ID, persisted assignment-state string, or current-episode timestamp field;
+12. dependencies, autoloads, broad cleanup, or unrelated moves.
 
 ## Required behavior
 
 | ID | Required behavior | Source trace |
 |---|---|---|
-| `RB-01` | One service owns M04B assignment mutations. | `DEC-0012`; proposed `DEC-0035` |
+| `RB-01` | One service owns M04B assignment mutations. | `DEC-0012`; `DEC-0035` |
 | `RB-02` | Commands operate on typed scene-independent `GameState` and validated `ContentRegistry`. | `DEC-0007`, `DEC-0009` |
-| `RB-03` | Commands read the existing simulation cursor and do not advance it or read a clock. | Architecture §9.1; M04B non-goal |
-| `RB-04` | Initial dispatch requires no Reaping record at the Threshold. | Proposed `DEC-0035` |
-| `RB-05` | Initial dispatch validates state/registry, available Threshold, awakened Form, enabled Writ, Form exclusivity, and tether capacity before mutation. | `DEC-0012`, `DEC-0020` |
-| `RB-06` | Initial dispatch creates an active record at revision 1 with start/config timestamps equal to the current simulation cursor and canonical empty operation fields. | Proposed `DEC-0035` |
-| `RB-07` | Occupied tether count is derived from active records and is never persisted independently. | `DEC-0020`; data contract |
-| `RB-08` | A Form may lead at most one active Reaping. | Proposed `DEC-0035`; `P90-SAFE-09` |
-| `RB-09` | Recall requires an existing active record and exact expected revision. | Proposed `DEC-0035` |
-| `RB-10` | Recall sets inactive, increments once, updates the configuration timestamp, and leaves the stable record in the map. | Proposed `DEC-0035` |
-| `RB-11` | Recall preserves Form/Writ IDs, original start time, Retinue list, cycle phase, completed count, flow carries, Threshold discovery/acquisition, inventory, and progression capacity. | `IF-REQ-01`, `IF-REQ-18` |
-| `RB-12` | Redispatch requires an existing inactive record and exact expected revision. | Proposed `DEC-0035` |
-| `RB-13` | Redispatch revalidates Form, Writ, Threshold, exclusivity, and capacity. | `DEC-0012`, `DEC-0020` |
-| `RB-14` | Redispatch increments once, reactivates the same record, preserves original start time, and updates the configuration timestamp. | Proposed `DEC-0035` |
-| `RB-15` | Same-configuration redispatch preserves frozen phase/carry. | Proposed `DEC-0035` |
-| `RB-16` | Changed Form/Writ with nonzero rate-dependent phase/carry returns `REAPING_RESOLUTION_REQUIRED` without mutation. | `DEC-0028`; M04C/M04D handoff |
-| `RB-17` | Changed Form/Writ with canonical zero rate-dependent phase/carry may commit after all ordinary validation. | Proposed `DEC-0035` |
-| `RB-18` | Duplicate dispatch, repeated recall/redispatch, stale revision, no-op, and overflow cases leave state unchanged. | `DEC-0012`; proposed `DEC-0035` |
-| `RB-19` | Assignment revision uses checked signed-64-bit increment behavior. | `DEC-0026` |
-| `RB-20` | Baseline state is validated before command handling; malformed runtime objects return typed rejection rather than property-access crashes. | M04A validator contract |
-| `RB-21` | Candidate state/record is validated before one final map insertion/replacement commits. | `DEC-0012` |
-| `RB-22` | Success returns a typed result with empty error, change summary, one ordered event, and save-checkpoint request. | Data contract §§10–11 |
-| `RB-23` | Failure returns a stable error code, diagnostic text, no event, no checkpoint request, and no mutation. | Data contract §11 |
-| `RB-24` | Events use the current simulation cursor and stable types `REAPING_DISPATCHED`, `REAPING_RECALLED`, or `REAPING_REDISPATCHED`. | Domain event contract |
-| `RB-25` | The assignment service performs no file I/O. | Persistence boundary |
-| `RB-26` | Active and inactive records round-trip exactly through schema v2. | `DEC-0034` |
-| `RB-27` | No schema key, version, migration, codec, or content revision changes. | M04B definition |
-| `RB-28` | No production field changes merely because a command commits. | M04B definition |
-| `RB-29` | Canonical IDs, runtime map keys, event payloads, and serialized data remain deterministic. | `DEC-0009`, `DEC-0011` |
-| `RB-30` | The trace and owner runner use supplied isolated paths and leave no artifact. | `DEC-0025` |
-| `RB-31` | The owner runner uses the corrected in-process PowerShell wrapper and stable trace-output capture pattern. | M04A completion |
-| `RB-32` | Actual scope is reported against the approved estimate. | `DEC-0033` |
+| `RB-03` | Commands read the existing simulation cursor and do not advance it or read a clock. | Architecture §9.1 |
+| `RB-04` | Operation identity is the canonical Threshold ID and map key; no separate Reaping UUID is added. | `DEC-0035` |
+| `RB-05` | Loadout identity is the canonical Form/Writ/ordered-Retinue value tuple, not an entity ID. | `DEC-0035` |
+| `RB-06` | Assignment-state identity is Threshold ID plus assignment revision. | `DEC-0035` |
+| `RB-07` | A dispatch/redispatch activation episode is identified by its resulting revision. | `DEC-0035` |
+| `RB-08` | Initial dispatch requires no operation record at the Threshold. | `DEC-0035` |
+| `RB-09` | Initial dispatch validates state/registry, available Threshold, awakened Form, enabled Writ, Form exclusivity, and tether capacity before mutation. | `DEC-0012`, `DEC-0020` |
+| `RB-10` | Initial dispatch creates an active record at revision 1 with canonical empty operation fields. | `DEC-0035` |
+| `RB-11` | Initial dispatch sets immutable `started_simulation_msec` and current configuration timestamp from the existing simulation cursor. | `DEC-0035` |
+| `RB-12` | `started_simulation_msec = 0` is valid; record existence proves initialization. | `DEC-0035` |
+| `RB-13` | Occupied tether count is derived from active records and never persisted independently. | `DEC-0020` |
+| `RB-14` | A Form may lead at most one active Reaping. | `DEC-0035`; `P90-SAFE-09` |
+| `RB-15` | Recall requires an existing active record and exact expected revision. | `DEC-0035` |
+| `RB-16` | Recall sets inactive, increments once, and updates only the configuration timestamp/active facts. | `DEC-0035` |
+| `RB-17` | Recall preserves immutable first-start time, loadout, phase/count/carry, Threshold progress, inventory, and capacity. | `IF-REQ-01`, `IF-REQ-18` |
+| `RB-18` | Redispatch requires an existing inactive record and exact expected revision. | `DEC-0035` |
+| `RB-19` | Redispatch revalidates Form, Writ, Threshold, exclusivity, and capacity. | `DEC-0012`, `DEC-0020` |
+| `RB-20` | Redispatch increments once, reactivates the same operation, preserves first-start time, and updates configuration time. | `DEC-0035` |
+| `RB-21` | Same-loadout redispatch preserves frozen phase/carry and creates a new episode. | `DEC-0035` |
+| `RB-22` | Changed Form/Writ with nonzero rate-dependent phase/carry returns `REAPING_RESOLUTION_REQUIRED`. | `DEC-0028`; M04C/M04D handoff |
+| `RB-23` | Changed Form/Writ with canonical zero rate-dependent state may commit after validation. | `DEC-0035` |
+| `RB-24` | Same loadout at another Threshold creates/resumes that other operation and never transfers Threshold-owned progress. | `DEC-0035` |
+| `RB-25` | Different loadout at the same Threshold modifies the same operation and preserves first-start time. | `DEC-0035` |
+| `RB-26` | Returning to an earlier loadout creates a new revision/episode and does not restore historical state or rate. | `DEC-0035`, `DEC-0028` |
+| `RB-27` | Ordinary assignment commands never delete an operation record. | `DEC-0035` |
+| `RB-28` | Duplicate, repeated, stale, no-op, and overflow cases leave state unchanged. | `DEC-0012`, `DEC-0035` |
+| `RB-29` | Assignment revision uses checked signed-64-bit increment behavior. | `DEC-0026` |
+| `RB-30` | Baseline state validates before command handling; malformed objects return typed rejection rather than property-access crashes. | M04A validator contract |
+| `RB-31` | Candidate state/record validates before one final map insertion/replacement commits. | `DEC-0012` |
+| `RB-32` | Success returns typed result with operation ID, revision/state ID, loadout summary, event, and checkpoint request. | Data contract §§10–11 |
+| `RB-33` | Failure returns stable code, diagnostics, no event/checkpoint, and no mutation. | Data contract §11 |
+| `RB-34` | Events use current simulation cursor and stable assignment event types. | Domain event contract |
+| `RB-35` | Timestamps are context, not identity; equal timestamps cannot conflate operations or episodes. | `DEC-0035` |
+| `RB-36` | The service performs no file I/O. | Persistence boundary |
+| `RB-37` | Active/inactive operations round-trip exactly through schema v2. | `DEC-0034` |
+| `RB-38` | No schema, migration, codec, content revision, or identity-field change is introduced. | M04B definition |
+| `RB-39` | No production field changes merely because a command commits. | M04B definition |
+| `RB-40` | Trace/owner runner use supplied isolated paths, stable trace-output capture, and leave no artifact. | `DEC-0025`; M04A completion |
 
 ## State transitions
 
 | ID | Initial state | Trigger | Required result | Failure behavior | Persistence/event effect |
 |---|---|---|---|---|---|
-| `ST-01` | No Reaping at available Gloamwood; awakened Man-at-Arms; capacity 1 | Dispatch Standard at cursor `T` | Active record, revision 1, start/config `T`, one tether derived | Reject fully if any precondition fails | `REAPING_DISPATCHED`; checkpoint requested |
-| `ST-02` | Active revision 1 | Repeat initial dispatch | No change | `REAPING_RECORD_EXISTS` | No event/checkpoint |
-| `ST-03` | Active revision `N` | Recall expected `N` | Inactive revision `N+1`; one tether freed; state preserved | Overflow/invalid state rejects | `REAPING_RECALLED`; checkpoint requested |
-| `ST-04` | Inactive revision `N+1` | Repeat recall expected old `N` | No change | stale revision | No event/checkpoint |
-| `ST-05` | Inactive revision `N` | Redispatch same Form/Writ expected `N` | Active revision `N+1`; frozen operation state preserved | capacity/exclusivity/stale rejects | `REAPING_REDISPATCHED`; checkpoint requested |
-| `ST-06` | Inactive, zero rate-dependent phase/carry | Redispatch changed valid Form/Writ | Active changed config, one revision increment | ordinary validation rejects atomically | Redispatch event/checkpoint |
-| `ST-07` | Inactive, nonzero rate-dependent phase/carry | Redispatch changed Form/Writ | No change | `REAPING_RESOLUTION_REQUIRED` | No event/checkpoint |
-| `ST-08` | Another active Reaping already uses requested Form | Dispatch/redispatch | No change | Form-already-assigned | No event/checkpoint |
-| `ST-09` | Capacity already full | Dispatch/redispatch | No change | capacity exceeded | No event/checkpoint |
-| `ST-10` | Active or inactive valid state | Save/load | Exact assignment reconstruction | invalid snapshot rejected | No duplicate event/revision |
-| `ST-11` | Any valid assignment state | Command success/failure | `simulation_time_msec` unchanged | Any change is failure | Event time equals existing cursor |
-| `ST-12` | Assignment revision at `INT64_MAX` | Recall/redispatch | No change | overflow code | No event/checkpoint |
+| `ST-01` | No record at available Gloamwood; awakened Man-at-Arms; capacity 1 | Dispatch Standard at cursor `T` | Gloamwood operation created, active revision 1, first-start/config `T`, one tether | Reject fully if any precondition fails | Dispatch event; checkpoint |
+| `ST-02` | First dispatch at `T = 0` | Dispatch | `started_simulation_msec = 0` is valid | Must not treat zero as uninitialized | Dispatch event; checkpoint |
+| `ST-03` | Active revision 1 | Repeat initial dispatch | No change | Record-exists rejection | No event/checkpoint |
+| `ST-04` | Active revision `N` | Recall expected `N` | Inactive `N+1`, tether freed, first-start/state preserved | Overflow/invalid rejects | Recall event; checkpoint |
+| `ST-05` | Inactive revision `N+1` | Repeat recall or submit old revision | No change | already-inactive or stale | No event/checkpoint |
+| `ST-06` | Inactive revision `N` | Redispatch same loadout | Active `N+1`, new episode, first-start and phase/carry preserved | Capacity/exclusivity/stale rejects | Redispatch event; checkpoint |
+| `ST-07` | Inactive, zero rate state | Redispatch changed Form/Writ | Same operation, changed loadout, new revision/episode | Ordinary validation rejects atomically | Redispatch event; checkpoint |
+| `ST-08` | Inactive, nonzero rate state | Redispatch changed Form/Writ | No change | resolution-required | No event/checkpoint |
+| `ST-09` | Another active operation uses requested Form | Dispatch/redispatch | No change | Form-already-assigned | No event/checkpoint |
+| `ST-10` | Capacity already full | Dispatch/redispatch | No change | capacity exceeded | No event/checkpoint |
+| `ST-11` | Recalled Gloamwood operation | Redispatch same loadout to Gloamwood | Same operation/loadout value; new revision/episode | — | Redispatch event |
+| `ST-12` | Recalled Gloamwood; Broken Watch has no record | Dispatch same loadout to Broken Watch | Independent Broken Watch operation at revision 1 | Form/capacity must be free | Dispatch event |
+| `ST-13` | Recalled Gloamwood | Redispatch different zero-carry loadout | Same Gloamwood operation; first-start unchanged | resolution-required if carry nonzero | Redispatch event |
+| `ST-14` | Gloamwood previously used loadout 1, then another loadout | Redispatch loadout 1 again | Equal loadout value, new revision/episode; no historical restore | — | Redispatch event |
+| `ST-15` | Active or inactive valid operation | Save/load | Exact operation, loadout, revision, timestamps, and frozen state | Invalid snapshot rejects | No duplicate event/revision |
+| `ST-16` | Assignment revision at `INT64_MAX` | Recall/redispatch | No change | overflow code | No event/checkpoint |
 
 ## Command, result, and error contract
 
@@ -275,7 +303,7 @@ events
 save_checkpoint_requested
 ```
 
-`change_summary` includes Threshold, Form, Writ, active state, assignment revision, and derived occupied tether count.
+`change_summary` includes operation ID (`threshold_id`), Form, Writ, canonical loadout summary, active state, assignment revision, derived assignment-state ID, activation-episode revision when applicable, and occupied tether count.
 
 ## Data and content
 
@@ -305,6 +333,9 @@ Not applicable — M04B has no gameplay screen. The trace and command results ar
 - No file I/O in the domain service.
 - No persisted tether occupancy.
 - No deletion of recalled records.
+- No redundant Reaping UUID or timestamp-based identity.
+- `started_simulation_msec` is immutable and zero-valid.
+- No current-episode timestamp field in M04B.
 - No active in-place nonzero-rate reconfiguration.
 - No Retinue mutation.
 - No direct content-Resource mutation.
@@ -335,28 +366,33 @@ Do not add content Resources, UI scenes, empty directories, or a new schema fixt
 
 | ID | Pass condition | Evidence | Merge gate? |
 |---|---|---|---:|
-| `AC-01` | One focused service owns initial dispatch, recall, and redispatch. | Code review and unit tests | Yes |
-| `AC-02` | Valid dispatch creates revision 1 at the current simulation cursor and one derived tether. | Focused test and trace | Yes |
-| `AC-03` | Form, Threshold, Writ, availability, awakening, exclusivity, and capacity are fully validated before mutation. | Negative matrix | Yes |
-| `AC-04` | Recall retains the stable inactive record and preserves all non-owned state. | Mutation comparison | Yes |
-| `AC-05` | Redispatch reactivates the same record, increments once, and preserves original start time. | Focused test and trace | Yes |
-| `AC-06` | Exact expected revisions reject stale/replayed commands without mutation. | Revision matrix | Yes |
-| `AC-07` | Revision overflow rejects without mutation. | Boundary test | Yes |
-| `AC-08` | One Form cannot lead two active Reapings. | Multi-Threshold fixture test | Yes |
-| `AC-09` | Occupied tether count is derived and never serialized separately. | State/schema review and tests | Yes |
-| `AC-10` | Same-config redispatch preserves frozen phase/carry; changed config with nonzero rate state requires later resolution. | Focused tests | Yes |
-| `AC-11` | Every failed command leaves exact state equality and returns no event/checkpoint. | Failure matrix | Yes |
-| `AC-12` | Success returns typed summary/event/checkpoint data with deterministic ordering. | Result/event tests | Yes |
-| `AC-13` | Assignment commands do not change simulation time or production values. | Before/after assertions | Yes |
-| `AC-14` | Active and inactive assignments round-trip exactly through existing schema v2. | Integration tests | Yes |
-| `AC-15` | M04B adds no schema version, migration, codec, or content revision change. | Diff/schema review | Yes |
-| `AC-16` | Trace proves dispatch, duplicate/stale rejection, active round trip, recall preservation, inactive round trip, redispatch, and zero production. | Trace markers, exit 0 | Yes |
-| `AC-17` | Linux focused/import/trace/full checks pass. | Exact commands/exits | Yes |
-| `AC-18` | Windows owner package passes full/focused/import/trace/cleanup/audit/full and writes one complete log. | Owner log | Yes |
-| `AC-19` | No M04C production, M04D accumulation, Retinue, UI, tutorial, Steam, or dependency work enters the diff. | Changed-file review | Yes |
-| `AC-20` | Non-trivial GDScript follows junior-reader comment rules. | Code review | Yes |
-| `AC-21` | Maintained documents made inaccurate are synchronized. | Documentation/link review | Yes |
-| `AC-22` | Actual scope remains within the approved assessment or work stopped for a revised prompt. | Actual-versus-estimated handoff | Yes |
+| `AC-01` | One focused service owns initial dispatch, recall, and redispatch. | Code review/tests | Yes |
+| `AC-02` | Threshold ID is the sole operation identity; no redundant UUID exists. | State/schema/diff review | Yes |
+| `AC-03` | Loadout equality is independent from operation identity. | Identity scenario tests | Yes |
+| `AC-04` | Assignment state and activation episode are identified by Threshold plus revision. | Result/event tests | Yes |
+| `AC-05` | Valid first dispatch creates revision 1, one tether, and immutable first-start time at the current cursor. | Focused test/trace | Yes |
+| `AC-06` | First dispatch at cursor zero is valid and record existence proves initialization. | Boundary test | Yes |
+| `AC-07` | Form, Threshold, Writ, availability, awakening, exclusivity, and capacity validate before mutation. | Negative matrix | Yes |
+| `AC-08` | Recall retains the stable inactive record and all preserved state. | Mutation comparison | Yes |
+| `AC-09` | Redispatch reactivates the same operation, increments once, and preserves first-start time. | Focused test/trace | Yes |
+| `AC-10` | Exact expected revisions reject stale/replayed commands without mutation. | Revision matrix | Yes |
+| `AC-11` | Revision overflow rejects without mutation. | Boundary test | Yes |
+| `AC-12` | One Form cannot lead two active Reapings. | Multi-Threshold test | Yes |
+| `AC-13` | Occupied tether count is derived and never serialized separately. | Schema/tests | Yes |
+| `AC-14` | Same-loadout/same-Threshold redispatch creates a new episode, not a new operation. | Scenario test | Yes |
+| `AC-15` | Same loadout at a different Threshold uses an independent operation/revision/start sequence. | Scenario test | Yes |
+| `AC-16` | Different loadout at the same Threshold preserves operation identity and first-start time. | Scenario test | Yes |
+| `AC-17` | Returning to a prior loadout creates a new episode and does not restore historical state/rate. | Sequence test | Yes |
+| `AC-18` | Same-config redispatch preserves frozen phase/carry; changed config with nonzero rate state requires resolution. | Focused tests | Yes |
+| `AC-19` | Every failed command leaves exact state equality and returns no event/checkpoint. | Failure matrix | Yes |
+| `AC-20` | Success returns deterministic typed summary/event/checkpoint data. | Result/event tests | Yes |
+| `AC-21` | Commands do not change simulation time or production values. | Before/after assertions | Yes |
+| `AC-22` | Active and inactive operations round-trip exactly through schema v2. | Integration tests | Yes |
+| `AC-23` | M04B adds no schema, migration, codec, content revision, UUID, loadout ID, or episode field. | Diff review | Yes |
+| `AC-24` | Trace proves the full identity/dispatch/recall/redispatch scenario matrix and timestamp invariants. | Exact markers, exit 0 | Yes |
+| `AC-25` | Linux focused/import/trace/full checks pass. | Commands/exits | Yes |
+| `AC-26` | Windows owner package passes full/focused/import/trace/cleanup/audit/full. | Owner log | Yes |
+| `AC-27` | Scope, comments, docs, and non-goals remain compliant. | Handoff/diff review | Yes |
 
 A pending owner result keeps M04B verification Partial and prevents merge.
 
@@ -410,6 +446,9 @@ At minimum cover:
 - changed config with nonzero cycle phase or rate carry;
 - unsorted/duplicate existing Retinue IDs;
 - timestamps outside the simulation cursor;
+- operation/loadout/assignment/episode identity distinctions;
+- immutable first-start timestamp, including zero;
+- scenario sequence same Threshold/same loadout, same loadout/different Threshold, different loadout/same Threshold, and return to prior loadout;
 - save/load of active and inactive records;
 - no-mutation equality for each failure;
 - no local-time, Steam, file-time, production, or UI source ownership.
@@ -441,7 +480,7 @@ The script follows `OWNER_VERIFICATION_WORKFLOW.md` and the corrected final M04A
 5. run full GUT before;
 6. run focused M04B via in-process named `-GutArgs`;
 7. run explicit import;
-8. run the M04B trace in a unique Windows temp directory;
+8. run the M04B identity/assignment trace in a unique Windows temp directory;
 9. capture the completed trace output before starting marker verification;
 10. verify all exact markers;
 11. clean in `finally` and prove absence;
@@ -477,12 +516,13 @@ M04B changes authoritative assignment state but does not change the schema.
 
 | Scenario | Setup | Reload/action | Expected result |
 |---|---|---|---|
-| Active round trip | Dispatch revision 1 and save | Reload | Exact active state, IDs, revision, timestamps, phase/carries |
+| Active round trip | Dispatch revision 1 and save | Reload | Exact operation key, loadout, revision, immutable first-start/config timestamps, phase/carries |
 | Inactive round trip | Recall revision 2 and save | Reload | Exact inactive record; zero derived occupancy |
-| Redispatch round trip | Redispatch revision 3 and save | Reload | Exact active record; original start preserved |
+| Redispatch round trip | Redispatch later revision and save | Reload | Exact active operation; immutable first-start preserved; new episode revision retained |
 | Stale command after reload | Reload latest state, submit older revision | Execute command | Stable rejection, no mutation |
 | Invalid snapshot | Contradictory activity/capacity/IDs | Load | Reject through existing validators |
-| No schema change | Compare envelope/constants/fixtures | Review/tests | Still schema v2; no migration or key change |
+| Identity matrix | Use equal loadout on two Thresholds and return to prior Gloamwood loadout | Save/reload | Separate operations; correct revisions; no progress transfer; prior loadout is a new episode |
+| No schema change | Compare envelope/constants/fixtures | Review/tests | Still schema v2; no migration, UUID, loadout-ID, episode-ID, or key change |
 
 ## Documentation updates
 
@@ -504,7 +544,7 @@ Stop and report if:
 
 1. M04A is not actually merged/passed;
 2. stable recalled records conflict with current schema or accepted design;
-3. Form exclusivity needs a different owner decision;
+3. Threshold-scoped identity, immutable first-start semantics, or Form exclusivity needs a different owner decision;
 4. assignment commands require elapsed production;
 5. a nonzero carry cannot be rejected safely without M04C/M04D work;
 6. Retinue behavior or reservations become necessary;
@@ -521,7 +561,7 @@ Use exactly:
 
 ### Implementation completed
 
-Summarize only M04B command behavior, record/revision/tether semantics, results/events, and owner package.
+Summarize only M04B operation/loadout/assignment/episode identity, immutable first-start semantics, command behavior, revision/tether rules, results/events, and owner package.
 
 ### Files changed
 
