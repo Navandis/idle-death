@@ -34,11 +34,13 @@ static func _validate_inventory(state: GameState, registry: ContentRegistry) -> 
 		var rec := registry.get_record(str(item_id))
 		if not rec.ok or rec.record.type != "item": return _err(ERR_CONTENT, "inventory.entries.%s" % item_id)
 		var entry = state.inventory.entries[item_id]
+		if not entry is GameState.InventoryEntryState: return _err(ERR_TYPE, "inventory.entries.%s" % item_id)
 		if entry.total < 0: return _err(ERR_RANGE, "inventory.entries.%s.total" % item_id)
 		var reserved := 0
 		for reservation_id in _sorted_keys(entry.reservations):
 			var amount: int = entry.reservations[reservation_id]
 			if amount < 0: return _err(ERR_RANGE, "inventory.entries.%s.reservations.%s" % [item_id, reservation_id])
+			if reserved > FixedPoint.INT64_MAX - amount: return _err(ERR_RANGE, "inventory.entries.%s.reservations" % item_id)
 			reserved += amount
 		if reserved > entry.total: return _err(ERR_CROSS_FIELD, "inventory.entries.%s.reservations" % item_id)
 	return {"ok": true}
@@ -48,6 +50,7 @@ static func _validate_forms(state: GameState, registry: ContentRegistry) -> Dict
 		var rec := registry.get_record(str(form_id))
 		if not rec.ok or rec.record.type != "form": return _err(ERR_CONTENT, "forms.%s" % form_id)
 		var form = state.forms[form_id]
+		if not form is GameState.FormState: return _err(ERR_TYPE, "forms.%s" % form_id)
 		if form.mastery_subunits < 0: return _err(ERR_RANGE, "forms.%s.mastery_subunits" % form_id)
 		if form.awakened and not form.revealed: return _err(ERR_CROSS_FIELD, "forms.%s.revealed" % form_id)
 		if form.awakened and str(form.awakened_by).is_empty(): return _err(ERR_CROSS_FIELD, "forms.%s.awakened_by" % form_id)
@@ -59,6 +62,7 @@ static func _validate_thresholds(state: GameState, registry: ContentRegistry) ->
 		var rec := registry.get_record(str(threshold_id))
 		if not rec.ok or rec.record.type != "threshold": return _err(ERR_CONTENT, "thresholds.%s" % threshold_id)
 		var threshold = state.thresholds[threshold_id]
+		if not threshold is GameState.ThresholdState: return _err(ERR_TYPE, "thresholds.%s" % threshold_id)
 		if not ["UNKNOWN", "DETECTED", "CHARTED"].has(str(threshold.knowledge_state)): return _err(ERR_RANGE, "thresholds.%s.knowledge_state" % threshold_id)
 		if not ["LOCKED", "AVAILABLE"].has(str(threshold.availability_state)): return _err(ERR_RANGE, "thresholds.%s.availability_state" % threshold_id)
 		if not ["OVERDUE", "SETTLED"].has(str(threshold.lifecycle_state)): return _err(ERR_RANGE, "thresholds.%s.lifecycle_state" % threshold_id)
@@ -70,6 +74,7 @@ static func _validate_thresholds(state: GameState, registry: ContentRegistry) ->
 			var channel := registry.get_record(str(channel_id))
 			if not channel.ok or channel.record.type != "channel" or channel.record.source_threshold_id != str(threshold_id): return _err(ERR_CONTENT, "thresholds.%s.channel_acquisition.%s" % [threshold_id, channel_id])
 			var acq = threshold.channel_acquisition[channel_id]
+			if not acq is GameState.ThresholdAcquisitionState: return _err(ERR_TYPE, "thresholds.%s.channel_acquisition.%s" % [threshold_id, channel_id])
 			if acq.progress_subunits < 0 or acq.progress_subunits >= FixedPoint.SCALE: return _err(ERR_RANGE, "thresholds.%s.channel_acquisition.%s.progress_subunits" % [threshold_id, channel_id])
 			if acq.rate_carry_units < 0 or acq.rate_carry_units >= int(channel.record.rate.period_msec): return _err(ERR_RANGE, "thresholds.%s.channel_acquisition.%s.rate_carry_units" % [threshold_id, channel_id])
 			if acq.total_banked_units < 0: return _err(ERR_RANGE, "thresholds.%s.channel_acquisition.%s.total_banked_units" % [threshold_id, channel_id])
@@ -78,6 +83,7 @@ static func _validate_thresholds(state: GameState, registry: ContentRegistry) ->
 static func _validate_reapings(state: GameState, registry: ContentRegistry) -> Dictionary:
 	for key in _sorted_keys(state.reapings):
 		var reaping = state.reapings[key]
+		if not reaping is GameState.ReapingState: return _err(ERR_TYPE, "reapings.%s" % key)
 		if str(reaping.threshold_id) != str(key) or not state.thresholds.has(key): return _err(ERR_CROSS_FIELD, "reapings.%s.threshold_id" % key)
 		var form := registry.get_record(str(reaping.form_id)); if not form.ok or form.record.type != "form": return _err(ERR_CONTENT, "reapings.%s.form_id" % key)
 		var writ := registry.get_record(str(reaping.writ_id)); if not writ.ok or writ.record.type != "writ": return _err(ERR_CONTENT, "reapings.%s.writ_id" % key)
@@ -89,6 +95,7 @@ static func _validate_reapings(state: GameState, registry: ContentRegistry) -> D
 		if reaping.assignment_revision < 0 or reaping.cycle_phase_msec < 0 or reaping.completed_cycle_count < 0: return _err(ERR_RANGE, "reapings.%s" % key)
 		if reaping.started_simulation_msec < 0 or reaping.started_simulation_msec > state.simulation_time_msec: return _err(ERR_RANGE, "reapings.%s.started_simulation_msec" % key)
 		if reaping.last_configuration_change_simulation_msec < 0 or reaping.last_configuration_change_simulation_msec > state.simulation_time_msec: return _err(ERR_RANGE, "reapings.%s.last_configuration_change_simulation_msec" % key)
+		if reaping.last_configuration_change_simulation_msec < reaping.started_simulation_msec: return _err(ERR_CROSS_FIELD, "reapings.%s.last_configuration_change_simulation_msec" % key)
 		for flow_id in _sorted_keys(reaping.flow_carry_units):
 			if int(reaping.flow_carry_units[flow_id]) < 0: return _err(ERR_RANGE, "reapings.%s.flow_carry_units.%s" % [key, flow_id])
 	return {"ok": true}

@@ -147,3 +147,17 @@ Focused M03 checks:
 ./tools/test/run_gut.sh -- -gdir=res://tests/unit/content -gdir=res://tests/integration/content
 godot --headless --path . -s res://tools/test/m03/m03_content_catalog_trace.gd
 ```
+
+
+## M04A developer trace
+
+Run the file-backed M04A persistence trace with an isolated disposable directory:
+
+```bash
+trace_root="$(mktemp -d)"
+godot --headless --path . -s res://tools/test/m04a/m04a_state_persistence_trace.gd -- --save-root "$trace_root"
+trace_exit=$?
+rm -rf "$trace_root"
+test ! -e "$trace_root"
+test "$trace_exit" -eq 0
+```

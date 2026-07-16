@@ -1302,3 +1302,29 @@ M04A cannot merge until:
 - schema version 2 is current and new saves write it;
 - migration failure preserves the original candidate;
 - the actual review surface remains within the approved prompt assessment or received an owner-approved revision.
+
+
+## M04A correction verification
+
+Focused Linux/Codex command:
+
+```bash
+./tools/test/run_gut.sh -- \
+  -gdir=res://tests/unit/m04a \
+  -gdir=res://tests/integration/m04a
+```
+
+M04A fixtures are tracked at `tests/fixtures/saves/schema_v1_foundation.json` and `tests/fixtures/saves/schema_v2_m04a_representative.json`. The trace command is:
+
+```bash
+trace_root="$(mktemp -d)"
+godot --headless --path . \
+  -s res://tools/test/m04a/m04a_state_persistence_trace.gd \
+  -- --save-root "$trace_root"
+trace_exit=$?
+rm -rf "$trace_root"
+test ! -e "$trace_root"
+test "$trace_exit" -eq 0
+```
+
+Expected trace markers are `typed_state_and_clone=PASS`, `v2_round_trip=PASS`, `v1_upgrade_preserved_authority=PASS`, `file_primary_schema=2_save_revision=13`, `file_backup_schema=1_save_revision=12`, and `no_repeat_rewrite=PASS`. The Windows owner package is `tools/test/owner/run_m04a_owner_verification.ps1`; it resolves Godot through `-GodotBin`, `GODOT_BIN`, then `godot`/`godot4`, invokes the PowerShell GUT wrapper in-process with real `-GutArgs`, preserves prior ignored logs, audits artifacts, and cleans the isolated trace directory in `finally`.

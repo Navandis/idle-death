@@ -82,8 +82,8 @@ static func _inventory_to_snapshot(inv) -> Dictionary:
 		var e = inv.entries[id]
 		var reservations := {}
 		for rid in _sorted_keys(e.reservations):
-			reservations[rid] = SaveInt64.format(e.reservations[rid])
-		entries[id] = {"total": SaveInt64.format(e.total), "reservations": reservations}
+			reservations[str(rid)] = SaveInt64.format(e.reservations[rid])
+		entries[str(id)] = {"total": SaveInt64.format(e.total), "reservations": reservations}
 	return {"entries": entries}
 
 static func _forms_to_snapshot(forms: Dictionary) -> Dictionary:
@@ -113,7 +113,7 @@ static func _reapings_to_snapshot(reapings: Dictionary) -> Dictionary:
 			retinues.append(str(retinue))
 		var carries := {}
 		for flow in _sorted_keys(r.flow_carry_units):
-			carries[flow] = SaveInt64.format(r.flow_carry_units[flow])
+			carries[str(flow)] = SaveInt64.format(r.flow_carry_units[flow])
 		out[str(id)] = {"threshold_id": str(r.threshold_id), "is_active": r.is_active, "form_id": str(r.form_id), "writ_id": str(r.writ_id), "retinue_ids": retinues, "assignment_revision": SaveInt64.format(r.assignment_revision), "cycle_phase_msec": SaveInt64.format(r.cycle_phase_msec), "completed_cycle_count": SaveInt64.format(r.completed_cycle_count), "flow_carry_units": carries, "started_simulation_msec": SaveInt64.format(r.started_simulation_msec), "last_configuration_change_simulation_msec": SaveInt64.format(r.last_configuration_change_simulation_msec)}
 	return out
 

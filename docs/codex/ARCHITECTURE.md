@@ -1232,3 +1232,8 @@ The prototype default save file set is `user://saves/death_idle_m02.json`, `user
 ## M03 realized content ownership
 
 M03 introduces `ContentCatalog` as the explicit root authored Resource, typed per-family definition Resources (`ItemDefinition`, `FormDefinition`, `ThresholdDefinition`, `OutputChannelDefinition`, and the other M03 families), bounded subresources, and `CoreTerminologyDefinition` as text `.tres` authoring records; `ContentRegistry` is the all-or-nothing validation and normalization boundary. Runtime code reads copied registry dictionaries, not mutable source Resources. Persistence remains content-agnostic: callers pass a non-empty content revision and content compatibility is checked by the content layer after schema validation.
+
+
+## M04A realized gameplay-state persistence correction
+
+M04A adds a typed `GameState` aggregate for inventory, Forms, Thresholds/acquisition, Reapings, and progression while keeping content Resources, clocks, trusted-time provider state, UI, and production simulation outside the aggregate. Schema version dispatch now preserves frozen v1 validation and maps current runtime state through schema v2. During v1-to-v2 upgrade, the coordinator validates the migrated primitive candidate, constructs and validates runtime state, increments only `save_revision` on a deep copy of the migrated primitive snapshot, and persists that exact envelope before exposing runtime. This preserves v1 metadata, offline-resolution identity, content revision, time authority, and simulation time instead of rebuilding the envelope from runtime defaults.

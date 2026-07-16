@@ -36,7 +36,11 @@ func load_runtime() -> Dictionary:
 	if not domain.ok: return domain
 	if loaded.get("migration_required", false):
 		if loaded.save_revision == FixedPoint.INT64_MAX: return {"ok": false, "code": ERR_REVISION_OVERFLOW}
-		var save_result := save_service.save_runtime(runtime.game_state, runtime.time_authority_state, loaded.save_revision + 1, runtime.content_revision)
+		var upgrade_snapshot: Dictionary = loaded.snapshot.duplicate(true)
+		upgrade_snapshot.save_revision = SaveInt64.format(loaded.save_revision + 1)
+		var target_validation := SaveSchemaValidator.validate_v2(upgrade_snapshot)
+		if not target_validation.ok: return target_validation
+		var save_result := save_service.save_snapshot(upgrade_snapshot)
 		if not save_result.ok: return save_result
 		runtime.save_revision = loaded.save_revision + 1
 		runtime["migration_persisted"] = true
