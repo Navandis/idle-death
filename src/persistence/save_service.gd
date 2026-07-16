@@ -86,7 +86,7 @@ func load_runtime() -> Dictionary:
 	return runtime
 
 func persist_reconciliation_candidate(game_state: GameState, time_state: TimeAuthorityState, plan: Dictionary, save_revision: int) -> Dictionary:
-	var game_copy := GameState.new(game_state.simulation_time_msec)
+	var game_copy := game_state.deep_clone()
 	var time_copy := TimeAuthorityState.new()
 	time_copy.trusted_anchor_utc_msec = time_state.trusted_anchor_utc_msec
 	time_copy.trusted_source_id = time_state.trusted_source_id

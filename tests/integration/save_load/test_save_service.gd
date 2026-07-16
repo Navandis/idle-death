@@ -73,3 +73,37 @@ func test_reconciliation_candidate_does_not_mutate_original_on_save_failure() ->
 	assert_true(service.persist_reconciliation_candidate(game, time, plan, 1).ok)
 	var loaded := service.load_runtime()
 	assert_eq(loaded.game_state.simulation_time_msec, 510)
+
+func test_reconciliation_candidate_preserves_v2_gameplay_substates() -> void:
+	var game := GameState.new(10)
+	game.inventory.entries["RES_ESSENCE"] = GameState.InventoryEntryState.new(42, {"REC_WEAVE_REMEMBERED": 2})
+	game.forms[&"FORM_MAN_AT_ARMS"] = GameState.FormState.new(true, true, 7, &"TEST")
+	var threshold := GameState.ThresholdState.new()
+	threshold.knowledge_state = &"CHARTED"
+	threshold.availability_state = &"AVAILABLE"
+	threshold.lifecycle_state = &"OVERDUE"
+	threshold.remaining_backlog = 100
+	threshold.channel_acquisition[&"CHANNEL_GLOAMWOOD_SOLDIER_SOULS"] = GameState.ThresholdAcquisitionState.new(123, 4, 5)
+	game.thresholds[&"THR_GLOAMWOOD"] = threshold
+	game.progression.command_tether_capacity = 1
+	var reaping := GameState.ReapingState.new()
+	reaping.threshold_id = &"THR_GLOAMWOOD"
+	reaping.is_active = true
+	reaping.form_id = &"FORM_MAN_AT_ARMS"
+	reaping.writ_id = &"WRIT_STANDARD"
+	game.reapings[&"THR_GLOAMWOOD"] = reaping
+	var time := TimeAuthorityState.new()
+	time.trusted_anchor_utc_msec = 1000
+	time.trusted_source_id = "fake"
+	var plan := TimeReconciliationService.new().plan_trusted_reconciliation(time, TrustedTimeSample.trusted("fake", 1500), 1000)
+	plan["content_revision"] = "prototype-content-r1"
+	var result := service.persist_reconciliation_candidate(game, time, plan, 1)
+	assert_true(result.ok)
+	var loaded := service.load_runtime()
+	assert_eq(loaded.game_state.simulation_time_msec, 510)
+	assert_eq(loaded.game_state.inventory.entries["RES_ESSENCE"].total, 42)
+	assert_eq(loaded.game_state.inventory.entries["RES_ESSENCE"].reservations["REC_WEAVE_REMEMBERED"], 2)
+	assert_eq(loaded.game_state.forms[&"FORM_MAN_AT_ARMS"].mastery_subunits, 7)
+	assert_eq(loaded.game_state.thresholds[&"THR_GLOAMWOOD"].channel_acquisition[&"CHANNEL_GLOAMWOOD_SOLDIER_SOULS"].total_banked_units, 5)
+	assert_true(loaded.game_state.reapings[&"THR_GLOAMWOOD"].is_active)
+	assert_eq(loaded.game_state.progression.command_tether_capacity, 1)
