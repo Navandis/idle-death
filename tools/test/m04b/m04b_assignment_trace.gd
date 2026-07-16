@@ -11,6 +11,7 @@ func _init() -> void:
 	var registry := ContentRegistry.build(load("res://content/prototype_content_catalog.tres"))
 	if not registry.ready:
 		_fail("registry", {"diagnostics": registry.diagnostics})
+		return
 	var storage := FileSaveStorage.new()
 	var files := SaveFileSet.new(root, "m04b_trace")
 	_cleanup(files, storage)
@@ -21,37 +22,47 @@ func _init() -> void:
 	var dispatched := service.dispatch(state, &"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD")
 	if not dispatched.success or dispatched.assignment_revision != 1 or dispatched.occupied_tether_count != 1:
 		_fail("dispatch", _result(dispatched))
+		return
 	print("TRACE M04B dispatch_revision=1_occupied=1")
 	var duplicate := service.dispatch(state, &"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD")
 	if duplicate.success or duplicate.error_code != ReapingAssignmentService.REAPING_RECORD_EXISTS:
 		_fail("duplicate", _result(duplicate))
+		return
 	if not coordinator.save_runtime(state, time_state, 1).ok:
 		_fail("save_active", {})
+		return
 	var loaded_active := coordinator.load_runtime()
 	if not loaded_active.ok or not loaded_active.game_state.reapings[&"THR_GLOAMWOOD"].is_active:
 		_fail("load_active", loaded_active)
+		return
 	print("TRACE M04B active_round_trip=PASS")
 	var stale := service.recall(state, &"THR_GLOAMWOOD", 0)
 	if stale.success or stale.error_code != ReapingAssignmentService.REAPING_STALE_ASSIGNMENT_REVISION:
 		_fail("stale", _result(stale))
+		return
 	state.reapings[&"THR_GLOAMWOOD"].cycle_phase_msec = 5
 	state.reapings[&"THR_GLOAMWOOD"].flow_carry_units[&"FLOW_TEST"] = 2
 	state.advance_simulation_time(250)
 	var recalled := service.recall(state, &"THR_GLOAMWOOD", 1)
 	if not recalled.success or recalled.assignment_revision != 2 or recalled.occupied_tether_count != 0:
 		_fail("recall", _result(recalled))
+		return
 	print("TRACE M04B recall_revision=2_occupied=0")
 	if not coordinator.save_runtime(state, time_state, 2).ok:
 		_fail("save_inactive", {})
+		return
 	var loaded_inactive := coordinator.load_runtime()
 	if not loaded_inactive.ok or loaded_inactive.game_state.reapings[&"THR_GLOAMWOOD"].is_active:
 		_fail("load_inactive", loaded_inactive)
+		return
 	print("TRACE M04B inactive_round_trip=PASS")
 	var redispatched := service.redispatch(state, &"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD", 2)
 	if not redispatched.success or redispatched.assignment_revision != 3 or state.reapings[&"THR_GLOAMWOOD"].started_simulation_msec != 1000:
 		_fail("redispatch", _result(redispatched))
+		return
 	if state.simulation_time_msec != 1250:
 		_fail("simulation_time_changed", {"time": state.simulation_time_msec})
+		return
 	print("TRACE M04B redispatch_revision=3_first_start=1000")
 	print("TRACE M04B simulation_time_msec=1250")
 	_cleanup(files, storage)

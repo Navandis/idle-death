@@ -141,7 +141,7 @@ func _validate_base_state(state: GameState) -> AssignmentResult:
 	var validation := GameStateValidator.validate(state, registry)
 	if not validation.ok:
 		return AssignmentResult.failure(REAPING_STATE_INVALID, validation)
-	return AssignmentResult.ok_empty()
+	return _validate_m04b_assignment_integrity(state)
 
 func _validate_loadout_preconditions(state: GameState, threshold_id: StringName, form_id: StringName, writ_id: StringName, allowed_current_threshold: StringName) -> AssignmentResult:
 	var threshold_record := registry.get_record(str(threshold_id))
@@ -169,6 +169,24 @@ func _validate_candidate(candidate: GameState) -> AssignmentResult:
 	var validation := GameStateValidator.validate(candidate, registry)
 	if not validation.ok:
 		return AssignmentResult.failure(REAPING_STATE_INVALID, validation)
+	return _validate_m04b_assignment_integrity(candidate)
+
+func _validate_m04b_assignment_integrity(state: GameState) -> AssignmentResult:
+	# M04A's broad structural validator intentionally allows inactive scaffolding
+	# such as revision zero. M04B commands are stricter: every existing operation
+	# record is already an assignment lineage and therefore must have a positive
+	# revision, and no active Form may lead two active Reapings. Rejecting the
+	# baseline protects malformed loaded saves from being normalized by recall or
+	# checkpointed as if a valid command succeeded.
+	var active_form_thresholds := {}
+	for threshold_key in state.reapings.keys():
+		var reaping: GameState.ReapingState = state.reapings[threshold_key]
+		if reaping.assignment_revision <= 0:
+			return AssignmentResult.failure(REAPING_STATE_INVALID, {"field_path": "reapings.%s.assignment_revision" % threshold_key})
+		if reaping.is_active:
+			if active_form_thresholds.has(reaping.form_id):
+				return AssignmentResult.failure(REAPING_STATE_INVALID, {"field_path": "reapings.%s.form_id" % threshold_key, "duplicate_threshold_id": active_form_thresholds[reaping.form_id]})
+			active_form_thresholds[reaping.form_id] = threshold_key
 	return AssignmentResult.ok_empty()
 
 func _loadout_changed(reaping: GameState.ReapingState, form_id: StringName, writ_id: StringName) -> bool:

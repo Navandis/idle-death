@@ -147,6 +147,34 @@ func test_revision_overflow_and_invalid_state_are_typed_failures() -> void:
 	assert_false(invalid.success)
 	assert_eq(invalid.error_code, ReapingAssignmentService.REAPING_STATE_INVALID)
 
+func test_zero_revision_records_are_invalid_for_recall_and_redispatch() -> void:
+	var state := _base_state()
+	assert_true(_dispatch_active(state).success)
+	state.reapings[&"THR_GLOAMWOOD"].assignment_revision = 0
+	var recall_result := _service().recall(state, &"THR_GLOAMWOOD", 0)
+	assert_false(recall_result.success)
+	assert_eq(recall_result.error_code, ReapingAssignmentService.REAPING_STATE_INVALID)
+	assert_true(state.reapings[&"THR_GLOAMWOOD"].is_active)
+	assert_eq(state.reapings[&"THR_GLOAMWOOD"].assignment_revision, 0)
+	state.reapings[&"THR_GLOAMWOOD"].is_active = false
+	var redispatch_result := _service().redispatch(state, &"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD", 0)
+	assert_false(redispatch_result.success)
+	assert_eq(redispatch_result.error_code, ReapingAssignmentService.REAPING_STATE_INVALID)
+	assert_false(state.reapings[&"THR_GLOAMWOOD"].is_active)
+	assert_eq(state.reapings[&"THR_GLOAMWOOD"].assignment_revision, 0)
+
+func test_duplicate_active_form_in_loaded_state_is_invalid_before_checkpointable_commands() -> void:
+	var state := _base_state(1000, 2)
+	assert_true(_dispatch_active(state, &"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS").success)
+	assert_true(_dispatch_active(state, &"THR_BROKEN_WATCH", &"FORM_SCRIBE").success)
+	state.reapings[&"THR_BROKEN_WATCH"].form_id = &"FORM_MAN_AT_ARMS"
+	var before_gloamwood_revision: int = state.reapings[&"THR_GLOAMWOOD"].assignment_revision
+	var recall_result := _service().recall(state, &"THR_GLOAMWOOD", before_gloamwood_revision)
+	assert_false(recall_result.success)
+	assert_eq(recall_result.error_code, ReapingAssignmentService.REAPING_STATE_INVALID)
+	assert_true(state.reapings[&"THR_GLOAMWOOD"].is_active)
+	assert_eq(state.reapings[&"THR_GLOAMWOOD"].assignment_revision, before_gloamwood_revision)
+
 func _assert_same_reaping(expected: GameState.ReapingState, actual: GameState.ReapingState) -> void:
 	assert_eq(actual.threshold_id, expected.threshold_id)
 	assert_eq(actual.is_active, expected.is_active)
