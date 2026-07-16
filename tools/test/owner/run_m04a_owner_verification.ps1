@@ -130,6 +130,8 @@ function Invoke-GodotCommand([string[]]$Arguments) {
 }
 
 function Invoke-TraceMarkerVerification {
+    param([string[]]$TraceOutput)
+
     $RequiredMarkers = @(
         "TRACE M04A typed_state_and_clone=PASS",
         "TRACE M04A v2_round_trip=PASS",
@@ -139,10 +141,11 @@ function Invoke-TraceMarkerVerification {
         "TRACE M04A no_repeat_rewrite=PASS"
     )
     foreach ($Marker in $RequiredMarkers) {
-        if (-not ($script:LastStepOutput | Where-Object { $_ -eq $Marker })) { throw "Missing trace marker: $Marker" }
+        if (-not ($TraceOutput | Where-Object { $_ -eq $Marker })) { throw "Missing trace marker: $Marker" }
     }
     Write-Output "Trace markers verified: $($RequiredMarkers.Count)"
 }
+
 
 function Invoke-ArtifactAudit {
     if (-not (Test-Path -LiteralPath $LogPath -PathType Leaf)) { throw "Current owner verification log was not created: $LogPath" }
@@ -214,7 +217,8 @@ try {
         $ImportPassed = Run-Step "Import" "$ResolvedGodot --headless --path $RepoRoot --import" { Invoke-GodotCommand @("--headless", "--path", "$RepoRoot", "--import") }
         if ($ImportPassed) {
             $TracePassed = Run-Step "Trace" "$ResolvedGodot --headless --path $RepoRoot -s res://tools/test/m04a/m04a_state_persistence_trace.gd -- --save-root $TraceRoot" { Invoke-GodotCommand @("--headless", "--path", "$RepoRoot", "-s", "res://tools/test/m04a/m04a_state_persistence_trace.gd", "--", "--save-root", "$TraceRoot") }
-            if ($TracePassed) { Run-Step "Trace-result marker verification" "verify required TRACE M04A markers" { Invoke-TraceMarkerVerification } }
+            $CapturedTraceOutput = @($script:LastStepOutput)
+            if ($TracePassed) { Run-Step "Trace-result marker verification" "verify required TRACE M04A markers" { Invoke-TraceMarkerVerification -TraceOutput $CapturedTraceOutput } }
             else { Write-SkippedStep "Trace-result marker verification" "prerequisite failed: Trace" }
         }
         else {
