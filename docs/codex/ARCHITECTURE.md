@@ -3,7 +3,7 @@
 **Document role:** Maintained implementation architecture for the 0-90 minute prototype  
 **Repository path:** `docs/codex/ARCHITECTURE.md`  
 **Document status:** Approved architecture  
-**Architecture revision:** 10  
+**Architecture revision:** 11  
 **Last updated:** 2026-07-17  
 **Engine target:** Godot 4.7, GDScript only  
 **Primary design context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md) and [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md)
@@ -1341,7 +1341,7 @@ Settlement follows the global same-time rule: gains at the boundary commit befor
 
 ### Realized M04C implementation
 
-`SimulationEngine` implements the approved M04C boundary with explicit elapsed milliseconds, checked fixed-point arithmetic, transactional candidate commit, complete result/segment/event records, and the shared `CoreFlowKeys` residual contract. The implementation remains limited to zero or one active Reaping and rejects Retinues, unknown nonzero flow keys, and multiple active Reapings without mutation.
+`SimulationEngine` implements the approved M04C boundary with explicit elapsed milliseconds, checked fixed-point arithmetic, transactional candidate commit, complete result/segment/event records, and the shared `CoreFlowKeys` residual contract. The implementation remains limited to zero or one active Reaping and rejects Retinues, unknown nonzero flow keys, and multiple active Reapings without mutation. PR #12 merged from final head `acb48d0045e41a0f7d73f561e5c3756f8668dd46` at merge commit `719592c85ca4e90ecd5df4593e37a81d36b2789e`.
 
 ### Core residual ownership
 
@@ -1358,3 +1358,47 @@ The existing schema-v2 `ReapingState.flow_carry_units` map receives stable inter
 ### Extension seams
 
 M04D extends the same engine with discrete output channels and resolve-before-rate-change behavior. M04E adds clone forecasts and report accumulation. Later progression and concurrency slices add their own boundaries without replacing the core resolver.
+
+## Proposed M04D discrete-output channel boundary
+
+Subject to approval of `DEC-0037`, M04D extends the existing transactional `SimulationEngine`; it does not create a second simulation loop.
+
+### Channel resolution owner
+
+For each active segment, the engine obtains the active Threshold's canonically sorted channel IDs and resolves every enabled, correctly owned non-Essence item channel. Essence remains in the M04C core-flow path. A missing Threshold acquisition record means zero and is created when that channel first participates in positive elapsed resolution.
+
+The channel resolver owns:
+
+- immutable baseline rate and stable period lookup;
+- bounded output-channel modifier evaluation;
+- channel Settled multiplier application;
+- checked progress/carry accumulation;
+- whole-unit extraction and inventory banking;
+- `total_banked_units` source accounting;
+- deterministic channel deltas and bank events.
+
+Discovery remains presentation/progression state and does not gate production.
+
+### Bounded channel rate plan
+
+The M04D rate plan is a pure value derived for each segment from normalized content and the active authoritative loadout. Its initial production source list contains active Form Trait modifiers. The builder supports `OUTPUT_CHANNEL_RATE`, `MULTIPLY`, `OUTPUT_CHANNEL`, and the approved channel/Threshold conditions. Later systems extend the ordered modifier-source list rather than changing stored progress or caching effective rates.
+
+The rate plan applies ordinary modifiers first and the channel's own Settled multiplier last. It never applies the Threshold core multiplier to a channel and never derives a rate from the preceding effective rate.
+
+A pure minimum-time query may reuse the same rate plan and bounded checked search. It is derived data for tests, forecasts, and later read models; it is not save authority.
+
+### Residual-preserving assignment compatibility
+
+M04D refines M04B's changed-redispatch guard. The caller still resolves the old configuration to the command boundary before invoking assignment. A changed inactive redispatch may preserve nonzero residuals when old and new returned-soul periods, Mastery periods, and cycle durations are equal. Threshold-owned channel periods are independent of the loadout and therefore remain stable.
+
+A compatible change preserves all operation and channel residuals and changes only future rate derivation after the new assignment revision. An incompatible period/duration change fails without mutation. This closes the current prototype Form-change case without adding a lossy carry conversion or schema field.
+
+### Same-time order and output facts
+
+Channel accumulation occurs inside each M04C segment. Whole channel output at a Settlement boundary banks before the lifecycle transition. `OUTPUT_CHANNEL_BANKED` events are emitted in sorted channel order before the Settlement event. They are non-persisted committed facts; inventory and `ThresholdAcquisitionState` remain authority.
+
+### Persistence and extension seams
+
+Schema version 2 already persists `ThresholdState.channel_acquisition`. M04D adds no schema version. Persistence validation rejects Essence acquisition records, invalid channel ownership, out-of-range progress/carry, and negative banked totals.
+
+M04E consumes the same result/segment channel deltas for forecast and report accumulation. M09/M13/M14/M15 later add Recollection, discovery, support, Retinue, and global modifier sources without replacing the channel accumulator.

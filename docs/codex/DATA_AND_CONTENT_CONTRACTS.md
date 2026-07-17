@@ -3,7 +3,7 @@
 **Document role:** Canonical prototype data, runtime-state, ID, and serialization contracts  
 **Repository path:** `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`  
 **Document status:** Approved architecture contract  
-**Revision:** 12  
+**Revision:** 13  
 **Last updated:** 2026-07-17
 
 ## 1. Purpose
@@ -1956,3 +1956,165 @@ events
 ```
 
 The change summary contains exact deltas for simulation time, returned souls, backlog, Essence, Mastery, completed cycles, and lifecycle. Segment summaries identify start/end simulation cursors, lifecycle/rate context, and exact committed deltas. Events follow the domain-event minimum contract and are not persisted.
+
+## Proposed M04D output-channel and acquisition contract
+
+This section is proposed with `DEC-0037` and becomes authoritative when the M04D prompt is approved.
+
+### Eligible channels
+
+For an active Reaping at Threshold `T`, the M04D resolver processes the sorted set of channel IDs declared by `T` whose normalized records are:
+
+- enabled;
+- owned by `T`;
+- backed by a valid whole-unit inventory item;
+- not `RES_ESSENCE`.
+
+The two Essence channels remain M04C core sources and may not have `ThresholdAcquisitionState` records. Unknown discovery state does not prevent production or banking.
+
+Current non-Essence production channels:
+
+| Channel | Threshold | Item | Baseline |
+|---|---|---|---:|
+| `CHANNEL_GLOAMWOOD_SOLDIER_SOULS` | Gloamwood | `SOUL_CALLING_SOLDIER` | 1 per 300,000 ms |
+| `CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS` | Gloamwood | `SOUL_FORM_SCRIBE` | 1 per 28,800,000 ms |
+| `CHANNEL_BROKEN_WATCH_PROVISIONS` | Broken Watch | `RES_PROVISIONS` | 1 per 30,000 ms |
+| `CHANNEL_BROKEN_WATCH_MAN_AT_ARMS_FORM_SOULS` | Broken Watch | `SOUL_FORM_MAN_AT_ARMS` | 1 per 86,400,000 ms |
+
+### Acquisition record
+
+Each eligible channel uses the existing `ThresholdAcquisitionState`:
+
+| Field | Rule |
+|---|---|
+| `progress_subunits` | `0 <= value < FixedPoint.SCALE`; normalized work toward the next whole unit |
+| `rate_carry_units` | `0 <= value < channel.rate.period_msec`; exact per-period arithmetic remainder |
+| `total_banked_units` | Non-negative whole units produced by this Threshold/channel over its saved lifetime |
+
+Missing state is canonical zero. Positive active resolution creates the record. Recall, inactivity, assignment revision, Form/Writ changes, Settlement, and save/load do not clear it.
+
+`total_banked_units` is source history and report evidence. Inventory remains the ownership source of truth because the same item may come from other sources or costs.
+
+### Channel rate plan
+
+Minimum fields:
+
+```text
+channel_id
+threshold_id
+output_item_id
+baseline_rate_subunits_per_period
+period_msec
+effective_rate_subunits_per_period
+settled
+applied_modifier_source_ids
+```
+
+Supported modifier records in M04D:
+
+```text
+metric = OUTPUT_CHANNEL_RATE
+operation = MULTIPLY
+scope = OUTPUT_CHANNEL
+condition = ALWAYS | OUTPUT_ITEM | OUTPUT_KIND |
+            THRESHOLD_HAS_ANY_TAG | THRESHOLD_LIFECYCLE
+```
+
+Condition semantics:
+
+- `OUTPUT_ITEM`: any condition value equals the channel output item ID;
+- `OUTPUT_KIND = WHOLE_SOUL`: the item kind is Calling Soul or Form Soul;
+- `THRESHOLD_HAS_ANY_TAG`: at least one configured tag matches;
+- `THRESHOLD_LIFECYCLE = STANDING`: runtime lifecycle is `OVERDUE`;
+- `THRESHOLD_LIFECYCLE = SETTLED`: runtime lifecycle is `SETTLED`.
+
+M04D initially collects active Form Trait sources only. Tests may use copied catalog fixtures. Future systems append validated source groups in deterministic order. A prior effective rate is never an input.
+
+After ordinary modifiers, apply `channel.settled_multiplier_subunits` exactly once when Settled. Do not apply the Threshold's core Settled multiplier to a non-Essence channel.
+
+### Accumulation transaction
+
+For each channel segment:
+
+1. accumulate produced subunits with the channel rate and existing carry;
+2. checked-add to normalized progress;
+3. extract all whole units;
+4. checked-add whole units to inventory;
+5. checked-add the same units to `total_banked_units`;
+6. store normalized progress and carry;
+7. append one deterministic delta record;
+8. emit one bank event only when whole units are positive.
+
+Channel delta minimum:
+
+```text
+channel_id
+output_item_id
+whole_units_delta
+progress_before_subunits
+progress_after_subunits
+carry_before_units
+carry_after_units
+total_banked_before
+total_banked_after
+```
+
+Bank event minimum:
+
+```text
+event_type = OUTPUT_CHANNEL_BANKED
+occurred_simulation_msec = segment end cursor
+priority = producer-completion priority
+subject_id = Threshold ID
+source_id = Channel ID
+payload = channel/item/whole/progress/banked facts
+reportable = true
+tutorial_relevant = channel.progression_required
+```
+
+Events and segment history are not persisted.
+
+### Compatible assignment-rate transition
+
+A changed inactive redispatch may preserve existing operation residuals when:
+
+```text
+old returned-soul period == new returned-soul period
+old Mastery period == new Mastery period
+old cycle duration == new cycle duration
+```
+
+Threshold Essence and item-channel periods are Threshold-owned and unchanged by the loadout. Under compatibility, core residuals, cycle phase, acquisition progress, and channel carries remain unchanged. The next segment derives rates from the new loadout.
+
+An incompatible transition returns `REAPING_RATE_CONTEXT_INCOMPATIBLE`. It increments no revision, changes no assignment, and resets no state.
+
+### Derived time-to-next-unit
+
+A pure checked query returns the minimum integer milliseconds needed to extract the next whole unit from the current progress/carry under a supplied current rate plan. It is not persisted.
+
+Required synthetic fixture:
+
+```text
+period = 14,400,000 ms
+progress = 500,000
+carry = 0
+baseline rate = 1,000,000 per period
+baseline ETA = 7,200,000 ms
+rate after x1.20 = 1,200,000 per period
+new ETA = 6,000,000 ms
+stored progress after rate change = 500,000
+```
+
+Repeated derivation with the same baseline and modifiers returns the same rate and ETA.
+
+### Persistence
+
+Schema version 2 remains current. Save/load must preserve:
+
+- every channel acquisition key;
+- progress and carry;
+- source banked totals;
+- resulting whole inventory;
+- core-flow residuals and assignment state.
+
+Persistence rejects an acquisition record for an Essence channel, a channel owned by another Threshold, a missing/non-item output, progress/carry outside range, or a negative banked total.

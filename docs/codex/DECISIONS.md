@@ -3,7 +3,7 @@
 **Document role:** Durable record of approved and proposed design and architecture decisions  
 **Repository path:** `docs/codex/DECISIONS.md`  
 **Document status:** Approved architecture and active decision record  
-**Revision:** 15  
+**Revision:** 16  
 **Last updated:** 2026-07-17
 
 ## 1. How to use this file
@@ -66,6 +66,7 @@ Rules:
 | `DEC-0034` | Schema version 2 and sequential migration are the gameplay-state compatibility path | Accepted | 2026-07-15 |
 | `DEC-0035` | Reaping operations are Threshold-scoped; recalled records persist and assignment commands are revision-guarded and Form-exclusive | Accepted | 2026-07-16 |
 | `DEC-0036` | Core Reaping resolution is transactional; settlement is an exact boundary and residual ownership is explicit | Accepted | 2026-07-17 |
+| `DEC-0037` | Discrete output channels bank Threshold-owned normalized work; compatible rate-context changes preserve residuals without rebasing | Proposed | 2026-07-17 |
 
 ---
 
@@ -1794,14 +1795,131 @@ M04C does not process milestones, guarantees, resonance effects, Emergency-to-St
 
 ---
 
+## `DEC-0037` — Discrete output channels bank Threshold-owned normalized work; compatible rate-context changes preserve residuals without rebasing
+
+**Status:** Proposed  
+**Date:** 2026-07-17  
+**Decision type:** Output-channel accumulation, rate-context transition, and persistence semantics  
+**Refines:** `DEC-0010`, `DEC-0012`, `DEC-0027`, `DEC-0028`, `DEC-0030`, `DEC-0035`, `DEC-0036`
+
+### Context
+
+M04C now resolves the core Reaping streams transactionally: returned souls/backlog, Essence, active Form Mastery, cycle state, and the exact Settlement boundary. M04D must add the remaining authored Threshold item channels without duplicating Essence, moving progress with a loadout, rebasing prior work when rates change, or reopening the partial-mutation and compounding exploits already closed by M04B/M04C.
+
+The existing schema-version-2 `ThresholdAcquisitionState` already stores normalized progress, a channel-period arithmetic carry, and a per-channel banked counter. The current catalog supplies four non-Essence channels: Gloamwood Soldier Souls, Gloamwood Scribe Form Souls, Broken Watch Provisions, and Broken Watch Man-at-Arms Form Souls. The two Essence channels remain core M04C streams.
+
+M04B also deliberately blocked changed redispatch when operation-owned residual state was nonzero. M04D must close the current prototype case safely: all prototype Forms share the same returned-soul period, Mastery period, and cycle duration, while each Threshold channel owns one stable period. A compatible change can therefore preserve residuals exactly; an incompatible denominator change still requires an explicit future normalization rule.
+
+### Proposed decision
+
+#### Channel selection and ownership
+
+- During each productive active-Reaping segment, the global `SimulationEngine` resolves every enabled, correctly owned, non-Essence `OutputChannelDefinition` referenced by the active Threshold.
+- `RES_ESSENCE` channels are excluded from `ThresholdAcquisitionState`; Essence remains solely owned by the M04C core-flow keys and normal inventory.
+- Missing acquisition state means canonical zero. The engine creates one `ThresholdAcquisitionState` when the channel first participates in positive elapsed resolution.
+- The record remains keyed by `Threshold ID + channel ID`. It never moves with Form, Writ, Retinue, assignment revision, or activation episode.
+- Discovery and disclosure do not gate production. Unknown channels accumulate and bank normally; M13 later decides what the player can see.
+- Disabled, missing, duplicated, misowned, malformed, or non-item channels fail the transaction rather than being skipped silently.
+
+#### Channel rate plan
+
+- A channel rate plan starts from the channel's immutable normalized `rate_subunits_per_period` and stable `period_msec`.
+- M04D executes the bounded `OUTPUT_CHANNEL_RATE` modifier subset:
+
+```text
+operation: MULTIPLY
+scope: OUTPUT_CHANNEL
+conditions: ALWAYS, OUTPUT_ITEM, OUTPUT_KIND,
+            THRESHOLD_HAS_ANY_TAG, THRESHOLD_LIFECYCLE
+```
+
+- `OUTPUT_ITEM` matches the channel's canonical output item ID.
+- `OUTPUT_KIND = WHOLE_SOUL` matches Calling-Soul and Form-Soul item kinds. Resource and Store channels do not match that token.
+- `THRESHOLD_LIFECYCLE = STANDING` maps to runtime `OVERDUE`; `SETTLED` maps directly.
+- M04D's production modifier sources are active Form Trait modifiers. A small rate-plan seam accepts deterministically ordered normalized sources so later Writ, Retinue, Art, Recollection, support, and global-efficiency systems can extend the source list without replacing the accumulator.
+- Tests may use copied catalog fixtures to exercise the approved grammar. M04D does not treat any Recollection, Art, or Retinue as purchased or active.
+- Relevant unsupported operations, scopes, conditions, malformed operands, or arithmetic overflow fail visibly. Irrelevant metrics are ignored.
+- After ordinary modifiers, the channel's own Settled multiplier applies exactly once when the Threshold is Settled. The Threshold core multiplier is not also applied to the channel.
+- Effective rates, modifier traces, percentages, and ETAs are derived. They are never persisted and are never used as the baseline for a later rate plan.
+
+#### Accumulation and whole-unit banking
+
+- For each sorted channel ID, use `FixedPoint.accumulate_for_elapsed_msec()` with the channel's stable period and its `rate_carry_units`.
+- Checked-add produced subunits to `progress_subunits`, extract every whole unit immediately, retain `0 <= progress_subunits < FixedPoint.SCALE`, and retain `0 <= rate_carry_units < period_msec`.
+- Add whole units to normal `InventoryState` and increment that channel's `total_banked_units` by the same amount. Inventory remains the ownership source of truth; the channel counter is source history/report evidence.
+- Parallel channels do not subtract from one another. Multiple whole units may bank in one segment.
+- Segment/result records expose deterministic per-channel deltas. Each channel that banks at least one whole unit emits one non-persisted `OUTPUT_CHANNEL_BANKED` event in sorted channel-ID order, with the Threshold as subject and the channel as source.
+- A bank event is reportable. Its tutorial relevance equals the channel's `progression_required` flag. Progress-only segments emit no bank event.
+
+#### Recall, redispatch, and rate-context changes
+
+- Before recall, redispatch, or a later modifier/unlock change, the caller resolves elapsed time under the old state to the exact command boundary. Assignment and progression services do not read clocks or award elapsed production themselves.
+- Recall freezes every channel record. Inactive operations advance no channel progress.
+- Same-loadout redispatch resumes the unchanged channel state and derives the same rate.
+- A changed Form or Writ may preserve nonzero operation residuals when the old and new loadouts have compatible core denominators:
+  - equal returned-soul `period_msec`;
+  - equal active-Mastery `period_msec`;
+  - equal cycle duration;
+  - the same Threshold-owned Essence and item-channel periods.
+- Under a compatible transition, core residuals, cycle phase, and all Threshold channel progress/carries remain unchanged; only the future numerator/modifier context changes after the assignment revision commits.
+- If any required period or duration differs, redispatch returns `REAPING_RATE_CONTEXT_INCOMPATIBLE` without mutation. M04D does not invent lossy carry transfer or silently reset fractional work.
+- Returning to the same configuration or repeatedly recalling/redispatching derives the rate again from authored baseline plus current modifiers. It cannot compound a prior effective rate.
+
+#### Progress and ETA query
+
+- M04D may expose a pure, non-persisted query for the minimum integer milliseconds to the next whole channel unit using the current normalized progress, carry, and rate plan.
+- A four-hour synthetic fixture at `500_000` progress has an ETA of `7_200_000 ms` at baseline and `6_000_000 ms` after a prospective `1.20` multiplier. The stored progress remains `500_000` in both cases.
+- Presentation formatting and disclosure remain deferred; the query exists only for tests, trace, forecast reuse, and later read models.
+
+#### Settlement, persistence, and compatibility
+
+- M04C's exact Settlement segmentation remains the single lifecycle boundary. Non-Essence channels resolve through the Overdue boundary segment under Overdue rates and through the remaining segment under their channel Settled rates.
+- Settlement never clears or rebases channel progress/carry.
+- Schema version 2 remains current. No new top-level or aggregate field is required.
+- Save/load preserves inventory, every acquisition record, per-channel banked totals, and assignment/core residual compatibility exactly.
+- A persisted Essence acquisition record is invalid because it would duplicate M04C ownership.
+
+### Consequences
+
+- Eight- and twenty-four-hour sources can preserve exact quarter progress, whole extraction, carry, recall behavior, and save/load.
+- The player's percentage never jumps merely because a future rate changes; only the ETA changes.
+- Compatible prototype Form/Writ changes no longer require zeroing every operation residual before redispatch.
+- Incompatible future denominators fail explicitly instead of transferring or discarding fractional work.
+- Hidden output can exist authoritatively before M13 reveals it.
+- M04E can forecast and report the same channel deltas without another formula path.
+- Later Recollection, Art, Retinue, and support milestones extend modifier-source collection, not persisted progress semantics.
+
+### Alternatives considered
+
+- **Store channel progress on `ReapingState`:** rejected because recall and loadout changes would require transfer logic and would conflict with `DEC-0027`.
+- **Process Essence as both a core flow and an acquisition channel:** rejected because it would duplicate progress and inventory grants.
+- **Rebase progress when the rate changes:** rejected because prior work would change retroactively and repeated redispatch could compound bonuses.
+- **Persist effective rates or remaining time:** rejected because they become stale when content or modifiers change.
+- **Reset all core/channel residuals on changed loadout:** rejected because it destroys earned fractional work.
+- **Transfer residuals across different denominators without a contract:** rejected because their mathematical meaning would change.
+- **Require every residual to be zero before any compatible prototype Form change:** rejected because the current periods are compatible and an arbitrary command millisecond should not forfeit or block progress unnecessarily.
+- **Wait for Recollections/Retinues before defining a rate-plan seam:** rejected because M04D must prove prospective non-compounding behavior now without implementing those systems.
+
+### Affected documents
+
+- `docs/codex/ARCHITECTURE.md`
+- `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`
+- `docs/codex/MILESTONES.md`
+- `docs/codex/TESTING_AND_VALIDATION.md`
+- `docs/codex/milestone-prompts/M04D-output-channels-long-horizon-progress.md`
+
+---
+
 ## 3. Current approval state
 
 - `DEC-0001` through `DEC-0036` are Accepted.
+- `DEC-0037` is Proposed and awaits owner approval with the M04D prompt.
 - M03 prompt approval accepted `DEC-0029` through `DEC-0032`, including explicit revision compatibility, stable channel IDs, editable player-facing language, centralized terminology, and Essence as the single resource identity.
 - M01 prompt approval accepted `DEC-0026`; long-horizon source ownership is recorded in `DEC-0027`; prospective, non-compounding rate-change semantics are recorded in `DEC-0028`.
 - The Phase 6 architecture is approved with trusted-time, save-format, cross-machine testing, GodotSteam, owner-verification, fixed-point, Threshold-channel ownership, content compatibility, naming, and terminology refinements recorded in `DEC-0021` through `DEC-0032`.
 - The post-M03 implementation workflow uses conceptual epics, lettered slices, rolling-wave planning, and review-surface guardrails under `DEC-0033`.
 - `DEC-0034` resolved `GATE-GAMEPLAY-SCHEMA`; M04A implemented and verified schema version 2 plus the production sequential migration from frozen schema version 1.
 - `DEC-0035` defines Threshold-scoped Reaping identity, canonical loadout values, assignment revisions/episodes, immutable first-start timestamps, stable recalled records, Form exclusivity, and resolve-before-rate-change handoff.
-- `DEC-0036` authorizes M04C transactional core resolution, exact Settlement segmentation, core rate semantics, stable residual ownership, and the bounded zero-or-one-active-Reaping implementation limit.
+- `DEC-0036` is implemented and verified by M04C.
+- M04D planning proposes `DEC-0037` for Threshold-owned discrete channels, exact accumulation, compatible residual-preserving reconfiguration, and prospective non-compounding rate changes.
 - Future changes preserve decision IDs for wording clarifications and create a new decision only when semantics, ownership, compatibility, or security posture changes.

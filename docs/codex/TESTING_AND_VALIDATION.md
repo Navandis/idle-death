@@ -2,8 +2,8 @@
 
 **Document role:** Canonical test strategy, commands, fixture rules, and manual validation flows
 **Repository path:** `docs/codex/TESTING_AND_VALIDATION.md`
-**Document status:** Approved validation plan through M04B with M04C approved
-**Validation revision:** 15
+**Document status:** Approved validation plan through M04C with M04D draft
+**Validation revision:** 16
 **Last updated:** 2026-07-17
 **Engine target:** Godot 4.7 standard build, GDScript only
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)  
@@ -38,7 +38,9 @@ M04A merged through PR #8 at merge commit `673ad884357fc742a0a26dbb542d5b8d9fe55
 
 M04B merged through PR #9 at merge commit `c641d74cebedf07c51ebb579cccee21db7aa2410` from final head `5301c94bfd0fb837f9961fda624d7559042327e2`. Threshold-scoped operation identity, typed assignment results/events, global assignment validation, persistence, the complete identity trace, and Windows owner verification passed.
 
-Accepted `DEC-0036` and approved M04C v0.1 define transactional core resolution, exact Settlement segmentation, stable core residual ownership, and the temporary one-active-Reaping implementation limit.
+M04C merged through PR #12 at merge commit `719592c85ca4e90ecd5df4593e37a81d36b2789e` from final head `acb48d0045e41a0f7d73f561e5c3756f8668dd46`. Transactional core resolution, exact Settlement segmentation, checked residual ownership, persistence, the eleven-marker trace, and Windows owner verification passed.
+
+M04D planning proposes `DEC-0037` for Threshold-owned non-Essence acquisition, exact whole-unit banking, compatible residual-preserving rate-context changes, and prospective non-compounding rate plans.
 
 ## 2. Pinned test and platform dependencies
 
@@ -1548,8 +1550,6 @@ Final evidence:
 
 M04C validates deterministic core production only. No test may depend on elapsed wall time, rendered frames, Steam, or UI.
 
-Current PR #12 focused evidence covers duration and transaction failures, supported and unsupported modifier/rate plans, Essence-channel validation, Settlement/chunking fixtures, overflow and fixed-point helper failures, source ownership, and persistence invariants. The corrected focused suite currently reports 19 focused tests and 253 assertions; the full repository suite currently reports 94 tests and 1,346 assertions in Codex/Linux evidence.
-
 ### 23.1 Focused Linux/Codex checks
 
 Expected focused command:
@@ -1641,11 +1641,6 @@ Settlement events = 1
 
 ### 23.4 M04C trace markers
 
-Negative trace invocations with a missing, blank, or `user://` save root must exit nonzero. The trace uses the supplied disposable root for production file-backed persistence and prints a PASS marker only after checking the corresponding condition.
-
-Focused paths are `res://tests/unit/m04c` and `res://tests/integration/m04c`; Windows owner rerun remains pending until the corrected package passes against the PR head.
-
-
 Required exact markers:
 
 ```text
@@ -1720,4 +1715,167 @@ M04C cannot merge until:
 - every failure proves no mutation;
 - schema version remains 2;
 - no discrete non-Essence channel, Retinue, progression, report, forecast, concurrency, UI, or platform behavior enters the diff;
+- actual review surface remains within the approved assessment or receives a revised prompt.
+
+## M04C completion record
+
+M04C merged through PR #12 on 2026-07-17 at merge commit `719592c85ca4e90ecd5df4593e37a81d36b2789e` from final head `acb48d0045e41a0f7d73f561e5c3756f8668dd46`.
+
+Final evidence:
+
+- full Windows suite before and after: `94/94` tests and `1,346` assertions;
+- focused M04C suite: `19/19` tests and `253` assertions;
+- explicit import: pass;
+- exact 60-second, 870-ms Settlement, mixed-lifecycle, chunking, overflow, modifier, persistence, and source-ownership matrices: pass;
+- all 11 approved trace markers: pass;
+- cleanup, cleanup proof, and artifact audit: pass;
+- failed step count `0`;
+- pending interactive checks: none;
+- final review surface: 20 changed files, 1,212 additions, 7 deletions.
+
+`GATE-CORE-RESOLUTION` is satisfied.
+
+## 24. M04D draft output-channel validation package
+
+M04D extends the same explicit-duration engine. Tests must not wait in real time or use discovery as a production gate.
+
+### 24.1 Focused Linux/Codex checks
+
+Expected focused command:
+
+```bash
+./tools/test/run_gut.sh -- \
+  -gdir=res://tests/unit/m04d \
+  -gdir=res://tests/integration/m04d
+```
+
+Also run:
+
+```bash
+godot --headless --path . --import
+
+trace_root="$(mktemp -d)"
+godot --headless --path . \
+  -s res://tools/test/m04d/m04d_output_channel_trace.gd \
+  -- --save-root "$trace_root"
+trace_exit=$?
+rm -rf "$trace_root"
+test ! -e "$trace_root"
+test "$trace_exit" -eq 0
+
+./tools/test/run_gut.sh
+git diff --check
+```
+
+### 24.2 Required focused groups
+
+1. eligible-channel selection, sorted order, ownership, and Essence exclusion;
+2. missing acquisition record as zero and canonical creation;
+3. Gloamwood 2-hour and 8-hour exact fixtures;
+4. Broken Watch 6-hour and 24-hour exact fixtures;
+5. multiple parallel channels and multiple whole extraction;
+6. Unknown/hidden channels bank without disclosure mutation;
+7. normalized progress/carry and channel banked totals;
+8. `OUTPUT_CHANNEL_RATE` modifier conditions and deterministic order;
+9. channel Settled multiplier exactly once;
+10. irrelevant versus unsupported modifiers;
+11. recall/inactive freeze and same-loadout resume;
+12. compatible changed loadout preserving core/channel residuals;
+13. incompatible period/cycle rejection without mutation;
+14. four-hour `500_000` progress and ETA `7,200,000 -> 6,000,000` fixture;
+15. repeated redispatch non-compounding;
+16. exact Settlement segmentation and retained channel state;
+17. one-shot/regular/irregular chunk equality;
+18. channel result/segment deltas and event order;
+19. inventory/progress/carry/banked-total overflow matrices;
+20. schema-v2 coordinator round trips and malformed-state load rejection;
+21. no duplicate Essence or Reaping-owned acquisition state;
+22. no clock, scene, UI, discovery, report, forecast, Retinue, Recollection, or platform ownership.
+
+### 24.3 Hand-calculable fixtures
+
+```text
+Gloamwood, 2 hours:
+  Soldier Souls banked = 24
+  Scribe Form Soul progress = 250000
+
+Gloamwood, 8 hours:
+  Scribe Form Souls banked = 1
+
+Broken Watch, 6 hours:
+  Provisions banked = 720
+  Man-at-Arms Form Soul progress = 250000
+
+Broken Watch, 24 hours:
+  Man-at-Arms Form Souls banked = 1
+
+Synthetic 4-hour channel at 50%:
+  progress before/after rate change = 500000
+  baseline ETA = 7200000 ms
+  x1.20 ETA = 6000000 ms
+```
+
+### 24.4 M04D trace markers
+
+Required exact markers:
+
+```text
+TRACE M04D gloamwood_2h_soldier=24_scribe_progress=250000
+TRACE M04D gloamwood_8h_scribe_banked=1
+TRACE M04D broken_watch_6h_provisions=720_maa_progress=250000
+TRACE M04D broken_watch_24h_maa_banked=1
+TRACE M04D hidden_channels_bank=PASS
+TRACE M04D recall_freezes_redispatch_resumes=PASS
+TRACE M04D compatible_loadout_change_preserves_progress=PASS
+TRACE M04D rate_change_progress=500000_eta_before=7200000_eta_after=6000000
+TRACE M04D repeated_redispatch_non_compounding=PASS
+TRACE M04D settlement_preserves_channel_progress=PASS
+TRACE M04D one_shot_equals_chunks=PASS
+TRACE M04D save_round_trip=PASS
+TRACE M04D no_duplicate_essence_or_reaping_progress=PASS
+```
+
+The trace requires an explicit disposable `--save-root`, performs a production coordinator round trip, exits nonzero on any mismatch, and writes nothing to ordinary `user://` state.
+
+### 24.5 Owner Windows package
+
+Codex creates:
+
+```text
+tools/test/owner/run_m04d_owner_verification.ps1
+```
+
+Expected invocation:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass `
+    -File .\tools\test\owner\run_m04d_owner_verification.ps1 `
+    -CommitSha "<PR_HEAD_SHA>"
+```
+
+The script follows the final M04C workflow: Godot 4.7 validation, full suite before, focused M04D, import, isolated trace, stable 13-marker verification, guaranteed cleanup/proof, prior-log-tolerant artifact audit, full suite after, and standardized UTF-8 summary.
+
+Expected summary:
+
+```text
+Automated result: PASS
+Failed step count: 0
+Pending interactive checks: None for M04D
+Cleanup result: PASS
+Log path: <generated path>
+```
+
+No interactive checklist is required.
+
+### 24.6 M04D merge evidence
+
+M04D cannot merge until:
+
+- proposed `DEC-0037` or an owner-approved replacement channel contract is Accepted;
+- Linux/Codex focused/import/trace/full checks pass;
+- the owner Windows package passes against the exact PR head;
+- 8-/24-hour, rate-change, compatible-reconfiguration, Settlement, and chunk-equivalence fixtures pass;
+- every failure proves no mutation;
+- schema version remains 2 and Essence has no acquisition record;
+- no M04E, discovery, Retinue, Recollection, UI, concurrency, or platform behavior enters the diff;
 - actual review surface remains within the approved assessment or receives a revised prompt.
