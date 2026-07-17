@@ -141,7 +141,7 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 | M04 | Persistent Reaping simulation vertical slice | Conceptual epic | Approved | Not applicable | Not directly executable | — |
 | M04A | Gameplay state and persistence foundation | Implementation slice | Approved | Approved | Merged | Passed |
 | M04B | Dispatch, recall, and assignment integrity | Implementation slice | Approved | Approved | Merged | Passed |
-| M04C | Single-Reaping core resolver | Implementation slice | Approved | Approved | Not started | — |
+| M04C | Single-Reaping core resolver | Implementation slice | Approved | Approved | Pull request open | Partial |
 | M04D | Output channels and long-horizon acquisition progress | Implementation slice | Approved | Not drafted | Not started | — |
 | M04E | Forecast clone, report accumulator, and simulation harness | Implementation slice | Approved | Not drafted | Not started | — |
 | M05 | Persistent application shell, navigation, and debug access | Conceptual epic | Approved | Not applicable | Not directly executable | — |
@@ -1034,10 +1034,11 @@ Schema version 2 already persists every M04B field. Active and inactive records,
 **Parent epic:** M04  
 **Definition status:** Approved  
 **Prompt status:** Approved  
-**Implementation status:** Not started  
-**Verification status:** —  
+**Implementation status:** Pull request open
+**Verification status:** Partial
 **Recommended Codex task size:** Medium; one deterministic core-stream simulation pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M04C-single-reaping-core-resolver.md`
+**Pull request:** PR #12 on `codex/implement-m04c-milestone-from-documentation`; current Codex correction head pending owner rerun.
 
 #### Purpose
 
@@ -2806,11 +2807,3 @@ When a slice reveals a planning problem:
 5. resume only after the revised definition or prompt is approved.
 
 The commercial save-format/threat-model review remains a release gate, not an excuse to add encryption, binary encoding, Steam Cloud, or a backend to the 0–90 minute prototype without a new approved milestone.
-
-## M04C — Single-Reaping core resolver
-
-Status: Implemented in code; Linux/Codex verification passed; Windows owner verification pending.
-
-Implemented scope: transactional `SimulationEngine`, fixed M04C core residual keys, returned-soul/Essence/Mastery/cycle arithmetic, exact Overdue-to-Settled segmentation, one Settlement event per boundary crossing, focused GUT coverage, save/load round trip coverage, deterministic trace, and owner verification PowerShell entry point.
-
-Deferred by design: non-Essence channels, discovery/acquisition, Retinues/support, milestones, Emergency-to-Standard Writ transition, forecasts/reports, application clock loop, offline trusted-time reconciliation, UI, and multi-Reaping production.

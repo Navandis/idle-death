@@ -1339,6 +1339,10 @@ validate state/content/duration
 
 Settlement follows the global same-time rule: gains at the boundary commit before lifecycle changes; new rates begin in the next segment. A repeating zero-duration boundary is an error.
 
+### Realized M04C implementation
+
+`SimulationEngine` implements the approved M04C boundary with explicit elapsed milliseconds, checked fixed-point arithmetic, transactional candidate commit, complete result/segment/event records, and the shared `CoreFlowKeys` residual contract. The implementation remains limited to zero or one active Reaping and rejects Retinues, unknown nonzero flow keys, and multiple active Reapings without mutation.
+
 ### Core residual ownership
 
 The existing schema-v2 `ReapingState.flow_carry_units` map receives stable internal keys for:
@@ -1354,9 +1358,3 @@ The existing schema-v2 `ReapingState.flow_carry_units` map receives stable inter
 ### Extension seams
 
 M04D extends the same engine with discrete output channels and resolve-before-rate-change behavior. M04E adds clone forecasts and report accumulation. Later progression and concurrency slices add their own boundaries without replacing the core resolver.
-
-## M04C single-Reaping simulation owner
-
-`SimulationEngine` is the sole owner for M04C elapsed core production. It accepts a `GameState`, ready `ContentRegistry`, and explicit integer elapsed milliseconds; it reads no clocks, scenes, files, frame counters, or platform APIs. Resolution is transactional: the engine mutates a deep-cloned candidate, validates it, and replaces live state once. This milestone supports no active Reaping, inactive records, or one active Reaping; multiple active Reapings and Retinue configurations reject without mutation.
-
-M04C owns only returned-soul, Essence, active-Form Mastery, cycle, and Settlement-boundary arithmetic. It intentionally does not run milestones, reports, Writ transitions, discovery, tutorial, forecasts, offline reconciliation, Hall production, non-Essence channels, or multi-Reaping concurrency.

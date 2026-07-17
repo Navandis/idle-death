@@ -14,14 +14,6 @@ const ERR_TYPE := "GAME_STATE_TYPE"
 const ERR_RANGE := "GAME_STATE_RANGE"
 const ERR_CONTENT := "GAME_STATE_CONTENT_ID"
 const ERR_CROSS_FIELD := "GAME_STATE_CROSS_FIELD"
-const CORE_FLOW_LIMITS := {
-	&"FLOW_CORE_RETURNS_PROGRESS_SUBUNITS": FixedPoint.SCALE,
-	&"FLOW_CORE_RETURNS_RATE_CARRY_UNITS": 1000,
-	&"FLOW_CORE_ESSENCE_PROGRESS_SUBUNITS": FixedPoint.SCALE,
-	&"FLOW_CORE_ESSENCE_RATE_CARRY_UNITS": 10000,
-	&"FLOW_CORE_MASTERY_RATE_CARRY_UNITS": 60000,
-}
-
 static func validate(state: GameState, registry: ContentRegistry) -> Dictionary:
 	if state == null: return _err(ERR_TYPE, "game_state")
 	if registry == null or not registry.ready: return _err(ERR_CONTENT, "content_registry")
@@ -94,6 +86,7 @@ static func _validate_reapings(state: GameState, registry: ContentRegistry) -> D
 		if not reaping is GameState.ReapingState: return _err(ERR_TYPE, "reapings.%s" % key)
 		if str(reaping.threshold_id) != str(key) or not state.thresholds.has(key): return _err(ERR_CROSS_FIELD, "reapings.%s.threshold_id" % key)
 		var form := registry.get_record(str(reaping.form_id)); if not form.ok or form.record.type != "form": return _err(ERR_CONTENT, "reapings.%s.form_id" % key)
+		var threshold_record := registry.get_record(str(reaping.threshold_id)); if not threshold_record.ok or threshold_record.record.type != "threshold": return _err(ERR_CONTENT, "reapings.%s.threshold_id" % key)
 		var writ := registry.get_record(str(reaping.writ_id)); if not writ.ok or writ.record.type != "writ": return _err(ERR_CONTENT, "reapings.%s.writ_id" % key)
 		if reaping.assignment_revision <= 0: return _err(ERR_RANGE, "reapings.%s.assignment_revision" % key)
 		if reaping.is_active:
@@ -106,13 +99,14 @@ static func _validate_reapings(state: GameState, registry: ContentRegistry) -> D
 		for retinue_id in reaping.retinue_ids:
 			var retinue := registry.get_record(str(retinue_id)); if not retinue.ok or retinue.record.type != "retinue": return _err(ERR_CONTENT, "reapings.%s.retinue_ids" % key)
 		if reaping.cycle_phase_msec < 0 or reaping.completed_cycle_count < 0: return _err(ERR_RANGE, "reapings.%s" % key)
+		if reaping.cycle_phase_msec >= int(form.record.cycle_duration_msec): return _err(ERR_RANGE, "reapings.%s.cycle_phase_msec" % key)
 		if reaping.started_simulation_msec < 0 or reaping.started_simulation_msec > state.simulation_time_msec: return _err(ERR_RANGE, "reapings.%s.started_simulation_msec" % key)
 		if reaping.last_configuration_change_simulation_msec < 0 or reaping.last_configuration_change_simulation_msec > state.simulation_time_msec: return _err(ERR_RANGE, "reapings.%s.last_configuration_change_simulation_msec" % key)
 		if reaping.last_configuration_change_simulation_msec < reaping.started_simulation_msec: return _err(ERR_CROSS_FIELD, "reapings.%s.last_configuration_change_simulation_msec" % key)
-		for flow_id in _sorted_keys(reaping.flow_carry_units):
-			var flow_value := int(reaping.flow_carry_units[flow_id])
-			if flow_value < 0: return _err(ERR_RANGE, "reapings.%s.flow_carry_units.%s" % [key, flow_id])
-			if CORE_FLOW_LIMITS.has(flow_id) and flow_value >= int(CORE_FLOW_LIMITS[flow_id]): return _err(ERR_RANGE, "reapings.%s.flow_carry_units.%s" % [key, flow_id])
+		var essence_channel := CoreFlowKeys.find_single_essence_channel(registry, reaping.threshold_id, threshold_record.record)
+		if not essence_channel.ok: return _err(ERR_CONTENT, "reapings.%s.flow_carry_units.%s" % [key, essence_channel.get("field_path", "RES_ESSENCE")])
+		var residuals := CoreFlowKeys.validate_reaping_residuals(reaping, threshold_record.record, form.record, essence_channel.channel)
+		if not residuals.ok: return _err(String(residuals.code), "reapings.%s.%s" % [key, residuals.get("field_path", "flow_carry_units")])
 	return {"ok": true}
 
 static func _sorted_keys(dict: Dictionary) -> Array:

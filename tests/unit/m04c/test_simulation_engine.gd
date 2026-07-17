@@ -107,3 +107,43 @@ func test_supported_always_and_essence_yield_trait_multipliers_apply() -> void:
 	var essence := engine._essence_rate(&"THR_GLOAMWOOD", false, essence_traits, threshold)
 	assert_true(essence.ok, str(essence))
 	assert_eq(essence.rate, 2000000)
+
+func test_result_segments_summary_and_source_ownership_contract() -> void:
+	var state := _state(1)
+	var result := _engine().resolve_elapsed(state, 10000)
+	assert_true(result.success, result.developer_details)
+	assert_eq(result.change_summary.threshold_id, "THR_GLOAMWOOD")
+	assert_eq(result.change_summary.simulation_time_delta_msec, 10000)
+	assert_eq(result.change_summary.returned_souls_delta, 3)
+	assert_eq(result.change_summary.backlog_delta, -1)
+	assert_eq(result.change_summary.Essence_delta, 0)
+	assert_eq(result.change_summary.Mastery_delta_subunits, 166666)
+	assert_eq(result.change_summary.completed_cycles_delta, 0)
+	assert_eq(result.change_summary.lifecycle_before, "OVERDUE")
+	assert_eq(result.change_summary.lifecycle_after, "SETTLED")
+	assert_eq(result.segments.size(), 2)
+	assert_eq(result.segments[0].start_simulation_msec, 0)
+	assert_eq(result.segments[0].end_simulation_msec, 870)
+	assert_eq(result.segments[0].returned_souls_delta, 1)
+	assert_eq(result.segments[1].start_simulation_msec, 870)
+	assert_eq(result.segments[1].end_simulation_msec, 10000)
+	assert_eq(result.events[0].priority, SimulationEngine.EVENT_PRIORITY_LIFECYCLE)
+	assert_eq(result.events[0].source_id, &"SIMULATION_ENGINE")
+	assert_true(result.events[0].reportable)
+	assert_true(result.events[0].tutorial_relevant)
+	var source := FileAccess.get_file_as_string("res://src/simulation/simulation_engine.gd") + FileAccess.get_file_as_string("res://src/debug/m04c_debug_advance.gd")
+	for needle in ["Time.get", "OS.get_datetime", "get_ticks", "extends Node", "Steam", "Forecast", "Report"]:
+		assert_eq(source.find(needle), -1, "forbidden ownership token: %s" % needle)
+
+func test_debug_adapter_matches_direct_engine() -> void:
+	var registry := _registry()
+	var direct := _state()
+	var debug := _state()
+	var direct_result := SimulationEngine.new(registry).resolve_elapsed(direct, 60000)
+	var debug_result := M04CDebugAdvance.new(registry).advance_msec(debug, 60000)
+	assert_true(direct_result.success)
+	assert_true(debug_result.success)
+	assert_eq(_canonical_state_for_unit(debug), _canonical_state_for_unit(direct))
+
+func _canonical_state_for_unit(state: GameState) -> Dictionary:
+	return SaveSchemaMapper.runtime_to_snapshot(state, TimeAuthorityState.new(), 1, ContentRegistry.CURRENT_REVISION).game_state

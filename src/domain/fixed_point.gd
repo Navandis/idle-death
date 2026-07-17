@@ -59,6 +59,24 @@ static func add_subunits(left_subunits: int, right_subunits: int) -> Dictionary:
 	return ok({"subunits": left_subunits + right_subunits})
 
 
+## Multiplies two scaled non-negative fixed-point values and floors once.
+static func multiply_scaled_floor(value_subunits: int, multiplier_subunits: int) -> Dictionary:
+	if value_subunits < 0 or multiplier_subunits < 0:
+		return fail(ERR_NEGATIVE_INPUT)
+	if value_subunits != 0 and multiplier_subunits > INT64_MAX / value_subunits:
+		return fail(ERR_OVERFLOW)
+	return ok({"subunits": (value_subunits * multiplier_subunits) / SCALE})
+
+
+## Adds non-negative signed-64 integers with explicit overflow reporting.
+static func add_int64(left: int, right: int) -> Dictionary:
+	if left < 0 or right < 0:
+		return fail(ERR_NEGATIVE_INPUT)
+	if left > INT64_MAX - right:
+		return fail(ERR_OVERFLOW)
+	return ok({"value": left + right})
+
+
 ## Accumulates a non-negative integer-millisecond rate with an explicit period.
 ##
 ## `rate_subunits_per_period` is produced once per `period_msec`.  `carry_units`

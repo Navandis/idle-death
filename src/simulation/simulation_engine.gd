@@ -26,18 +26,12 @@ const ERR_ZERO_BOUNDARY := &"SIM_ZERO_BOUNDARY"
 const EVENT_THRESHOLD_SETTLED := &"THRESHOLD_SETTLED"
 const EVENT_PRIORITY_LIFECYCLE := 200
 
-const FLOW_CORE_RETURNS_PROGRESS_SUBUNITS := &"FLOW_CORE_RETURNS_PROGRESS_SUBUNITS"
-const FLOW_CORE_RETURNS_RATE_CARRY_UNITS := &"FLOW_CORE_RETURNS_RATE_CARRY_UNITS"
-const FLOW_CORE_ESSENCE_PROGRESS_SUBUNITS := &"FLOW_CORE_ESSENCE_PROGRESS_SUBUNITS"
-const FLOW_CORE_ESSENCE_RATE_CARRY_UNITS := &"FLOW_CORE_ESSENCE_RATE_CARRY_UNITS"
-const FLOW_CORE_MASTERY_RATE_CARRY_UNITS := &"FLOW_CORE_MASTERY_RATE_CARRY_UNITS"
-const CORE_FLOW_KEYS := [
-	FLOW_CORE_RETURNS_PROGRESS_SUBUNITS,
-	FLOW_CORE_RETURNS_RATE_CARRY_UNITS,
-	FLOW_CORE_ESSENCE_PROGRESS_SUBUNITS,
-	FLOW_CORE_ESSENCE_RATE_CARRY_UNITS,
-	FLOW_CORE_MASTERY_RATE_CARRY_UNITS,
-]
+const FLOW_CORE_RETURNS_PROGRESS_SUBUNITS := CoreFlowKeys.RETURNS_PROGRESS
+const FLOW_CORE_RETURNS_RATE_CARRY_UNITS := CoreFlowKeys.RETURNS_CARRY
+const FLOW_CORE_ESSENCE_PROGRESS_SUBUNITS := CoreFlowKeys.ESSENCE_PROGRESS
+const FLOW_CORE_ESSENCE_RATE_CARRY_UNITS := CoreFlowKeys.ESSENCE_CARRY
+const FLOW_CORE_MASTERY_RATE_CARRY_UNITS := CoreFlowKeys.MASTERY_CARRY
+const CORE_FLOW_KEYS := CoreFlowKeys.ORDERED_KEYS
 
 var registry: ContentRegistry
 
@@ -63,7 +57,7 @@ func resolve_elapsed(state: GameState, elapsed_msec: int) -> SimulationResult:
 		var timeline := candidate.advance_simulation_time(elapsed_msec)
 		if not timeline.ok: return SimulationResult.failure(ERR_OVERFLOW, elapsed_msec, str(timeline))
 		result.committed_elapsed_msec = elapsed_msec
-		result.change_summary["timeline_msec"] = elapsed_msec
+		result.change_summary["simulation_time_delta_msec"] = elapsed_msec
 		return _commit_if_valid(state, candidate, result)
 
 	var active_id: StringName = active_ids[0]
@@ -91,12 +85,11 @@ func resolve_elapsed(state: GameState, elapsed_msec: int) -> SimulationResult:
 			if boundary.elapsed_msec <= remaining:
 				segment_msec = boundary.elapsed_msec
 				will_settle = true
-		var before_returns: int = threshold.persistent_returns_total
 		var applied := _apply_segment(candidate, reaping, active_id, segment_msec)
 		if not applied.ok: return SimulationResult.failure(StringName(applied.code), elapsed_msec, applied.details)
 		cursor += segment_msec
 		remaining -= segment_msec
-		result.segments.append({"start_msec": cursor - segment_msec, "elapsed_msec": segment_msec, "lifecycle": applied.lifecycle, "returns": candidate.thresholds[active_id].persistent_returns_total - before_returns})
+		result.segments.append({"start_simulation_msec": cursor - segment_msec, "end_simulation_msec": cursor, "elapsed_msec": segment_msec, "lifecycle": applied.lifecycle, "returned_souls_delta": applied.returned_souls_delta, "backlog_delta": applied.backlog_delta, "Essence_delta": applied.Essence_delta, "Mastery_delta_subunits": applied.Mastery_delta_subunits, "completed_cycles_delta": applied.completed_cycles_delta})
 		if will_settle:
 			threshold = candidate.thresholds[active_id]
 			threshold.remaining_backlog = 0
@@ -111,6 +104,11 @@ func resolve_elapsed(state: GameState, elapsed_msec: int) -> SimulationResult:
 func _apply_segment(state: GameState, reaping: GameState.ReapingState, threshold_id: StringName, elapsed_msec: int) -> Dictionary:
 	var threshold: GameState.ThresholdState = state.thresholds[threshold_id]
 	var form: GameState.FormState = state.forms[reaping.form_id]
+	var before_returns: int = threshold.persistent_returns_total
+	var before_backlog: int = threshold.remaining_backlog
+	var before_essence: int = state.inventory.entries.get(&"RES_ESSENCE", GameState.InventoryEntryState.new()).total
+	var before_mastery: int = form.mastery_subunits
+	var before_cycles: int = reaping.completed_cycle_count
 	var form_record: Dictionary = registry.get_record(str(reaping.form_id)).record
 	var threshold_record: Dictionary = registry.get_record(str(threshold_id)).record
 	var return_rate := _scaled_rate(form_record.base_returned_souls_rate, form_record.traits, threshold_record, "SOULS_RETURNED_RATE", str(threshold.lifecycle_state) == "SETTLED")
@@ -141,12 +139,13 @@ func _apply_segment(state: GameState, reaping: GameState.ReapingState, threshold
 	form.mastery_subunits += int(mastery.produced_subunits)
 	reaping.flow_carry_units[FLOW_CORE_MASTERY_RATE_CARRY_UNITS] = int(mastery.carry_units)
 	if form_record.cycle_duration_msec <= 0: return _fail(ERR_CONTENT, "cycle_duration_msec")
+	if reaping.cycle_phase_msec > FixedPoint.INT64_MAX - elapsed_msec: return _fail(ERR_OVERFLOW, "cycle_phase_msec")
 	var phase_total := reaping.cycle_phase_msec + elapsed_msec
 	var completed := phase_total / int(form_record.cycle_duration_msec)
 	if reaping.completed_cycle_count > FixedPoint.INT64_MAX - completed: return _fail(ERR_OVERFLOW, "completed_cycle_count")
 	reaping.completed_cycle_count += completed
 	reaping.cycle_phase_msec = phase_total % int(form_record.cycle_duration_msec)
-	return {"ok": true, "lifecycle": str(threshold.lifecycle_state)}
+	return {"ok": true, "lifecycle": str(threshold.lifecycle_state), "returned_souls_delta": threshold.persistent_returns_total - before_returns, "backlog_delta": threshold.remaining_backlog - before_backlog, "Essence_delta": state.inventory.entries.get(&"RES_ESSENCE", GameState.InventoryEntryState.new()).total - before_essence, "Mastery_delta_subunits": form.mastery_subunits - before_mastery, "completed_cycles_delta": reaping.completed_cycle_count - before_cycles}
 
 func _accumulate_flow(reaping: GameState.ReapingState, progress_key: StringName, carry_key: StringName, rate: int, period: int, elapsed_msec: int) -> Dictionary:
 	var acc := FixedPoint.accumulate_for_elapsed_msec(rate, period, elapsed_msec, int(reaping.flow_carry_units.get(carry_key, 0)))
@@ -164,11 +163,7 @@ func _msec_to_next_return(reaping: GameState.ReapingState, threshold_id: StringN
 	var threshold_record: Dictionary = registry.get_record(str(threshold_id)).record
 	var rate := _scaled_rate(form_record.base_returned_souls_rate, form_record.traits, threshold_record, "SOULS_RETURNED_RATE", false)
 	if not rate.ok: return rate
-	var progress := int(reaping.flow_carry_units.get(FLOW_CORE_RETURNS_PROGRESS_SUBUNITS, 0))
-	var required := needed_returns * FixedPoint.SCALE - progress
-	if required <= 0: return {"ok": true, "elapsed_msec": 1}
-	var numerator := required * int(rate.period) - int(reaping.flow_carry_units.get(FLOW_CORE_RETURNS_RATE_CARRY_UNITS, 0))
-	return {"ok": true, "elapsed_msec": int((numerator + int(rate.rate) - 1) / int(rate.rate))}
+	return _search_return_boundary(reaping, needed_returns, int(rate.rate), int(rate.period))
 
 func _scaled_rate(rate: Dictionary, traits: Array, threshold_record: Dictionary, metric: String, apply_settled: bool) -> Dictionary:
 	var value := int(rate.rate_subunits_per_period)
@@ -176,7 +171,9 @@ func _scaled_rate(rate: Dictionary, traits: Array, threshold_record: Dictionary,
 	if not modified.ok: return modified
 	value = int(modified.rate)
 	if apply_settled:
-		value = (value * int(threshold_record.settled_multiplier_subunits)) / FixedPoint.SCALE
+		var settled := FixedPoint.multiply_scaled_floor(value, int(threshold_record.settled_multiplier_subunits))
+		if not settled.ok: return _fail(ERR_OVERFLOW, "settled multiplier")
+		value = int(settled.subunits)
 	return {"ok": true, "rate": value, "period": int(rate.period_msec)}
 
 func _apply_trait_multipliers(base_rate: int, traits: Array, threshold_record: Dictionary, metric: String) -> Dictionary:
@@ -187,25 +184,62 @@ func _apply_trait_multipliers(base_rate: int, traits: Array, threshold_record: D
 			if modifier.operation != "MULTIPLY" or modifier.scope != "REAPING_TOTAL": return _fail(ERR_UNSUPPORTED_MODIFIER, str(modifier))
 			match modifier.condition:
 				"ALWAYS":
-					value = (value * int(modifier.value_subunits)) / FixedPoint.SCALE
+					var always_scaled := FixedPoint.multiply_scaled_floor(value, int(modifier.value_subunits))
+					if not always_scaled.ok: return _fail(ERR_OVERFLOW, "trait multiplier")
+					value = int(always_scaled.subunits)
 				"THRESHOLD_HAS_ANY_TAG":
 					if _has_any(threshold_record.tags, modifier.condition_values):
-						value = (value * int(modifier.value_subunits)) / FixedPoint.SCALE
+						var tag_scaled := FixedPoint.multiply_scaled_floor(value, int(modifier.value_subunits))
+						if not tag_scaled.ok: return _fail(ERR_OVERFLOW, "trait multiplier")
+						value = int(tag_scaled.subunits)
 				_:
 					return _fail(ERR_UNSUPPORTED_MODIFIER, str(modifier))
 	return {"ok": true, "rate": value}
 
 func _essence_rate(threshold_id: StringName, settled: bool, traits: Array, threshold_record: Dictionary) -> Dictionary:
-	for cid in threshold_record.channel_ids:
-		var rec := registry.get_record(str(cid))
-		if rec.ok and rec.record.output_item_id == "RES_ESSENCE" and rec.record.enabled:
-			var value := int(rec.record.rate.rate_subunits_per_period)
-			var modified := _apply_trait_multipliers(value, traits, threshold_record, "ESSENCE_YIELD")
-			if not modified.ok: return modified
-			value = int(modified.rate)
-			if settled: value = (value * int(rec.record.settled_multiplier_subunits)) / FixedPoint.SCALE
-			return {"ok": true, "rate": value, "period": int(rec.record.rate.period_msec)}
-	return _fail(ERR_CONTENT, "Missing RES_ESSENCE channel for %s" % threshold_id)
+	var essence_channel := CoreFlowKeys.find_single_essence_channel(registry, threshold_id, threshold_record)
+	if not essence_channel.ok: return _fail(ERR_CONTENT, essence_channel.get("field_path", "RES_ESSENCE"))
+	var channel: Dictionary = essence_channel.channel
+	var value := int(channel.rate.rate_subunits_per_period)
+	var modified := _apply_trait_multipliers(value, traits, threshold_record, "ESSENCE_YIELD")
+	if not modified.ok: return modified
+	value = int(modified.rate)
+	if settled:
+		var settled_value := FixedPoint.multiply_scaled_floor(value, int(channel.settled_multiplier_subunits))
+		if not settled_value.ok: return _fail(ERR_OVERFLOW, "essence settled multiplier")
+		value = int(settled_value.subunits)
+	return {"ok": true, "rate": value, "period": int(channel.rate.period_msec)}
+
+func _search_return_boundary(reaping: GameState.ReapingState, needed_returns: int, rate: int, period: int) -> Dictionary:
+	if needed_returns <= 0:
+		return {"ok": true, "elapsed_msec": 1}
+	if rate <= 0 or period <= 0:
+		return _fail(ERR_ZERO_BOUNDARY, "non-positive return rate")
+	var high := 1
+	while true:
+		var produced := _whole_returns_after_elapsed(reaping, rate, period, high)
+		if not produced.ok: return produced
+		if int(produced.whole) >= needed_returns: break
+		if high > FixedPoint.INT64_MAX / 2: return _fail(ERR_OVERFLOW, "settlement boundary search")
+		high *= 2
+	var low := 0
+	while high - low > 1:
+		var mid := low + ((high - low) / 2)
+		var mid_produced := _whole_returns_after_elapsed(reaping, rate, period, mid)
+		if not mid_produced.ok: return mid_produced
+		if int(mid_produced.whole) >= needed_returns:
+			high = mid
+		else:
+			low = mid
+	return {"ok": true, "elapsed_msec": high}
+
+func _whole_returns_after_elapsed(reaping: GameState.ReapingState, rate: int, period: int, elapsed_msec: int) -> Dictionary:
+	var acc := FixedPoint.accumulate_for_elapsed_msec(rate, period, elapsed_msec, int(reaping.flow_carry_units.get(FLOW_CORE_RETURNS_RATE_CARRY_UNITS, 0)))
+	if not acc.ok: return _fail(ERR_OVERFLOW, "return boundary accumulation")
+	var added := FixedPoint.add_subunits(int(reaping.flow_carry_units.get(FLOW_CORE_RETURNS_PROGRESS_SUBUNITS, 0)), int(acc.produced_subunits))
+	if not added.ok: return _fail(ERR_OVERFLOW, "return boundary progress")
+	var extracted := FixedPoint.extract_whole(int(added.subunits))
+	return {"ok": true, "whole": int(extracted.whole_units)}
 
 func _validate_core_flows(reaping: GameState.ReapingState) -> Dictionary:
 	for key in reaping.flow_carry_units.keys():
@@ -227,7 +261,10 @@ func _active_reaping_ids(state: GameState) -> Array[StringName]:
 	return ids
 
 func _summary(before: GameState, after: GameState, threshold_id: StringName) -> Dictionary:
-	return {"timeline_msec": after.simulation_time_msec - before.simulation_time_msec, "returns": after.thresholds[threshold_id].persistent_returns_total - before.thresholds[threshold_id].persistent_returns_total, "essence": after.inventory.entries.get(&"RES_ESSENCE", GameState.InventoryEntryState.new()).total - before.inventory.entries.get(&"RES_ESSENCE", GameState.InventoryEntryState.new()).total, "mastery_subunits": after.forms[after.reapings[threshold_id].form_id].mastery_subunits - before.forms[before.reapings[threshold_id].form_id].mastery_subunits}
+	var before_threshold: GameState.ThresholdState = before.thresholds[threshold_id]
+	var after_threshold: GameState.ThresholdState = after.thresholds[threshold_id]
+	var form_id: StringName = after.reapings[threshold_id].form_id
+	return {"threshold_id": str(threshold_id), "operation_id": str(threshold_id), "simulation_time_delta_msec": after.simulation_time_msec - before.simulation_time_msec, "returned_souls_delta": after_threshold.persistent_returns_total - before_threshold.persistent_returns_total, "backlog_delta": after_threshold.remaining_backlog - before_threshold.remaining_backlog, "Essence_delta": after.inventory.entries.get(&"RES_ESSENCE", GameState.InventoryEntryState.new()).total - before.inventory.entries.get(&"RES_ESSENCE", GameState.InventoryEntryState.new()).total, "Mastery_delta_subunits": after.forms[form_id].mastery_subunits - before.forms[form_id].mastery_subunits, "completed_cycles_delta": after.reapings[threshold_id].completed_cycle_count - before.reapings[threshold_id].completed_cycle_count, "lifecycle_before": str(before_threshold.lifecycle_state), "lifecycle_after": str(after_threshold.lifecycle_state)}
 
 func _has_any(left: Array, right: Array) -> bool:
 	for value in right:

@@ -35,3 +35,55 @@ func test_schema_v2_round_trips_core_residuals_after_settlement() -> void:
 	assert_eq(round.reapings[&"THR_GLOAMWOOD"].flow_carry_units[SimulationEngine.FLOW_CORE_RETURNS_PROGRESS_SUBUNITS], 625375)
 	assert_eq(round.reapings[&"THR_GLOAMWOOD"].flow_carry_units[SimulationEngine.FLOW_CORE_ESSENCE_PROGRESS_SUBUNITS], 315250)
 	assert_eq(round.reapings[&"THR_GLOAMWOOD"].flow_carry_units[SimulationEngine.FLOW_CORE_MASTERY_RATE_CARRY_UNITS], 40000)
+
+func _registry() -> ContentRegistry:
+	return ContentRegistry.build(load("res://content/prototype_content_catalog.tres"))
+
+func _coordinator(storage: MemorySaveStorage, files: SaveFileSet) -> GameStatePersistenceCoordinator:
+	return GameStatePersistenceCoordinator.new(SaveService.new(storage, files), _registry())
+
+func test_production_coordinator_round_trips_overdue_settled_and_idle_m04c_state() -> void:
+	var registry := _registry()
+	var cases := [_state(), _state(), GameState.new(1234)]
+	cases[0].reapings[&"THR_GLOAMWOOD"].flow_carry_units[SimulationEngine.FLOW_CORE_RETURNS_PROGRESS_SUBUNITS] = 123456
+	cases[0].reapings[&"THR_GLOAMWOOD"].flow_carry_units[SimulationEngine.FLOW_CORE_RETURNS_RATE_CARRY_UNITS] = 12
+	cases[0].reapings[&"THR_GLOAMWOOD"].flow_carry_units[SimulationEngine.FLOW_CORE_ESSENCE_PROGRESS_SUBUNITS] = 234567
+	cases[0].reapings[&"THR_GLOAMWOOD"].flow_carry_units[SimulationEngine.FLOW_CORE_ESSENCE_RATE_CARRY_UNITS] = 34
+	cases[0].reapings[&"THR_GLOAMWOOD"].flow_carry_units[SimulationEngine.FLOW_CORE_MASTERY_RATE_CARRY_UNITS] = 56
+	cases[0].reapings[&"THR_GLOAMWOOD"].cycle_phase_msec = 789
+	assert_true(SimulationEngine.new(registry).resolve_elapsed(cases[1], 10000).success)
+	for index in range(cases.size()):
+		var storage := MemorySaveStorage.new()
+		var files := SaveFileSet.new("memory://m04c_%d" % index, "save")
+		var coordinator := _coordinator(storage, files)
+		assert_true(coordinator.save_runtime(cases[index], TimeAuthorityState.new(), index + 1).ok)
+		var loaded := coordinator.load_runtime()
+		assert_true(loaded.ok, str(loaded))
+		assert_eq(_canonical_state(loaded.game_state), _canonical_state(cases[index]))
+
+func test_coordinator_rejects_invalid_core_residuals_and_cycle_phase() -> void:
+	var invalid_cases := [
+		{"key": SimulationEngine.FLOW_CORE_RETURNS_PROGRESS_SUBUNITS, "value": FixedPoint.SCALE},
+		{"key": SimulationEngine.FLOW_CORE_ESSENCE_PROGRESS_SUBUNITS, "value": FixedPoint.SCALE},
+		{"key": SimulationEngine.FLOW_CORE_RETURNS_RATE_CARRY_UNITS, "value": 1000},
+		{"key": SimulationEngine.FLOW_CORE_ESSENCE_RATE_CARRY_UNITS, "value": 10000},
+		{"key": SimulationEngine.FLOW_CORE_MASTERY_RATE_CARRY_UNITS, "value": 60000},
+	]
+	for invalid in invalid_cases:
+		var state := _state()
+		state.reapings[&"THR_GLOAMWOOD"].flow_carry_units[invalid.key] = invalid.value
+		_assert_load_rejects_domain_state(state)
+	var phase_state := _state()
+	phase_state.reapings[&"THR_GLOAMWOOD"].cycle_phase_msec = 60000
+	_assert_load_rejects_domain_state(phase_state)
+
+func _assert_load_rejects_domain_state(state: GameState) -> void:
+	var storage := MemorySaveStorage.new()
+	var files := SaveFileSet.new("memory://m04c_invalid", "save")
+	var snapshot := SaveSchemaMapper.runtime_to_snapshot(state, TimeAuthorityState.new(), 1, ContentRegistry.CURRENT_REVISION)
+	storage.write_bytes(files.primary_path, JsonSaveCodec.new().encode(snapshot).bytes)
+	var loaded := _coordinator(storage, files).load_runtime()
+	assert_false(loaded.ok, str(loaded))
+
+func _canonical_state(state: GameState) -> Dictionary:
+	return SaveSchemaMapper.runtime_to_snapshot(state, TimeAuthorityState.new(), 1, ContentRegistry.CURRENT_REVISION).game_state

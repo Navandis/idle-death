@@ -1639,6 +1639,11 @@ Settlement events = 1
 
 ### 23.4 M04C trace markers
 
+Negative trace invocations with a missing, blank, or `user://` save root must exit nonzero. The trace uses the supplied disposable root for production file-backed persistence and prints a PASS marker only after checking the corresponding condition.
+
+Focused paths are `res://tests/unit/m04c` and `res://tests/integration/m04c`; Windows owner rerun remains pending until the corrected package passes against the PR head.
+
+
 Required exact markers:
 
 ```text
@@ -1714,16 +1719,3 @@ M04C cannot merge until:
 - schema version remains 2;
 - no discrete non-Essence channel, Retinue, progression, report, forecast, concurrency, UI, or platform behavior enters the diff;
 - actual review surface remains within the approved assessment or receives a revised prompt.
-
-## M04C single-Reaping core resolver checks
-
-M04C focused verification uses the schema-v2 state contract and the deterministic trace:
-
-```bash
-./tools/test/run_gut.sh -- -gdir=res://tests/unit/m04c -gdir=res://tests/integration/m04c
-trace_root="$(mktemp -d)"
-godot --headless --path . -s res://tools/test/m04c/m04c_core_reaping_trace.gd -- --save-root "$trace_root"
-rm -rf "$trace_root"
-```
-
-The trace must print all eleven `TRACE M04C` markers, including the 60-second fixture (`69` returns, `6` Essence, `1000000` Mastery subunits, one cycle) and the 870 ms Settlement boundary.
