@@ -87,3 +87,40 @@ func _assert_load_rejects_domain_state(state: GameState) -> void:
 
 func _canonical_state(state: GameState) -> Dictionary:
 	return SaveSchemaMapper.runtime_to_snapshot(state, TimeAuthorityState.new(), 1, ContentRegistry.CURRENT_REVISION).game_state
+
+func test_persisted_snapshot_excludes_result_artifacts_and_preserves_schema_content_codec() -> void:
+	var registry := _registry()
+	var state := _state()
+	var result := SimulationEngine.new(registry).resolve_elapsed(state, 10000)
+	assert_true(result.success)
+	assert_false(result.events.is_empty())
+	assert_false(result.segments.is_empty())
+	var storage := MemorySaveStorage.new()
+	var files := SaveFileSet.new("memory://m04c_artifacts", "save")
+	var coordinator := _coordinator(storage, files)
+	assert_true(coordinator.save_runtime(state, TimeAuthorityState.new(), 9).ok)
+	var snapshot: Dictionary = JsonSaveCodec.new().decode(storage.files[files.primary_path]).snapshot
+	assert_eq(snapshot.codec_id, SaveEnvelope.CODEC_JSON_V1)
+	assert_eq(snapshot.schema_version, "2")
+	assert_eq(snapshot.content_revision, ContentRegistry.CURRENT_REVISION)
+	assert_false(snapshot.game_state.has("events"))
+	assert_false(snapshot.game_state.has("segments"))
+	assert_false(snapshot.game_state.reapings["THR_GLOAMWOOD"].has("events"))
+	assert_false(snapshot.game_state.reapings["THR_GLOAMWOOD"].has("segments"))
+
+func test_already_settled_and_no_active_round_trip_after_resolution() -> void:
+	var registry := _registry()
+	var settled := _state()
+	assert_true(SimulationEngine.new(registry).resolve_elapsed(settled, 10000).success)
+	assert_true(SimulationEngine.new(registry).resolve_elapsed(settled, 60000).success)
+	var idle := GameState.new(0)
+	idle.progression.command_tether_capacity = 1
+	assert_true(SimulationEngine.new(registry).resolve_elapsed(idle, 12345).success)
+	for state in [settled, idle]:
+		var storage := MemorySaveStorage.new()
+		var files := SaveFileSet.new("memory://m04c_round_trip_extra", "save")
+		var coordinator := _coordinator(storage, files)
+		assert_true(coordinator.save_runtime(state, TimeAuthorityState.new(), 3).ok)
+		var loaded := coordinator.load_runtime()
+		assert_true(loaded.ok, str(loaded))
+		assert_eq(_canonical_state(loaded.game_state), _canonical_state(state))

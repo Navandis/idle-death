@@ -1548,6 +1548,8 @@ Final evidence:
 
 M04C validates deterministic core production only. No test may depend on elapsed wall time, rendered frames, Steam, or UI.
 
+Current PR #12 focused evidence covers duration and transaction failures, supported and unsupported modifier/rate plans, Essence-channel validation, Settlement/chunking fixtures, overflow and fixed-point helper failures, source ownership, and persistence invariants. The corrected focused suite currently reports 19 focused tests and 253 assertions; the full repository suite currently reports 94 tests and 1,346 assertions in Codex/Linux evidence.
+
 ### 23.1 Focused Linux/Codex checks
 
 Expected focused command:
