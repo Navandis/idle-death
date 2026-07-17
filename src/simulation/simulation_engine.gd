@@ -77,7 +77,7 @@ func _resolve_active(candidate: GameState, reaping_id: StringName, elapsed_msec:
 		var segment_msec := remaining
 		var will_settle := false
 		if str(threshold.lifecycle_state) == "OVERDUE" and threshold.remaining_backlog > 0:
-			var boundary := _settlement_boundary_msec(threshold.remaining_backlog, _get_flow(reaping, FLOW_CORE_RETURNS_PROGRESS_SUBUNITS), _get_flow(reaping, FLOW_CORE_RETURNS_RATE_CARRY_UNITS), rate.returns_rate_subunits_per_period, rate.returns_period_msec)
+			var boundary := _settlement_boundary_msec(threshold.remaining_backlog, _get_flow(reaping, FLOW_CORE_RETURNS_PROGRESS_SUBUNITS), _get_flow(reaping, FLOW_CORE_RETURNS_RATE_CARRY_UNITS), rate.returns_rate_subunits_per_period, rate.returns_period_msec, remaining)
 			if not boundary.ok: return SimulationResult.failure(StringName(boundary.code), boundary)
 			if boundary.elapsed_msec <= remaining:
 				if boundary.elapsed_msec <= 0: return SimulationResult.failure(ERR_ZERO_BOUNDARY, boundary)
@@ -144,15 +144,32 @@ func _accumulate_extract(reaping: GameState.ReapingState, progress_key: StringNa
 	reaping.flow_carry_units[carry_key] = accumulated.carry_units
 	return {"ok": true, "whole": extracted.whole_units}
 
-func _settlement_boundary_msec(backlog: int, progress: int, carry: int, rate_subunits: int, period_msec: int) -> Dictionary:
-	for elapsed in range(1, period_msec + 1):
-		var acc := FixedPoint.accumulate_for_elapsed_msec(rate_subunits, period_msec, elapsed, carry)
-		if not acc.ok: return acc
-		var total := FixedPoint.add_subunits(progress, acc.produced_subunits)
-		if not total.ok: return total
-		if total.subunits / FixedPoint.SCALE >= backlog:
-			return {"ok": true, "elapsed_msec": elapsed}
-	return {"ok": true, "elapsed_msec": FixedPoint.INT64_MAX}
+func _settlement_boundary_msec(backlog: int, progress: int, carry: int, rate_subunits: int, period_msec: int, search_limit_msec: int) -> Dictionary:
+	# Settlement can require many rate periods for normal prototype backlogs.
+	# Search only within the caller's remaining elapsed interval: if no boundary
+	# exists there, the current segment can safely consume the whole interval
+	# without pretending the Threshold settled. A binary search preserves exact
+	# boundary segmentation without iterating rendered frames or every second.
+	var low := 1
+	var high := search_limit_msec
+	var found := FixedPoint.INT64_MAX
+	while low <= high:
+		var elapsed: int = low + ((high - low) / 2)
+		var produced := _would_meet_backlog(backlog, progress, carry, rate_subunits, period_msec, elapsed)
+		if not produced.ok: return produced
+		if produced.meets_backlog:
+			found = elapsed
+			high = elapsed - 1
+		else:
+			low = elapsed + 1
+	return {"ok": true, "elapsed_msec": found}
+
+func _would_meet_backlog(backlog: int, progress: int, carry: int, rate_subunits: int, period_msec: int, elapsed_msec: int) -> Dictionary:
+	var acc := FixedPoint.accumulate_for_elapsed_msec(rate_subunits, period_msec, elapsed_msec, carry)
+	if not acc.ok: return acc
+	var total := FixedPoint.add_subunits(progress, acc.produced_subunits)
+	if not total.ok: return total
+	return {"ok": true, "meets_backlog": total.subunits / FixedPoint.SCALE >= backlog}
 
 func _build_rate_plan(state: GameState, reaping: GameState.ReapingState) -> RatePlan:
 	var form_record: Dictionary = registry.get_record(str(reaping.form_id)).record

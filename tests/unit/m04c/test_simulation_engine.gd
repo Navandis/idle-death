@@ -66,6 +66,21 @@ func test_settlement_boundary_and_ten_second_fixture() -> void:
 	assert_eq(reaping.flow_carry_units[SimulationEngine.FLOW_CORE_MASTERY_RATE_CARRY_UNITS], 40000)
 	assert_eq(reaping.cycle_phase_msec, 10000)
 
+
+func test_large_backlog_settlement_search_spans_many_rate_periods() -> void:
+	var one_shot := _state(5000)
+	var chunked := _state(5000)
+	var one_result := _engine().resolve_elapsed_msec(one_shot, 5000000)
+	assert_true(one_result.success)
+	assert_eq(one_result.events.size(), 1)
+	assert_eq(one_shot.thresholds[&"THR_GLOAMWOOD"].remaining_backlog, 0)
+	assert_eq(one_shot.thresholds[&"THR_GLOAMWOOD"].lifecycle_state, &"SETTLED")
+	assert_gt(one_result.events[0].occurred_simulation_msec, 1000)
+	assert_lt(one_result.events[0].occurred_simulation_msec, 5000000)
+	for elapsed in [4000000, 500000, 500000]:
+		assert_true(_engine().resolve_elapsed_msec(chunked, elapsed).success)
+	assert_eq(_snapshot(one_shot), _snapshot(chunked))
+
 func test_idle_inactive_and_failure_no_mutation() -> void:
 	var idle := GameState.new(5)
 	idle.progression.command_tether_capacity = 1
