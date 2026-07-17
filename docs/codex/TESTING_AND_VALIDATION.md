@@ -2,7 +2,7 @@
 
 **Document role:** Canonical test strategy, commands, fixture rules, and manual validation flows
 **Repository path:** `docs/codex/TESTING_AND_VALIDATION.md`
-**Document status:** Approved validation plan through M04A with M04B draft
+**Document status:** Approved validation plan through M04A with M04B implementation PR open
 **Validation revision:** 13
 **Last updated:** 2026-07-16
 **Engine target:** Godot 4.7 standard build, GDScript only
@@ -1353,7 +1353,7 @@ Completion evidence:
 
 ## 22. M04B approved assignment validation package
 
-M04B is a command/assignment slice. It must not test production by waiting or advancing elapsed time.
+M04B is a command/assignment slice. It must not test production by waiting or advancing elapsed time. The current implementation PR verifies the slice with `tests/unit/m04b/test_reaping_assignment_service.gd`, `tests/integration/m04b/test_reaping_assignment_persistence.gd`, `tools/test/m04b/m04b_assignment_trace.gd`, and `tools/test/owner/run_m04b_owner_verification.ps1`; Windows owner verification remains pending for the corrected PR head.
 
 ### 22.1 Focused Linux/Codex checks
 
