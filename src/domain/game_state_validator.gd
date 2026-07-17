@@ -14,6 +14,13 @@ const ERR_TYPE := "GAME_STATE_TYPE"
 const ERR_RANGE := "GAME_STATE_RANGE"
 const ERR_CONTENT := "GAME_STATE_CONTENT_ID"
 const ERR_CROSS_FIELD := "GAME_STATE_CROSS_FIELD"
+const CORE_FLOW_LIMITS := {
+	&"FLOW_CORE_RETURNS_PROGRESS_SUBUNITS": FixedPoint.SCALE,
+	&"FLOW_CORE_RETURNS_RATE_CARRY_UNITS": 1000,
+	&"FLOW_CORE_ESSENCE_PROGRESS_SUBUNITS": FixedPoint.SCALE,
+	&"FLOW_CORE_ESSENCE_RATE_CARRY_UNITS": 10000,
+	&"FLOW_CORE_MASTERY_RATE_CARRY_UNITS": 60000,
+}
 
 static func validate(state: GameState, registry: ContentRegistry) -> Dictionary:
 	if state == null: return _err(ERR_TYPE, "game_state")
@@ -103,7 +110,9 @@ static func _validate_reapings(state: GameState, registry: ContentRegistry) -> D
 		if reaping.last_configuration_change_simulation_msec < 0 or reaping.last_configuration_change_simulation_msec > state.simulation_time_msec: return _err(ERR_RANGE, "reapings.%s.last_configuration_change_simulation_msec" % key)
 		if reaping.last_configuration_change_simulation_msec < reaping.started_simulation_msec: return _err(ERR_CROSS_FIELD, "reapings.%s.last_configuration_change_simulation_msec" % key)
 		for flow_id in _sorted_keys(reaping.flow_carry_units):
-			if int(reaping.flow_carry_units[flow_id]) < 0: return _err(ERR_RANGE, "reapings.%s.flow_carry_units.%s" % [key, flow_id])
+			var flow_value := int(reaping.flow_carry_units[flow_id])
+			if flow_value < 0: return _err(ERR_RANGE, "reapings.%s.flow_carry_units.%s" % [key, flow_id])
+			if CORE_FLOW_LIMITS.has(flow_id) and flow_value >= int(CORE_FLOW_LIMITS[flow_id]): return _err(ERR_RANGE, "reapings.%s.flow_carry_units.%s" % [key, flow_id])
 	return {"ok": true}
 
 static func _sorted_keys(dict: Dictionary) -> Array:

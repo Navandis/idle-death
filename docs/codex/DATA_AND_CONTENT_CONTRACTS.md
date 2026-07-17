@@ -1956,3 +1956,15 @@ events
 ```
 
 The change summary contains exact deltas for simulation time, returned souls, backlog, Essence, Mastery, completed cycles, and lifecycle. Segment summaries identify start/end simulation cursors, lifecycle/rate context, and exact committed deltas. Events follow the domain-event minimum contract and are not persisted.
+
+## M04C core flow residual keys
+
+Schema v2 persists M04C residuals in `ReapingState.flow_carry_units` using these stable keys:
+
+- `FLOW_CORE_RETURNS_PROGRESS_SUBUNITS`
+- `FLOW_CORE_RETURNS_RATE_CARRY_UNITS`
+- `FLOW_CORE_ESSENCE_PROGRESS_SUBUNITS`
+- `FLOW_CORE_ESSENCE_RATE_CARRY_UNITS`
+- `FLOW_CORE_MASTERY_RATE_CARRY_UNITS`
+
+Known progress keys remain in `[0, FixedPoint.SCALE)`. Known carry keys remain below their current prototype periods (`1000`, `10000`, and `60000` milliseconds respectively). Unknown zero-valued flow keys may round-trip, but M04C rejects unknown nonzero flow keys before mutation.

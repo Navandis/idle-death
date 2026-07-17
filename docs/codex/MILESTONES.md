@@ -2806,3 +2806,11 @@ When a slice reveals a planning problem:
 5. resume only after the revised definition or prompt is approved.
 
 The commercial save-format/threat-model review remains a release gate, not an excuse to add encryption, binary encoding, Steam Cloud, or a backend to the 0–90 minute prototype without a new approved milestone.
+
+## M04C — Single-Reaping core resolver
+
+Status: Implemented in code; Linux/Codex verification passed; Windows owner verification pending.
+
+Implemented scope: transactional `SimulationEngine`, fixed M04C core residual keys, returned-soul/Essence/Mastery/cycle arithmetic, exact Overdue-to-Settled segmentation, one Settlement event per boundary crossing, focused GUT coverage, save/load round trip coverage, deterministic trace, and owner verification PowerShell entry point.
+
+Deferred by design: non-Essence channels, discovery/acquisition, Retinues/support, milestones, Emergency-to-Standard Writ transition, forecasts/reports, application clock loop, offline trusted-time reconciliation, UI, and multi-Reaping production.
