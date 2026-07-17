@@ -2,8 +2,8 @@
 
 **Document role:** Maintained implementation context for the idle/incremental branch  
 **Repository path:** `docs/design/IDLE_FORK_SOURCE_OF_TRUTH.md`  
-**Markdown revision:** 5  
-**Last updated:** 2026-07-14  
+**Markdown revision:** 6  
+**Last updated:** 2026-07-17  
 **Primary source:** *Death Idle - Idle & Incremental Fork - Design Direction v0.1* (12 July 2026)  
 **Companion prototype contract:** [PROTOTYPE_0_90_SOURCE_OF_TRUTH.md](PROTOTYPE_0_90_SOURCE_OF_TRUTH.md)
 
@@ -160,7 +160,7 @@ The identifiers below are stable requirement references for later architecture a
 - **IF-REQ-07 - Shared simulation:** Online progress, offline progress, and forecasts use the same authoritative rules and balance data.
 - **IF-REQ-08 - Deterministic elapsed-time resolution:** Resolve analytically or in meaningful deterministic segments, not by replaying rendered frames or every elapsed second.
 - **IF-REQ-09 - Independent channels:** Backlog, Essence, Mastery, Form Souls, Calling Souls, Denizen Souls, and materials resolve independently unless an approved rule explicitly links them.
-- **IF-REQ-10 - Hidden output remains real:** Production generated before discovery is banked and becomes visible later; discovery never retroactively creates or deletes earlier output.
+- **IF-REQ-10 - Access gates production; disclosure governs information:** A progression-gated channel produces nothing until authoritative access is unlocked. Unlocking is prospective with no backfill; once initialized, later knowledge or insight changes never erase or rebase its output.
 - **IF-REQ-11 - Additive guarantees:** Tutorial-critical reward floors add only the missing amount, preserve legitimate gains, and remain idempotent across save/load.
 - **IF-REQ-12 - Recoverable deviations:** A valid non-recommended Form assignment may be slower but cannot permanently block required progress.
 - **IF-REQ-13 - Reserved Calling Souls:** Retinue assignment reserves the complete required cohort; it does not silently consume or destroy those Souls.
@@ -168,7 +168,7 @@ The identifiers below are stable requirement references for later architecture a
 - **IF-REQ-15 - Save integrity:** Active operations, accumulated state, guarantees, unlocks, reservations, Hall state, tutorial state, reports, and timestamps must reconstruct correctly after load.
 - **IF-REQ-16 - Storefront independence:** Authoritative gameplay rules, save-schema meaning, and content must not depend on Steamworks or another storefront SDK. A narrowly approved platform adapter may supply trusted time through the project-owned interface, but domain and simulation code remain storefront-independent.
 - **IF-REQ-17 - Trusted time authority:** Foreground elapsed time uses a monotonic process clock. Closed-session elapsed time is credited only from an approved external trusted-time provider; the player's local wall clock, timezone, calendar, file timestamps, and manually supplied time are never authoritative fallbacks. If trusted time is unavailable, unresolved closed-session progress remains pending rather than being guessed.
-- **IF-REQ-18 - Persistent long-horizon source progress:** Deterministic partial progress toward a rare whole output belongs to its Threshold channel, survives Form/Writ/Retinue reconfiguration and inactivity, banks whole units automatically, and is never represented as fractional inventory.
+- **IF-REQ-18 - Persistent long-horizon source progress:** After a source is authoritatively unlocked, deterministic partial progress toward a rare whole output belongs to its Threshold channel, survives Form/Writ/Retinue reconfiguration and inactivity, banks whole units automatically, and is never represented as fractional inventory.
 
 ## 7. Incremental progression architecture
 
@@ -225,32 +225,38 @@ A backlog is a deterministic campaign objective, not a pre-generated bag of indi
 | Denizen Soul channel | Creature, spirit, monster, undead, or other non-Soulweave inhabitants. |
 | Material channel | Raw resources such as Provisions, Metal, Remains, Timber, Stone, Reagents, or Relics. |
 
-### Discovery states
+### Access, knowledge, and insight
 
-| State | Player-facing information |
+| Layer/state | Player-facing or mechanical meaning |
 |---|---|
-| Unknown | Question mark or hidden category; no expected range. |
-| Identified | Name, icon, and qualitative frequency. |
-| Charted | Expected range, relevant modifiers, and known source relationships. |
+| Access — Locked | The progression-gated source produces nothing. The UI may show only a latent unknown slot or category hint. |
+| Access — Unlocked | Production may begin prospectively at currently available sources. No earlier elapsed time is backfilled. |
+| Knowledge — Unknown | Question mark, hidden identity, or broad unknown category; no named source relationship. |
+| Knowledge — Identified | Item name/icon, qualitative frequency, and every currently available Threshold source are known. |
+| Insight — Charted | Expected range, current modifiers, ETA confidence, and known source relationships are precise enough for planning. |
 
-Scribe-line Forms, Specialist Retinues, Recollections, repeated operation, and later Codex upgrades improve discovery speed or precision. Discovery changes information, not whether production occurred.
+Unlocking an output item identifies that item and every currently available source. It does not reveal a locked region or unavailable Threshold. When another Threshold later becomes available, an already-unlocked item is identified there and begins from zero at that boundary.
+
+Scribe-line Forms, Specialist Retinues, Recollections, repeated operation, and later Codex upgrades improve source counts, category hints, rarity classification, forecast precision, or modifier explanation. They do not bypass an authoritative access requirement.
 
 ### Long-horizon discrete acquisition progress
 
-**Status: Confirmed direction through `DEC-0026`, `DEC-0027`, and `DEC-0028`**
+**Status: Confirmed direction through `DEC-0026`, amended `DEC-0027`, `DEC-0028`, and `DEC-0037`**
 
 Some rare Souls, Denizen Souls, catalysts, or future materials may require many hours of productive Threshold operation before one whole unit is banked. These sources use deterministic accumulated acquisition progress rather than an opaque item timer or fractional inventory.
 
-- Partial acquisition progress is owned by the Threshold's stable output channel/source and represents normalized completed work toward the next whole unit.
+- A locked progression-gated channel owns no generated work. When global item access is unlocked, every currently available matching source begins at canonical zero; later-available sources also begin at zero when they become available.
+- After source initialization, partial acquisition progress is owned by the Threshold's stable output channel/source and represents normalized completed work toward the next whole unit.
 - The stored percentage is not elapsed time and is not recalculated from the current estimated duration.
 - A Form, Writ, Retinue, Form Art, Recollection, support state, or other modifier change first resolves elapsed time to the exact change boundary under the old rate. The new configuration changes only the future rate.
 - Existing progress is never multiplied by a newly acquired efficiency bonus. Recalling and redispatching the same loadout cannot apply the same bonus again because effective rate is always derived from the authored baseline plus current modifiers, never from a previous effective rate. The channel keeps one stable normalized rate period within the current content revision; ordinary live bonuses alter future throughput rather than changing that denominator.
 - At `50.0%` progress, a stronger setup can shorten the remaining estimate from two hours to one hour forty minutes while the bar remains `50.0%`. Ordinary rate modifiers do not turn the bar into `60.0%` or reduce the displayed remaining percentage to `40.0%`.
 - An inactive Threshold retains progress without advancing it.
-- Settlement does not clear progress when the source remains available in Settled Passage.
+- Settlement does not clear progress when the source remains available in Settled Passage. Settlement efficiency is channel-specific: rare, resource, or location-exclusive outputs default to full renewable rate in the prototype unless their own authored channel says otherwise.
 - Whole items are banked automatically when progress crosses the whole-unit boundary; the remainder continues toward the next item.
-- Unknown progress remains hidden. Once Identified, the Threshold may show a progress bar and a percentage truncated to one decimal place. It must not present a fractional Soul or catalyst count.
-- A future effect intended to grant retroactive progress must be authored as an explicit, exactly-once progress grant. It must not masquerade as a rate modifier.
+- Unlock establishes at least Identified knowledge before the first possible banking event. A known source may show a progress bar and a percentage truncated to one decimal place. It must not present a fractional Soul or catalyst count.
+- Delaying an unlock causes only opportunity cost. There is no deadline, permanent lockout, future baseline-rate penalty, or retroactive production.
+- A future effect intended to grant explicit progress must be authored as an exactly-once progression grant. It must not masquerade as pre-unlock production or a rate modifier.
 - This is resolved by the shared simulation engine and is not a separate timer per item.
 
 ## 9. Persistent Reapings, Writs, support, and offline resolution
@@ -607,5 +613,5 @@ When changing a confirmed rule:
 | Emergency-to-Standard transition, two prototype resonances, manual Scribe awakening, Godot 4.7/GDScript, and Steam-first distribution | Project-owner decisions recorded during the 2026-07-12 planning session. |
 | External trusted-time authority and prohibition on local wall-clock offline credit | Project-owner clarification recorded during the 2026-07-12 planning session; implemented by `DEC-0021`. |
 | Normalized rare-output work, prospective rate changes, and non-compounding modifier application | Project-owner clarification recorded during the 2026-07-14 planning session; implemented by `DEC-0028`. |
-| Six-decimal fractional scale, unscaled whole counts, and persistent Threshold-owned long-horizon acquisition progress | Project-owner clarifications approved on 2026-07-14; implemented by `DEC-0026` and `DEC-0027`. |
+| Six-decimal fractional scale, unscaled whole counts, persistent Threshold-owned long-horizon progress, global prospective access, and no pre-unlock banking | Project-owner clarifications approved on 2026-07-14 and 2026-07-17; implemented by `DEC-0026`, amended `DEC-0027`, and `DEC-0037`. |
 | Mutable player-facing naming, centralized core terminology, and Essence as the single resource term | Project-owner clarifications approved on 2026-07-14; implemented by `DEC-0031` and `DEC-0032`. |

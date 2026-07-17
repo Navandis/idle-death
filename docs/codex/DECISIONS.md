@@ -3,7 +3,7 @@
 **Document role:** Durable record of approved and proposed design and architecture decisions  
 **Repository path:** `docs/codex/DECISIONS.md`  
 **Document status:** Approved architecture and active decision record  
-**Revision:** 16  
+**Revision:** 17  
 **Last updated:** 2026-07-17
 
 ## 1. How to use this file
@@ -66,7 +66,7 @@ Rules:
 | `DEC-0034` | Schema version 2 and sequential migration are the gameplay-state compatibility path | Accepted | 2026-07-15 |
 | `DEC-0035` | Reaping operations are Threshold-scoped; recalled records persist and assignment commands are revision-guarded and Form-exclusive | Accepted | 2026-07-16 |
 | `DEC-0036` | Core Reaping resolution is transactional; settlement is an exact boundary and residual ownership is explicit | Accepted | 2026-07-17 |
-| `DEC-0037` | Discrete output channels bank Threshold-owned normalized work; compatible rate-context changes preserve residuals without rebasing | Proposed | 2026-07-17 |
+| `DEC-0037` | Output access is global and prospective; schema version 3 persists unlocks and available-source initialization | Accepted | 2026-07-17 |
 
 ---
 
@@ -1045,7 +1045,8 @@ M01 must choose one exact fixed-point scale before production rates, Mastery, di
 **Status:** Accepted  
 **Date:** 2026-07-14  
 **Decision type:** Output-channel ownership and presentation  
-**Refines:** `DEC-0010`, `DEC-0019`, `DEC-0020`
+**Refines:** `DEC-0010`, `DEC-0019`, `DEC-0020`  
+**Amended by:** `DEC-0037`
 
 ### Context
 
@@ -1060,15 +1061,21 @@ Some rare Souls, Denizen Souls, catalysts, or future materials may take eight to
 - Transitioning from Overdue to Settled Passage does not clear the channel. Remaining progress continues under the channel's Settled rate when the source remains available.
 - A long elapsed interval may bank multiple whole items. Whole units are added immediately to normal inventory and only the remainder toward the next item remains in channel state.
 - The system is one channel accumulator inside the global deterministic resolver, not an independent item timer, per-item object, or separate simulation loop.
-- Discovery controls disclosure, not ownership. Unknown progress remains banked but hidden. Once the channel is Identified, the Threshold view may show a progress bar and a percentage truncated to one decimal place, such as `45.6%`. It must not show `0.4563 Rare Soul` or round to `100.0%` before the whole unit is actually banked.
+- Production eligibility and disclosure are separate. A locked progression-gated channel creates no progress, carry, banked units, inventory, or retroactive entitlement. Once `DEC-0037` access is authoritatively unlocked and the source is initialized, its Threshold-owned progress follows every persistence and reconfiguration rule in this decision.
+- Identification and later insight changes never erase or rebase already-unlocked progress. A known long-horizon source may show a progress bar and a percentage truncated to one decimal place, such as `45.6%`; it must not show `0.4563 Rare Soul` or round to `100.0%` before the whole unit is banked.
 - A Charted channel may additionally show an estimated time, rate, relevant modifiers, and forecast range without changing the underlying progress.
+
+### Amendment — 2026-07-17
+
+The original 2026-07-14 wording allowed an Unknown channel to accumulate before its mechanical unlock. Accepted `DEC-0037` supersedes only that hidden pre-unlock banking rule. The Threshold-plus-channel ownership, normalized progress, recall/reconfiguration continuity, whole-unit banking, and no-fractional-inventory rules remain authoritative.
 
 ### Consequences
 
-- Players can change Forms, Retinues, or Writs without feeling forced to preserve an opaque configuration for many hours.
+- Players can change Forms, Retinues, or Writs without feeling forced to preserve an opaque configuration for many hours after a source is unlocked.
 - Different configurations still matter because they change the future acquisition rate and forecast, not ownership of prior effort.
 - Threshold state, save fixtures, forecasts, reports, and UI read models need a stable per-channel progress contract before the first long-horizon source is implemented.
 - M01 implements only the generic fixed-point and per-period arithmetic needed by this rule. M03 defines channel data, M04 proves Threshold-owned accumulation and reconfiguration persistence with a test channel, and later presentation milestones expose the progress bar when a known channel requires it.
+- Unlock timing affects cumulative output only through opportunity cost. It never creates a deadline, permanent exclusion, or later baseline-rate penalty.
 - Future stochastic rare drops, if ever approved, require a separate randomness and bad-luck-protection decision; this record governs deterministic accumulated acquisition progress.
 
 ### Alternatives considered
@@ -1795,125 +1802,187 @@ M04C does not process milestones, guarantees, resonance effects, Emergency-to-St
 
 ---
 
-## `DEC-0037` — Discrete output channels bank Threshold-owned normalized work; compatible rate-context changes preserve residuals without rebasing
+## `DEC-0037` — Output access is global and prospective; schema version 3 persists unlocks and available-source initialization
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-07-17  
-**Decision type:** Output-channel accumulation, rate-context transition, and persistence semantics  
-**Refines:** `DEC-0010`, `DEC-0012`, `DEC-0027`, `DEC-0028`, `DEC-0030`, `DEC-0035`, `DEC-0036`
+**Decision type:** Output access, source identification, save-schema evolution, and implementation slicing  
+**Refines:** `DEC-0011`, `DEC-0012`, `DEC-0019`, `DEC-0027`, `DEC-0028`, `DEC-0030`, `DEC-0034`, `DEC-0036`  
+**Supersedes:** the hidden pre-unlock banking clause of `DEC-0027`
 
 ### Context
 
-M04C now resolves the core Reaping streams transactionally: returned souls/backlog, Essence, active Form Mastery, cycle state, and the exact Settlement boundary. M04D must add the remaining authored Threshold item channels without duplicating Essence, moving progress with a loadout, rebasing prior work when rates change, or reopening the partial-mutation and compounding exploits already closed by M04B/M04C.
+The first M04D draft allowed every enabled Threshold channel to accumulate and bank while its item/source remained Unknown. The project owner rejected that behavior because it turns mechanical unlocks into delayed UI reveals, permits unexplained inventory, makes unlock timing economically irrelevant, and allows external guides to bypass most discovery value.
 
-The existing schema-version-2 `ThresholdAcquisitionState` already stores normalized progress, a channel-period arithmetic carry, and a per-channel banked counter. The current catalog supplies four non-Essence channels: Gloamwood Soldier Souls, Gloamwood Scribe Form Souls, Broken Watch Provisions, and Broken Watch Man-at-Arms Form Souls. The two Essence channels remain core M04C streams.
+The replacement must preserve three other goals:
 
-M04B also deliberately blocked changed redispatch when operation-owned residual state was nonzero. M04D must close the current prototype case safely: all prototype Forms share the same returned-soul period, Mastery period, and cycle duration, while each Threshold channel owns one stable period. A compatible change can therefore preserve residuals exactly; an incompatible denominator change still requires an explicit future normalization rule.
+- no item becomes permanently missable because a player discovers it late or settles a Threshold first;
+- long-horizon progress remains Threshold-and-channel owned after access begins;
+- specialist Forms retain information value through source counts, categories, rarity, forecast precision, and modifier explanation.
 
-### Proposed decision
+A global access fact is required because unlocking an item must activate every currently available source and automatically apply to later-available Thresholds without revealing locked regions. The existing schema version 2 has no field that can persist that global fact.
 
-#### Channel selection and ownership
+### Decision
 
-- During each productive active-Reaping segment, the global `SimulationEngine` resolves every enabled, correctly owned, non-Essence `OutputChannelDefinition` referenced by the active Threshold.
-- `RES_ESSENCE` channels are excluded from `ThresholdAcquisitionState`; Essence remains solely owned by the M04C core-flow keys and normal inventory.
-- Missing acquisition state means canonical zero. The engine creates one `ThresholdAcquisitionState` when the channel first participates in positive elapsed resolution.
-- The record remains keyed by `Threshold ID + channel ID`. It never moves with Form, Writ, Retinue, assignment revision, or activation episode.
-- Discovery and disclosure do not gate production. Unknown channels accumulate and bank normally; M13 later decides what the player can see.
-- Disabled, missing, duplicated, misowned, malformed, or non-item channels fail the transaction rather than being skipped silently.
+#### Access, knowledge, and insight are separate
 
-#### Channel rate plan
+- **Access** answers whether an output may produce. It is authoritative gameplay state.
+- **Knowledge** answers which item and currently available Threshold sources are identified.
+- **Insight** answers how precisely the player understands category, rarity, rate, progress, ETA, and modifiers.
+- Knowing an item from a guide or narrative hint never changes Access.
+- Specialist Forms, Retinues, Recollections, repeated operation, and later Codex upgrades may improve Knowledge or Insight without bypassing an access requirement.
 
-- A channel rate plan starts from the channel's immutable normalized `rate_subunits_per_period` and stable `period_msec`.
-- M04D executes the bounded `OUTPUT_CHANNEL_RATE` modifier subset:
+#### Global prospective access
+
+- Progression-gated output access is global by canonical output item ID.
+- `ProgressionState.unlocked_output_item_ids` is a sorted, duplicate-free array of canonical item IDs.
+- A progression-gated non-Essence channel is eligible only when:
+  - its Threshold is `AVAILABLE`;
+  - the channel is enabled, referenced by, and owned by that Threshold;
+  - the output item is valid;
+  - the item ID is present in `unlocked_output_item_ids`.
+- A non-progression-gated non-Essence channel may be initialized automatically when its Threshold becomes available.
+- Essence remains owned by the M04C core stream and is excluded from this access/channel-acquisition path.
+
+A locked channel produces:
 
 ```text
-operation: MULTIPLY
-scope: OUTPUT_CHANNEL
-conditions: ALWAYS, OUTPUT_ITEM, OUTPUT_KIND,
-            THRESHOLD_HAS_ANY_TAG, THRESHOLD_LIFECYCLE
+no progress
+no arithmetic carry
+no banked units
+no inventory
+no banking event
+no retroactive entitlement
 ```
 
-- `OUTPUT_ITEM` matches the channel's canonical output item ID.
-- `OUTPUT_KIND = WHOLE_SOUL` matches Calling-Soul and Form-Soul item kinds. Resource and Store channels do not match that token.
-- `THRESHOLD_LIFECYCLE = STANDING` maps to runtime `OVERDUE`; `SETTLED` maps directly.
-- M04D's production modifier sources are active Form Trait modifiers. A small rate-plan seam accepts deterministically ordered normalized sources so later Writ, Retinue, Art, Recollection, support, and global-efficiency systems can extend the source list without replacing the accumulator.
-- Tests may use copied catalog fixtures to exercise the approved grammar. M04D does not treat any Recollection, Art, or Retinue as purchased or active.
-- Relevant unsupported operations, scopes, conditions, malformed operands, or arithmetic overflow fail visibly. Irrelevant metrics are ignored.
-- After ordinary modifiers, the channel's own Settled multiplier applies exactly once when the Threshold is Settled. The Threshold core multiplier is not also applied to the channel.
-- Effective rates, modifier traces, percentages, and ETAs are derived. They are never persisted and are never used as the baseline for a later rate plan.
+Unlocking begins prospectively at the exact committed command boundary. Elapsed time before that boundary is never backfilled.
 
-#### Accumulation and whole-unit banking
+#### Unlock and source-identification transaction
 
-- For each sorted channel ID, use `FixedPoint.accumulate_for_elapsed_msec()` with the channel's stable period and its `rate_carry_units`.
-- Checked-add produced subunits to `progress_subunits`, extract every whole unit immediately, retain `0 <= progress_subunits < FixedPoint.SCALE`, and retain `0 <= rate_carry_units < period_msec`.
-- Add whole units to normal `InventoryState` and increment that channel's `total_banked_units` by the same amount. Inventory remains the ownership source of truth; the channel counter is source history/report evidence.
-- Parallel channels do not subtract from one another. Multiple whole units may bank in one segment.
-- Segment/result records expose deterministic per-channel deltas. Each channel that banks at least one whole unit emits one non-persisted `OUTPUT_CHANNEL_BANKED` event in sorted channel-ID order, with the Threshold as subject and the channel as source.
-- A bank event is reportable. Its tutorial relevance equals the channel's `progression_required` flag. Progress-only segments emit no bank event.
+A successful output-item unlock:
 
-#### Recall, redispatch, and rate-context changes
+1. operates on already-resolved authoritative state at the current simulation cursor;
+2. validates the item and at least one authored channel relationship;
+3. adds the item ID to the global sorted access set;
+4. finds all currently `AVAILABLE` Thresholds with enabled, correctly owned matching channels;
+5. creates canonical zero `ThresholdAcquisitionState` records for missing eligible sources;
+6. identifies the item and those currently available source relationships;
+7. emits one `OUTPUT_ITEM_UNLOCKED` event and sorted `OUTPUT_SOURCE_IDENTIFIED` events;
+8. requests a save checkpoint.
 
-- Before recall, redispatch, or a later modifier/unlock change, the caller resolves elapsed time under the old state to the exact command boundary. Assignment and progression services do not read clocks or award elapsed production themselves.
-- Recall freezes every channel record. Inactive operations advance no channel progress.
-- Same-loadout redispatch resumes the unchanged channel state and derives the same rate.
-- A changed Form or Writ may preserve nonzero operation residuals when the old and new loadouts have compatible core denominators:
-  - equal returned-soul `period_msec`;
-  - equal active-Mastery `period_msec`;
-  - equal cycle duration;
-  - the same Threshold-owned Essence and item-channel periods.
-- Under a compatible transition, core residuals, cycle phase, and all Threshold channel progress/carries remain unchanged; only the future numerator/modifier context changes after the assignment revision commits.
-- If any required period or duration differs, redispatch returns `REAPING_RATE_CONTEXT_INCOMPATIBLE` without mutation. M04D does not invent lossy carry transfer or silently reset fractional work.
-- Returning to the same configuration or repeatedly recalling/redispatching derives the rate again from authored baseline plus current modifiers. It cannot compound a prior effective rate.
+Canonical source initialization is:
 
-#### Progress and ETA query
+```text
+progress_subunits = 0
+rate_carry_units = 0
+total_banked_units = 0
+```
 
-- M04D may expose a pure, non-persisted query for the minimum integer milliseconds to the next whole channel unit using the current normalized progress, carry, and rate plan.
-- A four-hour synthetic fixture at `500_000` progress has an ETA of `7_200_000 ms` at baseline and `6_000_000 ms` after a prospective `1.20` multiplier. The stored progress remains `500_000` in both cases.
-- Presentation formatting and disclosure remain deferred; the query exists only for tests, trace, forecast reuse, and later read models.
+The transaction grants no item, progress, carry, inventory, elapsed production, or historical backfill. Repeating the same unlock is idempotent and emits no duplicate event.
 
-#### Settlement, persistence, and compatibility
+#### Availability-scoped disclosure and reconciliation
 
-- M04C's exact Settlement segmentation remains the single lifecycle boundary. Non-Essence channels resolve through the Overdue boundary segment under Overdue rates and through the remaining segment under their channel Settled rates.
-- Settlement never clears or rebases channel progress/carry.
-- Schema version 2 remains current. No new top-level or aggregate field is required.
-- Save/load preserves inventory, every acquisition record, per-channel banked totals, and assignment/core residual compatibility exactly.
-- A persisted Essence acquisition record is invalid because it would duplicate M04C ownership.
+- Unlocking an item does not reveal the name or existence of an unavailable Threshold or locked region.
+- When a Threshold later becomes `AVAILABLE`, a deterministic reconciliation command initializes every channel whose item is already globally unlocked and identifies only that newly available source.
+- Access may therefore exist before any source is currently available.
+- The effective minimum knowledge for an initialized source is `IDENTIFIED`. Later discovery systems may advance it to `CHARTED` or expose richer insight.
+- M04D1 does not add a separate persisted channel-insight state. Current source identification is reconstructible from global access, Threshold availability, canonical channel content, and acquisition-record existence. M13 may add richer persisted insight when that slice is planned.
+
+#### Timing, order, and recoverability
+
+- There are no unlock deadlines, real-time countdowns, order-sensitive permanent lockouts, or “unlock within N days” rules.
+- Delaying an unlock has only opportunity cost: production that could have occurred after an earlier unlock did not occur.
+- A later unlock uses the same applicable future baseline rate as an earlier unlock; it receives no permanent efficiency penalty because it was delayed.
+- A source may be initialized after its Threshold is already Settled. It begins at zero and uses that channel's then-applicable rate.
+- Guarantees or onboarding top-ups may grant a defined missing quantity after unlock, but they are explicit progression rewards and never simulated pre-unlock production.
+
+#### Channel-specific Settlement behavior
+
+- Settlement behavior is stream-specific and channel-specific.
+- M04C's returned-soul and Essence behavior remains unchanged by this decision. M04C Mastery remains unchanged until a later explicit balance decision.
+- Non-Essence resources, rare Souls, and location-exclusive outputs default to `settled_multiplier = 1.0` for the prototype so players are not pressured to delay or avoid engaging rare Thresholds.
+- M04D2 will update the current non-Essence scaffold channels to the prototype default before implementing their accumulation.
+- Later balance passes may tune an individual channel multiplier through content data. They do not change access ownership or retroactively alter stored progress.
+
+#### Schema version 3
+
+Schema version 3 becomes the M04D1 target writer and adds only:
+
+```text
+game_state.progression.unlocked_output_item_ids
+```
+
+Version 3 retains the version-2 top-level envelope and all existing gameplay-state fields. The new array is sorted, duplicate-free, contains canonical item IDs, and is mapped to runtime `StringName` values.
+
+The production upgrade remains sequential:
+
+```text
+v1 -> v2 -> v3
+```
+
+The pure `v2 -> v3` primitive transform adds an empty access array and preserves every existing field. Before the upgraded candidate is persisted, a deterministic content-aware finalization step examines any pre-existing schema-v2 `channel_acquisition` records, resolves their valid non-Essence output item IDs through the validated registry, and unions those IDs into the access set. This preserves valid historical acquisition progress instead of making it inaccessible under the new invariant.
+
+The finalization:
+
+- runs only on the working upgrade candidate;
+- rejects missing, disabled, misowned, Essence, or invalid historical channel references;
+- preserves every acquisition value exactly;
+- may initialize other currently available sources of the same derived item at canonical zero;
+- validates schema, content compatibility, and domain state before persistence;
+- increments save revision exactly once for the complete upgrade;
+- exposes no runtime state until the atomic write succeeds;
+- preserves the original valid candidate on any failure.
+
+Already-current version-3 saves do not rewrite automatically. Frozen version-1 and version-2 validators and fixtures remain supported.
+
+#### Revised M04D implementation slices
+
+The former single M04D prompt is superseded by:
+
+- **M04D1 — Output access and source-identification foundation:** schema v3, migration/finalization, global access state, unlock/reconciliation commands, source identification, no-backfill proof, save/load, and owner verification.
+- **M04D2 — Discrete channel accumulation and long-horizon banking:** resolve only eligible non-Essence channels, whole banking, Threshold-owned progress/carry, channel-specific Settlement behavior, events, chunking, and persistence.
+- **M04D3 — Compatible rate-context changes and acquisition queries:** compatible changed redispatch, residual preservation, incompatible-denominator rejection, non-compounding, progress/ETA query, and the full recall/reconfiguration matrix.
 
 ### Consequences
 
-- Eight- and twenty-four-hour sources can preserve exact quarter progress, whole extraction, carry, recall behavior, and save/load.
-- The player's percentage never jumps merely because a future rate changes; only the ETA changes.
-- Compatible prototype Form/Writ changes no longer require zeroing every operation residual before redispatch.
-- Incompatible future denominators fail explicitly instead of transferring or discarding fractional work.
-- Hidden output can exist authoritatively before M13 reveals it.
-- M04E can forecast and report the same channel deltas without another formula path.
-- Later Recollection, Art, Retinue, and support milestones extend modifier-source collection, not persisted progress semantics.
+- Unlock timing has meaningful economic consequences without creating permanent exclusion.
+- Players never receive unexplained gated items before the game can identify their source.
+- A public drop chart cannot satisfy the authoritative unlock requirement.
+- Available source locations become known at unlock; the player is not forced through a second source-location hunt.
+- Locked regions remain undisclosed and reconcile correctly when later made available.
+- Existing version-2 acquisition fixtures and saves retain their progress through content-aware upgrade finalization.
+- M04D2 and M04D3 can operate on a clear access boundary instead of conflating locked, hidden, and accumulating channels.
+- M13 can focus on information precision and presentation rather than deciding whether production occurred.
 
 ### Alternatives considered
 
-- **Store channel progress on `ReapingState`:** rejected because recall and loadout changes would require transfer logic and would conflict with `DEC-0027`.
-- **Process Essence as both a core flow and an acquisition channel:** rejected because it would duplicate progress and inventory grants.
-- **Rebase progress when the rate changes:** rejected because prior work would change retroactively and repeated redispatch could compound bonuses.
-- **Persist effective rates or remaining time:** rejected because they become stale when content or modifiers change.
-- **Reset all core/channel residuals on changed loadout:** rejected because it destroys earned fractional work.
-- **Transfer residuals across different denominators without a contract:** rejected because their mathematical meaning would change.
-- **Require every residual to be zero before any compatible prototype Form change:** rejected because the current periods are compatible and an arbitrary command millisecond should not forfeit or block progress unnecessarily.
-- **Wait for Recollections/Retinues before defining a rate-plan seam:** rejected because M04D must prove prospective non-compounding behavior now without implementing those systems.
+- **Continue hidden banking before unlock:** rejected because unlock timing and progression choices become economically irrelevant and inventory can appear without an explained source.
+- **Use only per-Threshold acquisition-record existence as global access:** rejected because it cannot remember an item unlock before another source Threshold becomes available.
+- **Store access by channel ID:** rejected because an item-level unlock must apply to every available and future source of that item.
+- **Infer access from inventory:** rejected because items may come from grants, costs, migration fixtures, or other systems and inventory does not encode source eligibility.
+- **Reveal every future location at item unlock:** rejected because global item access must not disclose locked regions or Threshold names.
+- **Backfill elapsed time when a source unlocks:** rejected because it nullifies timing and can trivialize the newly opened economy.
+- **Make late unlocks permanently slower:** rejected because the only intended penalty is opportunity cost.
+- **Apply one Threshold Settlement multiplier to every channel:** rejected because it pressures players to delay or avoid rare/exclusive Thresholds.
+- **Keep schema version 2 and hide access in metadata:** rejected because unlock state is authoritative gameplay data requiring explicit validation and migration.
+- **Implement access, accumulation, reconfiguration, and ETA in one PR:** rejected under `DEC-0033` review-surface guardrails.
 
 ### Affected documents
 
+- `docs/design/IDLE_FORK_SOURCE_OF_TRUTH.md`
+- `docs/design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md`
 - `docs/codex/ARCHITECTURE.md`
 - `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`
 - `docs/codex/MILESTONES.md`
 - `docs/codex/TESTING_AND_VALIDATION.md`
 - `docs/codex/milestone-prompts/M04D-output-channels-long-horizon-progress.md`
+- `docs/codex/milestone-prompts/M04D1-output-access-source-identification-foundation.md`
 
 ---
 
 ## 3. Current approval state
 
-- `DEC-0001` through `DEC-0036` are Accepted.
-- `DEC-0037` is Proposed and awaits owner approval with the M04D prompt.
+- `DEC-0001` through `DEC-0037` are Accepted.
 - M03 prompt approval accepted `DEC-0029` through `DEC-0032`, including explicit revision compatibility, stable channel IDs, editable player-facing language, centralized terminology, and Essence as the single resource identity.
 - M01 prompt approval accepted `DEC-0026`; long-horizon source ownership is recorded in `DEC-0027`; prospective, non-compounding rate-change semantics are recorded in `DEC-0028`.
 - The Phase 6 architecture is approved with trusted-time, save-format, cross-machine testing, GodotSteam, owner-verification, fixed-point, Threshold-channel ownership, content compatibility, naming, and terminology refinements recorded in `DEC-0021` through `DEC-0032`.
@@ -1921,5 +1990,6 @@ conditions: ALWAYS, OUTPUT_ITEM, OUTPUT_KIND,
 - `DEC-0034` resolved `GATE-GAMEPLAY-SCHEMA`; M04A implemented and verified schema version 2 plus the production sequential migration from frozen schema version 1.
 - `DEC-0035` defines Threshold-scoped Reaping identity, canonical loadout values, assignment revisions/episodes, immutable first-start timestamps, stable recalled records, Form exclusivity, and resolve-before-rate-change handoff.
 - `DEC-0036` is implemented and verified by M04C.
-- M04D planning proposes `DEC-0037` for Threshold-owned discrete channels, exact accumulation, compatible residual-preserving reconfiguration, and prospective non-compounding rate changes.
+- `DEC-0037` amends pre-unlock channel semantics, authorizes schema version 3 and global output-item access, and replaces the former M04D prompt with M04D1–M04D3.
+- M04D1 planning drafts the access/migration/source-identification implementation prompt; M04D2 and M04D3 remain defined but undrafted.
 - Future changes preserve decision IDs for wording clarifications and create a new decision only when semantics, ownership, compatibility, or security posture changes.

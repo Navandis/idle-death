@@ -2,8 +2,8 @@
 
 **Document role:** Maintained implementation contract for the playable first-session prototype  
 **Repository path:** `docs/design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md`  
-**Markdown revision:** 4  
-**Last updated:** 2026-07-14  
+**Markdown revision:** 5  
+**Last updated:** 2026-07-17  
 **Primary source:** *Death Idle - Prototype 0-90 Minute Beat Sheet & Implementation Brief v0.1* (12 July 2026)  
 **Broader design companion:** [IDLE_FORK_SOURCE_OF_TRUTH.md](IDLE_FORK_SOURCE_OF_TRUTH.md)
 
@@ -476,7 +476,7 @@ Until a separate owner decision defines mechanical-tutorial skip behavior, skipp
 **Visible presentation**
 
 - Comparison explains that Man-at-Arms has the stronger raw Martial fit at Broken Watch.
-- The tutorial recommends Scribe at Broken Watch temporarily because its unknown Provisions channel needs discovery.
+- The tutorial recommends Scribe at Broken Watch temporarily because Provisions access/source identification and later insight should be reached quickly.
 - Any valid two-Reaping arrangement is accepted.
 - Active tether lines and both Threshold states are visible.
 
@@ -513,8 +513,8 @@ Until a separate owner decision defines mechanical-tutorial skip behavior, skipp
 
 **Player action**
 
-- Observe the discovery event.
-- Inspect the newly identified Provisions row and changed forecast confidence.
+- Observe the Provisions unlock/source-identification event.
+- Inspect the newly identified Provisions row, zero-start acquisition state, and changed forecast confidence.
 
 **Visible presentation**
 
@@ -524,9 +524,9 @@ Until a separate owner decision defines mechanical-tutorial skip behavior, skipp
 
 **Authoritative state transition**
 
-- Discovery progress advances through the shared simulation.
-- Scribe reaches the prototype discovery boundary faster and presents narrower forecast uncertainty.
-- Provisions generated before identification already exists in inventory and becomes visible without being granted again.
+- Access unlocks at an explicit deterministic progression boundary; elapsed time before that boundary produces no Provisions.
+- Subsequent insight progress advances through the shared simulation. Scribe reaches the prototype information boundary faster and presents narrower forecast uncertainty.
+- No Provisions exists from pre-unlock elapsed time. The access transaction identifies the item and Broken Watch source before later production can bank inventory.
 
 **Prototype scaffold values**
 
@@ -545,7 +545,7 @@ Until a separate owner decision defines mechanical-tutorial skip behavior, skipp
 
 **Exit condition**
 
-- Provisions is at least Identified and its already-banked stock is visible.
+- Provisions is at least Identified, its currently available source is known, and post-unlock production has begun from zero.
 
 ---
 
@@ -581,7 +581,7 @@ Until a separate owner decision defines mechanical-tutorial skip behavior, skipp
 
 **Fail-safe**
 
-- The Provisions top-up grants only the missing amount after hidden production is counted.
+- The Provisions top-up grants only the missing amount after any legitimate post-unlock production is counted. It never simulates or backfills pre-unlock production.
 - If Rations deplete before completion, Soldier Company falls to its configured reduced floor; base Reaping continues.
 - Early Larder completion skips redundant tutorial steps.
 
@@ -849,15 +849,19 @@ All other Soulweave nodes are presentational placeholders. They show position, a
 
 The exact relationship between Detected, Charted, and Available should remain data-driven. Prototype flow may combine an information reveal and availability in one exactly-once transaction when required.
 
-### Discovery state machine
+Output-item access is global, but source identification is availability-scoped. Unlocking an item identifies all currently available sources without naming locked regions. If another Threshold becomes available later, that source is identified then and begins from zero. No unlock order or elapsed deadline permanently excludes an item.
+
+Non-Essence resources and rare/location-exclusive Souls default to full renewable channel rate after Settlement during the prototype. Core returned-soul and Essence rules remain separate; later balance passes may tune an individual channel without changing access ownership.
+
+### Output access, discovery, and insight state machine
 
 | State | Display | Prototype behavior |
 |---|---|---|
-| Unknown | Question mark or hidden category; no expected range. | Output still resolves and banks. |
-| Identified | Name, icon, qualitative frequency. | Provisions stock becomes visible without a new grant. |
-| Charted | Expected per-hour or per-cycle range and modifiers. | Scribe reaches this state faster and with narrower uncertainty. |
+| Locked / Unknown | Question mark, latent row count, or broad category hint; no named unavailable location. | Progression-gated output produces nothing. |
+| Unlocked / Identified | Name, icon, qualitative frequency, and every currently available Threshold source. | Each available source begins from zero at the unlock boundary. |
+| Unlocked / Charted | Expected per-hour or per-cycle range, current modifiers, and narrower uncertainty. | Scribe reaches this information state faster and with better precision. |
 
-Discovery progress, current discovery state, and hidden inventory must be persisted independently enough to reconstruct the correct UI after load.
+Global item access, currently initialized source records, and later insight state must reconstruct the correct UI after load. Unlock timing has opportunity cost but no deadline, permanent lockout, retroactive output, or later baseline-rate penalty.
 
 ## 9. Tutorial controller contract
 
@@ -875,8 +879,8 @@ Discovery progress, current discovery state, and hidden inventory must be persis
 | `TUT_07_RETINUE` | Emergency Gloamwood Reaping has produced 1,000 returns | Top up Soldier Souls, transition to Standard, unlock and field Soldier Company. |
 | `TUT_08_SCRIBE` | First 2,500 Gloamwood returns resolved | Top up Scribe requirement and guide the player to press **Awaken**. |
 | `TUT_09_SECOND_THRESHOLD` | Scribe awakened and 5,000 Gloamwood returns | Resolve minor resonance, reveal Broken Watch, grant tether 2, occupy both tethers. |
-| `TUT_10_DISCOVERY` | Broken Watch active | Identify Provisions through Scribe or fallback progress. |
-| `TUT_11_LARDER` | Provisions identified and support warning relevant | Restore Larder and activate Ration production. |
+| `TUT_10_DISCOVERY` | Broken Watch active | Unlock Provisions access, identify Broken Watch as a source, then demonstrate Scribe/fallback insight progression. |
+| `TUT_11_LARDER` | Provisions unlocked/identified and support warning relevant | Apply any missing-amount guarantee, restore Larder, and activate Ration production. |
 | `TUT_12_SEAL_CHOICE` | 10,000 regional returns | Resolve second resonance and optional Recollection choice. |
 | `TUT_13_COMPLETE` | Both Reapings active and required forecast presented | Disable mandatory guidance; retain optional objective hints. |
 
@@ -906,7 +910,7 @@ Discovery progress, current discovery state, and hidden inventory must be persis
 | Emergency milestone occurs while Soulweave or another screen is open | Apply rewards and Writ transition, queue report/notice, keep the current screen open, and continue production. |
 | Player opens or dismisses the report late | No inventory or progress changes; report is presentational only. |
 | Rations deplete before Larder completion | Soldier Company degrades to its configured floor; base Reaping continues; Provisions guarantee remains reachable. |
-| Provisions were produced while Unknown | Preserve the hidden amount; reveal it on identification without granting it again. |
+| Provisions unlock occurs late | Begin every currently available Provisions source at zero, apply the onboarding top-up only to the missing amount, and preserve future access after Settlement. |
 | Player restores Larder before the guided step | Detect the active Hall and skip redundant instructions. |
 | Player reaches a milestone while offline | Apply the event once at the correct simulation boundary and continue remaining elapsed time under the new state. |
 | A Threshold settles offline | Transition automatically to Settled Passage and resolve remaining time at renewable rates. |
@@ -1200,7 +1204,7 @@ A prototype build is not complete until all applicable items are demonstrably tr
 - [ ] Scribe Soul guarantee is idempotent and the player performs the awakening action.
 - [ ] The 5,000 minor resonance, Broken Watch, and tether 2 unlock exactly once.
 - [ ] Two concurrent Reapings use the same simulation model.
-- [ ] Provisions produce before discovery and reveal without duplication.
+- [ ] Provisions produce nothing while locked; unlock identifies available sources, starts them from zero, and does not backfill elapsed time.
 - [ ] Non-Scribe discovery fallback prevents a softlock.
 - [ ] Larder converts Provisions to Rations online and offline.
 - [ ] Ration depletion reduces Soldier Company effect without stopping base production.

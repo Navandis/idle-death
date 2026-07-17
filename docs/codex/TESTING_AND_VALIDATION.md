@@ -2,8 +2,8 @@
 
 **Document role:** Canonical test strategy, commands, fixture rules, and manual validation flows
 **Repository path:** `docs/codex/TESTING_AND_VALIDATION.md`
-**Document status:** Approved validation plan through M04C with M04D draft
-**Validation revision:** 16
+**Document status:** Approved validation plan through M04C with M04D1 draft and M04D2–M04D3 definitions
+**Validation revision:** 17
 **Last updated:** 2026-07-17
 **Engine target:** Godot 4.7 standard build, GDScript only
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)  
@@ -40,7 +40,7 @@ M04B merged through PR #9 at merge commit `c641d74cebedf07c51ebb579cccee21db7aa2
 
 M04C merged through PR #12 at merge commit `719592c85ca4e90ecd5df4593e37a81d36b2789e` from final head `acb48d0045e41a0f7d73f561e5c3756f8668dd46`. Transactional core resolution, exact Settlement segmentation, checked residual ownership, persistence, the eleven-marker trace, and Windows owner verification passed.
 
-M04D planning proposes `DEC-0037` for Threshold-owned non-Essence acquisition, exact whole-unit banking, compatible residual-preserving rate-context changes, and prospective non-compounding rate plans.
+Accepted `DEC-0037` separates global prospective output access from source identification and insight, introduces schema version 3, prohibits pre-unlock banking/backfill, and decomposes M04D into M04D1 access, M04D2 accumulation, and M04D3 compatible rate-context/query slices.
 
 ## 2. Pinned test and platform dependencies
 
@@ -528,19 +528,21 @@ Resolve an interval that reaches zero backlog and has time remaining. Assert:
 
 ### 8.10 Long-horizon discrete acquisition progress
 
-Using a deterministic test channel that produces one whole item per twenty-four hours, verify:
+Using a deterministic progression-gated test channel that produces one whole item per twenty-four hours after access, verify:
 
-- six hours records `250_000` acquisition subunits and zero whole inventory units;
+- elapsed time while locked creates no acquisition record, progress, carry, banked unit, inventory, or event;
+- unlock at the command boundary initializes the currently available source at zero and does not backfill earlier elapsed time;
+- six productive post-unlock hours record `250_000` acquisition subunits and zero whole inventory units;
 - changing the active Form/Writ/Retinue rate context after resolving to the command time preserves prior progress and carry while deriving a new numerator against the same normalized channel period;
 - a four-hour baseline fixture at `50.0%` progress remains at `50.0%` after a twenty-percent future rate increase while the ETA changes from two hours to one hour forty minutes;
-- purchasing a test Recollection or enabling another global rate modifier mid-operation resolves the old rate before the unlock boundary and the new rate after it;
+- purchasing a test Recollection or enabling another future rate modifier resolves the old rate before the change boundary and the new rate after it; it does not grant access unless an explicit access effect does so;
 - repeated recall and redispatch with the same state does not reapply or compound the rate bonus;
 - effective rate is re-derived from immutable baseline data plus current modifiers rather than from the previous effective rate;
 - recalling the Reaping freezes progress and redispatch resumes it;
-- a twenty-four-hour equivalent interval banks exactly one whole item and retains the exact remainder;
+- a twenty-four-hour productive equivalent interval banks exactly one whole item and retains the exact remainder;
 - one-shot, hourly, and mixed-chunk resolution produce identical whole units, Threshold progress, and arithmetic carry;
 - Overdue-to-Settled transition does not reset the source when the Settled definition retains it;
-- Unknown disclosure hides the progress while debug/state inspection confirms it remains authoritative;
+- locked presentation may show only latent hints; initialized Identified presentation may show progress while later Charted insight adds rate/ETA detail;
 - the player-facing percentage helper floors to one decimal and never shows `100.0%` before a whole unit is banked.
 
 ### 8.11 Support degradation
@@ -1735,28 +1737,22 @@ Final evidence:
 
 `GATE-CORE-RESOLUTION` is satisfied.
 
-## 24. M04D draft output-channel validation package
+## 24. M04D1 draft output-access and schema-v3 validation package
 
-M04D extends the same explicit-duration engine. Tests must not wait in real time or use discovery as a production gate.
+M04D1 performs no elapsed channel production. Every check must prove state, migration, access, source initialization, and no-backfill semantics without waiting in real time.
 
 ### 24.1 Focused Linux/Codex checks
 
-Expected focused command:
-
 ```bash
 ./tools/test/run_gut.sh -- \
-  -gdir=res://tests/unit/m04d \
-  -gdir=res://tests/integration/m04d
-```
+  -gdir=res://tests/unit/m04d1 \
+  -gdir=res://tests/integration/m04d1
 
-Also run:
-
-```bash
 godot --headless --path . --import
 
 trace_root="$(mktemp -d)"
 godot --headless --path . \
-  -s res://tools/test/m04d/m04d_output_channel_trace.gd \
+  -s res://tools/test/m04d1/m04d1_output_access_trace.gd \
   -- --save-root "$trace_root"
 trace_exit=$?
 rm -rf "$trace_root"
@@ -1769,113 +1765,112 @@ git diff --check
 
 ### 24.2 Required focused groups
 
-1. eligible-channel selection, sorted order, ownership, and Essence exclusion;
-2. missing acquisition record as zero and canonical creation;
-3. Gloamwood 2-hour and 8-hour exact fixtures;
-4. Broken Watch 6-hour and 24-hour exact fixtures;
-5. multiple parallel channels and multiple whole extraction;
-6. Unknown/hidden channels bank without disclosure mutation;
-7. normalized progress/carry and channel banked totals;
-8. `OUTPUT_CHANNEL_RATE` modifier conditions and deterministic order;
-9. channel Settled multiplier exactly once;
-10. irrelevant versus unsupported modifiers;
-11. recall/inactive freeze and same-loadout resume;
-12. compatible changed loadout preserving core/channel residuals;
-13. incompatible period/cycle rejection without mutation;
-14. four-hour `500_000` progress and ETA `7,200,000 -> 6,000,000` fixture;
-15. repeated redispatch non-compounding;
-16. exact Settlement segmentation and retained channel state;
-17. one-shot/regular/irregular chunk equality;
-18. channel result/segment deltas and event order;
-19. inventory/progress/carry/banked-total overflow matrices;
-20. schema-v2 coordinator round trips and malformed-state load rejection;
-21. no duplicate Essence or Reaping-owned acquisition state;
-22. no clock, scene, UI, discovery, report, forecast, Retinue, Recollection, or platform ownership.
+1. `ProgressionState` clone, sorted/unique access set, and canonical wire mapping;
+2. schema-v3 exact key/type contract;
+3. frozen v2 validation and pure v2-to-v3 migration;
+4. sequential v1-to-v2-to-v3 migration;
+5. content-aware finalization of the representative v2 acquisition fixture;
+6. preservation of existing progress/carry/banked totals;
+7. other currently available source initialization at zero;
+8. migration/finalization/content/revision/write failure preservation;
+9. already-current v3 no rewrite/rotation/revision change;
+10. valid item unlock with one and multiple currently available sources;
+11. unlock with no currently available source;
+12. unavailable Threshold omission and no name/channel disclosure;
+13. future availability reconciliation;
+14. non-progression-required source reconciliation;
+15. Essence exclusion;
+16. invalid/missing/disabled item and channel ownership cases;
+17. idempotent repeated unlock and reconciliation;
+18. exact no-time/no-inventory/no-progress/no-carry behavior;
+19. typed result/change-summary/event/checkpoint contract;
+20. deterministic event order;
+21. effective `LOCKED`/`IDENTIFIED`/`CHARTED` query behavior;
+22. schema-v3 production-coordinator round trips;
+23. no clock, simulation, UI, discovery-meter, report, forecast, Steam, or file-time ownership.
 
-### 24.3 Hand-calculable fixtures
-
-```text
-Gloamwood, 2 hours:
-  Soldier Souls banked = 24
-  Scribe Form Soul progress = 250000
-
-Gloamwood, 8 hours:
-  Scribe Form Souls banked = 1
-
-Broken Watch, 6 hours:
-  Provisions banked = 720
-  Man-at-Arms Form Soul progress = 250000
-
-Broken Watch, 24 hours:
-  Man-at-Arms Form Souls banked = 1
-
-Synthetic 4-hour channel at 50%:
-  progress before/after rate change = 500000
-  baseline ETA = 7200000 ms
-  x1.20 ETA = 6000000 ms
-```
-
-### 24.4 M04D trace markers
-
-Required exact markers:
+### 24.3 Required trace markers
 
 ```text
-TRACE M04D gloamwood_2h_soldier=24_scribe_progress=250000
-TRACE M04D gloamwood_8h_scribe_banked=1
-TRACE M04D broken_watch_6h_provisions=720_maa_progress=250000
-TRACE M04D broken_watch_24h_maa_banked=1
-TRACE M04D hidden_channels_bank=PASS
-TRACE M04D recall_freezes_redispatch_resumes=PASS
-TRACE M04D compatible_loadout_change_preserves_progress=PASS
-TRACE M04D rate_change_progress=500000_eta_before=7200000_eta_after=6000000
-TRACE M04D repeated_redispatch_non_compounding=PASS
-TRACE M04D settlement_preserves_channel_progress=PASS
-TRACE M04D one_shot_equals_chunks=PASS
-TRACE M04D save_round_trip=PASS
-TRACE M04D no_duplicate_essence_or_reaping_progress=PASS
+TRACE M04D1 schema_v2_to_v3_empty_unlocks=PASS
+TRACE M04D1 legacy_acquisition_preserved_and_item_unlocked=PASS
+TRACE M04D1 item_unlock_global=SOUL_FORM_SCRIBE
+TRACE M04D1 available_sources_initialized=1
+TRACE M04D1 unavailable_threshold_not_disclosed=PASS
+TRACE M04D1 future_available_source_reconciled=PASS
+TRACE M04D1 unlock_starts_from_zero=PASS
+TRACE M04D1 no_retroactive_inventory_or_progress=PASS
+TRACE M04D1 repeated_unlock_idempotent=PASS
+TRACE M04D1 access_knowledge_insight_separated=PASS
+TRACE M04D1 schema_v3_round_trip=PASS
+TRACE M04D1 no_clock_or_production_sources=PASS
 ```
 
-The trace requires an explicit disposable `--save-root`, performs a production coordinator round trip, exits nonzero on any mismatch, and writes nothing to ordinary `user://` state.
+The trace requires an explicit isolated `--save-root`, performs a real v2-to-v3 upgrade and v3 round trip, exits nonzero on any mismatch, and never writes normal `user://` state.
 
-### 24.5 Owner Windows package
+### 24.4 Owner Windows package
 
 Codex creates:
 
 ```text
-tools/test/owner/run_m04d_owner_verification.ps1
+tools/test/owner/run_m04d1_owner_verification.ps1
 ```
 
 Expected invocation:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass `
-    -File .\tools\test\owner\run_m04d_owner_verification.ps1 `
+    -File .\tools\test\owner\run_m04d1_owner_verification.ps1 `
     -CommitSha "<PR_HEAD_SHA>"
 ```
 
-The script follows the final M04C workflow: Godot 4.7 validation, full suite before, focused M04D, import, isolated trace, stable 13-marker verification, guaranteed cleanup/proof, prior-log-tolerant artifact audit, full suite after, and standardized UTF-8 summary.
+The script follows the final M04C workflow: Godot 4.7 validation, full suite before, focused M04D1, import, isolated trace, stable 12-marker verification, guaranteed cleanup/proof, prior-log-tolerant artifact audit, full suite after, and standardized UTF-8 summary.
 
 Expected summary:
 
 ```text
 Automated result: PASS
 Failed step count: 0
-Pending interactive checks: None for M04D
+Pending interactive checks: None for M04D1
 Cleanup result: PASS
 Log path: <generated path>
 ```
 
-No interactive checklist is required.
+### 24.5 M04D1 merge evidence
 
-### 24.6 M04D merge evidence
+M04D1 cannot merge until:
 
-M04D cannot merge until:
-
-- proposed `DEC-0037` or an owner-approved replacement channel contract is Accepted;
+- the approved prompt implements accepted `DEC-0037` without weakening it;
 - Linux/Codex focused/import/trace/full checks pass;
 - the owner Windows package passes against the exact PR head;
-- 8-/24-hour, rate-change, compatible-reconfiguration, Settlement, and chunk-equivalence fixtures pass;
-- every failure proves no mutation;
-- schema version remains 2 and Essence has no acquisition record;
-- no M04E, discovery, Retinue, Recollection, UI, concurrency, or platform behavior enters the diff;
-- actual review surface remains within the approved assessment or receives a revised prompt.
+- v1/v2 historical and v3 current fixtures pass;
+- content-aware legacy finalization preserves all valid acquisition values;
+- unlock/reconciliation produce no elapsed output or backfill;
+- unavailable Thresholds remain undisclosed;
+- every failure proves no mutation and original-save preservation;
+- no M04D2 accumulation, M04D3 reconfiguration, M13 insight UI, progression purchase, concurrency, or platform behavior enters the diff;
+- actual review surface remains within the approved prompt assessment.
+
+## 25. M04D2 preliminary accumulation validation boundary
+
+The M04D2 prompt is not yet drafted. Its fresh planning pass must include:
+
+- locked channels produce nothing and are never auto-created by elapsed simulation;
+- unlocked/initialized channels begin from zero and accumulate prospectively;
+- early versus late unlock differs only by opportunity-cost output;
+- current non-Essence channels use the approved prototype Settled multiplier `1.0`;
+- Gloamwood 2h/8h and Broken Watch 6h/24h exact fixtures;
+- hidden-vs-locked distinction, whole banking, progress/carry, events, chunking, Settlement, overflow, and schema-v3 round trips;
+- no duplicate Essence or Reaping-owned channel progress.
+
+## 26. M04D3 preliminary compatibility/query validation boundary
+
+The M04D3 prompt is not yet drafted. Its fresh planning pass must include:
+
+- exact resolve-old-state-before-change ordering;
+- compatible residual preservation and incompatible-denominator rejection;
+- same-loadout and changed-loadout recall/redispatch matrices;
+- no repeated-rate compounding;
+- `500_000` progress remaining unchanged while ETA moves `7,200,000 -> 6,000,000` under ×1.20;
+- full `1 -> 3 -> 2 -> 1` Threshold/loadout identity behavior;
+- save/load and no persisted effective rate/ETA.

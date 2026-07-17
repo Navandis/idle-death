@@ -3,7 +3,7 @@
 **Document role:** Canonical prototype data, runtime-state, ID, and serialization contracts  
 **Repository path:** `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`  
 **Document status:** Approved architecture contract  
-**Revision:** 13  
+**Revision:** 14  
 **Last updated:** 2026-07-17
 
 ## 1. Purpose
@@ -704,7 +704,7 @@ The opening action modifies `remaining_backlog` and story state but does not mod
 | `discovery_rate_residual` | `int` | Normalized remainder needed to continue discovery progress exactly across chunking and save/load |
 | `total_produced` | `int` | Optional diagnostic/history counter if required by reports |
 
-The inventory total exists independently. Identification does not grant historical output again. Discovery progress and acquisition progress are separate state: learning what a source is does not reset or award its accumulated output.
+The inventory total exists independently. A progression-gated source cannot accumulate before Access is unlocked. Unlock atomically identifies the item/currently available source and initializes acquisition at zero; later insight changes neither grant output nor reset accumulated post-unlock work. Discovery/insight progress and acquisition progress remain separate state.
 
 ### 9.8 ThresholdAcquisitionState
 
@@ -728,8 +728,8 @@ Rules:
 - crossing one or more whole-unit boundaries banks those whole units immediately and retains only the remainder;
 - the same progress/carry cannot also be stored in `ReapingState`;
 - effective rate, remaining duration, and display percentage are derived and are not persisted in this record;
-- Unknown disclosure hides the progress but does not stop or erase it;
-- a retroactive progress increase, if ever approved, is an explicit exactly-once progress-grant effect rather than a rate modifier.
+- a locked progression-gated source has no record and no progress; once initialized, later disclosure or insight changes do not stop, erase, or rebase it;
+- a progress increase, if ever approved, is an explicit exactly-once progression grant rather than pre-unlock backfill or a rate modifier.
 
 ### 9.9 ReapingState
 
@@ -1034,17 +1034,18 @@ Validation requirements:
 - an active Reaping requires `AVAILABLE`;
 - `SETTLED` requires zero remaining backlog;
 - after the zero-backlog transition, zero backlog cannot remain `OVERDUE`;
-- `UNKNOWN` does not prevent hidden production only when an already-valid active operation exists through an explicit scripted rule; the prototype normally requires a Threshold to be known and available before dispatch.
+- `UNKNOWN` knowledge never overrides output Access. A progression-gated channel produces only after its item is globally unlocked and its available source is initialized; the Threshold itself must still be known and available before dispatch.
 
 Do not persist one combined enum containing every knowledge, availability, activity, and lifecycle combination.
 
-### 13.2 Discovery
+### 13.2 Access, knowledge, and insight
 
 | Value | Meaning |
 |---|---|
-| `UNKNOWN` | Output may already exist in inventory but name/range is hidden |
-| `IDENTIFIED` | Name, icon, and qualitative frequency are visible |
-| `CHARTED` | Expected range and relevant modifiers are visible |
+| `LOCKED` | Progression-gated output cannot accumulate; a latent row/category hint may still be shown |
+| `UNKNOWN` | Item/source identity is not yet disclosed and no unavailable location is named |
+| `IDENTIFIED` | Name, icon, qualitative frequency, and currently available source relationships are visible; production may occur only when Access is unlocked |
+| `CHARTED` | Expected range, current modifiers, ETA confidence, and source relationships are visible |
 
 ### 13.3 Support
 
@@ -1957,164 +1958,219 @@ events
 
 The change summary contains exact deltas for simulation time, returned souls, backlog, Essence, Mastery, completed cycles, and lifecycle. Segment summaries identify start/end simulation cursors, lifecycle/rate context, and exact committed deltas. Events follow the domain-event minimum contract and are not persisted.
 
-## Proposed M04D output-channel and acquisition contract
+## Approved M04D access, schema-v3, and sliced-channel contract
 
-This section is proposed with `DEC-0037` and becomes authoritative when the M04D prompt is approved.
+Accepted `DEC-0037` supersedes the earlier M04D draft contract.
 
-### Eligible channels
+### Access, knowledge, and insight
 
-For an active Reaping at Threshold `T`, the M04D resolver processes the sorted set of channel IDs declared by `T` whose normalized records are:
+| Layer | Authoritative representation in M04D1 | Rule |
+|---|---|---|
+| Access | `ProgressionState.unlocked_output_item_ids` plus per-source acquisition-record initialization | Gates production |
+| Knowledge | Derived item/source identification for available initialized sources | Unlock identifies the item and available locations |
+| Insight | Existing content hints and later M13 state/read models | Controls category, rarity, rate/ETA precision, and modifier explanation |
 
-- enabled;
-- owned by `T`;
-- backed by a valid whole-unit inventory item;
-- not `RES_ESSENCE`.
+Knowledge or insight never grants Access. Access never names an unavailable Threshold.
 
-The two Essence channels remain M04C core sources and may not have `ThresholdAcquisitionState` records. Unknown discovery state does not prevent production or banking.
+### Schema version 3
 
-Current non-Essence production channels:
-
-| Channel | Threshold | Item | Baseline |
-|---|---|---|---:|
-| `CHANNEL_GLOAMWOOD_SOLDIER_SOULS` | Gloamwood | `SOUL_CALLING_SOLDIER` | 1 per 300,000 ms |
-| `CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS` | Gloamwood | `SOUL_FORM_SCRIBE` | 1 per 28,800,000 ms |
-| `CHANNEL_BROKEN_WATCH_PROVISIONS` | Broken Watch | `RES_PROVISIONS` | 1 per 30,000 ms |
-| `CHANNEL_BROKEN_WATCH_MAN_AT_ARMS_FORM_SOULS` | Broken Watch | `SOUL_FORM_MAN_AT_ARMS` | 1 per 86,400,000 ms |
-
-### Acquisition record
-
-Each eligible channel uses the existing `ThresholdAcquisitionState`:
-
-| Field | Rule |
-|---|---|
-| `progress_subunits` | `0 <= value < FixedPoint.SCALE`; normalized work toward the next whole unit |
-| `rate_carry_units` | `0 <= value < channel.rate.period_msec`; exact per-period arithmetic remainder |
-| `total_banked_units` | Non-negative whole units produced by this Threshold/channel over its saved lifetime |
-
-Missing state is canonical zero. Positive active resolution creates the record. Recall, inactivity, assignment revision, Form/Writ changes, Settlement, and save/load do not clear it.
-
-`total_banked_units` is source history and report evidence. Inventory remains the ownership source of truth because the same item may come from other sources or costs.
-
-### Channel rate plan
-
-Minimum fields:
+Explicit constants become:
 
 ```text
-channel_id
-threshold_id
+SCHEMA_VERSION_V1 = 1
+SCHEMA_VERSION_V2 = 2
+SCHEMA_VERSION_V3 = 3
+CURRENT_SCHEMA_VERSION = 3
+```
+
+The top-level envelope and version-2 `game_state` key set remain unchanged. Version 3 changes only the progression object:
+
+```json
+"progression": {
+  "command_tether_capacity": "1",
+  "unlocked_output_item_ids": [
+    "RES_PROVISIONS",
+    "SOUL_FORM_SCRIBE"
+  ]
+}
+```
+
+Rules for `unlocked_output_item_ids`:
+
+- runtime type: `Array[StringName]` or an equally explicit typed set boundary;
+- wire type: sorted array of unique JSON strings;
+- every value is a valid canonical item ID;
+- no display names, channel IDs, Threshold IDs, or localization keys;
+- empty is valid;
+- no duplicate or unsorted input is accepted;
+- deep clone, mapper, validator, and equality helpers preserve it exactly.
+
+### Version-2 to version-3 migration
+
+The pure migration:
+
+1. validates with the frozen version-2 validator;
+2. deep-copies the complete primitive snapshot;
+3. changes `schema_version` to `"3"`;
+4. adds `progression.unlocked_output_item_ids = []`;
+5. preserves every other byte-equivalent primitive value and the existing save revision;
+6. validates the structural version-3 candidate.
+
+Before persistence, a content-aware migration finalizer processes every existing `thresholds[*].channel_acquisition` entry in sorted Threshold/channel order:
+
+- resolve the referenced channel in the validated compatible registry;
+- require a valid non-Essence item output and correct Threshold ownership;
+- add its `output_item_id` to the global access set;
+- preserve progress, carry, and banked totals exactly;
+- initialize any other matching source that is already available at canonical zero;
+- reject contradictions rather than dropping data.
+
+The finalizer does not grant inventory, elapsed progress, discovery bonuses, or unavailable source names. The complete sequential upgrade increments the save revision once and persists atomically before runtime exposure.
+
+Frozen version-1 and version-2 fixtures remain immutable. Add a representative version-3 fixture containing a non-empty access set and matching source records.
+
+### Progression runtime state
+
+`ProgressionState` becomes:
+
+| Field | Type | Rule |
+|---|---|---|
+| `command_tether_capacity` | `int` | Non-negative whole count |
+| `unlocked_output_item_ids` | sorted unique `Array[StringName]` | Global mechanical access to progression-gated output items |
+
+Tether capacity and output access are independent.
+
+### Channel eligibility
+
+For non-Essence channel `C` at Threshold `T`:
+
+```text
+eligible(C, T) =
+    T.availability_state == AVAILABLE
+    and C.enabled
+    and C is referenced by T
+    and C.source_threshold_id == T.id
+    and C.output_item_id is a valid item
+    and (
+        C.progression_required == false
+        or C.output_item_id in progression.unlocked_output_item_ids
+    )
+```
+
+`RES_ESSENCE` channels are never eligible for `ThresholdAcquisitionState` because M04C owns Essence.
+
+For an available Threshold, every eligible channel must have a `ThresholdAcquisitionState`; every progression-gated acquisition record must correspond to a globally unlocked item. An unavailable Threshold is not initialized or disclosed merely because its item is globally unlocked.
+
+### Output access command
+
+Minimum command input:
+
+```text
+output_item_id: StringName
+```
+
+Preconditions:
+
+- valid current `GameState` and ready compatible registry;
+- valid enabled item;
+- at least one authored non-Essence channel outputs that item;
+- caller has already resolved elapsed time to the command boundary;
+- no clock, timestamp, inventory grant, or progression-cost logic is owned here.
+
+Success result minimum:
+
+```text
+success
+error_code
+player_message
+developer_details
+change_summary
+events
+save_checkpoint_requested
+```
+
+Change summary minimum:
+
+```text
 output_item_id
-baseline_rate_subunits_per_period
-period_msec
-effective_rate_subunits_per_period
-settled
-applied_modifier_source_ids
+access_added
+initialized_source_channel_ids
+identified_threshold_ids
+already_unlocked
 ```
 
-Supported modifier records in M04D:
+Events:
 
 ```text
-metric = OUTPUT_CHANNEL_RATE
-operation = MULTIPLY
-scope = OUTPUT_CHANNEL
-condition = ALWAYS | OUTPUT_ITEM | OUTPUT_KIND |
-            THRESHOLD_HAS_ANY_TAG | THRESHOLD_LIFECYCLE
+OUTPUT_ITEM_UNLOCKED
+OUTPUT_SOURCE_IDENTIFIED
 ```
 
-Condition semantics:
+`OUTPUT_ITEM_UNLOCKED` uses the item as subject. `OUTPUT_SOURCE_IDENTIFIED` uses the Threshold as subject and channel as source. Payloads are primitive and include item/channel/Threshold IDs. Events are ordered by Threshold then channel ID, are non-persisted, reportable, and tutorial-relevant when the channel is progression-required.
 
-- `OUTPUT_ITEM`: any condition value equals the channel output item ID;
-- `OUTPUT_KIND = WHOLE_SOUL`: the item kind is Calling Soul or Form Soul;
-- `THRESHOLD_HAS_ANY_TAG`: at least one configured tag matches;
-- `THRESHOLD_LIFECYCLE = STANDING`: runtime lifecycle is `OVERDUE`;
-- `THRESHOLD_LIFECYCLE = SETTLED`: runtime lifecycle is `SETTLED`.
+A repeated unlock is an idempotent success/no-op with no duplicate state, event, or checkpoint request.
 
-M04D initially collects active Form Trait sources only. Tests may use copied catalog fixtures. Future systems append validated source groups in deterministic order. A prior effective rate is never an input.
+### Available-source reconciliation
 
-After ordinary modifiers, apply `channel.settled_multiplier_subunits` exactly once when Settled. Do not apply the Threshold's core Settled multiplier to a non-Essence channel.
+A reconciliation command receives an already-updated authoritative state and initializes every missing eligible source at currently available Thresholds. It is used after a Threshold-availability transaction or migration finalization.
 
-### Accumulation transaction
+It:
 
-For each channel segment:
+- never changes availability itself;
+- never reveals unavailable Thresholds;
+- never grants elapsed progress or inventory;
+- is idempotent;
+- emits only newly identified source events;
+- requests a save checkpoint only when state changed.
 
-1. accumulate produced subunits with the channel rate and existing carry;
-2. checked-add to normalized progress;
-3. extract all whole units;
-4. checked-add whole units to inventory;
-5. checked-add the same units to `total_banked_units`;
-6. store normalized progress and carry;
-7. append one deterministic delta record;
-8. emit one bank event only when whole units are positive.
-
-Channel delta minimum:
+### Canonical source initialization
 
 ```text
-channel_id
-output_item_id
-whole_units_delta
-progress_before_subunits
-progress_after_subunits
-carry_before_units
-carry_after_units
-total_banked_before
-total_banked_after
+progress_subunits = 0
+rate_carry_units = 0
+total_banked_units = 0
 ```
 
-Bank event minimum:
+No pre-unlock duration is represented. An access command at simulation cursor `T` does not change `simulation_time_msec`; future M04D2 production begins strictly after the committed boundary.
+
+### Effective identification query
+
+A pure query may reconstruct:
 
 ```text
-event_type = OUTPUT_CHANNEL_BANKED
-occurred_simulation_msec = segment end cursor
-priority = producer-completion priority
-subject_id = Threshold ID
-source_id = Channel ID
-payload = channel/item/whole/progress/banked facts
-reportable = true
-tutorial_relevant = channel.progression_required
+LOCKED
+IDENTIFIED
+CHARTED
 ```
 
-Events and segment history are not persisted.
+For M04D1:
 
-### Compatible assignment-rate transition
+- inaccessible/uninitialized progression-gated source: `LOCKED`;
+- initialized source: at least `IDENTIFIED`;
+- authored `CHARTED` content remains `CHARTED`;
+- unavailable Threshold source is omitted rather than named.
 
-A changed inactive redispatch may preserve existing operation residuals when:
+The query does not persist an insight meter or mutate content.
 
-```text
-old returned-soul period == new returned-soul period
-old Mastery period == new Mastery period
-old cycle duration == new cycle duration
-```
+### M04D2 planned accumulation contract
 
-Threshold Essence and item-channel periods are Threshold-owned and unchanged by the loadout. Under compatibility, core residuals, cycle phase, acquisition progress, and channel carries remain unchanged. The next segment derives rates from the new loadout.
+M04D2 will:
 
-An incompatible transition returns `REAPING_RATE_CONTEXT_INCOMPATIBLE`. It increments no revision, changes no assignment, and resets no state.
+- process only initialized eligible non-Essence channels;
+- never auto-unlock or backfill a source;
+- preserve Threshold-owned normalized progress/carry;
+- bank whole inventory and source-history totals;
+- use channel-specific Settlement multipliers;
+- set current non-Essence prototype channel multipliers to `1.0` before relying on them;
+- leave Essence in the M04C core path.
 
-### Derived time-to-next-unit
+### M04D3 planned rate-context contract
 
-A pure checked query returns the minimum integer milliseconds needed to extract the next whole unit from the current progress/carry under a supplied current rate plan. It is not persisted.
+M04D3 will:
 
-Required synthetic fixture:
-
-```text
-period = 14,400,000 ms
-progress = 500,000
-carry = 0
-baseline rate = 1,000,000 per period
-baseline ETA = 7,200,000 ms
-rate after x1.20 = 1,200,000 per period
-new ETA = 6,000,000 ms
-stored progress after rate change = 500,000
-```
-
-Repeated derivation with the same baseline and modifiers returns the same rate and ETA.
-
-### Persistence
-
-Schema version 2 remains current. Save/load must preserve:
-
-- every channel acquisition key;
-- progress and carry;
-- source banked totals;
-- resulting whole inventory;
-- core-flow residuals and assignment state.
-
-Persistence rejects an acquisition record for an Essence channel, a channel owned by another Threshold, a missing/non-item output, progress/carry outside range, or a negative banked total.
+- preserve progress/carry through compatible loadout changes;
+- reject incompatible periods/durations;
+- derive future rates from immutable baseline content and current modifiers;
+- prevent repeated redispatch compounding;
+- expose a pure non-persisted time-to-next-unit query;
+- retain stored percentage when future rate changes.

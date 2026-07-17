@@ -3,7 +3,7 @@
 **Document role:** Approved implementation sequence and acceptance map for the 0–90 minute prototype  
 **Repository path:** `docs/codex/MILESTONES.md`  
 **Document status:** Approved rolling-wave milestone map  
-**Milestone-map revision:** 19  
+**Milestone-map revision:** 20  
 **Last updated:** 2026-07-17  
 **Primary context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md), [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md), [Architecture](ARCHITECTURE.md), [Data contracts](DATA_AND_CONTENT_CONTRACTS.md), [Testing](TESTING_AND_VALIDATION.md), [Owner verification](OWNER_VERIFICATION_WORKFLOW.md), [Milestone recalibration](MILESTONE_RECALIBRATION_PROPOSAL.md), and [Decisions](DECISIONS.md)
 
@@ -114,7 +114,9 @@ A conceptual epic uses `Prompt: Not applicable` and `Implementation: Not directl
 | `GATE-GAMEPLAY-SCHEMA` | M04A implementation and merge | Satisfied for prompt drafting by accepted `DEC-0034`: M04A introduces schema version 2 with a production sequential `v1 -> v2` migration. M04A must implement and verify the transactional upgrade, historical fixture, failure preservation, and owner Windows path before merge. |
 | `GATE-REAPING-ASSIGNMENT` | M04B prompt approval | Satisfied by accepted `DEC-0035`: Threshold-scoped operation identity, canonical loadout tuples, revision/episode identity, immutable first-start timestamps, stable recalled records, Form exclusivity, tether derivation, and nonzero carry handling. |
 | `GATE-CORE-RESOLUTION` | M04C prompt approval | Satisfied by accepted `DEC-0036` and approved M04C v0.1: transactional mutation, exact Settlement segmentation, core rate semantics, residual ownership, no-active timeline behavior, and the temporary one-active-Reaping limit. |
-| `GATE-CHANNEL-ACQUISITION` | M04D prompt approval | Approve `DEC-0037` or a revised channel contract covering non-Essence selection, Threshold ownership, exact accumulation, bounded channel modifiers, compatible rate-context changes, non-compounding progress, and schema-v2 persistence. |
+| `GATE-OUTPUT-ACCESS-SCHEMA` | M04D1 prompt approval | Satisfied by accepted `DEC-0037`: access/knowledge/insight separation, schema version 3, global item access, prospective unlocks, available-source initialization, no retroactive production, and no permanent lockout. The M04D1 prompt still requires owner approval. |
+| `GATE-CHANNEL-ACCUMULATION` | M04D2 prompt approval | Requires M04D1 Merged/Passed, current non-Essence Settlement policy confirmed, and a fresh scope assessment. |
+| `GATE-RATE-CONTEXT-CHANGE` | M04D3 prompt approval | Requires M04D2 Merged/Passed and a fresh compatibility/ETA scope assessment. |
 | `GATE-STEAM-TIME` | The applicable M06 slice prompt/implementation | Satisfied for prompt drafting by `DEC-0024`: use pinned GodotSteam 4.20 and development App ID `480`. M06 must still verify license footprint, wrapper API, explicit initialization, and live Windows behavior. |
 | `GATE-PRODUCTION-OFFLINE` | The final applicable M16 slice merge | Fake-provider automation plus the owner-run Windows/GodotSteam connected, unavailable, reconnect, clock-change, and repeated-load checks must pass. |
 | `RELEASE-GATE-STEAM-APP` | Before external Steam Playtest or commercial distribution | Replace development App ID `480` with Death Idle's assigned App ID and validate package ownership, launch-through-Steam behavior, export contents, and absence of development-only App ID aids. |
@@ -128,7 +130,7 @@ A conceptual epic uses `Prompt: Not applicable` and `Implementation: Not directl
 
 `GATE-CONTENT-CATALOG` was satisfied by M03. PR #7 merged on 2026-07-15 at merge commit `5e2b9b23878c9280f75b987cc9ad567d8980030d`; its final head was `971cdaa0fd46f641ec7409148e259d54f953d8c7`. Linux/Codex and owner Windows verification passed the full and focused suites, explicit import, semantic catalog trace, artifact audit, and Godot Inspector checklist.
 
-`GATE-SLICE-SCOPE` is mandatory for every post-M03 prompt. `GATE-GAMEPLAY-SCHEMA` is fully satisfied by M04A. `GATE-REAPING-ASSIGNMENT` is fully satisfied by M04B. `GATE-CORE-RESOLUTION` is fully satisfied by M04C implementation and verification. `GATE-CHANNEL-ACQUISITION` is pending owner approval of proposed `DEC-0037` with the M04D prompt.
+`GATE-SLICE-SCOPE` is mandatory for every post-M03 prompt. `GATE-GAMEPLAY-SCHEMA` is fully satisfied by M04A. `GATE-REAPING-ASSIGNMENT` is fully satisfied by M04B. `GATE-CORE-RESOLUTION` is fully satisfied by M04C. `GATE-OUTPUT-ACCESS-SCHEMA` is satisfied at the decision level by accepted `DEC-0037`; M04D1 prompt approval is the next gate. M04D2 and M04D3 remain blocked on their predecessor slices.
 
 
 When trusted time is unavailable, the approved behavior is to grant no guessed closed-session progress, retain pending reconciliation, and continue monotonic foreground production. No milestone may introduce a local-device-time fallback.
@@ -145,7 +147,10 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 | M04A | Gameplay state and persistence foundation | Implementation slice | Approved | Approved | Merged | Passed |
 | M04B | Dispatch, recall, and assignment integrity | Implementation slice | Approved | Approved | Merged | Passed |
 | M04C | Single-Reaping core resolver | Implementation slice | Approved | Approved | Merged | Passed |
-| M04D | Output channels and long-horizon acquisition progress | Implementation slice | Approved | Drafted | Not started | — |
+| M04D | Output access and discrete-channel progression | Conceptual sub-epic | Approved | Not applicable | Not directly executable | — |
+| M04D1 | Output access and source-identification foundation | Implementation slice | Approved | Drafted | Not started | — |
+| M04D2 | Discrete channel accumulation and long-horizon banking | Implementation slice | Approved | Not drafted | Not started | — |
+| M04D3 | Compatible rate-context changes and acquisition queries | Implementation slice | Approved | Not drafted | Not started | — |
 | M04E | Forecast clone, report accumulator, and simulation harness | Implementation slice | Approved | Not drafted | Not started | — |
 | M05 | Persistent application shell, navigation, and debug access | Conceptual epic | Approved | Not applicable | Not directly executable | — |
 | M06 | Steam trusted-time adapter and transactional offline resolution | Conceptual epic | Approved | Not applicable | Not directly executable | — |
@@ -168,16 +173,18 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 ```text
 M00 → M01 → M02 → M03
                       └─ GATE-GAMEPLAY-SCHEMA
-                          └─ M04A → M04B → M04C → M04D → M04E
+                          └─ M04A → M04B → M04C → M04D1 → M04D2 → M04D3 → M04E
 ```
 
 | Slice | Requires | Unlocks |
 |---|---|---|
 | M04A | M03 Passed; `GATE-GAMEPLAY-SCHEMA` satisfied by `DEC-0034`; prompt-level `GATE-SLICE-SCOPE` review | M04B |
 | M04B | M04A Merged and Passed | M04C |
-| M04C | M04B Merged and Passed | M04D |
-| M04D | M04C Merged and Passed | M04E |
-| M04E | M04D Merged and Passed | M05 decomposition and prompt drafting |
+| M04C | M04B Merged and Passed | M04D1 |
+| M04D1 | M04C Merged and Passed; accepted `DEC-0037` | M04D2 |
+| M04D2 | M04D1 Merged and Passed | M04D3 |
+| M04D3 | M04D2 Merged and Passed | M04E |
+| M04E | M04D3 Merged and Passed | M05 decomposition and prompt drafting |
 
 ### 7.2 Conceptual dependency sequence after M04E
 
@@ -224,7 +231,7 @@ M03 demonstrated that a technically coherent architecture can still become an un
 | M10 report/Soldier Company | `M10A` 1,000 boundary, Emergency transition, and first report; `M10B` Muster, reservation ledger, and Soldier Company | Separates boundary/report correctness from reservations |
 | M11 Scribe | May remain one slice if the fresh assessment stays within guardrails | Current outcome is comparatively cohesive |
 | M12 Broken Watch/concurrency | `M12A` resonance, Threshold unlock, and tether grant; `M12B` second Reaping, reassignment, and map integration | Separates exactly-once progression from concurrency |
-| M13 discovery | `M13A` discovery state and hidden banking; `M13B` forecast confidence, disclosure UI, and acquisition-progress presentation | Separates authority from presentation |
+| M13 discovery | `M13A` insight/discovery state and source-information authority; `M13B` forecast confidence, disclosure UI, and acquisition-progress presentation | Access is already authoritative; M13 owns information precision and presentation |
 | M14 Larder/support | `M14A` Hall/recipe simulation and onboarding guarantee; `M14B` Ration consumption, reduced effect, recovery, and UI | Separates producer and consumer/degradation logic |
 | M15 regional resonance | May remain one slice if the fresh assessment stays within guardrails | Current outcome is smaller but still requires reassessment |
 | M16 offline-return UX | `M16A` forecast/report-history presentation; `M16B` trusted welcome-back, pending state, and tutorial completion | Separates projection UI from live trusted return |
@@ -233,7 +240,7 @@ M03 demonstrated that a technically coherent architecture can still become an un
 ### 8.3 Changes from the starting hypothesis
 
 - State/time, persistence, and content were correctly separated into M01–M03.
-- M04 is now split into five approved implementation slices rather than one large vertical-slice pull request.
+- M04 is now split into seven approved implementation slices: M04A, M04B, M04C, M04D1, M04D2, M04D3, and M04E.
 - Later first-session outcomes remain conceptually ordered but are decomposed only when their repository state is known.
 - Reports, forecasts, trusted time, and presentation remain incremental rather than becoming catch-all work.
 - M17 remains an acceptance epic and may not absorb unfinished major systems.
@@ -759,7 +766,7 @@ Schema version 1 and its key spelling remain unchanged. New-save calls pass the 
 **Prompt status:** Not applicable — no direct epic prompt  
 **Implementation status:** Not directly executable  
 **Verification status:** —  
-**Decomposition:** M04A → M04B → M04C → M04D → M04E
+**Decomposition:** M04A → M04B → M04C → M04D1 → M04D2 → M04D3 → M04E
 
 #### Purpose
 
@@ -767,11 +774,11 @@ Prove the core idle machinery before narrative and production UI are layered ove
 
 #### Epic outcome
 
-After M04A–M04E pass, one Gloamwood Reaping led by Man-at-Arms can be constructed, dispatched, advanced deterministically, saved, loaded, recalled, redispatched, forecast on a clone, and reported without claim-gating. Backlog, Essence, Mastery, and configured output channels use one scene-independent rules path.
+After M04A, M04B, M04C, M04D1, M04D2, M04D3, and M04E pass, one Gloamwood Reaping led by Man-at-Arms can be constructed, dispatched, advanced deterministically, saved, loaded, recalled, redispatched, forecast on a clone, and reported without claim-gating. Output access, backlog, Essence, Mastery, and configured eligible channels use scene-independent authority.
 
 #### Epic completion rule
 
-M04 is complete only when M04A through M04E are all Merged and Passed. No `M04-persistent-reaping-simulation.md` prompt is valid.
+M04 is complete only when M04A, M04B, M04C, M04D1, M04D2, M04D3, and M04E are all Merged and Passed. No `M04-persistent-reaping-simulation.md` or direct `M04D` implementation prompt is valid.
 
 ---
 
@@ -1099,112 +1106,170 @@ A developer can provide a duration to one Gloamwood/Man-at-Arms operation and ob
 
 #### Follow-on dependencies
 
-- M04D.
+- M04D1.
 
 ---
 
-### M04D — Output channels and long-horizon acquisition progress
+### M04D — Output access and discrete-channel progression
+
+**Work item type:** Conceptual sub-epic  
+**Parent epic:** M04  
+**Definition status:** Approved  
+**Prompt status:** Not applicable — no direct prompt  
+**Implementation status:** Not directly executable  
+**Verification status:** —  
+**Decomposition:** M04D1 → M04D2 → M04D3
+
+#### Purpose
+
+Separate output access and source identification from accumulation and from later rate-context changes so each ownership boundary receives an independently reviewable implementation and migration.
+
+#### Completion rule
+
+M04D is complete only when M04D1, M04D2, and M04D3 are all Merged and Passed. The superseded `M04D-output-channels-long-horizon-progress.md` prompt must not be executed.
+
+---
+
+### M04D1 — Output access and source-identification foundation
 
 **Work item type:** Implementation slice  
-**Parent epic:** M04  
+**Parent epic:** M04 / M04D  
 **Definition status:** Approved  
 **Prompt status:** Drafted  
 **Implementation status:** Not started  
 **Verification status:** —  
-**Recommended Codex task size:** Medium; one Threshold-channel accumulation pull request.  
-**Planned prompt file:** `docs/codex/milestone-prompts/M04D-output-channels-long-horizon-progress.md`
+**Recommended Codex task size:** Medium; one access-state, migration, and source-initialization pull request.  
+**Planned prompt file:** `docs/codex/milestone-prompts/M04D1-output-access-source-identification-foundation.md`
 
 #### Purpose
 
-Extend the transactional M04C resolver with Threshold-owned non-Essence item channels and prove that normalized long-horizon work survives recall, compatible loadout changes, Settlement, chunking, and save/load without rate compounding.
+Introduce schema version 3, persist global output-item access, migrate historical acquisition state safely, and provide transactional item unlock plus available-source reconciliation without producing any channel output.
 
 #### Player or developer outcome
 
-A developer can resolve current Gloamwood and Broken Watch item channels, inspect whole inventory plus exact partial progress/carry, recall and redispatch, change to a compatible future rate context, observe unchanged progress with a recalculated ETA, and save/reload the result.
+A developer can unlock an output item globally, identify and initialize every currently available source at zero, avoid disclosing unavailable Thresholds, later reconcile a newly available Threshold, save/load the result, and prove that no pre-unlock time or inventory was backfilled.
 
 #### Dependencies
 
 - M04C Merged and Passed.
-- `GATE-SLICE-SCOPE` is completed in the M04D draft and must be approved with the prompt.
-- `GATE-CHANNEL-ACQUISITION` is pending owner approval of proposed `DEC-0037`.
-- Accepted `DEC-0027`, `DEC-0028`, and `DEC-0030`.
+- Accepted `DEC-0037`; `GATE-OUTPUT-ACCESS-SCHEMA` decision contract satisfied.
+- `GATE-SLICE-SCOPE` is completed in the M04D1 draft and requires owner approval with the prompt.
+- Existing v1/v2 migration, atomic persistence, M04A state, and M03 content registry remain the foundation.
 
 #### Included scope
 
-- Extend `SimulationEngine` rather than adding a second loop.
-- Resolve all enabled, owned, non-Essence channels for the one active Threshold in sorted ID order.
-- Treat missing acquisition state as zero and create durable `ThresholdAcquisitionState` on positive production.
-- Derive channel rates from immutable baseline data, bounded active-Form Trait modifiers, lifecycle, and channel Settled multiplier.
-- Accumulate exact progress/carry, bank all whole units immediately, and update per-channel banked totals.
-- Emit deterministic channel deltas and `OUTPUT_CHANNEL_BANKED` events.
-- Accumulate hidden/Unknown channels without disclosure changes.
-- Preserve channel progress/carry through recall, inactivity, same-loadout redispatch, compatible Form/Writ changes, and Settlement.
-- Refine changed redispatch so compatible core periods/cycle durations preserve operation residuals; reject incompatible contexts explicitly.
-- Add a pure time-to-next-unit query for tests/forecast reuse.
-- Preserve schema version 2 and add focused tests, real-file trace, and one Windows owner package.
+- Add `ProgressionState.unlocked_output_item_ids` as sorted, duplicate-free global access state.
+- Introduce schema version 3, frozen v2 support, a pure `v2 -> v3` migration, representative v3 fixture, and sequential `v1 -> v2 -> v3` coverage.
+- Add content-aware upgrade finalization that derives access from valid historical v2 acquisition entries without changing their values.
+- Add one focused `OutputAccessService` or equivalent owner for item unlock and available-source reconciliation.
+- Initialize matching available non-Essence sources at canonical zero; never reveal unavailable Thresholds.
+- Derive at-least-Identified source knowledge without a persisted insight meter.
+- Return typed summaries/events and checkpoint requests; keep repeated unlock/reconciliation idempotent.
+- Add focused tests, real-file trace, Windows owner package, and canonical documentation updates.
 
 #### Explicit non-goals
 
-- Essence duplication, discovery progression/disclosure, Retinue/support, Recollection purchase state, Form Arts, Writ progression, milestones, guarantees, resonances, forecasts, reports, UI, randomness, concurrent Reapings, Halls, or trusted-time acquisition.
-- A complete future modifier engine or carry conversion across changing denominators.
-- New Thresholds or production-content balance changes.
+- No elapsed channel accumulation, whole-item banking, channel modifiers, Settlement channel rates, ETA calculation, or changed-loadout compatibility.
+- No Recollection purchase, milestone evaluator, Threshold-availability command, discovery meter, Codex UI, progress bar, forecast, report, Retinue, support, Hall, Steam, or trusted-time behavior.
+- No production `.tres` multiplier changes; M04D2 owns the non-Essence `1.0` prototype default.
 
 #### Acceptance criteria
 
-- Gloamwood two-hour fixture banks 24 Soldier Souls and leaves Scribe Form Soul progress at `250_000`.
-- Gloamwood eight-hour fixture banks one Scribe Form Soul exactly.
-- Broken Watch six-hour fixture banks 720 Provisions and leaves Man-at-Arms Form Soul progress at `250_000`.
-- Broken Watch twenty-four-hour fixture banks one Man-at-Arms Form Soul exactly.
-- Unknown channels bank output; disclosure state is untouched.
-- Essence is granted only by M04C and never receives a `ThresholdAcquisitionState`.
-- Whole inventory is unscaled; channel progress/carry remain normalized and source-owned.
-- Recall/inactivity freezes progress; same-loadout redispatch resumes exactly.
-- Compatible changed redispatch preserves nonzero core/channel residuals and changes only future rate derivation.
-- An incompatible period or cycle context returns `REAPING_RATE_CONTEXT_INCOMPATIBLE` without mutation.
-- A four-hour `50.0%` fixture retains `500_000` progress while a `1.20` future multiplier changes ETA from `7,200,000` to `6,000,000` ms.
-- Repeated recall/redispatch with unchanged modifiers does not compound the rate.
-- Settlement retains channel progress and applies the channel Settled multiplier only after the exact boundary.
-- One-shot/chunk runs produce exact equal state, inventory, deltas, progress, and carry.
-- Save/load round-trips every acquisition record and banked total through schema v2.
-- Invalid ownership/rates/modifiers/residuals and every supported overflow fail with no mutation.
+- New v3 saves contain an empty canonical access array unless ordinary game setup grants access.
+- Pure v2 migration preserves all existing values and adds the access field.
+- Historical v2 acquisition entries derive their non-Essence output-item access during working-candidate finalization and retain exact progress/carry/banked totals.
+- Migration or finalization failure preserves the original valid save and exposes no runtime.
+- Unlock adds one global item ID, initializes all currently available matching sources at zero, and identifies those sources.
+- Unavailable Threshold names/channels are not returned or initialized.
+- Later availability reconciliation initializes the already-unlocked source at zero.
+- No unlock/reconciliation call changes time, inventory, existing progress, or creates retroactive production.
+- Repeated commands create no duplicate set entries, records, events, or save requests.
+- Validator rejects unsorted/duplicate/invalid access IDs and acquisition records that contradict access/availability/ownership.
+- Schema-v3 save/load and current-load no-rewrite behavior pass.
+- No clock, simulation, UI, or platform dependency enters the access service.
 
 #### Automated verification
 
-- Current-content 8-/24-hour, common-channel, multi-whole, hidden-channel, and parallel-channel fixtures.
-- Rate-plan condition, modifier-order, lifecycle multiplier, irrelevant/unsupported modifier, and no-compounding matrices.
-- Recall/inactive/same-loadout/compatible-change/incompatible-denominator tests.
-- Exact ETA query fixture.
-- Settlement boundary and one-shot/chunk equivalence.
-- Result/segment/event ordering and no duplicate Essence/core progress.
-- Schema-v2 coordinator round trips and malformed acquisition-state rejection.
-- Full regression, deterministic trace, and source-ownership audit.
+- v2 empty and representative-acquisition migration matrices.
+- v1 → v2 → v3 sequential upgrade and atomic failure boundaries.
+- Access-state mapping, ordering, clone isolation, and validation.
+- Available/unavailable source selection and future reconciliation.
+- No-backfill/no-inventory/no-time assertions.
+- Typed result/event/idempotency matrix.
+- Real-file upgrade/access/save trace and full regression.
 
 #### Manual verification
 
-- Codex creates `tools/test/owner/run_m04d_owner_verification.ps1`; the owner runs one generated-log package against the PR head.
-- No editor, visual, gameplay, audio, A/B, or Steam checklist is required. Disclosure and progress-bar observation remain M13.
+- Codex creates `tools/test/owner/run_m04d1_owner_verification.ps1`; the owner runs one generated-log package against the exact PR head.
+- No editor, visual, gameplay, audio, A/B, or Steam checklist is required.
 
-#### Demonstration path
+#### Follow-on dependencies
 
-- Resolve Gloamwood for two and eight hours and inspect common/rare channel results.
-- Resolve Broken Watch for six and twenty-four hours and inspect Provisions/rare Form Soul results.
-- Recall, prove freeze, and redispatch.
-- Use the four-hour synthetic fixture to show unchanged `50.0%` progress and reduced ETA under a 20% future rate increase.
-- Repeat redispatch without another state change and show no compounding.
-- Cross Settlement, save/load, and compare exact channel state.
+- M04D2.
 
-#### Save/load expectations
+---
 
-Schema version 2 remains current. `ThresholdState.channel_acquisition` persists non-Essence channel progress, stable-period carry, and banked totals. Inventory persists whole output. Essence acquisition records are invalid. Effective rates, ETA, segment history, and events are not saved.
+### M04D2 — Discrete channel accumulation and long-horizon banking
 
-#### Known risks
+**Work item type:** Implementation slice  
+**Parent epic:** M04 / M04D  
+**Definition status:** Approved  
+**Prompt status:** Not drafted  
+**Implementation status:** Not started  
+**Verification status:** —  
+**Recommended Codex task size:** Medium; one eligible-channel simulation pull request.  
+**Planned prompt file:** `docs/codex/milestone-prompts/M04D2-discrete-channel-accumulation-banking.md`
 
-- Accidentally resolving Essence twice.
-- Treating discovery as a production gate.
-- Applying a modifier to prior progress or to a previous effective rate.
-- Transferring a carry across incompatible periods.
-- Expanding into Retinue/Recollection/discovery systems.
-- Large-duration overflow or inefficient per-item iteration.
+#### Purpose
+
+Extend `SimulationEngine` with exact non-Essence accumulation for already-initialized eligible sources, whole banking, channel events, channel-specific Settlement behavior, chunk equality, and persistence.
+
+#### Key boundaries
+
+- Depends on M04D1 Merged/Passed and `GATE-CHANNEL-ACCUMULATION`.
+- Locked/uninitialized channels produce nothing and are never auto-created by elapsed simulation.
+- Current non-Essence prototype channel Settled multipliers become `1.0`; later tuning remains data-driven.
+- Essence remains exclusively in M04C.
+- Recall/inactivity freezes Threshold-owned channel state.
+- No loadout-rate compatibility or ETA query; those remain M04D3.
+
+#### Required fixtures
+
+- Gloamwood 2h/8h and Broken Watch 6h/24h exact outputs.
+- Locked versus unlocked timing and no-retroactive-backfill comparison.
+- Settlement continuation at channel-specific rate.
+- One-shot/chunk, multi-whole, overflow, event, and schema-v3 round trips.
+
+#### Follow-on dependencies
+
+- M04D3.
+
+---
+
+### M04D3 — Compatible rate-context changes and acquisition queries
+
+**Work item type:** Implementation slice  
+**Parent epic:** M04 / M04D  
+**Definition status:** Approved  
+**Prompt status:** Not drafted  
+**Implementation status:** Not started  
+**Verification status:** —  
+**Recommended Codex task size:** Small-medium; one reconfiguration/query pull request.  
+**Planned prompt file:** `docs/codex/milestone-prompts/M04D3-compatible-rate-context-and-acquisition-queries.md`
+
+#### Purpose
+
+Permit compatible changed redispatch while preserving core/channel residuals, reject incompatible denominators, prevent rate compounding, and expose pure acquisition progress/ETA queries.
+
+#### Key boundaries
+
+- Depends on M04D2 Merged/Passed and `GATE-RATE-CONTEXT-CHANGE`.
+- Caller resolves elapsed time under the old setup before assignment mutation.
+- Compatible periods/cycle durations preserve residuals exactly; incompatible changes fail without mutation.
+- Future rate is re-derived from authored baseline plus current modifiers.
+- A `500_000` progress fixture remains 50% while ETA changes from 2h to 1h40 under ×1.20.
+- Full recall/same-loadout/different-loadout/different-Threshold/return-to-prior-loadout matrix is required.
+- No persisted effective rate or ETA.
 
 #### Follow-on dependencies
 
@@ -1233,12 +1298,12 @@ A developer can forecast one hour on a deep clone, commit the same supplied inte
 
 #### Dependencies
 
-- M04D Merged and Passed.
+- M04D3 Merged and Passed.
 - `GATE-SLICE-SCOPE` satisfied for the M04E prompt.
 
 #### Included scope
 
-- Add forecast service on a deep clone using the M04C/M04D resolver.
+- Add forecast service on a deep clone using the M04C/M04D2/M04D3 resolver.
 - Provide supplied-duration live, offline-fixture, forecast, and debug adapters with one rule path; no trusted-time acquisition is added.
 - Add report accumulator entries for already-committed deltas and bounded snapshot/clear foundations needed by later UI.
 - Persist report state only if it becomes authoritative in this slice.
@@ -2169,7 +2234,7 @@ Checkpoint at milestone/resonance, Threshold knowledge/availability, tether gran
 
 **Work item type:** Conceptual epic  
 **Definition status:** Approved  
-**Prompt status:** Not applicable — decompose before drafting  
+**Prompt status:** Not applicable — no direct epic prompt  
 **Implementation status:** Not directly executable  
 **Verification status:** —  
 **Recommended planning action:** Reassess and approve lettered slices under `DEC-0033` immediately before implementation.  
@@ -2177,96 +2242,97 @@ Checkpoint at milestone/resonance, Threshold knowledge/availability, tether gran
 
 > This section defines a conceptual outcome and boundary. It is not a Codex task. Use the preliminary split in §8 only as a starting hypothesis, then approve the actual lettered slice definitions from the current repository.
 
-
 #### Purpose
 
-Deliver Beat 9 and make Scribe’s information value immediately observable.
+Deliver Beat 9 and make Scribe's information value immediately observable without reintroducing hidden pre-unlock banking.
 
 #### Player or developer outcome
 
-Broken Watch produces Provisions before they are known; Scribe identifies the channel after the configured accelerated path, a non-Scribe assignment reaches the same required state through a slower fallback, and forecasts disclose progressively better information without changing underlying production.
+Broken Watch initially shows latent unknown output potential but produces no progression-gated Provisions. Scribe or a slower fallback reaches the authoritative Provisions access boundary, which identifies Provisions and Broken Watch as a currently available source, initializes acquisition from zero, and then improves forecast precision toward Charted insight.
 
 #### Dependencies
 
 - M12
+- M04D1 global access/source identification
+- M04D2 eligible channel accumulation
 
 #### Included scope
 
 - Author `TUT_10_DISCOVERY`.
-- Implement per-channel Unknown, Identified, and Charted state/progress.
-- Bank hidden output normally and filter only its player-facing disclosure.
+- Implement the configured Scribe and fallback progress toward the Provisions unlock/identification boundary.
+- Invoke the M04D1 output-access service rather than writing access or acquisition state directly.
+- Ensure Provisions produces nothing before unlock and begins prospectively from zero afterward.
+- Implement per-channel Unknown, Identified, and Charted insight/presentation state as required by the freshly approved slices.
 - Implement Scribe discovery modifier and forecast-uncertainty modifier through shared data-driven evaluation.
-- Implement the configured Scribe and fallback cycle thresholds.
-- Extend Threshold/report/forecast UI with unknown rows, identification event, qualitative frequency, charting progress, and trace attribution.
-- Add the generic known-channel acquisition progress presentation required by `DEC-0027`: Threshold-level bar, one-decimal floored percentage, and no fractional item count. Use a fixture or existing suitable channel; do not invent a new rare content item solely for the UI.
+- Extend Threshold/report/forecast UI with latent unknown rows, source-identification event, qualitative frequency, charting progress, and trace attribution.
+- Add the generic initialized-channel acquisition progress presentation required by amended `DEC-0027`: Threshold-level bar, one-decimal floored percentage, and no fractional item count.
 
 #### Explicit non-goals
 
-- Larder, Rations, additional materials, advanced Codex, stochastic loot, or hidden-output retroactive generation.
+- Larder, Rations, additional materials, advanced Codex, stochastic loot, retroactive output, or access bypass from external knowledge.
 - A softlock when Scribe is elsewhere.
 
 #### Expected files or subsystems
 
 The exact file list remains subject to repository inspection. Expected areas are:
 
-- Discovery runtime/service/boundaries
-- Broken Watch Provisions channel
+- Discovery/insight runtime and progression boundaries
+- Output-access service integration
+- Broken Watch Provisions channel read models
 - Disclosure-aware view models
 - Forecast range/trace presentation
-- Report discovery event
+- Report source-identification event
 - Tests and fixtures
 
 #### Data and content required
 
-- `RES_PROVISIONS`, Broken Watch material channel, Scribe/fallback discovery thresholds, Unclosed Ledger trace labels, and discovery state IDs.
+- `RES_PROVISIONS`, Broken Watch material channel, Scribe/fallback thresholds, Unclosed Ledger trace labels, access/knowledge/insight state IDs.
 
 #### Acceptance criteria
 
-- Provisions increase authoritative inventory while the channel is Unknown.
-- Identification reveals the existing banked total without granting or deleting output.
-- Scribe and fallback paths reach the same required state at different configured speeds.
-- Forecast uncertainty/disclosure changes, but the deterministic underlying production result does not.
-- The event attributes accelerated discovery to Scribe when applicable.
-- Unknown acquisition progress remains hidden; once disclosure permits it, the bar survives reassignment/reload, never rounds to `100.0%` before banking, and never displays a fractional Soul/material count.
-- Save/load preserves hidden inventory, discovery progress/state, completed cycles, and queued presentation exactly.
+- Provisions inventory, progress, carry, and banked total remain zero/absent while locked.
+- The unlock transaction identifies Provisions and every currently available source before any subsequent banking event.
+- Unlock creates zero acquisition state and grants no retroactive output.
+- Scribe and fallback paths reach the same required access state at different configured speeds.
+- Forecast uncertainty/insight changes, but it does not change deterministic production or authoritative access by itself.
+- The event attributes accelerated information progress to Scribe when applicable.
+- Once initialized, the progress bar survives reassignment/reload, never rounds to `100.0%` before banking, and never displays a fractional Soul/material count.
+- Save/load preserves global access, source initialization, insight state, completed cycles, and queued presentation exactly.
 
 #### Automated verification
 
-- Hidden-production-before-discovery.
-- No duplicate grant at identification.
+- No production before access.
+- Atomic unlock/source identification and zero-start acquisition.
+- No duplicate access/event/grant on replay.
 - Scribe versus fallback thresholds.
 - Forecast non-mutation and uncertainty trace.
-- Save round trip at each discovery state.
-- Disclosure-aware long-horizon progress bar formatting and persistence.
+- Save round trip at each insight state.
+- Acquisition-progress bar formatting and persistence after unlock.
 
 #### Manual verification
 
-- Run from the same fixture with Scribe at Broken Watch and with Man-at-Arms there; inspect unknown, identified, and charted presentation and banked totals.
+- Run from the same fixture with Scribe at Broken Watch and with Man-at-Arms there; inspect latent, Identified, and Charted presentation plus post-unlock banked totals.
 
 #### Demonstration path
 
-- Start Broken Watch with Provisions unknown.
-- Show hidden inventory through debug only while UI stays unknown.
-- Complete Scribe discovery and reveal the existing total.
+- Start Broken Watch with Provisions locked and one or more latent unknown rows.
+- Confirm debug state also has no Provisions progress or inventory.
+- Complete Scribe access/identification, show zero-start source state, then advance production.
 - Repeat fallback path and compare elapsed cycles and forecast confidence.
 
 #### Save/load expectations
 
-Checkpoint on discovery state transitions and tutorial progression; hidden resources are ordinary inventory and persist regardless of disclosure.
+Checkpoint on access, source-identification, insight-state, and tutorial transitions. There is no hidden pre-unlock inventory to preserve.
 
 #### Documentation updates
 
-- Content contracts, architecture/test docs if discovery semantics change, and `MILESTONES.md`.
+- Content contracts, architecture/test docs if insight semantics change, and `MILESTONES.md`.
 
 #### Known risks
 
-- Debug information leaking into player UI.
-- Discovery used as an output gate.
+- Debug information leaking unavailable source names into player UI.
+- Insight code writing access state directly instead of using the service.
 - Forecast range presentation implying random production.
-
-#### Follow-on dependencies
-
-- M14.
 
 ---
 
