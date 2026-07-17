@@ -1339,6 +1339,10 @@ validate state/content/duration
 
 Settlement follows the global same-time rule: gains at the boundary commit before lifecycle changes; new rates begin in the next segment. A repeating zero-duration boundary is an error.
 
+### Realized M04C implementation
+
+`SimulationEngine` implements the approved M04C boundary with explicit elapsed milliseconds, checked fixed-point arithmetic, transactional candidate commit, complete result/segment/event records, and the shared `CoreFlowKeys` residual contract. The implementation remains limited to zero or one active Reaping and rejects Retinues, unknown nonzero flow keys, and multiple active Reapings without mutation.
+
 ### Core residual ownership
 
 The existing schema-v2 `ReapingState.flow_carry_units` map receives stable internal keys for:

@@ -1827,7 +1827,7 @@ Relevant unsupported modifiers fail explicitly. Irrelevant discovery/forecast mo
 
 ### Stable core flow keys
 
-These keys live in `ReapingState.flow_carry_units`:
+These keys live in `ReapingState.flow_carry_units`. The shared `CoreFlowKeys` owner defines membership, deterministic ordering, progress-key classification, and content-derived carry validation:
 
 | Key | Owner and range |
 |---|---|

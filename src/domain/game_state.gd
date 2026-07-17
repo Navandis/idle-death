@@ -39,6 +39,21 @@ func advance_simulation_time(elapsed_msec: int) -> Dictionary:
 	simulation_time_msec += elapsed_msec
 	return {"ok": true, "code": "OK", "simulation_time_msec": simulation_time_msec}
 
+
+func copy_from(other: GameState) -> void:
+	## Replaces this aggregate with a fully validated candidate at transaction commit.
+	## Callers must validate `other` first; this method intentionally performs no
+	## gameplay logic, clock reads, or partial field derivation.
+	simulation_time_msec = other.simulation_time_msec
+	inventory = other.inventory.deep_clone()
+	forms.clear()
+	for key in other.forms.keys(): forms[key] = other.forms[key].deep_clone()
+	thresholds.clear()
+	for key in other.thresholds.keys(): thresholds[key] = other.thresholds[key].deep_clone()
+	reapings.clear()
+	for key in other.reapings.keys(): reapings[key] = other.reapings[key].deep_clone()
+	progression = other.progression.deep_clone()
+
 func deep_clone() -> GameState:
 	var clone := GameState.new(simulation_time_msec)
 	clone.inventory = inventory.deep_clone()

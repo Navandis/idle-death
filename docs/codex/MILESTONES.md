@@ -141,7 +141,7 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 | M04 | Persistent Reaping simulation vertical slice | Conceptual epic | Approved | Not applicable | Not directly executable | — |
 | M04A | Gameplay state and persistence foundation | Implementation slice | Approved | Approved | Merged | Passed |
 | M04B | Dispatch, recall, and assignment integrity | Implementation slice | Approved | Approved | Merged | Passed |
-| M04C | Single-Reaping core resolver | Implementation slice | Approved | Approved | Not started | — |
+| M04C | Single-Reaping core resolver | Implementation slice | Approved | Approved | Pull request open | Partial |
 | M04D | Output channels and long-horizon acquisition progress | Implementation slice | Approved | Not drafted | Not started | — |
 | M04E | Forecast clone, report accumulator, and simulation harness | Implementation slice | Approved | Not drafted | Not started | — |
 | M05 | Persistent application shell, navigation, and debug access | Conceptual epic | Approved | Not applicable | Not directly executable | — |
@@ -1034,10 +1034,11 @@ Schema version 2 already persists every M04B field. Active and inactive records,
 **Parent epic:** M04  
 **Definition status:** Approved  
 **Prompt status:** Approved  
-**Implementation status:** Not started  
-**Verification status:** —  
+**Implementation status:** Pull request open
+**Verification status:** Partial
 **Recommended Codex task size:** Medium; one deterministic core-stream simulation pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M04C-single-reaping-core-resolver.md`
+**Pull request:** PR #12 on `codex/implement-m04c-milestone-from-documentation`; current Codex correction head pending owner rerun.
 
 #### Purpose
 
