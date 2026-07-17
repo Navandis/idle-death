@@ -12,26 +12,27 @@ extends RefCounted
 ## Writ / ordered-Retinue value tuple, assignment state is Threshold plus
 ## revision, and a dispatch episode is the successful revision that activated it.
 
-const OK := ""
-const REAPING_STATE_INVALID := "REAPING_STATE_INVALID"
-const REAPING_THRESHOLD_NOT_FOUND := "REAPING_THRESHOLD_NOT_FOUND"
-const REAPING_THRESHOLD_UNAVAILABLE := "REAPING_THRESHOLD_UNAVAILABLE"
-const REAPING_FORM_NOT_FOUND := "REAPING_FORM_NOT_FOUND"
-const REAPING_FORM_NOT_AWAKENED := "REAPING_FORM_NOT_AWAKENED"
-const REAPING_FORM_ALREADY_ASSIGNED := "REAPING_FORM_ALREADY_ASSIGNED"
-const REAPING_WRIT_NOT_FOUND := "REAPING_WRIT_NOT_FOUND"
-const REAPING_RECORD_EXISTS := "REAPING_RECORD_EXISTS"
-const REAPING_RECORD_NOT_FOUND := "REAPING_RECORD_NOT_FOUND"
-const REAPING_ALREADY_ACTIVE := "REAPING_ALREADY_ACTIVE"
-const REAPING_ALREADY_INACTIVE := "REAPING_ALREADY_INACTIVE"
-const REAPING_TETHER_CAPACITY_EXCEEDED := "REAPING_TETHER_CAPACITY_EXCEEDED"
-const REAPING_STALE_ASSIGNMENT_REVISION := "REAPING_STALE_ASSIGNMENT_REVISION"
-const REAPING_ASSIGNMENT_REVISION_OVERFLOW := "REAPING_ASSIGNMENT_REVISION_OVERFLOW"
-const REAPING_RESOLUTION_REQUIRED := "REAPING_RESOLUTION_REQUIRED"
+const OK := &""
+const REAPING_STATE_INVALID := &"REAPING_STATE_INVALID"
+const REAPING_THRESHOLD_NOT_FOUND := &"REAPING_THRESHOLD_NOT_FOUND"
+const REAPING_THRESHOLD_UNAVAILABLE := &"REAPING_THRESHOLD_UNAVAILABLE"
+const REAPING_FORM_NOT_FOUND := &"REAPING_FORM_NOT_FOUND"
+const REAPING_FORM_NOT_AWAKENED := &"REAPING_FORM_NOT_AWAKENED"
+const REAPING_FORM_ALREADY_ASSIGNED := &"REAPING_FORM_ALREADY_ASSIGNED"
+const REAPING_WRIT_NOT_FOUND := &"REAPING_WRIT_NOT_FOUND"
+const REAPING_RECORD_EXISTS := &"REAPING_RECORD_EXISTS"
+const REAPING_RECORD_NOT_FOUND := &"REAPING_RECORD_NOT_FOUND"
+const REAPING_ALREADY_ACTIVE := &"REAPING_ALREADY_ACTIVE"
+const REAPING_ALREADY_INACTIVE := &"REAPING_ALREADY_INACTIVE"
+const REAPING_TETHER_CAPACITY_EXCEEDED := &"REAPING_TETHER_CAPACITY_EXCEEDED"
+const REAPING_STALE_ASSIGNMENT_REVISION := &"REAPING_STALE_ASSIGNMENT_REVISION"
+const REAPING_ASSIGNMENT_REVISION_OVERFLOW := &"REAPING_ASSIGNMENT_REVISION_OVERFLOW"
+const REAPING_RESOLUTION_REQUIRED := &"REAPING_RESOLUTION_REQUIRED"
 
-const EVENT_DISPATCHED := "REAPING_DISPATCHED"
-const EVENT_RECALLED := "REAPING_RECALLED"
-const EVENT_REDISPATCHED := "REAPING_REDISPATCHED"
+const EVENT_DISPATCHED := &"REAPING_DISPATCHED"
+const EVENT_RECALLED := &"REAPING_RECALLED"
+const EVENT_REDISPATCHED := &"REAPING_REDISPATCHED"
+const EVENT_PRIORITY_ASSIGNMENT := 100
 
 var registry: ContentRegistry
 
@@ -141,7 +142,7 @@ func _validate_base_state(state: GameState) -> AssignmentResult:
 	var validation := GameStateValidator.validate(state, registry)
 	if not validation.ok:
 		return AssignmentResult.failure(REAPING_STATE_INVALID, validation)
-	return _validate_m04b_assignment_integrity(state)
+	return AssignmentResult.ok_empty()
 
 func _validate_loadout_preconditions(state: GameState, threshold_id: StringName, form_id: StringName, writ_id: StringName, allowed_current_threshold: StringName) -> AssignmentResult:
 	var threshold_record := registry.get_record(str(threshold_id))
@@ -169,24 +170,6 @@ func _validate_candidate(candidate: GameState) -> AssignmentResult:
 	var validation := GameStateValidator.validate(candidate, registry)
 	if not validation.ok:
 		return AssignmentResult.failure(REAPING_STATE_INVALID, validation)
-	return _validate_m04b_assignment_integrity(candidate)
-
-func _validate_m04b_assignment_integrity(state: GameState) -> AssignmentResult:
-	# M04A's broad structural validator intentionally allows inactive scaffolding
-	# such as revision zero. M04B commands are stricter: every existing operation
-	# record is already an assignment lineage and therefore must have a positive
-	# revision, and no active Form may lead two active Reapings. Rejecting the
-	# baseline protects malformed loaded saves from being normalized by recall or
-	# checkpointed as if a valid command succeeded.
-	var active_form_thresholds := {}
-	for threshold_key in state.reapings.keys():
-		var reaping: GameState.ReapingState = state.reapings[threshold_key]
-		if reaping.assignment_revision <= 0:
-			return AssignmentResult.failure(REAPING_STATE_INVALID, {"field_path": "reapings.%s.assignment_revision" % threshold_key})
-		if reaping.is_active:
-			if active_form_thresholds.has(reaping.form_id):
-				return AssignmentResult.failure(REAPING_STATE_INVALID, {"field_path": "reapings.%s.form_id" % threshold_key, "duplicate_threshold_id": active_form_thresholds[reaping.form_id]})
-			active_form_thresholds[reaping.form_id] = threshold_key
 	return AssignmentResult.ok_empty()
 
 func _loadout_changed(reaping: GameState.ReapingState, form_id: StringName, writ_id: StringName) -> bool:
@@ -202,64 +185,132 @@ func _has_unresolved_rate_dependent_state(reaping: GameState.ReapingState) -> bo
 			return true
 	return false
 
-func _success(event_type: String, state: GameState, reaping: GameState.ReapingState) -> AssignmentResult:
-	var event := AssignmentEvent.new(event_type, reaping.threshold_id, reaping.assignment_revision, state.simulation_time_msec, _loadout(reaping), reaping.is_active)
-	return AssignmentResult.successful(reaping.threshold_id, reaping.assignment_revision, reaping.is_active, _loadout(reaping), occupied_tether_count(state), event)
+func _success(event_type: StringName, state: GameState, reaping: GameState.ReapingState) -> AssignmentResult:
+	var activation_revision := reaping.assignment_revision if event_type != EVENT_RECALLED else 0
+	var summary := AssignmentChangeSummary.new(reaping.threshold_id, reaping.assignment_revision, activation_revision, _loadout(reaping), reaping.is_active, occupied_tether_count(state))
+	var event := AssignmentEvent.new(event_type, state.simulation_time_msec, reaping.threshold_id, summary)
+	return AssignmentResult.successful(_success_message(event_type), summary, event)
+
+func _success_message(event_type: StringName) -> String:
+	match event_type:
+		EVENT_DISPATCHED: return "Reaping dispatched."
+		EVENT_RECALLED: return "Reaping recalled."
+		EVENT_REDISPATCHED: return "Reaping redispatched."
+	return "Reaping assignment updated."
 
 func _loadout(reaping: GameState.ReapingState) -> Dictionary:
-	return {"form_id": reaping.form_id, "writ_id": reaping.writ_id, "retinue_ids": reaping.retinue_ids.duplicate()}
+	return {"form_id": str(reaping.form_id), "writ_id": str(reaping.writ_id), "retinue_ids": _string_array(reaping.retinue_ids)}
 
-class AssignmentEvent:
+func _string_array(values: Array[StringName]) -> Array[String]:
+	var out: Array[String] = []
+	for value in values:
+		out.append(str(value))
+	return out
+
+class AssignmentChangeSummary:
 	extends RefCounted
-	## Ordered fact emitted after a successful command; saves do not replay events.
-	var event_type: String
+	## Bounded M04B result summary; this is not persisted as authoritative state.
 	var threshold_id: StringName
 	var assignment_revision: int
 	var assignment_state_id: String
-	var simulation_time_msec: int
+	var activation_episode_revision: int
 	var loadout: Dictionary
 	var is_active: bool
-	func _init(type_value := "", threshold_value: StringName = &"", revision_value := 0, time_value := 0, loadout_value := {}, active_value := false) -> void:
-		event_type = type_value
+	var occupied_tether_count: int
+	func _init(threshold_value: StringName = &"", revision_value := 0, activation_revision_value := 0, loadout_value := {}, active_value := false, occupied_value := 0) -> void:
 		threshold_id = threshold_value
 		assignment_revision = revision_value
 		assignment_state_id = "%s@%d" % [threshold_id, assignment_revision]
-		simulation_time_msec = time_value
+		activation_episode_revision = activation_revision_value
 		loadout = loadout_value.duplicate(true)
 		is_active = active_value
+		occupied_tether_count = occupied_value
+	func to_payload() -> Dictionary:
+		return {
+			"threshold_id": str(threshold_id),
+			"assignment_revision": assignment_revision,
+			"assignment_state_id": assignment_state_id,
+			"activation_episode_revision": activation_episode_revision,
+			"loadout": loadout.duplicate(true),
+			"is_active": is_active,
+			"occupied_tether_count": occupied_tether_count,
+		}
+
+class AssignmentEvent:
+	extends RefCounted
+	## Ordered assignment fact for presentation/report/tutorial observers.
+	## Events are not saved or replayed; payload values are primitive and save-safe
+	## so future report bridges can copy them without depending on live objects.
+	var event_type: StringName
+	var occurred_simulation_msec: int
+	var priority: int = EVENT_PRIORITY_ASSIGNMENT
+	var subject_id: StringName
+	var source_id: StringName = &""
+	var payload: Dictionary
+	var reportable := true
+	var tutorial_relevant := true
+	func _init(type_value: StringName = &"", time_value := 0, subject_value: StringName = &"", summary: AssignmentChangeSummary = null) -> void:
+		event_type = type_value
+		occurred_simulation_msec = time_value
+		subject_id = subject_value
+		payload = summary.to_payload() if summary != null else {}
 
 class AssignmentResult:
 	extends RefCounted
-	## Typed command result. Failures are stable gameplay rejections, not errors.
+	## Typed M04B action result. Failures are stable gameplay rejections, not errors.
 	var success := false
-	var error_code := ""
-	var diagnostics := {}
+	var error_code: StringName = &""
+	var player_message := ""
+	var developer_details := ""
+	var change_summary: AssignmentChangeSummary = null
+	var events: Array[AssignmentEvent] = []
+	var save_checkpoint_requested := false
+	# Convenience mirrors for existing M04B tests/callers; change_summary is the contract.
 	var threshold_id: StringName = &""
 	var assignment_revision := 0
 	var assignment_state_id := ""
 	var is_active := false
 	var occupied_tether_count := 0
 	var loadout := {}
-	var events: Array[AssignmentEvent] = []
-	var save_checkpoint_requested := false
 	static func ok_empty() -> AssignmentResult:
 		var result := AssignmentResult.new()
 		result.success = true
 		return result
-	static func failure(code: String, detail := {}) -> AssignmentResult:
+	static func failure(code: StringName, detail := {}) -> AssignmentResult:
 		var result := AssignmentResult.new()
 		result.error_code = code
-		result.diagnostics = detail.duplicate(true) if detail is Dictionary else {"detail": detail}
+		result.player_message = _message_for_code(code)
+		result.developer_details = str(detail)
 		return result
-	static func successful(threshold_value: StringName, revision_value: int, active_value: bool, loadout_value: Dictionary, occupied_value: int, event: AssignmentEvent) -> AssignmentResult:
+	static func successful(message: String, summary: AssignmentChangeSummary, event: AssignmentEvent) -> AssignmentResult:
 		var result := AssignmentResult.new()
 		result.success = true
-		result.threshold_id = threshold_value
-		result.assignment_revision = revision_value
-		result.assignment_state_id = "%s@%d" % [threshold_value, revision_value]
-		result.is_active = active_value
-		result.loadout = loadout_value.duplicate(true)
-		result.occupied_tether_count = occupied_value
+		result.player_message = message
+		result.change_summary = summary
+		result.threshold_id = summary.threshold_id
+		result.assignment_revision = summary.assignment_revision
+		result.assignment_state_id = summary.assignment_state_id
+		result.is_active = summary.is_active
+		result.loadout = summary.loadout.duplicate(true)
+		result.occupied_tether_count = summary.occupied_tether_count
 		result.events = [event]
 		result.save_checkpoint_requested = true
 		return result
+	static func _message_for_code(code: StringName) -> String:
+		match code:
+			REAPING_STATE_INVALID: return "The current Reaping state is invalid."
+			REAPING_THRESHOLD_NOT_FOUND: return "That Threshold is not available for assignment."
+			REAPING_THRESHOLD_UNAVAILABLE: return "That Threshold is currently unavailable."
+			REAPING_FORM_NOT_FOUND: return "That Form is not available for assignment."
+			REAPING_FORM_NOT_AWAKENED: return "That Form must be awakened before assignment."
+			REAPING_FORM_ALREADY_ASSIGNED: return "That Form is already leading another active Reaping."
+			REAPING_WRIT_NOT_FOUND: return "That Writ is not available for assignment."
+			REAPING_RECORD_EXISTS: return "That Threshold already has a Reaping operation."
+			REAPING_RECORD_NOT_FOUND: return "That Threshold has no Reaping operation."
+			REAPING_ALREADY_ACTIVE: return "That Reaping is already active."
+			REAPING_ALREADY_INACTIVE: return "That Reaping is already inactive."
+			REAPING_TETHER_CAPACITY_EXCEEDED: return "No command tether is available."
+			REAPING_STALE_ASSIGNMENT_REVISION: return "The Reaping assignment changed; refresh and try again."
+			REAPING_ASSIGNMENT_REVISION_OVERFLOW: return "The Reaping assignment revision cannot advance."
+			REAPING_RESOLUTION_REQUIRED: return "Resolve current Reaping progress before changing this loadout."
+		return "The Reaping assignment command was rejected."

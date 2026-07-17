@@ -48,3 +48,35 @@ func _assert_reaping_equal(expected: GameState.ReapingState, actual: GameState.R
 	assert_eq(actual.flow_carry_units, expected.flow_carry_units)
 	assert_eq(actual.started_simulation_msec, expected.started_simulation_msec)
 	assert_eq(actual.last_configuration_change_simulation_msec, expected.last_configuration_change_simulation_msec)
+
+func test_load_runtime_rejects_schema_valid_malformed_assignment_records() -> void:
+	_assert_malformed_load_rejected(func(snapshot): snapshot.game_state.reapings.THR_GLOAMWOOD.assignment_revision = "0", "revision_zero")
+	_assert_malformed_load_rejected(func(snapshot):
+		snapshot.game_state.forms["FORM_SCRIBE"] = {"revealed": true, "awakened": true, "mastery_subunits": "0", "awakened_by": "TEST"}
+		snapshot.game_state.thresholds["THR_BROKEN_WATCH"] = _threshold_snapshot(1000)
+		snapshot.game_state.reapings["THR_BROKEN_WATCH"] = snapshot.game_state.reapings.THR_GLOAMWOOD.duplicate(true)
+		snapshot.game_state.reapings.THR_BROKEN_WATCH.threshold_id = "THR_BROKEN_WATCH"
+		snapshot.game_state.progression.command_tether_capacity = "2"
+	, "duplicate_active_form")
+	_assert_malformed_load_rejected(func(snapshot): snapshot.game_state.thresholds.THR_GLOAMWOOD.availability_state = "LOCKED", "unavailable_active_threshold")
+	_assert_malformed_load_rejected(func(snapshot): snapshot.game_state.reapings.THR_GLOAMWOOD.writ_id = "WRIT_DISABLED_FOR_TEST", "invalid_active_writ")
+
+func _assert_malformed_load_rejected(mutator: Callable, _label: String) -> void:
+	var registry := _registry()
+	var state := _state()
+	var service := ReapingAssignmentService.new(registry)
+	assert_true(service.dispatch(state, &"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD").success)
+	var snapshot := SaveSchemaMapper.runtime_to_snapshot(state, TimeAuthorityState.new(), 1, registry.content_revision)
+	mutator.call(snapshot)
+	var storage := MemorySaveStorage.new()
+	var files := SaveFileSet.new("user://m04b_malformed_%s" % _label, "save")
+	var save_service := SaveService.new(storage, files)
+	var encoded := JsonSaveCodec.new().encode(snapshot)
+	assert_true(encoded.ok)
+	assert_true(storage.write_bytes(files.primary_path, encoded.bytes).ok)
+	var loaded := GameStatePersistenceCoordinator.new(save_service, registry).load_runtime()
+	assert_false(loaded.ok)
+	assert_true([GameStateValidator.ERR_RANGE, GameStateValidator.ERR_CROSS_FIELD, GameStateValidator.ERR_CONTENT].has(loaded.code))
+
+func _threshold_snapshot(backlog: int) -> Dictionary:
+	return {"knowledge_state": "CHARTED", "availability_state": "AVAILABLE", "lifecycle_state": "OVERDUE", "remaining_backlog": str(backlog), "persistent_returns_total": "0", "familiarity_subunits": "0", "channel_acquisition": {}}

@@ -133,12 +133,19 @@ function Invoke-TraceMarkerVerification {
     param([string[]]$TraceOutput)
 
     $RequiredMarkers = @(
-        "TRACE M04B dispatch_revision=1_occupied=1",
+        "TRACE M04B operation_identity=THR_GLOAMWOOD",
+        "TRACE M04B dispatch_revision=1_tethers=1",
+        "TRACE M04B duplicate_and_stale_rejected=PASS",
         "TRACE M04B active_round_trip=PASS",
-        "TRACE M04B recall_revision=2_occupied=0",
+        "TRACE M04B recall_revision=2_tethers=0",
+        "TRACE M04B different_loadout_same_threshold_same_operation=PASS",
+        "TRACE M04B same_loadout_different_threshold_separate_operation=PASS",
+        "TRACE M04B return_to_prior_loadout_new_episode=PASS",
+        "TRACE M04B started_simulation_msec_immutable=PASS",
+        "TRACE M04B zero_start_is_valid=PASS",
+        "TRACE M04B preserved_threshold_and_operation_state=PASS",
         "TRACE M04B inactive_round_trip=PASS",
-        "TRACE M04B redispatch_revision=3_first_start=1000",
-        "TRACE M04B simulation_time_msec=1250"
+        "TRACE M04B simulation_time_unchanged=PASS"
     )
     foreach ($Marker in $RequiredMarkers) {
         if (-not ($TraceOutput | Where-Object { $_ -eq $Marker })) { throw "Missing trace marker: $Marker" }

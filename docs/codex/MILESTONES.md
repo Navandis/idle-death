@@ -137,7 +137,7 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 | M03 | Content catalog, canonical IDs, and configurable prototype data | Completed milestone | Approved | Approved | Merged | Passed |
 | M04 | Persistent Reaping simulation vertical slice | Conceptual epic | Approved | Not applicable | Not directly executable | — |
 | M04A | Gameplay state and persistence foundation | Implementation slice | Approved | Approved | Merged | Passed |
-| M04B | Dispatch, recall, and assignment integrity | Implementation slice | Approved | Approved | Not started | — |
+| M04B | Dispatch, recall, and assignment integrity | Implementation slice | Approved | Approved | Pull request open | Partial |
 | M04C | Single-Reaping core resolver | Implementation slice | Approved | Not drafted | Not started | — |
 | M04D | Output channels and long-horizon acquisition progress | Implementation slice | Approved | Not drafted | Not started | — |
 | M04E | Forecast clone, report accumulator, and simulation harness | Implementation slice | Approved | Not drafted | Not started | — |
@@ -922,10 +922,11 @@ M04A makes schema version 2 current. Version 1 remains a supported historical in
 **Parent epic:** M04  
 **Definition status:** Approved  
 **Prompt status:** Approved  
-**Implementation status:** Not started  
-**Verification status:** —  
+**Implementation status:** Pull request open
+**Verification status:** Partial
 **Recommended Codex task size:** Small-medium; one command/assignment pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M04B-dispatch-recall-assignment-integrity.md`
+**Current PR/head:** PR #9 on `codex/implement-milestone-m04b`; corrected owner rerun pending against the latest PR head.
 
 #### Purpose
 
@@ -945,8 +946,8 @@ Through commands and tests, Man-at-Arms can be dispatched to Gloamwood, recalled
 
 - Add one focused Reaping assignment service with initial dispatch, recall, and redispatch of an inactive Threshold-scoped operation record.
 - Treat Threshold ID as operation identity, the canonical Form/Writ/Retinue tuple as loadout identity, Threshold+revision as assignment-state identity, and dispatch/redispatch revision as activation-episode identity.
-- Use typed command inputs/results, stable rejection codes, ordered assignment events, and save-checkpoint requests.
-- Validate awakened and active-unique Form, available Threshold, enabled Writ, exact expected revision, tether capacity, and duplicate occupancy before mutation.
+- Use typed command inputs/results, stable rejection codes, ordered assignment events, typed change summaries, and save-checkpoint requests.
+- Validate awakened and active-unique Form, available Threshold, enabled Writ, exact expected revision, tether capacity, duplicate occupancy, and loadable assignment invariants before mutation or runtime exposure.
 - Retain one stable Reaping record per Threshold through recall; derive tether occupancy from active records.
 - Set `started_simulation_msec` only on first dispatch, permit zero, preserve it forever under ordinary gameplay, and use record existence rather than a sentinel.
 - Increment assignment revision exactly once only on committed changes; check overflow and stale input.
@@ -976,8 +977,8 @@ Through commands and tests, Man-at-Arms can be dispatched to Gloamwood, recalled
 
 - Dispatch/capacity/duplicate/Form-exclusivity/stale-revision matrix.
 - Recall/redispatch continuity, overflow, no-op, and resolve-required cases.
-- Typed result/event/save-checkpoint contract.
-- Active and inactive schema-v2 round trips and malformed-assignment rejection.
+- Typed result/event/change-summary/save-checkpoint contract.
+- Active and inactive schema-v2 round trips and malformed-assignment rejection at global runtime validation/load boundaries.
 - Full regression, deterministic assignment trace, and owner Windows package.
 
 #### Manual verification

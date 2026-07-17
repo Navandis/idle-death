@@ -81,18 +81,24 @@ static func _validate_thresholds(state: GameState, registry: ContentRegistry) ->
 	return {"ok": true}
 
 static func _validate_reapings(state: GameState, registry: ContentRegistry) -> Dictionary:
+	var active_form_thresholds := {}
 	for key in _sorted_keys(state.reapings):
 		var reaping = state.reapings[key]
 		if not reaping is GameState.ReapingState: return _err(ERR_TYPE, "reapings.%s" % key)
 		if str(reaping.threshold_id) != str(key) or not state.thresholds.has(key): return _err(ERR_CROSS_FIELD, "reapings.%s.threshold_id" % key)
 		var form := registry.get_record(str(reaping.form_id)); if not form.ok or form.record.type != "form": return _err(ERR_CONTENT, "reapings.%s.form_id" % key)
 		var writ := registry.get_record(str(reaping.writ_id)); if not writ.ok or writ.record.type != "writ": return _err(ERR_CONTENT, "reapings.%s.writ_id" % key)
+		if reaping.assignment_revision <= 0: return _err(ERR_RANGE, "reapings.%s.assignment_revision" % key)
 		if reaping.is_active:
+			if str(state.thresholds[key].availability_state) != "AVAILABLE": return _err(ERR_CROSS_FIELD, "reapings.%s.threshold_id" % key)
+			if not writ.record.enabled: return _err(ERR_CROSS_FIELD, "reapings.%s.writ_id" % key)
+			if active_form_thresholds.has(reaping.form_id): return _err(ERR_CROSS_FIELD, "reapings.%s.form_id" % key)
+			active_form_thresholds[reaping.form_id] = key
 			if not state.forms.has(reaping.form_id) or not state.forms[reaping.form_id].awakened: return _err(ERR_CROSS_FIELD, "reapings.%s.form_id" % key)
 		if reaping.retinue_ids != _sorted_unique_string_names(reaping.retinue_ids): return _err(ERR_CROSS_FIELD, "reapings.%s.retinue_ids" % key)
 		for retinue_id in reaping.retinue_ids:
 			var retinue := registry.get_record(str(retinue_id)); if not retinue.ok or retinue.record.type != "retinue": return _err(ERR_CONTENT, "reapings.%s.retinue_ids" % key)
-		if reaping.assignment_revision < 0 or reaping.cycle_phase_msec < 0 or reaping.completed_cycle_count < 0: return _err(ERR_RANGE, "reapings.%s" % key)
+		if reaping.cycle_phase_msec < 0 or reaping.completed_cycle_count < 0: return _err(ERR_RANGE, "reapings.%s" % key)
 		if reaping.started_simulation_msec < 0 or reaping.started_simulation_msec > state.simulation_time_msec: return _err(ERR_RANGE, "reapings.%s.started_simulation_msec" % key)
 		if reaping.last_configuration_change_simulation_msec < 0 or reaping.last_configuration_change_simulation_msec > state.simulation_time_msec: return _err(ERR_RANGE, "reapings.%s.last_configuration_change_simulation_msec" % key)
 		if reaping.last_configuration_change_simulation_msec < reaping.started_simulation_msec: return _err(ERR_CROSS_FIELD, "reapings.%s.last_configuration_change_simulation_msec" % key)

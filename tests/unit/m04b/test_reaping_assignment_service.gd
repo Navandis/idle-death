@@ -175,6 +175,83 @@ func test_duplicate_active_form_in_loaded_state_is_invalid_before_checkpointable
 	assert_true(state.reapings[&"THR_GLOAMWOOD"].is_active)
 	assert_eq(state.reapings[&"THR_GLOAMWOOD"].assignment_revision, before_gloamwood_revision)
 
+func test_action_result_and_event_contract_on_success_and_failure() -> void:
+	var state := _base_state()
+	var result := _dispatch_active(state)
+	assert_true(result.success)
+	assert_eq(result.error_code, &"")
+	assert_ne(result.player_message, "")
+	assert_not_null(result.change_summary)
+	assert_eq(result.change_summary.threshold_id, &"THR_GLOAMWOOD")
+	assert_eq(result.change_summary.assignment_revision, 1)
+	assert_eq(result.change_summary.assignment_state_id, "THR_GLOAMWOOD@1")
+	assert_eq(result.change_summary.activation_episode_revision, 1)
+	assert_eq(result.change_summary.loadout.form_id, "FORM_MAN_AT_ARMS")
+	assert_true(result.change_summary.is_active)
+	assert_eq(result.change_summary.occupied_tether_count, 1)
+	assert_eq(result.events.size(), 1)
+	var event: ReapingAssignmentService.AssignmentEvent = result.events[0]
+	assert_eq(event.event_type, ReapingAssignmentService.EVENT_DISPATCHED)
+	assert_eq(event.occurred_simulation_msec, 1000)
+	assert_eq(event.priority, ReapingAssignmentService.EVENT_PRIORITY_ASSIGNMENT)
+	assert_eq(event.subject_id, &"THR_GLOAMWOOD")
+	assert_eq(event.source_id, &"")
+	assert_true(event.reportable)
+	assert_true(event.tutorial_relevant)
+	assert_eq(event.payload.assignment_state_id, "THR_GLOAMWOOD@1")
+	var before := _snapshot_game(state)
+	var failure := _dispatch_active(state)
+	_assert_failure_result(failure, ReapingAssignmentService.REAPING_RECORD_EXISTS)
+	assert_eq(_snapshot_game(state), before)
+
+func test_command_failure_matrix_preserves_whole_state() -> void:
+	var state := _base_state(1000, 1)
+	_assert_failure_unchanged(state, func(): return _service().dispatch(null, &"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD"), ReapingAssignmentService.REAPING_STATE_INVALID)
+	_assert_failure_unchanged(state, func(): return ReapingAssignmentService.new(ContentRegistry.new()).dispatch(state, &"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD"), ReapingAssignmentService.REAPING_STATE_INVALID)
+	_assert_failure_unchanged(state, func(): return _service().dispatch(state, &"THR_MISSING", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD"), ReapingAssignmentService.REAPING_THRESHOLD_NOT_FOUND)
+	_assert_failure_unchanged(state, func(): return _service().dispatch(state, &"FORM_MAN_AT_ARMS", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD"), ReapingAssignmentService.REAPING_THRESHOLD_NOT_FOUND)
+	state.thresholds[&"THR_GLOAMWOOD"].availability_state = &"LOCKED"
+	_assert_failure_unchanged(state, func(): return _service().dispatch(state, &"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD"), ReapingAssignmentService.REAPING_THRESHOLD_UNAVAILABLE)
+	state.thresholds[&"THR_GLOAMWOOD"].availability_state = &"AVAILABLE"
+	_assert_failure_unchanged(state, func(): return _service().dispatch(state, &"THR_GLOAMWOOD", &"FORM_MISSING", &"WRIT_STANDARD"), ReapingAssignmentService.REAPING_FORM_NOT_FOUND)
+	_assert_failure_unchanged(state, func(): return _service().dispatch(state, &"THR_GLOAMWOOD", &"RES_ESSENCE", &"WRIT_STANDARD"), ReapingAssignmentService.REAPING_FORM_NOT_FOUND)
+	state.forms[&"FORM_MAN_AT_ARMS"].awakened = false
+	state.forms[&"FORM_MAN_AT_ARMS"].awakened_by = &""
+	_assert_failure_unchanged(state, func(): return _service().dispatch(state, &"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD"), ReapingAssignmentService.REAPING_FORM_NOT_AWAKENED)
+	state.forms[&"FORM_MAN_AT_ARMS"] = GameState.FormState.new(false, false, 0, &"")
+	_assert_failure_unchanged(state, func(): return _service().dispatch(state, &"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD"), ReapingAssignmentService.REAPING_FORM_NOT_AWAKENED)
+	state.forms[&"FORM_MAN_AT_ARMS"] = GameState.FormState.new(true, true, 0, &"TEST")
+	_assert_failure_unchanged(state, func(): return _service().dispatch(state, &"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"WRIT_MISSING"), ReapingAssignmentService.REAPING_WRIT_NOT_FOUND)
+	_assert_failure_unchanged(state, func(): return _service().dispatch(state, &"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"RES_ESSENCE"), ReapingAssignmentService.REAPING_WRIT_NOT_FOUND)
+	var disabled_registry := _registry()
+	disabled_registry._records["WRIT_STANDARD"].enabled = false
+	_assert_failure_unchanged(state, func(): return ReapingAssignmentService.new(disabled_registry).dispatch(state, &"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD"), ReapingAssignmentService.REAPING_WRIT_NOT_FOUND)
+
+func test_revision_and_record_failure_matrix_preserves_whole_state() -> void:
+	var state := _base_state()
+	_assert_failure_unchanged(state, func(): return _service().recall(state, &"THR_GLOAMWOOD", 1), ReapingAssignmentService.REAPING_RECORD_NOT_FOUND)
+	assert_true(_dispatch_active(state).success)
+	_assert_failure_unchanged(state, func(): return _service().dispatch(state, &"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD"), ReapingAssignmentService.REAPING_RECORD_EXISTS)
+	_assert_failure_unchanged(state, func(): return _service().redispatch(state, &"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD", 1), ReapingAssignmentService.REAPING_ALREADY_ACTIVE)
+	_assert_failure_unchanged(state, func(): return _service().recall(state, &"THR_GLOAMWOOD", -1), ReapingAssignmentService.REAPING_STALE_ASSIGNMENT_REVISION)
+	_assert_failure_unchanged(state, func(): return _service().recall(state, &"THR_GLOAMWOOD", 0), ReapingAssignmentService.REAPING_STALE_ASSIGNMENT_REVISION)
+	_assert_failure_unchanged(state, func(): return _service().recall(state, &"THR_GLOAMWOOD", 99), ReapingAssignmentService.REAPING_STALE_ASSIGNMENT_REVISION)
+	assert_true(_service().recall(state, &"THR_GLOAMWOOD", 1).success)
+	_assert_failure_unchanged(state, func(): return _service().recall(state, &"THR_GLOAMWOOD", 2), ReapingAssignmentService.REAPING_ALREADY_INACTIVE)
+	_assert_failure_unchanged(state, func(): return _service().redispatch(state, &"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD", -1), ReapingAssignmentService.REAPING_STALE_ASSIGNMENT_REVISION)
+	_assert_failure_unchanged(state, func(): return _service().redispatch(state, &"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD", 1), ReapingAssignmentService.REAPING_STALE_ASSIGNMENT_REVISION)
+	_assert_failure_unchanged(state, func(): return _service().redispatch(state, &"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD", 99), ReapingAssignmentService.REAPING_STALE_ASSIGNMENT_REVISION)
+
+func test_resolution_required_separates_phase_and_carry() -> void:
+	var state := _base_state()
+	assert_true(_dispatch_active(state).success)
+	assert_true(_service().recall(state, &"THR_GLOAMWOOD", 1).success)
+	state.reapings[&"THR_GLOAMWOOD"].cycle_phase_msec = 1
+	_assert_failure_unchanged(state, func(): return _service().redispatch(state, &"THR_GLOAMWOOD", &"FORM_SCRIBE", &"WRIT_STANDARD", 2), ReapingAssignmentService.REAPING_RESOLUTION_REQUIRED)
+	state.reapings[&"THR_GLOAMWOOD"].cycle_phase_msec = 0
+	state.reapings[&"THR_GLOAMWOOD"].flow_carry_units[&"FLOW_TEST"] = 1
+	_assert_failure_unchanged(state, func(): return _service().redispatch(state, &"THR_GLOAMWOOD", &"FORM_SCRIBE", &"WRIT_STANDARD", 2), ReapingAssignmentService.REAPING_RESOLUTION_REQUIRED)
+
 func _assert_same_reaping(expected: GameState.ReapingState, actual: GameState.ReapingState) -> void:
 	assert_eq(actual.threshold_id, expected.threshold_id)
 	assert_eq(actual.is_active, expected.is_active)
@@ -183,3 +260,23 @@ func _assert_same_reaping(expected: GameState.ReapingState, actual: GameState.Re
 	assert_eq(actual.assignment_revision, expected.assignment_revision)
 	assert_eq(actual.started_simulation_msec, expected.started_simulation_msec)
 	assert_eq(actual.last_configuration_change_simulation_msec, expected.last_configuration_change_simulation_msec)
+
+func _snapshot_game(state: GameState) -> Dictionary:
+	if state == null:
+		return {}
+	return SaveSchemaMapper.runtime_to_snapshot(state, TimeAuthorityState.new(), 1, ContentRegistry.CURRENT_REVISION).game_state
+
+func _assert_failure_result(result: ReapingAssignmentService.AssignmentResult, expected_code: StringName) -> void:
+	assert_false(result.success)
+	assert_eq(result.error_code, expected_code)
+	assert_ne(result.player_message, "")
+	assert_false(result.developer_details.is_empty())
+	assert_null(result.change_summary)
+	assert_eq(result.events.size(), 0)
+	assert_false(result.save_checkpoint_requested)
+
+func _assert_failure_unchanged(state: GameState, action: Callable, expected_code: StringName) -> void:
+	var before := _snapshot_game(state)
+	var result: ReapingAssignmentService.AssignmentResult = action.call()
+	_assert_failure_result(result, expected_code)
+	assert_eq(_snapshot_game(state), before)
