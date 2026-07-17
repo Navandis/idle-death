@@ -3,7 +3,7 @@
 **Document role:** Approved implementation sequence and acceptance map for the 0–90 minute prototype  
 **Repository path:** `docs/codex/MILESTONES.md`  
 **Document status:** Approved rolling-wave milestone map  
-**Milestone-map revision:** 20  
+**Milestone-map revision:** 21  
 **Last updated:** 2026-07-17  
 **Primary context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md), [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md), [Architecture](ARCHITECTURE.md), [Data contracts](DATA_AND_CONTENT_CONTRACTS.md), [Testing](TESTING_AND_VALIDATION.md), [Owner verification](OWNER_VERIFICATION_WORKFLOW.md), [Milestone recalibration](MILESTONE_RECALIBRATION_PROPOSAL.md), and [Decisions](DECISIONS.md)
 
@@ -114,7 +114,7 @@ A conceptual epic uses `Prompt: Not applicable` and `Implementation: Not directl
 | `GATE-GAMEPLAY-SCHEMA` | M04A implementation and merge | Satisfied for prompt drafting by accepted `DEC-0034`: M04A introduces schema version 2 with a production sequential `v1 -> v2` migration. M04A must implement and verify the transactional upgrade, historical fixture, failure preservation, and owner Windows path before merge. |
 | `GATE-REAPING-ASSIGNMENT` | M04B prompt approval | Satisfied by accepted `DEC-0035`: Threshold-scoped operation identity, canonical loadout tuples, revision/episode identity, immutable first-start timestamps, stable recalled records, Form exclusivity, tether derivation, and nonzero carry handling. |
 | `GATE-CORE-RESOLUTION` | M04C prompt approval | Satisfied by accepted `DEC-0036` and approved M04C v0.1: transactional mutation, exact Settlement segmentation, core rate semantics, residual ownership, no-active timeline behavior, and the temporary one-active-Reaping limit. |
-| `GATE-OUTPUT-ACCESS-SCHEMA` | M04D1 prompt approval | Satisfied by accepted `DEC-0037`: access/knowledge/insight separation, schema version 3, global item access, prospective unlocks, available-source initialization, no retroactive production, and no permanent lockout. The M04D1 prompt still requires owner approval. |
+| `GATE-OUTPUT-ACCESS-SCHEMA` | M04D1 prompt approval | Satisfied by accepted `DEC-0037` and approved M04D1 v0.1: access/knowledge/insight separation, schema version 3, global item access, prospective unlocks, available-source initialization, no retroactive production, and no permanent lockout. |
 | `GATE-CHANNEL-ACCUMULATION` | M04D2 prompt approval | Requires M04D1 Merged/Passed, current non-Essence Settlement policy confirmed, and a fresh scope assessment. |
 | `GATE-RATE-CONTEXT-CHANGE` | M04D3 prompt approval | Requires M04D2 Merged/Passed and a fresh compatibility/ETA scope assessment. |
 | `GATE-STEAM-TIME` | The applicable M06 slice prompt/implementation | Satisfied for prompt drafting by `DEC-0024`: use pinned GodotSteam 4.20 and development App ID `480`. M06 must still verify license footprint, wrapper API, explicit initialization, and live Windows behavior. |
@@ -130,7 +130,7 @@ A conceptual epic uses `Prompt: Not applicable` and `Implementation: Not directl
 
 `GATE-CONTENT-CATALOG` was satisfied by M03. PR #7 merged on 2026-07-15 at merge commit `5e2b9b23878c9280f75b987cc9ad567d8980030d`; its final head was `971cdaa0fd46f641ec7409148e259d54f953d8c7`. Linux/Codex and owner Windows verification passed the full and focused suites, explicit import, semantic catalog trace, artifact audit, and Godot Inspector checklist.
 
-`GATE-SLICE-SCOPE` is mandatory for every post-M03 prompt. `GATE-GAMEPLAY-SCHEMA` is fully satisfied by M04A. `GATE-REAPING-ASSIGNMENT` is fully satisfied by M04B. `GATE-CORE-RESOLUTION` is fully satisfied by M04C. `GATE-OUTPUT-ACCESS-SCHEMA` is satisfied at the decision level by accepted `DEC-0037`; M04D1 prompt approval is the next gate. M04D2 and M04D3 remain blocked on their predecessor slices.
+`GATE-SLICE-SCOPE` is mandatory for every post-M03 prompt. `GATE-GAMEPLAY-SCHEMA` is fully satisfied by M04A. `GATE-REAPING-ASSIGNMENT` is fully satisfied by M04B. `GATE-CORE-RESOLUTION` is fully satisfied by M04C. `GATE-OUTPUT-ACCESS-SCHEMA` and M04D1 `GATE-SLICE-SCOPE` are satisfied by accepted `DEC-0037` and approved M04D1 v0.1. M04D2 and M04D3 remain blocked on their predecessor slices.
 
 
 When trusted time is unavailable, the approved behavior is to grant no guessed closed-session progress, retain pending reconciliation, and continue monotonic foreground production. No milestone may introduce a local-device-time fallback.
@@ -148,7 +148,7 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 | M04B | Dispatch, recall, and assignment integrity | Implementation slice | Approved | Approved | Merged | Passed |
 | M04C | Single-Reaping core resolver | Implementation slice | Approved | Approved | Merged | Passed |
 | M04D | Output access and discrete-channel progression | Conceptual sub-epic | Approved | Not applicable | Not directly executable | — |
-| M04D1 | Output access and source-identification foundation | Implementation slice | Approved | Drafted | Not started | — |
+| M04D1 | Output access and source-identification foundation | Implementation slice | Approved | Approved | Not started | — |
 | M04D2 | Discrete channel accumulation and long-horizon banking | Implementation slice | Approved | Not drafted | Not started | — |
 | M04D3 | Compatible rate-context changes and acquisition queries | Implementation slice | Approved | Not drafted | Not started | — |
 | M04E | Forecast clone, report accumulator, and simulation harness | Implementation slice | Approved | Not drafted | Not started | — |
@@ -1135,7 +1135,7 @@ M04D is complete only when M04D1, M04D2, and M04D3 are all Merged and Passed. Th
 **Work item type:** Implementation slice  
 **Parent epic:** M04 / M04D  
 **Definition status:** Approved  
-**Prompt status:** Drafted  
+**Prompt status:** Approved  
 **Implementation status:** Not started  
 **Verification status:** —  
 **Recommended Codex task size:** Medium; one access-state, migration, and source-initialization pull request.  
@@ -1153,7 +1153,7 @@ A developer can unlock an output item globally, identify and initialize every cu
 
 - M04C Merged and Passed.
 - Accepted `DEC-0037`; `GATE-OUTPUT-ACCESS-SCHEMA` decision contract satisfied.
-- `GATE-SLICE-SCOPE` is completed in the M04D1 draft and requires owner approval with the prompt.
+- `GATE-SLICE-SCOPE` is satisfied by the approved M04D1 v0.1 prompt.
 - Existing v1/v2 migration, atomic persistence, M04A state, and M03 content registry remain the foundation.
 
 #### Included scope

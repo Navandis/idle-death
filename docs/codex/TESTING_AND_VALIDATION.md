@@ -2,8 +2,8 @@
 
 **Document role:** Canonical test strategy, commands, fixture rules, and manual validation flows
 **Repository path:** `docs/codex/TESTING_AND_VALIDATION.md`
-**Document status:** Approved validation plan through M04C with M04D1 draft and M04D2–M04D3 definitions
-**Validation revision:** 17
+**Document status:** Approved validation plan through M04C with M04D1 approved and M04D2–M04D3 definitions
+**Validation revision:** 18
 **Last updated:** 2026-07-17
 **Engine target:** Godot 4.7 standard build, GDScript only
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)  
@@ -1737,7 +1737,7 @@ Final evidence:
 
 `GATE-CORE-RESOLUTION` is satisfied.
 
-## 24. M04D1 draft output-access and schema-v3 validation package
+## 24. M04D1 approved output-access and schema-v3 validation package
 
 M04D1 performs no elapsed channel production. Every check must prove state, migration, access, source initialization, and no-backfill semantics without waiting in real time.
 

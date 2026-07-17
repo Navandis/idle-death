@@ -3,7 +3,7 @@
 **Document role:** Durable record of approved and proposed design and architecture decisions  
 **Repository path:** `docs/codex/DECISIONS.md`  
 **Document status:** Approved architecture and active decision record  
-**Revision:** 17  
+**Revision:** 18  
 **Last updated:** 2026-07-17
 
 ## 1. How to use this file
@@ -1991,5 +1991,5 @@ The former single M04D prompt is superseded by:
 - `DEC-0035` defines Threshold-scoped Reaping identity, canonical loadout values, assignment revisions/episodes, immutable first-start timestamps, stable recalled records, Form exclusivity, and resolve-before-rate-change handoff.
 - `DEC-0036` is implemented and verified by M04C.
 - `DEC-0037` amends pre-unlock channel semantics, authorizes schema version 3 and global output-item access, and replaces the former M04D prompt with M04D1–M04D3.
-- M04D1 planning drafts the access/migration/source-identification implementation prompt; M04D2 and M04D3 remain defined but undrafted.
+- M04D1 prompt v0.1 is approved for implementation; M04D2 and M04D3 remain defined but undrafted.
 - Future changes preserve decision IDs for wording clarifications and create a new decision only when semantics, ownership, compatibility, or security posture changes.

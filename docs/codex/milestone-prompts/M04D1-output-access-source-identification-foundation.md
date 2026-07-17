@@ -2,22 +2,24 @@
 
 **Prompt version:** v0.1  
 **Prompt date:** 2026-07-17  
-**Prompt status:** Draft  
+**Prompt status:** Approved  
 **Work item type:** Implementation slice  
 **Parent conceptual epic:** `M04 — Persistent Reaping simulation vertical slice` / M04D sub-epic  
 **Milestone definition:** `docs/codex/MILESTONES.md` — `### M04D1 — Output access and source-identification foundation`  
 **Recommended task size:** Medium; one output-access, schema-migration, and source-initialization pull request  
-**Scope-gate result:** Within guardrails at draft; stop if actual work needs another primary owner, more than two cross-layer seams, more than approximately 30 non-documentation source/test files, or more than approximately 1,500 non-documentation code/test lines  
+**Scope-gate result:** Approved within guardrails; stop if actual work needs another primary owner, more than two cross-layer seams, more than approximately 30 non-documentation source/test files, or more than approximately 1,500 non-documentation code/test lines  
 **Expected base branch or ref:** current `main` after M04C merge commit `719592c85ca4e90ecd5df4593e37a81d36b2789e`  
 **Planned prompt path:** `docs/codex/milestone-prompts/M04D1-output-access-source-identification-foundation.md`
 
 > This prompt authorizes schema version 3, global output-item access, version-2 compatibility finalization, transactional unlock/source initialization, and availability reconciliation. It authorizes no elapsed discrete-channel production, item banking, channel-rate evaluation, reconfiguration, ETA, discovery UI, or later M04D behavior.
 
-## Approval dependency
+## Approval record
 
-Accepted `DEC-0037` is authoritative. This prompt still requires explicit owner approval before execution.
+The project owner approved M04D1 prompt v0.1 on 2026-07-17.
 
-Do not execute the superseded `M04D-output-channels-long-horizon-progress.md` prompt.
+Accepted `DEC-0037` remains authoritative. The approved slice introduces schema version 3, global prospective output-item access, content-aware preservation of valid legacy acquisition state, transactional available-source initialization, no retroactive production, and no disclosure of unavailable Thresholds.
+
+Do not execute the superseded `M04D-output-channels-long-horizon-progress.md` prompt. Do not draft or implement M04D2 in this task.
 
 ## Execution protocol
 
@@ -113,7 +115,7 @@ Expected baseline:
 
 ## Scope and review-surface assessment
 
-| Assessment item | Draft estimate |
+| Assessment item | Approved estimate |
 |---|---|
 | Primary subsystem owner | `OutputAccessService` |
 | Principal transition | Global item unlock / source reconciliation |
@@ -125,7 +127,7 @@ Expected baseline:
 | Estimated source/test files | Approximately 14–24, excluding `.uid` and docs |
 | Estimated code/test lines | Approximately 850–1,350, excluding `.uid` and docs |
 | Owner package | `run_m04d1_owner_verification.ps1` |
-| Mandatory split trigger | Not crossed at draft |
+| Mandatory split trigger | Not crossed at approval |
 
 Stop before approximately 30 non-documentation source/test files, 1,500 code/test lines, more than two seams, or another primary owner.
 
