@@ -3,7 +3,7 @@
 **Document role:** Canonical prototype data, runtime-state, ID, and serialization contracts  
 **Repository path:** `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`  
 **Document status:** Approved architecture contract  
-**Revision:** 11  
+**Revision:** 12  
 **Last updated:** 2026-07-17
 
 ## 1. Purpose
@@ -1778,9 +1778,9 @@ Operation identity remains the Reaping map key. Loadout, assignment-state, and e
 
 Active and inactive records round-trip exactly. The assignment service requests a checkpoint but performs no file I/O.
 
-## Proposed M04C core Reaping resolution contract
+## Approved M04C core Reaping resolution contract
 
-This section is proposed with `DEC-0036` and becomes authoritative when the M04C prompt is approved.
+This section is authoritative under accepted `DEC-0036` and the approved M04C v0.1 prompt.
 
 ### Supported state
 

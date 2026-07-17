@@ -3,7 +3,7 @@
 **Document role:** Durable record of approved and proposed design and architecture decisions  
 **Repository path:** `docs/codex/DECISIONS.md`  
 **Document status:** Approved architecture and active decision record  
-**Revision:** 14  
+**Revision:** 15  
 **Last updated:** 2026-07-17
 
 ## 1. How to use this file
@@ -65,7 +65,7 @@ Rules:
 | `DEC-0033` | Rolling-wave implementation slices and review-surface guardrails | Accepted | 2026-07-15 |
 | `DEC-0034` | Schema version 2 and sequential migration are the gameplay-state compatibility path | Accepted | 2026-07-15 |
 | `DEC-0035` | Reaping operations are Threshold-scoped; recalled records persist and assignment commands are revision-guarded and Form-exclusive | Accepted | 2026-07-16 |
-| `DEC-0036` | Core Reaping resolution is transactional; settlement is an exact boundary and residual ownership is explicit | Proposed | 2026-07-17 |
+| `DEC-0036` | Core Reaping resolution is transactional; settlement is an exact boundary and residual ownership is explicit | Accepted | 2026-07-17 |
 
 ---
 
@@ -1613,7 +1613,7 @@ If a future design permits multiple independent Reapings at one Threshold, it re
 
 ## `DEC-0036` — Core Reaping resolution is transactional; settlement is an exact boundary and residual ownership is explicit
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-07-17  
 **Decision type:** Deterministic simulation, lifecycle, and numeric ownership  
 **Refines:** `DEC-0010`, `DEC-0012`, `DEC-0019`, `DEC-0020`, `DEC-0026`, `DEC-0035`
@@ -1634,7 +1634,7 @@ The first core resolver needs unambiguous rules for:
 - cycle phase and completed-cycle ownership;
 - save-schema compatibility.
 
-### Proposed decision
+### Decision
 
 #### One transactional resolver
 
@@ -1796,13 +1796,12 @@ M04C does not process milestones, guarantees, resonance effects, Emergency-to-St
 
 ## 3. Current approval state
 
-- `DEC-0001` through `DEC-0035` are Accepted.
-- `DEC-0036` is Proposed and awaits owner approval with the M04C prompt.
+- `DEC-0001` through `DEC-0036` are Accepted.
 - M03 prompt approval accepted `DEC-0029` through `DEC-0032`, including explicit revision compatibility, stable channel IDs, editable player-facing language, centralized terminology, and Essence as the single resource identity.
 - M01 prompt approval accepted `DEC-0026`; long-horizon source ownership is recorded in `DEC-0027`; prospective, non-compounding rate-change semantics are recorded in `DEC-0028`.
 - The Phase 6 architecture is approved with trusted-time, save-format, cross-machine testing, GodotSteam, owner-verification, fixed-point, Threshold-channel ownership, content compatibility, naming, and terminology refinements recorded in `DEC-0021` through `DEC-0032`.
 - The post-M03 implementation workflow uses conceptual epics, lettered slices, rolling-wave planning, and review-surface guardrails under `DEC-0033`.
 - `DEC-0034` resolved `GATE-GAMEPLAY-SCHEMA`; M04A implemented and verified schema version 2 plus the production sequential migration from frozen schema version 1.
 - `DEC-0035` defines Threshold-scoped Reaping identity, canonical loadout values, assignment revisions/episodes, immutable first-start timestamps, stable recalled records, Form exclusivity, and resolve-before-rate-change handoff.
-- M04C planning proposes `DEC-0036` for transactional core resolution, exact Settlement segmentation, core rate semantics, and stable residual ownership.
+- `DEC-0036` authorizes M04C transactional core resolution, exact Settlement segmentation, core rate semantics, stable residual ownership, and the bounded zero-or-one-active-Reaping implementation limit.
 - Future changes preserve decision IDs for wording clarifications and create a new decision only when semantics, ownership, compatibility, or security posture changes.

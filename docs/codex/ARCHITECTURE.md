@@ -3,7 +3,7 @@
 **Document role:** Maintained implementation architecture for the 0-90 minute prototype  
 **Repository path:** `docs/codex/ARCHITECTURE.md`  
 **Document status:** Approved architecture  
-**Architecture revision:** 9  
+**Architecture revision:** 10  
 **Last updated:** 2026-07-17  
 **Engine target:** Godot 4.7, GDScript only  
 **Primary design context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md) and [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md)
@@ -1296,9 +1296,9 @@ M04B realizes the approved assignment boundary with `ReapingAssignmentService`.
 
 PR #9 merged this boundary from final head `5301c94bfd0fb837f9961fda624d7559042327e2` at merge commit `c641d74cebedf07c51ebb579cccee21db7aa2410`.
 
-## Proposed M04C core Reaping resolution boundary
+## Approved M04C core Reaping resolution boundary
 
-Subject to approval of `DEC-0036`, M04C introduces the first `src/simulation/` implementation.
+Accepted `DEC-0036` authorizes M04C to introduce the first `src/simulation/` implementation.
 
 ### Ownership
 

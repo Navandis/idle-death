@@ -2,22 +2,32 @@
 
 **Prompt version:** v0.1  
 **Prompt date:** 2026-07-17  
-**Prompt status:** Draft  
+**Prompt status:** Approved  
 **Work item type:** Implementation slice  
 **Parent conceptual epic:** `M04 — Persistent Reaping simulation vertical slice`  
 **Milestone definition:** `docs/codex/MILESTONES.md` — `### M04C — Single-Reaping core resolver`  
 **Recommended task size:** Medium; one deterministic core-stream simulation pull request  
-**Scope-gate result:** Within guardrails at draft; mandatory stop if actual work needs another primary owner, more than two cross-layer seams, more than approximately 30 non-documentation source/test files, or more than approximately 1,500 non-documentation code/test lines  
+**Scope-gate result:** Approved within guardrails; mandatory stop if actual work needs another primary owner, more than two cross-layer seams, more than approximately 30 non-documentation source/test files, or more than approximately 1,500 non-documentation code/test lines  
 **Expected base branch or ref:** current `main` after M04B merge commit `c641d74cebedf07c51ebb579cccee21db7aa2410`  
 **Planned prompt path:** `docs/codex/milestone-prompts/M04C-single-reaping-core-resolver.md`
 
 > This prompt authorizes only one transactional elapsed-time resolver for the core streams of zero or one active Reaping: returned souls/backlog, Essence, active Form Mastery, cycle state, and exact Overdue-to-Settled segmentation. It does not authorize discrete non-Essence output channels, Retinue/support behavior, progression effects, forecasts, reports, concurrent Reapings, UI, or platform integration.
 
-## Approval dependency
+## Approval record
 
-This draft includes proposed `DEC-0036`. Approval of this prompt also accepts that decision unless the owner requests revised resolver, Settlement, or residual semantics first.
+The project owner approved M04C prompt v0.1 and accepted `DEC-0036` on 2026-07-17.
 
-Do not execute this prompt while `DEC-0036` remains Proposed.
+The approved core contract includes:
+
+- one transactional `SimulationEngine` primary owner;
+- zero or one active Reaping support in M04C;
+- no-active timeline advancement without production;
+- exact Overdue-to-Settled segmentation;
+- separate returned-soul, Essence, Mastery, cycle, and Threshold-channel residual ownership;
+- no schema-version bump;
+- explicit failure for unsupported Retinue, concurrency, modifier, or nonzero unknown-carry state.
+
+Do not execute an alternate rate, lifecycle, residual, concurrency, or mutation model without a new owner-approved decision.
 
 ## Execution protocol
 
@@ -82,9 +92,9 @@ From focused tests and one headless trace, a developer can:
 | 3 | `docs/codex/MILESTONE_RECALIBRATION_PROPOSAL.md` | §§2–8 | Review-surface policy |
 | 4 | `docs/codex/PROMPT_TEMPLATE.md` | Scope assessment and completion rules | Prompt governance |
 | 5 | `docs/codex/OWNER_VERIFICATION_WORKFLOW.md` | Complete script/log/cleanup rules | Windows package |
-| 6 | `docs/codex/DECISIONS.md` | `DEC-0007`, `DEC-0010`–`DEC-0012`, `DEC-0014`, `DEC-0019`, `DEC-0020`, `DEC-0023`, `DEC-0025`, `DEC-0026`, `DEC-0033`–`DEC-0035`, proposed `DEC-0036` | Simulation, numeric, assignment, scope |
-| 7 | `docs/codex/DATA_AND_CONTENT_CONTRACTS.md` | §§2, 7.2–7.5, 9.3–9.9, 10–13, 17–18; M03/M04A/M04B contracts; proposed M04C contract | Rates, state, residuals, events |
-| 8 | `docs/codex/ARCHITECTURE.md` | §§5–11, 14.2, 19–20, 22–23; realized M04B; proposed M04C boundary | Transaction/segmentation |
+| 6 | `docs/codex/DECISIONS.md` | `DEC-0007`, `DEC-0010`–`DEC-0012`, `DEC-0014`, `DEC-0019`, `DEC-0020`, `DEC-0023`, `DEC-0025`, `DEC-0026`, `DEC-0033`–`DEC-0035`, accepted `DEC-0036` | Simulation, numeric, assignment, scope |
+| 7 | `docs/codex/DATA_AND_CONTENT_CONTRACTS.md` | §§2, 7.2–7.5, 9.3–9.9, 10–13, 17–18; M03/M04A/M04B contracts; approved M04C contract | Rates, state, residuals, events |
+| 8 | `docs/codex/ARCHITECTURE.md` | §§5–11, 14.2, 19–20, 22–23; realized M04B; approved M04C boundary | Transaction/segmentation |
 | 9 | `docs/codex/IMPLEMENTATION_RULES.md` | Deterministic simulation, arithmetic, collections, diagnostics, persistence, junior comments | Engineering rules |
 | 10 | `docs/codex/TESTING_AND_VALIDATION.md` | §§3–6, 9–12, 15–16, 19–23 | Exact test/evidence package |
 | 11 | `docs/design/IDLE_FORK_SOURCE_OF_TRUTH.md` | design pillars; `IF-REQ-01`–`IF-REQ-09`, `IF-REQ-15`, `IF-REQ-18`; technical boundaries | Persistent deterministic idle loop |
@@ -187,14 +197,14 @@ Do not implement or refactor:
 
 | ID | Required behavior | Source trace |
 |---|---|---|
-| `RB-01` | One `SimulationEngine` owns M04C elapsed production. | `DEC-0010`; proposed `DEC-0036` |
+| `RB-01` | One `SimulationEngine` owns M04C elapsed production. | `DEC-0010`; accepted `DEC-0036` |
 | `RB-02` | Engine receives state, ready registry, and explicit integer elapsed milliseconds. | Time architecture |
 | `RB-03` | It reads no clock, frame, scene, Steam, file-time, or UI source. | `DEC-0010`, `IF-REQ-07` |
 | `RB-04` | It resolves a deep-cloned candidate and commits live state once after full validation. | `DEC-0012` |
 | `RB-05` | Every failure leaves exact state equality. | Transaction contract |
 | `RB-06` | Negative elapsed rejects; zero elapsed is a no-op. | Numeric contract |
 | `RB-07` | Positive success advances `simulation_time_msec` exactly by elapsed. | Timeline contract |
-| `RB-08` | No active Reaping advances only the timeline. | Proposed `DEC-0036` |
+| `RB-08` | No active Reaping advances only the timeline. | Accepted `DEC-0036` |
 | `RB-09` | Inactive records produce nothing and remain unchanged except global timeline. | `DEC-0035` |
 | `RB-10` | More than one active Reaping rejects without mutation. | M04C boundary |
 | `RB-11` | Non-empty Retinue configuration rejects as unsupported. | M04C non-goal |
@@ -206,9 +216,9 @@ Do not implement or refactor:
 | `RB-17` | Settled returned-soul rate applies Threshold multiplier exactly once. | `IF-REQ-04` |
 | `RB-18` | Essence uses the owning enabled `RES_ESSENCE` channel. | M03 channel contract |
 | `RB-19` | Supported Essence-yield Form Trait multipliers apply deterministically. | Modifier grammar |
-| `RB-20` | Settled Essence applies channel multiplier exactly once, not Threshold plus channel. | Proposed `DEC-0036` |
+| `RB-20` | Settled Essence applies channel multiplier exactly once, not Threshold plus channel. | Accepted `DEC-0036` |
 | `RB-21` | Mastery uses active Form rate and supported Mastery modifiers. | Form contract |
-| `RB-22` | Settlement does not reduce Mastery. | Proposed `DEC-0036` |
+| `RB-22` | Settlement does not reduce Mastery. | Accepted `DEC-0036` |
 | `RB-23` | Cycle cadence uses Form cycle duration and is lifecycle-independent. | M03 content |
 | `RB-24` | Relevant unsupported modifier operation/scope/condition fails explicitly. | `DEC-0014` |
 | `RB-25` | All rate multiplication is checked fixed-point floor arithmetic. | `DEC-0026` |
@@ -216,14 +226,14 @@ Do not implement or refactor:
 | `RB-27` | Returned progress extracts whole returns and retains `< SCALE` remainder. | Numeric contract |
 | `RB-28` | Every whole return increments `persistent_returns_total`. | Counter contract |
 | `RB-29` | Overdue whole returns reduce backlog no lower than zero. | Threshold contract |
-| `RB-30` | Settled whole returns leave backlog zero and continue the counter. | Proposed `DEC-0036` |
+| `RB-30` | Settled whole returns leave backlog zero and continue the counter. | Accepted `DEC-0036` |
 | `RB-31` | Essence accumulation uses separate progress/rate carry. | Residual contract |
 | `RB-32` | Whole Essence is banked immediately in `RES_ESSENCE` inventory. | `IF-REQ-02` |
 | `RB-33` | Mastery subunits add directly to active Form with separate rate carry. | Mastery contract |
 | `RB-34` | Cycle phase/count aggregate analytically and check overflow. | Cycle contract |
-| `RB-35` | Stable core residual keys and ranges are enforced. | Proposed `DEC-0036` |
+| `RB-35` | Stable core residual keys and ranges are enforced. | Accepted `DEC-0036` |
 | `RB-36` | Long-horizon `ThresholdAcquisitionState` is untouched. | `DEC-0027` |
-| `RB-37` | Settlement boundary is the minimum integer millisecond reaching backlog zero. | Proposed `DEC-0036` |
+| `RB-37` | Settlement boundary is the minimum integer millisecond reaching backlog zero. | Accepted `DEC-0036` |
 | `RB-38` | Old rates apply through the boundary; new rates begin afterward. | Same-time ordering |
 | `RB-39` | Boundary gains commit before lifecycle changes. | Architecture §10.4 |
 | `RB-40` | Settlement sets zero backlog/`SETTLED` and emits one event. | `IF-REQ-04` |
@@ -542,7 +552,7 @@ Update:
 - `docs/codex/ARCHITECTURE.md`;
 - `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`;
 - `docs/codex/TESTING_AND_VALIDATION.md`;
-- `docs/codex/DECISIONS.md` only to mark `DEC-0036` Accepted when the prompt is approved, not to invent implementation shortcuts;
+- `docs/codex/DECISIONS.md` only if implementation uncovers a genuine conflict requiring a new owner-approved decision; do not weaken accepted `DEC-0036` through implementation shortcuts;
 - `README.md` if the developer trace command is useful.
 
 ## Stop conditions

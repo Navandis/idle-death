@@ -2,8 +2,8 @@
 
 **Document role:** Canonical test strategy, commands, fixture rules, and manual validation flows
 **Repository path:** `docs/codex/TESTING_AND_VALIDATION.md`
-**Document status:** Approved validation plan through M04B with M04C draft
-**Validation revision:** 14
+**Document status:** Approved validation plan through M04B with M04C approved
+**Validation revision:** 15
 **Last updated:** 2026-07-17
 **Engine target:** Godot 4.7 standard build, GDScript only
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)  
@@ -38,7 +38,7 @@ M04A merged through PR #8 at merge commit `673ad884357fc742a0a26dbb542d5b8d9fe55
 
 M04B merged through PR #9 at merge commit `c641d74cebedf07c51ebb579cccee21db7aa2410` from final head `5301c94bfd0fb837f9961fda624d7559042327e2`. Threshold-scoped operation identity, typed assignment results/events, global assignment validation, persistence, the complete identity trace, and Windows owner verification passed.
 
-M04C planning proposes `DEC-0036` for transactional core resolution, exact Settlement segmentation, stable core residual ownership, and the temporary one-active-Reaping implementation limit.
+Accepted `DEC-0036` and approved M04C v0.1 define transactional core resolution, exact Settlement segmentation, stable core residual ownership, and the temporary one-active-Reaping implementation limit.
 
 ## 2. Pinned test and platform dependencies
 
@@ -1544,7 +1544,7 @@ Final evidence:
 
 `GATE-REAPING-ASSIGNMENT` is satisfied.
 
-## 23. M04C draft core-resolver validation package
+## 23. M04C approved core-resolver validation package
 
 M04C validates deterministic core production only. No test may depend on elapsed wall time, rendered frames, Steam, or UI.
 
@@ -1706,7 +1706,7 @@ No Inspector, visual, audio, gameplay, A/B, or Steam checklist is required.
 
 M04C cannot merge until:
 
-- proposed `DEC-0036` or an owner-approved replacement core-resolver contract is Accepted;
+- accepted `DEC-0036` remains the implemented core-resolver contract;
 - Linux/Codex focused/import/trace/full checks pass;
 - the owner Windows package passes against the exact PR head;
 - exact one-shot/chunk and Settlement-boundary fixtures pass;
