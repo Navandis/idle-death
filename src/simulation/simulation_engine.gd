@@ -172,26 +172,37 @@ func _msec_to_next_return(reaping: GameState.ReapingState, threshold_id: StringN
 
 func _scaled_rate(rate: Dictionary, traits: Array, threshold_record: Dictionary, metric: String, apply_settled: bool) -> Dictionary:
 	var value := int(rate.rate_subunits_per_period)
+	var modified := _apply_trait_multipliers(value, traits, threshold_record, metric)
+	if not modified.ok: return modified
+	value = int(modified.rate)
+	if apply_settled:
+		value = (value * int(threshold_record.settled_multiplier_subunits)) / FixedPoint.SCALE
+	return {"ok": true, "rate": value, "period": int(rate.period_msec)}
+
+func _apply_trait_multipliers(base_rate: int, traits: Array, threshold_record: Dictionary, metric: String) -> Dictionary:
+	var value := base_rate
 	for trait_record in traits:
 		for modifier in trait_record.modifiers:
 			if modifier.metric != metric: continue
 			if modifier.operation != "MULTIPLY" or modifier.scope != "REAPING_TOTAL": return _fail(ERR_UNSUPPORTED_MODIFIER, str(modifier))
-			if modifier.condition == "THRESHOLD_HAS_ANY_TAG" and _has_any(threshold_record.tags, modifier.condition_values):
-				value = (value * int(modifier.value_subunits)) / FixedPoint.SCALE
-			elif modifier.condition != "THRESHOLD_HAS_ANY_TAG":
-				return _fail(ERR_UNSUPPORTED_MODIFIER, str(modifier))
-	if apply_settled:
-		value = (value * int(threshold_record.settled_multiplier_subunits)) / FixedPoint.SCALE
-	return {"ok": true, "rate": value, "period": int(rate.period_msec)}
+			match modifier.condition:
+				"ALWAYS":
+					value = (value * int(modifier.value_subunits)) / FixedPoint.SCALE
+				"THRESHOLD_HAS_ANY_TAG":
+					if _has_any(threshold_record.tags, modifier.condition_values):
+						value = (value * int(modifier.value_subunits)) / FixedPoint.SCALE
+				_:
+					return _fail(ERR_UNSUPPORTED_MODIFIER, str(modifier))
+	return {"ok": true, "rate": value}
 
 func _essence_rate(threshold_id: StringName, settled: bool, traits: Array, threshold_record: Dictionary) -> Dictionary:
 	for cid in threshold_record.channel_ids:
 		var rec := registry.get_record(str(cid))
 		if rec.ok and rec.record.output_item_id == "RES_ESSENCE" and rec.record.enabled:
 			var value := int(rec.record.rate.rate_subunits_per_period)
-			for trait_record in traits:
-				for modifier in trait_record.modifiers:
-					if modifier.metric == "ESSENCE_YIELD": return _fail(ERR_UNSUPPORTED_MODIFIER, str(modifier))
+			var modified := _apply_trait_multipliers(value, traits, threshold_record, "ESSENCE_YIELD")
+			if not modified.ok: return modified
+			value = int(modified.rate)
 			if settled: value = (value * int(rec.record.settled_multiplier_subunits)) / FixedPoint.SCALE
 			return {"ok": true, "rate": value, "period": int(rec.record.rate.period_msec)}
 	return _fail(ERR_CONTENT, "Missing RES_ESSENCE channel for %s" % threshold_id)

@@ -91,3 +91,19 @@ func test_inactive_produces_nothing_and_settled_continues_without_repeat_event()
 	assert_eq(settled.thresholds[&"THR_GLOAMWOOD"].persistent_returns_total, 17)
 	assert_eq(settled.inventory.entries[&"RES_ESSENCE"].total, 1)
 	assert_eq(settled.forms[&"FORM_MAN_AT_ARMS"].mastery_subunits, 1000000)
+
+func test_supported_always_and_essence_yield_trait_multipliers_apply() -> void:
+	var engine := _engine()
+	var threshold: Dictionary = _registry().get_record("THR_GLOAMWOOD").record
+	var always_traits := [{"modifiers": [{"metric": "SOULS_RETURNED_RATE", "operation": "MULTIPLY", "scope": "REAPING_TOTAL", "condition": "ALWAYS", "condition_values": [], "value_subunits": 1500000}]}]
+	var returned := engine._scaled_rate({"rate_subunits_per_period": 1000000, "period_msec": 1000}, always_traits, threshold, "SOULS_RETURNED_RATE", false)
+	assert_true(returned.ok, str(returned))
+	assert_eq(returned.rate, 1500000)
+	var mastery_traits := [{"modifiers": [{"metric": "MASTERY_RATE", "operation": "MULTIPLY", "scope": "REAPING_TOTAL", "condition": "ALWAYS", "condition_values": [], "value_subunits": 1250000}]}]
+	var mastery := engine._scaled_rate({"rate_subunits_per_period": 1000000, "period_msec": 60000}, mastery_traits, threshold, "MASTERY_RATE", false)
+	assert_true(mastery.ok, str(mastery))
+	assert_eq(mastery.rate, 1250000)
+	var essence_traits := [{"modifiers": [{"metric": "ESSENCE_YIELD", "operation": "MULTIPLY", "scope": "REAPING_TOTAL", "condition": "ALWAYS", "condition_values": [], "value_subunits": 2000000}]}]
+	var essence := engine._essence_rate(&"THR_GLOAMWOOD", false, essence_traits, threshold)
+	assert_true(essence.ok, str(essence))
+	assert_eq(essence.rate, 2000000)
