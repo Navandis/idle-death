@@ -3,8 +3,8 @@
 **Document role:** Durable record of approved and proposed design and architecture decisions  
 **Repository path:** `docs/codex/DECISIONS.md`  
 **Document status:** Approved architecture and active decision record  
-**Revision:** 13  
-**Last updated:** 2026-07-16
+**Revision:** 14  
+**Last updated:** 2026-07-17
 
 ## 1. How to use this file
 
@@ -65,6 +65,7 @@ Rules:
 | `DEC-0033` | Rolling-wave implementation slices and review-surface guardrails | Accepted | 2026-07-15 |
 | `DEC-0034` | Schema version 2 and sequential migration are the gameplay-state compatibility path | Accepted | 2026-07-15 |
 | `DEC-0035` | Reaping operations are Threshold-scoped; recalled records persist and assignment commands are revision-guarded and Form-exclusive | Accepted | 2026-07-16 |
+| `DEC-0036` | Core Reaping resolution is transactional; settlement is an exact boundary and residual ownership is explicit | Proposed | 2026-07-17 |
 
 ---
 
@@ -1610,13 +1611,198 @@ If a future design permits multiple independent Reapings at one Threshold, it re
 
 ---
 
+## `DEC-0036` — Core Reaping resolution is transactional; settlement is an exact boundary and residual ownership is explicit
+
+**Status:** Proposed  
+**Date:** 2026-07-17  
+**Decision type:** Deterministic simulation, lifecycle, and numeric ownership  
+**Refines:** `DEC-0010`, `DEC-0012`, `DEC-0019`, `DEC-0020`, `DEC-0026`, `DEC-0035`
+
+### Context
+
+M04B established stable Threshold-scoped Reaping operations, exact assignment revisions, immutable first-start timestamps, and active/inactive persistence. M04C must now advance one active Reaping over an explicitly supplied elapsed interval without importing output-channel accumulation, progression effects, forecasts, reports, or concurrent-Reaping behavior.
+
+The first core resolver needs unambiguous rules for:
+
+- transactional mutation and failure behavior;
+- what happens when no Reaping is active;
+- the temporary single-active-Reaping implementation boundary;
+- how normalized content and the supported modifier subset derive rates;
+- where fractional returned-soul, Essence, and Mastery arithmetic is stored;
+- the exact instant an Overdue Threshold becomes Settled;
+- which rates change after Settlement;
+- cycle phase and completed-cycle ownership;
+- save-schema compatibility.
+
+### Proposed decision
+
+#### One transactional resolver
+
+- `SimulationEngine` is the sole M04C owner of elapsed-time production.
+- It receives:
+  - a validated `GameState`;
+  - a ready `ContentRegistry`;
+  - a non-negative integer elapsed duration in milliseconds.
+- It reads no monotonic clock, trusted epoch, device wall clock, frame delta, scene state, Steam API, file timestamp, or UI state.
+- It deep-clones the supplied state, resolves and validates the complete candidate, then commits the candidate through one explicit state-replacement boundary.
+- Any validation, arithmetic, boundary, unsupported-state, or overflow failure leaves the supplied authoritative state equality-equivalent to its pre-call value.
+- `elapsed_msec = 0` is a successful no-op.
+- A positive interval advances `GameState.simulation_time_msec` exactly once after successful resolution.
+
+#### Active-operation support in M04C
+
+- Zero active Reapings is valid. The simulation timeline advances, while inventory, backlog, Mastery, Reaping phase/carry, and counters remain unchanged.
+- One active Reaping is the supported M04C production case.
+- More than one active Reaping returns a stable unsupported-concurrency result and commits nothing. Concurrent resolution remains a later slice.
+- An inactive Reaping retains state but produces nothing.
+- A non-empty Retinue configuration returns a stable unsupported-configuration result in M04C. Retinue modifiers and support remain later work.
+- M04C is not wired into the player-facing application shell. It is a tested domain/simulation foundation.
+
+#### Core rate plan
+
+M04C derives one immutable rate plan per segment from normalized registry records and current authoritative state.
+
+- **Returned souls**
+  - begin with the active Form's `base_returned_souls_rate`;
+  - apply supported Form-Trait modifiers for `SOULS_RETURNED_RATE`;
+  - while Overdue, use that resulting rate;
+  - while Settled, multiply it once by the Threshold's `settled_multiplier_subunits`.
+- **Essence**
+  - comes from the Threshold's one enabled `RES_ESSENCE` output channel;
+  - begins with that channel's normalized rate;
+  - applies supported Form-Trait modifiers for `ESSENCE_YIELD`;
+  - while Settled, multiplies it once by the Essence channel's `settled_multiplier_subunits`;
+  - does not also apply the Threshold multiplier a second time.
+- **Mastery**
+  - begins with the active Form's `active_mastery_rate`;
+  - applies supported Form-Trait modifiers for `MASTERY_RATE`;
+  - is not reduced by Settlement.
+- **Cycle cadence**
+  - uses the Form's `cycle_duration_msec`;
+  - is not accelerated by returned-soul, Essence, or Mastery multipliers;
+  - advances only while the Reaping is active.
+
+The supported M04C modifier subset is deliberately narrow:
+
+```text
+operation: MULTIPLY
+scope: REAPING_TOTAL
+conditions: ALWAYS, THRESHOLD_HAS_ANY_TAG
+metrics: SOULS_RETURNED_RATE, ESSENCE_YIELD, MASTERY_RATE
+source: active Form Trait modifiers only
+```
+
+A relevant modifier outside that subset fails explicitly rather than being silently ignored. Irrelevant metrics such as discovery or forecast uncertainty do not affect the M04C core plan. Multipliers use central checked fixed-point floor semantics in deterministic authored order.
+
+#### Stable residual ownership
+
+M04C uses the existing schema-version-2 `ReapingState.flow_carry_units` map. It introduces these stable internal keys:
+
+```text
+FLOW_CORE_RETURNS_PROGRESS_SUBUNITS
+FLOW_CORE_RETURNS_RATE_CARRY_UNITS
+FLOW_CORE_ESSENCE_PROGRESS_SUBUNITS
+FLOW_CORE_ESSENCE_RATE_CARRY_UNITS
+FLOW_CORE_MASTERY_RATE_CARRY_UNITS
+```
+
+Rules:
+
+- returned-soul and Essence progress values remain in `0 <= value < FixedPoint.SCALE`;
+- each rate carry remains in `0 <= value < its stable period_msec`;
+- Mastery is already fractional authoritative state, so it needs only its rate carry;
+- `cycle_phase_msec` remains the cycle remainder and `completed_cycle_count` remains the whole-cycle count;
+- unknown zero-valued flow keys are preserved;
+- an active Reaping with an unknown nonzero flow key fails as unsupported rather than losing or misinterpreting it;
+- no core residual is duplicated in `ThresholdAcquisitionState`;
+- no cached effective rate or ETA is persisted.
+
+Returned-soul and Essence rates use `FixedPoint.accumulate_for_elapsed_msec()`. Produced subunits are added to the corresponding progress remainder; complete whole units are extracted immediately. Returned souls are whole counter/backlog changes. Whole Essence is added immediately to `InventoryState[RES_ESSENCE]`. Mastery subunits are added directly to the active Form.
+
+#### Exact Settlement boundary
+
+For an Overdue Threshold with positive backlog:
+
+1. calculate analytically, with checked integer arithmetic, whether the requested interval reaches backlog zero;
+2. when it does, find the minimum integer millisecond at which enough whole returned souls have been extracted to settle the remaining backlog;
+3. resolve all Overdue core flows and cycle progress through that exact boundary;
+4. apply every whole return produced at the boundary:
+   - increment `persistent_returns_total`;
+   - reduce `remaining_backlog` no lower than zero;
+5. set backlog to zero and lifecycle to `SETTLED` exactly once;
+6. emit one non-persisted `THRESHOLD_SETTLED` event at that simulation timestamp;
+7. re-derive rates;
+8. resolve the remaining interval under Settled rules.
+
+Old rates apply through the boundary. Settled rates apply only after it. If several whole returns are produced at the boundary millisecond, all are counted while backlog still clamps at zero.
+
+A zero-duration boundary that repeats without changing state is an error. M04C must resolve analytically or with a bounded checked search; it may not replay each millisecond, second, rendered frame, or cycle.
+
+#### Settled core behavior
+
+Once Settled:
+
+- `remaining_backlog` stays zero;
+- returned souls continue incrementing `persistent_returns_total` at the Threshold-settled returned-soul rate;
+- Essence continues banking at the Essence-channel settled rate;
+- active Form Mastery continues at its current core rate;
+- cycle phase and completed-cycle count continue;
+- the Settlement event is not emitted again.
+
+M04C does not process milestones, guarantees, resonance effects, Emergency-to-Standard transition, discovery, reports, or tutorial reactions. No player-facing system calls this incomplete foundation yet.
+
+#### Results, adapters, and persistence
+
+- The core resolver returns one typed result containing success/error state, committed elapsed time, a typed change summary, deterministic ordered segment summaries, and ordered simulation events.
+- A small supplied-duration API and a debug-advance adapter call the same resolver. Debug mode does not select alternate formulas.
+- Schema version 2 remains current. No field or top-level key is added.
+- The new stable flow keys are values inside the existing serialized `flow_carry_units` map.
+- Integration tests save and reload Overdue, boundary-crossing, and Settled states exactly.
+- The resolver does not write files; the caller persists the committed state through the existing coordinator when required.
+
+### Consequences
+
+- Chunking equivalence can be tested over ordinary and Settlement-crossing intervals.
+- No active assignment still advances authoritative simulation time without fabricating output.
+- Settlement is an exact rate-change boundary rather than an end-of-update approximation.
+- Returned-soul, Essence, Mastery, cycle, and long-horizon acquisition residuals have non-overlapping owners.
+- M04D can later add discrete channels and resolve-before-loadout-change behavior without replacing the core engine.
+- M04E can later run forecast and other modes through the same engine.
+- Concurrent Reapings remain blocked rather than being partially or order-dependently simulated.
+- The implementation cannot silently apply Retinue or unsupported modifier behavior before those contracts exist.
+
+### Alternatives considered
+
+- **Mutate live state flow by flow:** rejected because a later overflow or invalid boundary could leave partial production.
+- **Do not advance the timeline when nothing is active:** rejected because the simulation cursor is a global committed gameplay timeline, not a production counter.
+- **Support multiple active Reapings immediately:** rejected because M04C is explicitly the single-Reaping core slice.
+- **Replay every millisecond, second, or cycle:** rejected for performance and chunking reasons.
+- **Round Settlement to the end of the requested interval:** rejected because it applies the wrong rate to part of the interval.
+- **Apply both Threshold and Essence-channel settled multipliers to Essence:** rejected as double application.
+- **Reduce Mastery or cycle cadence at Settlement:** rejected because Settlement lowers passage output, not the active Form's use-based progression or presentation cycle cadence.
+- **Persist effective rates or ETAs:** rejected because they are derived from current content and state.
+- **Ignore unknown nonzero carry keys:** rejected because that could destroy or reinterpret authoritative fractional work.
+- **Add schema version 3 for named residual keys:** rejected because schema version 2 already owns a string-keyed flow residual map.
+
+### Affected documents
+
+- `docs/codex/ARCHITECTURE.md`
+- `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`
+- `docs/codex/MILESTONES.md`
+- `docs/codex/TESTING_AND_VALIDATION.md`
+- `docs/codex/milestone-prompts/M04C-single-reaping-core-resolver.md`
+
+---
+
 ## 3. Current approval state
 
 - `DEC-0001` through `DEC-0035` are Accepted.
+- `DEC-0036` is Proposed and awaits owner approval with the M04C prompt.
 - M03 prompt approval accepted `DEC-0029` through `DEC-0032`, including explicit revision compatibility, stable channel IDs, editable player-facing language, centralized terminology, and Essence as the single resource identity.
 - M01 prompt approval accepted `DEC-0026`; long-horizon source ownership is recorded in `DEC-0027`; prospective, non-compounding rate-change semantics are recorded in `DEC-0028`.
 - The Phase 6 architecture is approved with trusted-time, save-format, cross-machine testing, GodotSteam, owner-verification, fixed-point, Threshold-channel ownership, content compatibility, naming, and terminology refinements recorded in `DEC-0021` through `DEC-0032`.
 - The post-M03 implementation workflow uses conceptual epics, lettered slices, rolling-wave planning, and review-surface guardrails under `DEC-0033`.
 - `DEC-0034` resolved `GATE-GAMEPLAY-SCHEMA`; M04A implemented and verified schema version 2 plus the production sequential migration from frozen schema version 1.
 - `DEC-0035` defines Threshold-scoped Reaping identity, canonical loadout values, assignment revisions/episodes, immutable first-start timestamps, stable recalled records, Form exclusivity, and resolve-before-rate-change handoff.
+- M04C planning proposes `DEC-0036` for transactional core resolution, exact Settlement segmentation, core rate semantics, and stable residual ownership.
 - Future changes preserve decision IDs for wording clarifications and create a new decision only when semantics, ownership, compatibility, or security posture changes.

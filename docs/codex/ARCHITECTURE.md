@@ -3,8 +3,8 @@
 **Document role:** Maintained implementation architecture for the 0-90 minute prototype  
 **Repository path:** `docs/codex/ARCHITECTURE.md`  
 **Document status:** Approved architecture  
-**Architecture revision:** 8  
-**Last updated:** 2026-07-16  
+**Architecture revision:** 9  
+**Last updated:** 2026-07-17  
 **Engine target:** Godot 4.7, GDScript only  
 **Primary design context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md) and [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md)
 
@@ -1283,8 +1283,74 @@ M04B does not reinterpret nonzero rate-dependent phase/carry under a different F
 
 Successful assignment commands request a save checkpoint through their result. The assignment service does not call `SaveService`; tests and later `GameSession` orchestration persist the already-committed state through the existing schema-v2 coordinator.
 
-### M04B realized command/result/event and validation boundary
+### M04B realized command, result, event, and validation boundary
 
-M04B realizes the approved boundary with `ReapingAssignmentService`. Durable assignment invariants live in `GameStateValidator`, so save/load and command candidates reject non-positive assignment revisions, duplicate active Form leadership, active Reapings at unavailable Thresholds, invalid content references, active disabled Writs, and tether over-occupancy before runtime exposure. The assignment service keeps command-specific preconditions such as record existence, expected revision, capacity for the requested activation, and the M04C/M04D handoff for changed loadouts with unresolved phase/carry.
+M04B realizes the approved assignment boundary with `ReapingAssignmentService`.
 
-Successful assignment commands return a bounded typed result containing `success`, an empty `StringName` error code, player message, developer details, `AssignmentChangeSummary`, one ordered `AssignmentEvent`, and `save_checkpoint_requested = true`. Failures return stable `REAPING_...` codes, player/developer diagnostics, no event, no change summary, and no checkpoint request. Assignment events use the committed simulation cursor, a stable assignment priority, the Threshold operation as subject, an explicitly empty command `source_id`, save-safe primitive payload data, and deliberate report/tutorial relevance flags. Events are not persisted and do not make saves event-sourced.
+- Durable assignment invariants live in `GameStateValidator`, so load and command candidates reject non-positive assignment revisions, duplicate active Form leadership, active Reapings at unavailable Thresholds, active disabled Writs, invalid content references, and tether over-occupancy before runtime exposure.
+- The assignment service retains command-specific preconditions: operation existence, active/inactive state, exact expected revision, requested capacity, active-Form exclusivity, and `REAPING_RESOLUTION_REQUIRED` for changed loadouts with unresolved phase/carry.
+- Successful commands return a bounded typed result with player/developer diagnostics, `AssignmentChangeSummary`, one ordered `AssignmentEvent`, and a save-checkpoint request.
+- Failures return stable `REAPING_...` codes with no event, summary, checkpoint, or partial state mutation.
+- Assignment events use the committed simulation cursor, a stable priority, the Threshold operation as subject, primitive payload data, and deliberate report/tutorial relevance flags. They are not persisted.
+- The complete identity trace proves Threshold-scoped operation identity, loadout equality independent from operation identity, assignment/episode revisions, immutable zero-valid first-start time, active/inactive round trips, and no production from assignment commands.
+
+PR #9 merged this boundary from final head `5301c94bfd0fb837f9961fda624d7559042327e2` at merge commit `c641d74cebedf07c51ebb579cccee21db7aa2410`.
+
+## Proposed M04C core Reaping resolution boundary
+
+Subject to approval of `DEC-0036`, M04C introduces the first `src/simulation/` implementation.
+
+### Ownership
+
+`SimulationEngine` owns elapsed-time production. It receives validated state, normalized content, and an explicit duration; it reads no clock or presentation state. It resolves on a deep clone and commits only after complete arithmetic and domain validation.
+
+M04C supports zero or one active Reaping. Zero active Reapings still advances the global simulation timeline. More than one active Reaping is rejected without mutation until the concurrent-Reaping slice extends the global resolver.
+
+### Core rate derivation
+
+One segment rate plan is derived from:
+
+- the active Form's normalized returned-soul and Mastery rates;
+- the Threshold's normalized definition and tags;
+- the Threshold's enabled Essence channel;
+- the narrow approved active-Form Trait modifier subset;
+- current Overdue or Settled lifecycle state.
+
+Returned souls use the Threshold's Settled multiplier only after Settlement. Essence uses its channel's Settled multiplier only after Settlement. Mastery and cycle cadence are not reduced by Settlement.
+
+M04C does not execute Retinue modifiers, support, discovery, discrete non-Essence channels, progression effects, or Writ transitions. Unsupported relevant configuration fails clearly.
+
+### Transaction and segmentation
+
+```text
+validate state/content/duration
+    -> deep-clone candidate
+    -> derive current rate plan
+    -> find exact Settlement boundary when applicable
+    -> apply checked core flows and cycle progress
+    -> commit whole returns and Essence immediately
+    -> apply Settlement once at the boundary
+    -> re-derive Settled rates
+    -> resolve remaining interval
+    -> validate complete candidate
+    -> replace live state once
+    -> return typed result, segment summaries, and ordered events
+```
+
+Settlement follows the global same-time rule: gains at the boundary commit before lifecycle changes; new rates begin in the next segment. A repeating zero-duration boundary is an error.
+
+### Core residual ownership
+
+The existing schema-v2 `ReapingState.flow_carry_units` map receives stable internal keys for:
+
+- returned-soul progress subunits;
+- returned-soul arithmetic carry;
+- Essence progress subunits;
+- Essence arithmetic carry;
+- Mastery arithmetic carry.
+
+`cycle_phase_msec` and `completed_cycle_count` remain their own owners. Threshold-channel acquisition progress remains separate and untouched. No effective rate, ETA, or second copy of progress is persisted.
+
+### Extension seams
+
+M04D extends the same engine with discrete output channels and resolve-before-rate-change behavior. M04E adds clone forecasts and report accumulation. Later progression and concurrency slices add their own boundaries without replacing the core resolver.

@@ -2,9 +2,9 @@
 
 **Document role:** Canonical test strategy, commands, fixture rules, and manual validation flows
 **Repository path:** `docs/codex/TESTING_AND_VALIDATION.md`
-**Document status:** Approved validation plan through M04A with M04B implementation PR open
-**Validation revision:** 13
-**Last updated:** 2026-07-16
+**Document status:** Approved validation plan through M04B with M04C draft
+**Validation revision:** 14
+**Last updated:** 2026-07-17
 **Engine target:** Godot 4.7 standard build, GDScript only
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)  
 **Owner evidence companion:** [OWNER_VERIFICATION_WORKFLOW.md](OWNER_VERIFICATION_WORKFLOW.md)
@@ -36,7 +36,9 @@ M03 merged through PR #7 at merge commit `5e2b9b23878c9280f75b987cc9ad567d898003
 
 M04A merged through PR #8 at merge commit `673ad884357fc742a0a26dbb542d5b8d9fe557c9` from final head `04b12d8ba2edeecbf13f252216249341469b40a8`. Schema version 2 is current, version 1 remains a frozen supported input, and the production upgrade preserves the historical envelope before atomic persistence. Linux/Codex and owner Windows verification passed.
 
-Accepted `DEC-0035` and the approved M04B v0.2 prompt define Threshold-scoped operation identity, loadout/assignment/episode identity layers, immutable first-start timestamps, stable recalled records, revision-guarded commands, one active Reaping per Form, and safe handling of unresolved operation carry.
+M04B merged through PR #9 at merge commit `c641d74cebedf07c51ebb579cccee21db7aa2410` from final head `5301c94bfd0fb837f9961fda624d7559042327e2`. Threshold-scoped operation identity, typed assignment results/events, global assignment validation, persistence, the complete identity trace, and Windows owner verification passed.
+
+M04C planning proposes `DEC-0036` for transactional core resolution, exact Settlement segmentation, stable core residual ownership, and the temporary one-active-Reaping implementation limit.
 
 ## 2. Pinned test and platform dependencies
 
@@ -1353,7 +1355,7 @@ Completion evidence:
 
 ## 22. M04B approved assignment validation package
 
-M04B is a command/assignment slice. It must not test production by waiting or advancing elapsed time. The current implementation PR verifies the slice with `tests/unit/m04b/test_reaping_assignment_service.gd`, `tests/integration/m04b/test_reaping_assignment_persistence.gd`, `tools/test/m04b/m04b_assignment_trace.gd`, and `tools/test/owner/run_m04b_owner_verification.ps1`; Windows owner verification remains pending for the corrected PR head.
+M04B is a command/assignment slice. It must not test production by waiting or advancing elapsed time.
 
 ### 22.1 Focused Linux/Codex checks
 
@@ -1522,3 +1524,193 @@ M04B cannot merge until:
 - active/inactive assignment round trips pass;
 - no elapsed production or later-slice behavior enters the diff;
 - actual review surface remains within the approved prompt assessment or receives an approved revision.
+
+## M04B completion record
+
+M04B merged through PR #9 on 2026-07-17 at merge commit `c641d74cebedf07c51ebb579cccee21db7aa2410` from final head `5301c94bfd0fb837f9961fda624d7559042327e2`.
+
+Final evidence:
+
+- full Windows suite before and after: `75/75` tests and `1,083` assertions;
+- focused M04B suite: `16/16` tests and `356` assertions;
+- explicit import: pass;
+- complete Threshold/loadout/assignment/episode identity trace: pass;
+- all 13 approved trace markers: pass;
+- global load rejection for malformed assignment state: pass;
+- cleanup, cleanup proof, and artifact audit: pass;
+- failed step count `0`;
+- pending interactive checks: none;
+- final review surface: 13 changed files, 1,092 additions, 10 deletions.
+
+`GATE-REAPING-ASSIGNMENT` is satisfied.
+
+## 23. M04C draft core-resolver validation package
+
+M04C validates deterministic core production only. No test may depend on elapsed wall time, rendered frames, Steam, or UI.
+
+### 23.1 Focused Linux/Codex checks
+
+Expected focused command:
+
+```bash
+./tools/test/run_gut.sh -- \
+  -gdir=res://tests/unit/m04c \
+  -gdir=res://tests/integration/m04c
+```
+
+Also run:
+
+```bash
+godot --headless --path . --import
+
+trace_root="$(mktemp -d)"
+godot --headless --path . \
+  -s res://tools/test/m04c/m04c_core_reaping_trace.gd \
+  -- --save-root "$trace_root"
+trace_exit=$?
+rm -rf "$trace_root"
+test ! -e "$trace_root"
+test "$trace_exit" -eq 0
+
+./tools/test/run_gut.sh
+git diff --check
+```
+
+### 23.2 Required focused groups
+
+1. production rate-plan derivation from normalized content;
+2. Old Drill's Gloamwood tag-conditioned returned-soul multiplier;
+3. Essence-channel lookup and no double Settled multiplier;
+4. Mastery and cycle independence from lifecycle;
+5. central checked multiplier and boundary helper arithmetic;
+6. exact 60-second Overdue fixture;
+7. one-shot versus regular and irregular chunking;
+8. no-active timeline advancement;
+9. inactive operation no production;
+10. more-than-one-active rejection with no mutation;
+11. Retinue and unknown-nonzero-flow rejection;
+12. negative duration and zero-duration no-op;
+13. exact `869 ms` no-settlement and `870 ms` settlement boundary;
+14. ten-second one-backlog fixture values;
+15. `869 + 1 + 9,130` equivalence;
+16. Settlement event time, priority, subject, payload, and exactly-once behavior;
+17. already-Settled continuation;
+18. returned/Essence whole extraction and normalized residual ranges;
+19. Mastery carry and cycle phase/count;
+20. inventory, return-counter, Mastery, cycle, residual, and simulation-time overflow;
+21. zero-duration-boundary/transition guard;
+22. complete state equality after every failure;
+23. schema-v2 Overdue/Settled round trips;
+24. no clock, scene, frame, Steam, file-time, report, forecast, or UI source ownership.
+
+### 23.3 Hand-calculable fixtures
+
+#### Sixty seconds, Overdue Gloamwood, Man-at-Arms
+
+Expected:
+
+```text
+returned souls = 69
+Essence whole units = 6
+Mastery delta subunits = 1000000
+completed cycles = 1
+cycle phase msec = 0
+```
+
+#### Ten seconds starting from one remaining backlog
+
+Expected:
+
+```text
+Settlement boundary = 870 ms
+persistent returns = 3
+remaining backlog = 0
+lifecycle = SETTLED
+returned progress remainder = 625375
+returned rate carry = 0
+Essence whole units = 0
+Essence progress remainder = 315250
+Essence rate carry = 0
+Mastery delta subunits = 166666
+Mastery rate carry = 40000
+cycle phase msec = 10000
+Settlement events = 1
+```
+
+### 23.4 M04C trace markers
+
+Required exact markers:
+
+```text
+TRACE M04C overdue_60s_returns=69_essence=6_mastery=1000000_cycles=1
+TRACE M04C one_shot_equals_chunks=PASS
+TRACE M04C settlement_boundary_msec=870
+TRACE M04C settlement_end_returns=3_backlog=0_lifecycle=SETTLED
+TRACE M04C settlement_event_once=PASS
+TRACE M04C settled_mastery_and_cycle_continue=PASS
+TRACE M04C core_residuals_return=625375_essence=315250_mastery_carry=40000
+TRACE M04C inactive_produces_nothing=PASS
+TRACE M04C idle_timeline_advances=PASS
+TRACE M04C save_round_trip=PASS
+TRACE M04C no_clock_sources=PASS
+```
+
+The trace requires an explicit disposable `--save-root`, exits nonzero when it is missing, and writes nothing to ordinary `user://` state.
+
+### 23.5 Owner Windows package
+
+The M04C prompt requires:
+
+```text
+tools/test/owner/run_m04c_owner_verification.ps1
+```
+
+Expected invocation:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass `
+    -File .\tools\test\owner\run_m04c_owner_verification.ps1 `
+    -CommitSha "<PR_HEAD_SHA>"
+```
+
+The script follows the corrected M04B workflow:
+
+- Windows PowerShell 5.1 compatible;
+- repository root resolved from the script;
+- explicit `-GodotBin`, then `GODOT_BIN`, then `PATH`;
+- Git CLI optional with owner checkout confirmation when unavailable;
+- one UTF-8 PR-head log;
+- full suite before;
+- focused M04C suite;
+- explicit import;
+- isolated trace;
+- stable captured trace output and 11-marker verification;
+- guaranteed cleanup and proof;
+- prior ignored log tolerance and artifact audit;
+- full suite after;
+- standardized summary.
+
+Expected summary:
+
+```text
+Automated result: PASS
+Failed step count: 0
+Pending interactive checks: None for M04C
+Cleanup result: PASS
+Log path: <generated path>
+```
+
+No Inspector, visual, audio, gameplay, A/B, or Steam checklist is required.
+
+### 23.6 M04C merge evidence
+
+M04C cannot merge until:
+
+- proposed `DEC-0036` or an owner-approved replacement core-resolver contract is Accepted;
+- Linux/Codex focused/import/trace/full checks pass;
+- the owner Windows package passes against the exact PR head;
+- exact one-shot/chunk and Settlement-boundary fixtures pass;
+- every failure proves no mutation;
+- schema version remains 2;
+- no discrete non-Essence channel, Retinue, progression, report, forecast, concurrency, UI, or platform behavior enters the diff;
+- actual review surface remains within the approved assessment or receives a revised prompt.

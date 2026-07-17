@@ -3,8 +3,8 @@
 **Document role:** Approved implementation sequence and acceptance map for the 0–90 minute prototype  
 **Repository path:** `docs/codex/MILESTONES.md`  
 **Document status:** Approved rolling-wave milestone map  
-**Milestone-map revision:** 16  
-**Last updated:** 2026-07-16  
+**Milestone-map revision:** 17  
+**Last updated:** 2026-07-17  
 **Primary context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md), [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md), [Architecture](ARCHITECTURE.md), [Data contracts](DATA_AND_CONTENT_CONTRACTS.md), [Testing](TESTING_AND_VALIDATION.md), [Owner verification](OWNER_VERIFICATION_WORKFLOW.md), [Milestone recalibration](MILESTONE_RECALIBRATION_PROPOSAL.md), and [Decisions](DECISIONS.md)
 
 ## 1. Purpose and authority
@@ -15,7 +15,7 @@ Use the source hierarchy in `AGENTS.md`. A milestone definition cannot weaken a 
 
 ## 2. Current repository baseline
 
-After M04A completion:
+After M04B completion:
 
 - Godot 4.7, GDScript, the 1920 × 1080 reference viewport, resizing/stretch settings, and a temporary dry-run main scene exist.
 - `AGENTS.md`, project Codex configuration, the maintained design sources, the architecture documents, the approved `PROMPT_TEMPLATE.md`, and `OWNER_VERIFICATION_WORKFLOW.md` are present in the repository.
@@ -31,7 +31,9 @@ After M04A completion:
 - M03 merged through PR #7 at final head `971cdaa0fd46f641ec7409148e259d54f953d8c7` and merge commit `5e2b9b23878c9280f75b987cc9ad567d8980030d`; Linux/Codex and owner Windows/Inspector verification passed.
 - M04A added typed inventory, Form, Threshold/acquisition, Reaping, and tether-capacity state; explicit deep cloning and content-aware validation; schema version 2; immutable v1/v2 fixtures; a production `v1 -> v2` migration; preserved-envelope upgrade persistence; focused tests; a real-file trace; and a corrected Windows owner package.
 - M04A merged through PR #8 at final head `04b12d8ba2edeecbf13f252216249341469b40a8` and merge commit `673ad884357fc742a0a26dbb542d5b8d9fe557c9`; Linux/Codex and owner Windows verification passed.
-- The repository still has no dispatch/recall command service, elapsed Reaping production, application shell, or player-facing gameplay UI.
+- M04B added `ReapingAssignmentService`, Threshold-scoped operation identity, revision-guarded dispatch/recall/redispatch, immutable first-start semantics, global assignment validation, typed results/events, active/inactive schema-v2 round trips, a complete identity trace, and a Windows owner package.
+- M04B merged through PR #9 at final head `5301c94bfd0fb837f9961fda624d7559042327e2` and merge commit `c641d74cebedf07c51ebb579cccee21db7aa2410`; Linux/Codex and owner Windows verification passed.
+- The repository still has no elapsed Reaping production, discrete non-Essence channel accumulation, application shell, or player-facing gameplay UI.
 - Existing dry-run assets and scene work are preserved unless a scoped milestone explicitly replaces or integrates them.
 
 ## 3. Milestone rules
@@ -109,6 +111,7 @@ A conceptual epic uses `Prompt: Not applicable` and `Implementation: Not directl
 | `GATE-SLICE-SCOPE` | Every post-M03 prompt approval | Complete the `DEC-0033` scope assessment. Split the work or record an explicit owner-approved exception when a mandatory review trigger is crossed. |
 | `GATE-GAMEPLAY-SCHEMA` | M04A implementation and merge | Satisfied for prompt drafting by accepted `DEC-0034`: M04A introduces schema version 2 with a production sequential `v1 -> v2` migration. M04A must implement and verify the transactional upgrade, historical fixture, failure preservation, and owner Windows path before merge. |
 | `GATE-REAPING-ASSIGNMENT` | M04B prompt approval | Satisfied by accepted `DEC-0035`: Threshold-scoped operation identity, canonical loadout tuples, revision/episode identity, immutable first-start timestamps, stable recalled records, Form exclusivity, tether derivation, and nonzero carry handling. |
+| `GATE-CORE-RESOLUTION` | M04C prompt approval | Approve `DEC-0036` or a revised core resolver contract covering transactional mutation, exact Settlement segmentation, core rate semantics, residual ownership, no-active timeline behavior, and the temporary one-active-Reaping limit. |
 | `GATE-STEAM-TIME` | The applicable M06 slice prompt/implementation | Satisfied for prompt drafting by `DEC-0024`: use pinned GodotSteam 4.20 and development App ID `480`. M06 must still verify license footprint, wrapper API, explicit initialization, and live Windows behavior. |
 | `GATE-PRODUCTION-OFFLINE` | The final applicable M16 slice merge | Fake-provider automation plus the owner-run Windows/GodotSteam connected, unavailable, reconnect, clock-change, and repeated-load checks must pass. |
 | `RELEASE-GATE-STEAM-APP` | Before external Steam Playtest or commercial distribution | Replace development App ID `480` with Death Idle's assigned App ID and validate package ownership, launch-through-Steam behavior, export contents, and absence of development-only App ID aids. |
@@ -122,7 +125,7 @@ A conceptual epic uses `Prompt: Not applicable` and `Implementation: Not directl
 
 `GATE-CONTENT-CATALOG` was satisfied by M03. PR #7 merged on 2026-07-15 at merge commit `5e2b9b23878c9280f75b987cc9ad567d8980030d`; its final head was `971cdaa0fd46f641ec7409148e259d54f953d8c7`. Linux/Codex and owner Windows verification passed the full and focused suites, explicit import, semantic catalog trace, artifact audit, and Godot Inspector checklist.
 
-`GATE-SLICE-SCOPE` is mandatory for every post-M03 prompt. `GATE-GAMEPLAY-SCHEMA` is fully satisfied by M04A: schema version 2, immutable historical support, migration preservation, Linux/Codex verification, and owner Windows verification passed. `GATE-REAPING-ASSIGNMENT` and M04B `GATE-SLICE-SCOPE` are satisfied by accepted `DEC-0035` and the approved M04B v0.2 prompt.
+`GATE-SLICE-SCOPE` is mandatory for every post-M03 prompt. `GATE-GAMEPLAY-SCHEMA` is fully satisfied by M04A. `GATE-REAPING-ASSIGNMENT` is fully satisfied by M04B implementation and verification. `GATE-CORE-RESOLUTION` is pending owner approval of proposed `DEC-0036` with the M04C prompt.
 
 
 When trusted time is unavailable, the approved behavior is to grant no guessed closed-session progress, retain pending reconciliation, and continue monotonic foreground production. No milestone may introduce a local-device-time fallback.
@@ -137,8 +140,8 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 | M03 | Content catalog, canonical IDs, and configurable prototype data | Completed milestone | Approved | Approved | Merged | Passed |
 | M04 | Persistent Reaping simulation vertical slice | Conceptual epic | Approved | Not applicable | Not directly executable | — |
 | M04A | Gameplay state and persistence foundation | Implementation slice | Approved | Approved | Merged | Passed |
-| M04B | Dispatch, recall, and assignment integrity | Implementation slice | Approved | Approved | Pull request open | Partial |
-| M04C | Single-Reaping core resolver | Implementation slice | Approved | Not drafted | Not started | — |
+| M04B | Dispatch, recall, and assignment integrity | Implementation slice | Approved | Approved | Merged | Passed |
+| M04C | Single-Reaping core resolver | Implementation slice | Approved | Drafted | Not started | — |
 | M04D | Output channels and long-horizon acquisition progress | Implementation slice | Approved | Not drafted | Not started | — |
 | M04E | Forecast clone, report accumulator, and simulation harness | Implementation slice | Approved | Not drafted | Not started | — |
 | M05 | Persistent application shell, navigation, and debug access | Conceptual epic | Approved | Not applicable | Not directly executable | — |
@@ -922,11 +925,10 @@ M04A makes schema version 2 current. Version 1 remains a supported historical in
 **Parent epic:** M04  
 **Definition status:** Approved  
 **Prompt status:** Approved  
-**Implementation status:** Pull request open
-**Verification status:** Partial
+**Implementation status:** Merged through PR #9  
+**Verification status:** Passed  
 **Recommended Codex task size:** Small-medium; one command/assignment pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M04B-dispatch-recall-assignment-integrity.md`
-**Current PR/head:** PR #9 on `codex/implement-milestone-m04b`; corrected owner rerun pending against the latest PR head.
 
 #### Purpose
 
@@ -946,8 +948,8 @@ Through commands and tests, Man-at-Arms can be dispatched to Gloamwood, recalled
 
 - Add one focused Reaping assignment service with initial dispatch, recall, and redispatch of an inactive Threshold-scoped operation record.
 - Treat Threshold ID as operation identity, the canonical Form/Writ/Retinue tuple as loadout identity, Threshold+revision as assignment-state identity, and dispatch/redispatch revision as activation-episode identity.
-- Use typed command inputs/results, stable rejection codes, ordered assignment events, typed change summaries, and save-checkpoint requests.
-- Validate awakened and active-unique Form, available Threshold, enabled Writ, exact expected revision, tether capacity, duplicate occupancy, and loadable assignment invariants before mutation or runtime exposure.
+- Use typed command inputs/results, stable rejection codes, ordered assignment events, and save-checkpoint requests.
+- Validate awakened and active-unique Form, available Threshold, enabled Writ, exact expected revision, tether capacity, and duplicate occupancy before mutation.
 - Retain one stable Reaping record per Threshold through recall; derive tether occupancy from active records.
 - Set `started_simulation_msec` only on first dispatch, permit zero, preserve it forever under ordinary gameplay, and use record existence rather than a sentinel.
 - Increment assignment revision exactly once only on committed changes; check overflow and stale input.
@@ -977,8 +979,8 @@ Through commands and tests, Man-at-Arms can be dispatched to Gloamwood, recalled
 
 - Dispatch/capacity/duplicate/Form-exclusivity/stale-revision matrix.
 - Recall/redispatch continuity, overflow, no-op, and resolve-required cases.
-- Typed result/event/change-summary/save-checkpoint contract.
-- Active and inactive schema-v2 round trips and malformed-assignment rejection at global runtime validation/load boundaries.
+- Typed result/event/save-checkpoint contract.
+- Active and inactive schema-v2 round trips and malformed-assignment rejection.
 - Full regression, deterministic assignment trace, and owner Windows package.
 
 #### Manual verification
@@ -1000,6 +1002,26 @@ Through commands and tests, Man-at-Arms can be dispatched to Gloamwood, recalled
 
 Schema version 2 already persists every M04B field. Active and inactive records, revisions, timestamps, and frozen operation/Threshold state round trip exactly. Tether occupancy remains derived and is not serialized. M04B does not bump the schema.
 
+#### Completion record
+
+- PR #9 merged on 2026-07-17.
+- Final PR head: `5301c94bfd0fb837f9961fda624d7559042327e2`.
+- Merge commit: `c641d74cebedf07c51ebb579cccee21db7aa2410`.
+- Final review surface: 13 changed files, 1,092 additions, and 10 deletions; it remained inside the approved M04B guardrails.
+- Added the focused assignment service, exact revision/capacity checks, global load-time assignment invariants, typed change summaries, complete assignment events, active/inactive persistence tests, and full operation/loadout/assignment/episode identity trace.
+- Owner Windows verification passed against the final head:
+  - full suite before and after: `75/75` tests and `1,083` assertions;
+  - focused M04B: `16/16` tests and `356` assertions;
+  - import, all 13 exact trace markers, cleanup, cleanup proof, artifact audit, and final summary passed;
+  - failed step count `0`; no interactive checks required.
+- `DEC-0035`, `GATE-REAPING-ASSIGNMENT`, and M04B `GATE-SLICE-SCOPE` are satisfied.
+
+#### Known risks
+
+- M04C must advance production without weakening M04B's operation identity, revision, timestamp, or no-partial-mutation rules.
+- Changed loadouts with unresolved core residuals remain intentionally rejected until the later resolve-before-change path exists.
+- Concurrent production is still unimplemented.
+
 #### Follow-on dependencies
 
 - M04C.
@@ -1011,7 +1033,7 @@ Schema version 2 already persists every M04B field. Active and inactive records,
 **Work item type:** Implementation slice  
 **Parent epic:** M04  
 **Definition status:** Approved  
-**Prompt status:** Not drafted  
+**Prompt status:** Drafted  
 **Implementation status:** Not started  
 **Verification status:** —  
 **Recommended Codex task size:** Medium; one deterministic core-stream simulation pull request.  
@@ -1019,62 +1041,94 @@ Schema version 2 already persists every M04B field. Active and inactive records,
 
 #### Purpose
 
-Implement one deterministic elapsed-time resolver for Gloamwood backlog, Essence, and Man-at-Arms Mastery before item channels or projection systems are added.
+Implement the first transactional, scene-independent elapsed-time resolver for one active Reaping: returned souls/backlog, Essence, active Form Mastery, cycle state, and exact Overdue-to-Settled segmentation.
 
 #### Player or developer outcome
 
-A developer can supply elapsed milliseconds to one active Reaping and obtain exact backlog, Essence, Mastery, lifecycle, and residual state that is invariant under equivalent chunking.
+A developer can provide a duration to one Gloamwood/Man-at-Arms operation and obtain exact state that is invariant under equivalent chunking, survives save/load, and applies lower-volume Settled behavior only after the precise backlog-zero boundary.
 
 #### Dependencies
 
 - M04B Merged and Passed.
-- `GATE-SLICE-SCOPE` satisfied for the M04C prompt.
+- `GATE-SLICE-SCOPE` is completed in the M04C draft and must be approved with the prompt.
+- `GATE-CORE-RESOLUTION` is pending approval of proposed `DEC-0036`.
 
 #### Included scope
 
-- Add the scene-independent core `SimulationEngine` path for one active Reaping.
-- Resolve backlog returns, Essence, and active Form Mastery from normalized M03 content.
-- Preserve fixed-point residuals and integer time units.
-- Implement deterministic boundary ordering, Overdue-to-Settled transition for core streams, and zero-duration-loop protection.
-- Expose supplied-duration and debug-advance adapters that call the same resolver.
-- Persist core counters, lifecycle state, and residuals.
+- Add one `SimulationEngine` as the M04C primary owner.
+- Resolve on a deep-cloned candidate and commit once after complete validation.
+- Support zero or one active Reaping; reject concurrent active Reapings without mutation.
+- Advance the global simulation timeline even when no Reaping is active.
+- Derive returned-soul, Essence, Mastery, and cycle rates from normalized M03 content.
+- Execute the narrow active-Form Trait modifier subset needed by core metrics.
+- Bank whole returned souls and Essence immediately; retain exact operation-owned residuals.
+- Advance cycle phase and completed-cycle count analytically.
+- Segment exactly when backlog reaches zero, emit Settlement once, then use Settled rates for remaining time.
+- Preserve M04B operation identity, assignment revision, loadout, and timestamps.
+- Round-trip every new core residual through existing schema version 2.
+- Add a supplied-duration path, minimal debug adapter, focused tests, deterministic trace, and one Windows owner package.
 
 #### Explicit non-goals
 
-- Item output channels, discovery, long-horizon progress, loadout rate changes, forecasts, reports, milestones, guarantees, UI, or trusted-time adapters.
+- Discrete non-Essence output channels, discovery, Threshold acquisition progress, Retinue effects/support, Hall production, milestones, guarantees, resonances, Emergency-to-Standard transition, loadout-rate changes, forecasts, reports, UI, or trusted-time adapters.
+- More than one active Reaping.
+- Application-shell wiring or a foreground clock loop.
+- Schema version 3, content changes, or persisted effective rates/ETAs.
 
 #### Acceptance criteria
 
-- One interval and equivalent chunks produce identical authoritative state.
-- Backlog never becomes negative; zero backlog transitions lifecycle exactly once.
-- Essence banks immediately and Mastery accumulates independently from backlog.
-- Inactive or recalled assignments produce no progress.
-- The resolver reads no clock, scene, frame, input, Steam, or UI state.
-- A zero-time boundary without state change fails clearly rather than looping.
-- Save/load preserves core progress and residuals exactly.
+- Invalid duration, state, content, arithmetic, boundary, unknown carry, Retinue, or concurrency input fails without partial mutation.
+- Zero elapsed is a no-op; positive elapsed advances simulation time exactly once after success.
+- No active Reaping advances only the timeline.
+- Inactive records retain all progress and produce nothing.
+- Production Gloamwood/Man-at-Arms over 60 Overdue seconds yields exactly 69 returns, 6 Essence, 1 Mastery whole in subunits, one completed cycle, and zero phase.
+- One interval and equivalent chunks produce identical state and result deltas.
+- Returned souls, Essence, Mastery, and cycle flows use separate documented residual owners.
+- Whole Essence is banked immediately in inventory; report interaction is irrelevant.
+- Settlement occurs at the minimum integer millisecond that reaches zero backlog.
+- Boundary gains use Overdue rates; only remaining time uses Settled rates.
+- Settled returns continue the persistent counter, Essence uses its channel multiplier, Mastery/cycle remain unchanged, and backlog remains zero.
+- Settlement emits exactly one event and cannot repeat on later resolution.
+- A repeating zero-duration boundary fails clearly rather than looping.
+- Schema version stays 2 and save/load preserves exact residuals/counters/lifecycle.
+- Resolver, debug adapter, and trace read no clock, scene, UI, Steam, or file-time source.
 
 #### Automated verification
 
-- Repeatability and chunking matrices.
-- Backlog/Essence/Mastery independence.
-- Overdue-to-Settled core transition.
-- Inactive assignment, invalid elapsed, overflow, and zero-time-loop failures.
-- Save round trip and full regression.
+- Rate-plan and modifier-subset tests.
+- Exact 60-second hand calculation.
+- One-shot/equivalent-chunk matrices.
+- Exact `869 ms` versus `870 ms` Settlement boundary and `869 + 1 + 9,130` equivalence.
+- Already-Settled and repeated-resolution event tests.
+- No-active, inactive, unsupported concurrency, Retinue, unknown carry, invalid state, and overflow matrices.
+- Cycle aggregation and overflow.
+- Active/Settled schema-v2 round trips.
+- Full regression and deterministic trace.
 
 #### Manual verification
 
-- Owner automation and deterministic trace only; no visual checklist.
+- Codex creates `tools/test/owner/run_m04c_owner_verification.ps1`; the owner runs one generated-log package against the PR head.
+- No editor, visual, gameplay, audio, A/B, or Steam checklist is required because M04C has no player-facing presentation.
 
 #### Demonstration path
 
-- Dispatch the M04B fixture.
-- Advance a small hand-calculable interval once and in chunks.
-- Print identical backlog, Essence, Mastery, lifecycle, and residual state.
-- Save/load and repeat.
+- Resolve 60 seconds once and in chunks and compare exact returned souls, Essence, Mastery, cycles, and residuals.
+- Resolve a one-backlog fixture for 10 seconds and prove Settlement at 870 ms.
+- Compare one-shot with `869 + 1 + 9,130`.
+- Resolve again while Settled and prove no duplicate event.
+- Resolve an inactive/no-active fixture and prove no production.
+- Save/load the boundary-crossing result and compare exact state.
 
 #### Save/load expectations
 
-Persist every new core counter and residual through the M04A-approved schema policy with exact integer strings and fixtures.
+Schema version 2 remains current. Stable core flow keys are stored inside the existing `flow_carry_units` map. Returned/Essence progress remainders, arithmetic carries, Mastery carry, cycle phase/count, inventory, backlog, persistent returns, lifecycle, and simulation time round-trip exactly.
+
+#### Known risks
+
+- Incorrect fixed-point multiplication or boundary search could create off-by-one Settlement time.
+- Applying both Threshold and channel multipliers to Essence would double-reduce it.
+- Silently ignoring an unsupported modifier, Retinue, unknown carry, or second active Reaping would create false correctness.
+- A live-state-first implementation could partially apply gains before a later overflow.
 
 #### Follow-on dependencies
 

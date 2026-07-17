@@ -3,8 +3,8 @@
 **Document role:** Canonical prototype data, runtime-state, ID, and serialization contracts  
 **Repository path:** `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`  
 **Document status:** Approved architecture contract  
-**Revision:** 10  
-**Last updated:** 2026-07-16
+**Revision:** 11  
+**Last updated:** 2026-07-17
 
 ## 1. Purpose
 
@@ -1777,3 +1777,182 @@ M04B uses schema version 2 without a schema bump. The existing mapper persists:
 Operation identity remains the Reaping map key. Loadout, assignment-state, and episode identities are derived from existing fields; no UUID or extra identity key is serialized.
 
 Active and inactive records round-trip exactly. The assignment service requests a checkpoint but performs no file I/O.
+
+## Proposed M04C core Reaping resolution contract
+
+This section is proposed with `DEC-0036` and becomes authoritative when the M04C prompt is approved.
+
+### Supported state
+
+| Condition | M04C behavior |
+|---|---|
+| `elapsed_msec < 0` | Reject with no mutation |
+| `elapsed_msec = 0` | Successful no-op |
+| No active Reaping | Advance `simulation_time_msec`; produce nothing |
+| One active Reaping | Resolve the core streams |
+| More than one active Reaping | Reject as unsupported concurrency; no mutation |
+| Active Reaping has Retinues | Reject as unsupported M04C configuration |
+| Active Reaping has unknown nonzero flow key | Reject rather than ignore authoritative state |
+
+M04C uses schema version 2 and adds no new serialized field. It is not wired into player-facing application flow.
+
+### Normalized core rate plan
+
+A rate is represented by:
+
+```text
+rate_subunits_per_period: int
+period_msec: int
+```
+
+The current core metrics are:
+
+| Flow | Base source | Supported modifiers | Settled behavior |
+|---|---|---|---|
+| Returned souls | active Form `base_returned_souls_rate` | active Form Trait `SOULS_RETURNED_RATE` multipliers | multiply once by Threshold settled multiplier |
+| Essence | owning Threshold's enabled `RES_ESSENCE` channel rate | active Form Trait `ESSENCE_YIELD` multipliers | multiply once by Essence-channel settled multiplier |
+| Mastery | active Form `active_mastery_rate` | active Form Trait `MASTERY_RATE` multipliers | unchanged |
+| Cycle | active Form `cycle_duration_msec` | none in M04C | unchanged |
+
+The M04C modifier subset is:
+
+```text
+MULTIPLY
+REAPING_TOTAL
+ALWAYS or THRESHOLD_HAS_ANY_TAG
+SOULS_RETURNED_RATE, ESSENCE_YIELD, MASTERY_RATE
+```
+
+Relevant unsupported modifiers fail explicitly. Irrelevant discovery/forecast modifiers do not affect the rate plan. Multiplication is checked fixed-point arithmetic with deterministic floor semantics.
+
+### Stable core flow keys
+
+These keys live in `ReapingState.flow_carry_units`:
+
+| Key | Owner and range |
+|---|---|
+| `FLOW_CORE_RETURNS_PROGRESS_SUBUNITS` | returned-soul progress; `0 <= value < FixedPoint.SCALE` |
+| `FLOW_CORE_RETURNS_RATE_CARRY_UNITS` | returned-soul numerator remainder; below returned-soul period |
+| `FLOW_CORE_ESSENCE_PROGRESS_SUBUNITS` | Essence progress; `0 <= value < FixedPoint.SCALE` |
+| `FLOW_CORE_ESSENCE_RATE_CARRY_UNITS` | Essence numerator remainder; below Essence period |
+| `FLOW_CORE_MASTERY_RATE_CARRY_UNITS` | Mastery numerator remainder; below Mastery period |
+
+Additional rules:
+
+- missing known keys mean zero;
+- known keys are written canonically after a successful positive resolution;
+- unknown zero-valued keys are preserved;
+- unknown nonzero keys on an active Reaping are unsupported;
+- `cycle_phase_msec` satisfies `0 <= value < cycle_duration_msec`;
+- `completed_cycle_count` is a non-negative whole count;
+- long-horizon channel progress remains in `ThresholdAcquisitionState`;
+- effective rates and ETAs are derived and not saved.
+
+### Whole extraction
+
+For returned souls and Essence:
+
+1. use `FixedPoint.accumulate_for_elapsed_msec()` with the flow's rate carry;
+2. checked-add produced subunits to the flow's progress remainder;
+3. extract whole units;
+4. retain the normalized subunit remainder;
+5. commit whole units immediately.
+
+Returned souls:
+
+- always increment the owning Threshold's `persistent_returns_total`;
+- reduce `remaining_backlog` only while Overdue;
+- never make backlog negative.
+
+Whole Essence increments the `RES_ESSENCE` inventory total. Existing reservations remain unchanged.
+
+Mastery adds produced subunits directly to the active Form and retains only its arithmetic carry.
+
+### Cycle advancement
+
+For each successfully resolved active segment:
+
+```text
+total_phase = cycle_phase_msec + segment_msec
+completed = total_phase / cycle_duration_msec
+next_phase = total_phase % cycle_duration_msec
+```
+
+All arithmetic is checked. M04C may aggregate multiple cycle completions; it does not loop once per cycle or execute discovery/tutorial effects.
+
+### Settlement boundary
+
+For a positive Overdue backlog:
+
+- determine whether the requested interval can produce enough whole returns to reach zero;
+- if yes, find the minimum integer millisecond at which that occurs;
+- apply all core flows and cycle progress through that millisecond under Overdue rates;
+- count all whole returns produced at the boundary;
+- set backlog to zero and lifecycle to `SETTLED`;
+- emit one `THRESHOLD_SETTLED` event;
+- apply Settled rates only to remaining time.
+
+A Threshold already in `SETTLED` emits no new Settlement event.
+
+After Settlement:
+
+- persistent returns continue;
+- backlog remains zero;
+- Essence continues at the channel's Settled rate;
+- Mastery continues unchanged;
+- cycle cadence continues unchanged.
+
+### Hand-calculable production fixtures
+
+Using production Gloamwood, Standard Writ, awakened Man-at-Arms, no Retinue, and zero residuals:
+
+#### Sixty Overdue seconds
+
+```text
+returned souls: 69
+Essence: 6
+Mastery subunits: 1_000_000
+completed cycles: 1
+cycle phase: 0
+```
+
+This includes Old Drill's `1.15` returned-soul multiplier because Gloamwood has `TAG_SETTLEMENT`.
+
+#### One-backlog Settlement fixture over ten seconds
+
+Starting with one remaining backlog and zero residuals:
+
+```text
+exact Settlement boundary: 870 ms
+persistent returned souls after 10,000 ms: 3
+remaining backlog: 0
+lifecycle: SETTLED
+returned progress remainder: 625_375 subunits
+returned rate carry: 0
+Essence whole units: 0
+Essence progress remainder: 315_250 subunits
+Essence rate carry: 0
+Mastery gained: 166_666 subunits
+Mastery rate carry: 40_000
+cycle phase: 10_000 ms
+Settlement events: exactly 1
+```
+
+The same result must occur for one 10,000-millisecond call and equivalent chunks such as `869 + 1 + 9,130`.
+
+### Typed simulation result
+
+Minimum fields:
+
+```text
+success
+error_code
+developer_details
+requested_elapsed_msec
+committed_elapsed_msec
+change_summary
+segments
+events
+```
+
+The change summary contains exact deltas for simulation time, returned souls, backlog, Essence, Mastery, completed cycles, and lifecycle. Segment summaries identify start/end simulation cursors, lifecycle/rate context, and exact committed deltas. Events follow the domain-event minimum contract and are not persisted.
