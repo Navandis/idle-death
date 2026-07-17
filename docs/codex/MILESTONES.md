@@ -141,7 +141,7 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 | M04 | Persistent Reaping simulation vertical slice | Conceptual epic | Approved | Not applicable | Not directly executable | — |
 | M04A | Gameplay state and persistence foundation | Implementation slice | Approved | Approved | Merged | Passed |
 | M04B | Dispatch, recall, and assignment integrity | Implementation slice | Approved | Approved | Merged | Passed |
-| M04C | Single-Reaping core resolver | Implementation slice | Approved | Approved | Not started | — |
+| M04C | Single-Reaping core resolver | Implementation slice | Approved | Approved | Pull request open | Partial |
 | M04D | Output channels and long-horizon acquisition progress | Implementation slice | Approved | Not drafted | Not started | — |
 | M04E | Forecast clone, report accumulator, and simulation harness | Implementation slice | Approved | Not drafted | Not started | — |
 | M05 | Persistent application shell, navigation, and debug access | Conceptual epic | Approved | Not applicable | Not directly executable | — |
@@ -1030,12 +1030,15 @@ Schema version 2 already persists every M04B field. Active and inactive records,
 
 ### M04C — Single-Reaping core resolver
 
+> PR #10 correction keeps M04C at **Pull request open / Partial** until the corrected Windows owner package passes on the owner machine. Realized paths include `src/simulation/simulation_engine.gd`, `src/domain/core_reaping_flow_contract.gd`, `tools/test/m04c/m04c_core_reaping_trace.gd`, and `tools/test/owner/run_m04c_owner_verification.ps1`.
+
+
 **Work item type:** Implementation slice  
 **Parent epic:** M04  
 **Definition status:** Approved  
 **Prompt status:** Approved  
-**Implementation status:** Not started  
-**Verification status:** —  
+**Implementation status:** Pull request open  
+**Verification status:** Partial  
 **Recommended Codex task size:** Medium; one deterministic core-stream simulation pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M04C-single-reaping-core-resolver.md`
 

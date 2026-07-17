@@ -1639,6 +1639,9 @@ Settlement events = 1
 
 ### 23.4 M04C trace markers
 
+M04C implementation adds `tools/test/m04c/m04c_core_reaping_trace.gd` and `tools/test/owner/run_m04c_owner_verification.ps1` for the approved marker proof. Corrected M04C focused suite currently covers rate/modifier semantics, transaction failures, Settlement segments/events, residual load validation, source ownership, trace assertions, and schema-v2 round trips. The owner package must be rerun before verification can move beyond Partial.
+
+
 Required exact markers:
 
 ```text

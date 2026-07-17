@@ -59,6 +59,16 @@ static func add_subunits(left_subunits: int, right_subunits: int) -> Dictionary:
 	return ok({"subunits": left_subunits + right_subunits})
 
 
+## Multiplies a scaled fixed-point value by a scaled multiplier with floor rounding.
+static func multiply_scaled_floor(value_subunits: int, multiplier_subunits: int) -> Dictionary:
+	if value_subunits < 0 or multiplier_subunits < 0:
+		return fail(ERR_NEGATIVE_INPUT)
+	var result := _mul_add_divmod(value_subunits, multiplier_subunits, 0, SCALE)
+	if not result.ok:
+		return result
+	return ok({"value": result.quotient})
+
+
 ## Accumulates a non-negative integer-millisecond rate with an explicit period.
 ##
 ## `rate_subunits_per_period` is produced once per `period_msec`.  `carry_units`

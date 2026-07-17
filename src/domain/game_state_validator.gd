@@ -14,6 +14,7 @@ const ERR_TYPE := "GAME_STATE_TYPE"
 const ERR_RANGE := "GAME_STATE_RANGE"
 const ERR_CONTENT := "GAME_STATE_CONTENT_ID"
 const ERR_CROSS_FIELD := "GAME_STATE_CROSS_FIELD"
+const ERR_CORE_RESIDUAL := "GAME_STATE_CORE_RESIDUAL"
 
 static func validate(state: GameState, registry: ContentRegistry) -> Dictionary:
 	if state == null: return _err(ERR_TYPE, "game_state")
@@ -99,12 +100,61 @@ static func _validate_reapings(state: GameState, registry: ContentRegistry) -> D
 		for retinue_id in reaping.retinue_ids:
 			var retinue := registry.get_record(str(retinue_id)); if not retinue.ok or retinue.record.type != "retinue": return _err(ERR_CONTENT, "reapings.%s.retinue_ids" % key)
 		if reaping.cycle_phase_msec < 0 or reaping.completed_cycle_count < 0: return _err(ERR_RANGE, "reapings.%s" % key)
+		var cycle_result := _validate_cycle_phase(key, reaping, form.record)
+		if not cycle_result.ok: return cycle_result
 		if reaping.started_simulation_msec < 0 or reaping.started_simulation_msec > state.simulation_time_msec: return _err(ERR_RANGE, "reapings.%s.started_simulation_msec" % key)
 		if reaping.last_configuration_change_simulation_msec < 0 or reaping.last_configuration_change_simulation_msec > state.simulation_time_msec: return _err(ERR_RANGE, "reapings.%s.last_configuration_change_simulation_msec" % key)
 		if reaping.last_configuration_change_simulation_msec < reaping.started_simulation_msec: return _err(ERR_CROSS_FIELD, "reapings.%s.last_configuration_change_simulation_msec" % key)
 		for flow_id in _sorted_keys(reaping.flow_carry_units):
 			if int(reaping.flow_carry_units[flow_id]) < 0: return _err(ERR_RANGE, "reapings.%s.flow_carry_units.%s" % [key, flow_id])
+		var flow_result := _validate_core_flow_ranges(key, reaping, form.record, registry)
+		if not flow_result.ok: return flow_result
 	return {"ok": true}
+
+static func _validate_cycle_phase(reaping_key: Variant, reaping: GameState.ReapingState, form_record: Dictionary) -> Dictionary:
+	var cycle_duration := int(form_record.cycle_duration_msec)
+	if cycle_duration <= 0:
+		return _err(ERR_CONTENT, "reapings.%s.cycle_duration_msec" % reaping_key)
+	if reaping.cycle_phase_msec >= cycle_duration:
+		return _err(ERR_CORE_RESIDUAL, "reapings.%s.cycle_phase_msec" % reaping_key)
+	return {"ok": true}
+
+static func _validate_core_flow_ranges(reaping_key: Variant, reaping: GameState.ReapingState, form_record: Dictionary, registry: ContentRegistry) -> Dictionary:
+	var returns_progress := int(reaping.flow_carry_units.get(CoreReapingFlowContract.FLOW_CORE_RETURNS_PROGRESS_SUBUNITS, 0))
+	if returns_progress < 0 or returns_progress >= FixedPoint.SCALE:
+		return _err(ERR_CORE_RESIDUAL, "reapings.%s.flow_carry_units.%s" % [reaping_key, CoreReapingFlowContract.FLOW_CORE_RETURNS_PROGRESS_SUBUNITS])
+	var essence_progress := int(reaping.flow_carry_units.get(CoreReapingFlowContract.FLOW_CORE_ESSENCE_PROGRESS_SUBUNITS, 0))
+	if essence_progress < 0 or essence_progress >= FixedPoint.SCALE:
+		return _err(ERR_CORE_RESIDUAL, "reapings.%s.flow_carry_units.%s" % [reaping_key, CoreReapingFlowContract.FLOW_CORE_ESSENCE_PROGRESS_SUBUNITS])
+	var returns_period := int(form_record.base_returned_souls_rate.period_msec)
+	var mastery_period := int(form_record.active_mastery_rate.period_msec)
+	if _carry_out_of_range(reaping, CoreReapingFlowContract.FLOW_CORE_RETURNS_RATE_CARRY_UNITS, returns_period):
+		return _err(ERR_CORE_RESIDUAL, "reapings.%s.flow_carry_units.%s" % [reaping_key, CoreReapingFlowContract.FLOW_CORE_RETURNS_RATE_CARRY_UNITS])
+	if _carry_out_of_range(reaping, CoreReapingFlowContract.FLOW_CORE_MASTERY_RATE_CARRY_UNITS, mastery_period):
+		return _err(ERR_CORE_RESIDUAL, "reapings.%s.flow_carry_units.%s" % [reaping_key, CoreReapingFlowContract.FLOW_CORE_MASTERY_RATE_CARRY_UNITS])
+	var essence_period := _essence_period_msec(reaping.threshold_id, registry)
+	if essence_period <= 0:
+		return _err(ERR_CONTENT, "reapings.%s.flow_carry_units.%s" % [reaping_key, CoreReapingFlowContract.FLOW_CORE_ESSENCE_RATE_CARRY_UNITS])
+	if _carry_out_of_range(reaping, CoreReapingFlowContract.FLOW_CORE_ESSENCE_RATE_CARRY_UNITS, essence_period):
+		return _err(ERR_CORE_RESIDUAL, "reapings.%s.flow_carry_units.%s" % [reaping_key, CoreReapingFlowContract.FLOW_CORE_ESSENCE_RATE_CARRY_UNITS])
+	return {"ok": true}
+
+static func _carry_out_of_range(reaping: GameState.ReapingState, key: StringName, period_msec: int) -> bool:
+	var value := int(reaping.flow_carry_units.get(key, 0))
+	return period_msec <= 0 or value < 0 or value >= period_msec
+
+static func _essence_period_msec(threshold_id: StringName, registry: ContentRegistry) -> int:
+	var threshold_record := registry.get_record(str(threshold_id))
+	if not threshold_record.ok:
+		return 0
+	var matches := []
+	for channel_id in threshold_record.record.channel_ids:
+		var channel := registry.get_record(channel_id)
+		if channel.ok and channel.record.type == "channel" and channel.record.enabled and channel.record.output_item_id == "RES_ESSENCE" and channel.record.source_threshold_id == str(threshold_id):
+			matches.append(channel.record)
+	if matches.size() != 1:
+		return 0
+	return int(matches[0].rate.period_msec)
 
 static func _sorted_keys(dict: Dictionary) -> Array:
 	var keys := dict.keys(); keys.sort(); return keys
