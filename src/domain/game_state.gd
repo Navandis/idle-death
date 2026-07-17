@@ -51,6 +51,20 @@ func deep_clone() -> GameState:
 		clone.reapings[key] = reapings[key].deep_clone()
 	return clone
 
+func replace_from(other: GameState) -> void:
+	## Atomically copies a validated simulation candidate back into this live object.
+	## The object identity is preserved for callers, while every authoritative child
+	## family is replaced by the candidate produced by a transactional service.
+	simulation_time_msec = other.simulation_time_msec
+	inventory = other.inventory.deep_clone()
+	progression = other.progression.deep_clone()
+	forms.clear()
+	thresholds.clear()
+	reapings.clear()
+	for key in other.forms.keys(): forms[key] = other.forms[key].deep_clone()
+	for key in other.thresholds.keys(): thresholds[key] = other.thresholds[key].deep_clone()
+	for key in other.reapings.keys(): reapings[key] = other.reapings[key].deep_clone()
+
 class InventoryState:
 	extends RefCounted
 	## Owns whole-count item inventory entries; reservations are ledgers only.

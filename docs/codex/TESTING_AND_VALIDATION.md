@@ -1639,6 +1639,9 @@ Settlement events = 1
 
 ### 23.4 M04C trace markers
 
+M04C implementation adds `tools/test/m04c/m04c_core_reaping_trace.gd` and `tools/test/owner/run_m04c_owner_verification.ps1` for the approved marker proof.
+
+
 Required exact markers:
 
 ```text

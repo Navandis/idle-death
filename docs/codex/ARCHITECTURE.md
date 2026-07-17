@@ -1300,6 +1300,8 @@ PR #9 merged this boundary from final head `5301c94bfd0fb837f9961fda624d75590423
 
 Accepted `DEC-0036` authorizes M04C to introduce the first `src/simulation/` implementation.
 
+The realized M04C implementation lives in `src/simulation/simulation_engine.gd`. It commits returned souls, Essence, Mastery, cycle state, and exact Settlement only through this single engine.
+
 ### Ownership
 
 `SimulationEngine` owns elapsed-time production. It receives validated state, normalized content, and an explicit duration; it reads no clock or presentation state. It resolves on a deep clone and commits only after complete arithmetic and domain validation.
