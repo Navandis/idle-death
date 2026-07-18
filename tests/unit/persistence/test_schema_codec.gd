@@ -27,10 +27,10 @@ func test_anchored_runtime_round_trips() -> void:
 func test_schema_rejects_cross_field_contradictions_and_unknown_codec() -> void:
 	var s := _snapshot(false)
 	s.time_authority.trusted_source_id = "bad"
-	assert_eq(SaveSchemaValidator.validate_v2(s).code, SaveSchemaValidator.ERR_CROSS_FIELD)
+	assert_eq(SaveSchemaValidator.validate_current(s).code, SaveSchemaValidator.ERR_CROSS_FIELD)
 	s = _snapshot(false)
 	s.codec_id = "OTHER"
-	assert_eq(SaveSchemaValidator.validate_v2(s).code, SaveSchemaValidator.ERR_CODEC)
+	assert_eq(SaveSchemaValidator.validate_current(s).code, SaveSchemaValidator.ERR_CODEC)
 
 func test_json_codec_is_deterministic_and_rejects_objects() -> void:
 	var codec := JsonSaveCodec.new()

@@ -44,7 +44,7 @@ func resolve_elapsed(state: GameState, elapsed_msec: int) -> SimulationResult:
 		return SimulationResult.failure(ERR_NEGATIVE_ELAPSED, elapsed_msec, "Elapsed milliseconds must be non-negative.")
 	if elapsed_msec == 0:
 		return SimulationResult.success_empty(elapsed_msec)
-	var validation := GameStateValidator.validate(state, registry)
+	var validation := GameStateValidator.validate(state, registry, false)
 	if not validation.ok:
 		return SimulationResult.failure(ERR_STATE_INVALID, elapsed_msec, str(validation))
 	var active_ids := _active_reaping_ids(state)
@@ -248,7 +248,7 @@ func _validate_core_flows(reaping: GameState.ReapingState) -> Dictionary:
 	return {"ok": true}
 
 func _commit_if_valid(live: GameState, candidate: GameState, result: SimulationResult) -> SimulationResult:
-	var validation := GameStateValidator.validate(candidate, registry)
+	var validation := GameStateValidator.validate(candidate, registry, false)
 	if not validation.ok: return SimulationResult.failure(ERR_STATE_INVALID, result.requested_elapsed_msec, str(validation))
 	live.copy_from(candidate)
 	return result

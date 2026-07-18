@@ -19,6 +19,7 @@ var _steps := {}
 
 func _init() -> void:
 	register_step(SaveEnvelope.SCHEMA_VERSION_V1, Callable(self, "_migrate_v1_to_v2"))
+	register_step(SaveEnvelope.SCHEMA_VERSION_V2, Callable(self, "_migrate_v2_to_v3"))
 
 func register_step(from_version: int, callable: Callable) -> void:
 	_steps[from_version] = callable
@@ -48,4 +49,12 @@ func _migrate_v1_to_v2(snapshot: Dictionary) -> Dictionary:
 	migrated.game_state["thresholds"] = {}
 	migrated.game_state["reapings"] = {}
 	migrated.game_state["progression"] = {"command_tether_capacity": "0"}
+	return {"ok": true, "code": OK, "snapshot": migrated}
+
+func _migrate_v2_to_v3(snapshot: Dictionary) -> Dictionary:
+	var source := SaveSchemaValidator.validate_v2(snapshot)
+	if not source.ok: return {"ok": false, "code": ERR_SOURCE_INVALID, "source_code": source.code}
+	var migrated := snapshot.duplicate(true)
+	migrated.schema_version = SaveInt64.format(SaveEnvelope.SCHEMA_VERSION_V3)
+	migrated.game_state.progression["unlocked_output_item_ids"] = []
 	return {"ok": true, "code": OK, "snapshot": migrated}

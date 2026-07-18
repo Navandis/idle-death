@@ -149,7 +149,15 @@ class ReapingState:
 
 class ProgressionState:
 	extends RefCounted
-	## Stores non-negative command-tether capacity; occupancy is derived from Reapings.
+	## Stores global progression facts. Command-tether occupancy is derived from Reapings;
+	## output access is global by output item ID, while per-source acquisition work remains
+	## owned by each ThresholdState.channel_acquisition entry so later M04D slices can
+	## advance or freeze sources without duplicating item-level unlock state.
 	var command_tether_capacity: int = 0
-	func _init(capacity := 0) -> void: command_tether_capacity = capacity
-	func deep_clone() -> ProgressionState: return ProgressionState.new(command_tether_capacity)
+	var unlocked_output_item_ids: Array[StringName] = []
+	func _init(capacity := 0, unlocked_items: Array[StringName] = []) -> void:
+		command_tether_capacity = capacity
+		unlocked_output_item_ids = unlocked_items.duplicate()
+		unlocked_output_item_ids.sort()
+	func deep_clone() -> ProgressionState:
+		return ProgressionState.new(command_tether_capacity, unlocked_output_item_ids)

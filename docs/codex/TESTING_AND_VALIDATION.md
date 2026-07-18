@@ -1806,7 +1806,7 @@ TRACE M04D1 schema_v3_round_trip=PASS
 TRACE M04D1 no_clock_or_production_sources=PASS
 ```
 
-The trace requires an explicit isolated `--save-root`, performs a real v2-to-v3 upgrade and v3 round trip, exits nonzero on any mismatch, and never writes normal `user://` state.
+The trace requires an explicit isolated `--save-root`, rejects missing, blank, and `user://` roots, performs a real v2-to-v3 upgrade and v3 round trip, compares current-v3 bytes to prove no rewrite/rotation, proves complete no-backfill state facts, exits nonzero on any mismatch, and never writes normal `user://` state.
 
 ### 24.4 Owner Windows package
 
@@ -1824,7 +1824,7 @@ powershell -NoProfile -ExecutionPolicy Bypass `
     -CommitSha "<PR_HEAD_SHA>"
 ```
 
-The script follows the final M04C workflow: Godot 4.7 validation, full suite before, focused M04D1, import, isolated trace, stable 12-marker verification, guaranteed cleanup/proof, prior-log-tolerant artifact audit, full suite after, and standardized UTF-8 summary.
+The script follows the final M04C workflow: Godot 4.7 validation, full suite before, focused M04D1, import, isolated trace, stable 12-marker verification, guaranteed cleanup/proof, prior-log-tolerant artifact audit, full suite after, and standardized UTF-8 summary. The latest Linux focused package covers 14 M04D1 tests across the unit and integration directories.
 
 Expected summary:
 

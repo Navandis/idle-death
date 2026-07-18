@@ -139,7 +139,7 @@ func redispatch(state: GameState, threshold_id: StringName, form_id: StringName,
 	return _success(EVENT_REDISPATCHED, state, updated)
 
 func _validate_base_state(state: GameState) -> AssignmentResult:
-	var validation := GameStateValidator.validate(state, registry)
+	var validation := GameStateValidator.validate(state, registry, false)
 	if not validation.ok:
 		return AssignmentResult.failure(REAPING_STATE_INVALID, validation)
 	return AssignmentResult.ok_empty()
@@ -167,7 +167,7 @@ func _validate_loadout_preconditions(state: GameState, threshold_id: StringName,
 func _validate_candidate(candidate: GameState) -> AssignmentResult:
 	# Candidate validation keeps stale/overflow/duplicate commands from partially
 	# mutating live state. Only one Reaping-map replacement is committed after this.
-	var validation := GameStateValidator.validate(candidate, registry)
+	var validation := GameStateValidator.validate(candidate, registry, false)
 	if not validation.ok:
 		return AssignmentResult.failure(REAPING_STATE_INVALID, validation)
 	return AssignmentResult.ok_empty()

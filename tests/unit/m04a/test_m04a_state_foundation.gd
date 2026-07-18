@@ -18,6 +18,7 @@ func _representative_state() -> GameState:
 	r.flow_carry_units[&"FLOW_TEST"] = 4; r.started_simulation_msec = 1; r.last_configuration_change_simulation_msec = 2
 	s.reapings[&"THR_GLOAMWOOD"] = r
 	s.progression.command_tether_capacity = 1
+	s.progression.unlocked_output_item_ids = [&"SOUL_CALLING_SOLDIER"]
 	return s
 
 func _assert_invalid(mutator: Callable, expected_code: String) -> void:
