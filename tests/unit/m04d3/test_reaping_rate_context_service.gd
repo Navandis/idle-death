@@ -66,3 +66,33 @@ func test_output_channel_rate_modifier_rejects_deferred_supported_conditions() -
 	assert_false(result.ok)
 	assert_eq(result.code, ReapingRateContextService.ERR_CONTENT)
 	assert_string_contains(result.details, "SUPPORT_STATE")
+
+func test_public_contract_fields_and_eta_display_edges() -> void:
+	var service := ReapingRateContextService.new(_registry())
+	var state := _state(true)
+	var query := service.query_acquisition(state, &"THR_GLOAMWOOD", &"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS")
+	assert_true(query.success)
+	for key in ["threshold_id", "channel_id", "output_item_id", "loadout_identity", "access_state", "disclosure_state", "is_active", "lifecycle_state", "progress_subunits", "progress_tenths_percent", "rate_plan", "eta_available", "current_context_eta_msec", "eta_basis", "eta_display"]:
+		assert_true(query.has(key), "missing query key %s" % key)
+	var plan: Dictionary = query.rate_plan
+	for key in ["threshold_id", "channel_id", "output_item_id", "output_kind", "lifecycle_state", "baseline_rate_subunits_per_period", "effective_rate_subunits_per_period", "period_msec", "lifecycle_multiplier_subunits", "applied_modifiers"]:
+		assert_true(plan.has(key), "missing rate-plan key %s" % key)
+	assert_eq(service.eta_display(0).english_text, "00 hours, 00 minutes, 00 seconds")
+	assert_eq(service.eta_display(1).english_text, "00 hours, 00 minutes, 01 second")
+	assert_eq(service.eta_display(86400000).english_text, "01 day, 00 hours, 00 minutes")
+	assert_eq(service.eta_display(100 * 86400000).english_text, "100 days, 00 hours, 00 minutes")
+	assert_eq(service.eta_display(3600000).components.size(), 3)
+
+func test_eta_validation_and_minimality() -> void:
+	var service := ReapingRateContextService.new(_registry())
+	assert_false(service._eta_msec_to_next_whole(-1, 0, 1, 1).ok)
+	assert_false(service._eta_msec_to_next_whole(FixedPoint.SCALE, 0, 1, 1).ok)
+	assert_false(service._eta_msec_to_next_whole(0, 10, 1, 10).ok)
+	assert_false(service._eta_msec_to_next_whole(0, 0, 0, 10).ok)
+	var eta := service._eta_msec_to_next_whole(999999, 0, 1, 10)
+	assert_true(eta.ok)
+	assert_eq(eta.eta_msec, 10)
+	var before := FixedPoint.accumulate_for_elapsed_msec(1, 10, eta.eta_msec - 1, 0)
+	var at := FixedPoint.accumulate_for_elapsed_msec(1, 10, eta.eta_msec, 0)
+	assert_true(before.produced_subunits < 1)
+	assert_true(at.produced_subunits >= 1)

@@ -1706,3 +1706,5 @@ Schema version 3 and content revision 2 remain current.
 ### M04E and later systems
 
 M04E consumes the same results for forecast clones and report accumulation. M13 adds richer discovery/insight and presentation without changing Access or retroactively generating output. Progression slices invoke M04D1 access/reconciliation commands rather than writing unlock arrays or acquisition maps directly.
+
+M04D3 implementation note (PR #15 correction): `src/domain/reaping_rate_context_service.gd` is the realized bounded rate-context owner. `ReapingAssignmentService` uses it for candidate identity and residual continuity checks; `SimulationEngine` uses it for output-channel rate plans; acquisition queries and ETA display remain pure derived views. The owner verification package is `tools/test/owner/run_m04d3_owner_verification.ps1` and remains a Windows-owner pending gate until run against the current PR head.

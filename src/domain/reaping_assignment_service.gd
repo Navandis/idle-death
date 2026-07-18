@@ -29,6 +29,8 @@ const REAPING_STALE_ASSIGNMENT_REVISION := &"REAPING_STALE_ASSIGNMENT_REVISION"
 const REAPING_ASSIGNMENT_REVISION_OVERFLOW := &"REAPING_ASSIGNMENT_REVISION_OVERFLOW"
 const REAPING_RESOLUTION_REQUIRED := &"REAPING_RESOLUTION_REQUIRED"
 const REAPING_RATE_CONTEXT_NORMALIZATION_REQUIRED := ReapingRateContextService.REAPING_RATE_CONTEXT_NORMALIZATION_REQUIRED
+const REAPING_REGISTRY_NOT_READY := &"REAPING_REGISTRY_NOT_READY"
+const REAPING_RETINUES_UNSUPPORTED := &"REAPING_RETINUES_UNSUPPORTED"
 
 const EVENT_DISPATCHED := &"REAPING_DISPATCHED"
 const EVENT_RECALLED := &"REAPING_RECALLED"
@@ -57,7 +59,7 @@ func dispatch(state: GameState, threshold_id: StringName, form_id: StringName, w
 		return base
 	if state.reapings.has(threshold_id):
 		return AssignmentResult.failure(REAPING_RECORD_EXISTS, {"threshold_id": threshold_id})
-	var preconditions := validate_loadout_candidate(state, threshold_id, form_id, writ_id, &"")
+	var preconditions := validate_loadout_candidate(state, threshold_id, form_id, writ_id, [], &"")
 	if not preconditions.success:
 		return preconditions
 	if occupied_tether_count(state) + 1 > state.progression.command_tether_capacity:
@@ -120,7 +122,7 @@ func redispatch(state: GameState, threshold_id: StringName, form_id: StringName,
 		return AssignmentResult.failure(REAPING_STALE_ASSIGNMENT_REVISION, {"expected": expected_assignment_revision, "actual": current.assignment_revision})
 	if current.assignment_revision == FixedPoint.INT64_MAX:
 		return AssignmentResult.failure(REAPING_ASSIGNMENT_REVISION_OVERFLOW, {"threshold_id": threshold_id})
-	var preconditions := validate_loadout_candidate(state, threshold_id, form_id, writ_id, threshold_id)
+	var preconditions := validate_loadout_candidate(state, threshold_id, form_id, writ_id, [], threshold_id)
 	if not preconditions.success:
 		return preconditions
 	if _loadout_changed(current, form_id, writ_id):
@@ -144,14 +146,21 @@ func redispatch(state: GameState, threshold_id: StringName, form_id: StringName,
 	return _success(EVENT_REDISPATCHED, state, updated)
 
 func _validate_base_state(state: GameState) -> AssignmentResult:
-	var validation := GameStateValidator.validate(state, registry, false)
+	var validation := GameStateValidator.validate(state, registry, true)
 	if not validation.ok:
 		return AssignmentResult.failure(REAPING_STATE_INVALID, validation)
 	return AssignmentResult.ok_empty()
 
-func validate_loadout_candidate(state: GameState, threshold_id: StringName, form_id: StringName, writ_id: StringName, allowed_current_threshold: StringName = &"") -> AssignmentResult:
+func validate_loadout_candidate(state: GameState, threshold_id: StringName, form_id: StringName, writ_id: StringName, ordered_retinue_ids: Array[StringName] = [], allowed_current_threshold: StringName = &"") -> AssignmentResult:
 	## Pure assembly-time candidate validation. It returns component identity, not
 	## performance: equal rates or ETAs never merge distinct Form/Writ choices.
+	if registry == null or not registry.ready:
+		return AssignmentResult.failure(REAPING_REGISTRY_NOT_READY, {})
+	if not ordered_retinue_ids.is_empty():
+		return AssignmentResult.failure(REAPING_RETINUES_UNSUPPORTED, {"retinue_ids": ordered_retinue_ids})
+	var base := _validate_base_state(state)
+	if not base.success:
+		return base
 	var threshold_record := registry.get_record(str(threshold_id))
 	if not threshold_record.ok or threshold_record.record.type != "threshold" or not threshold_record.record.enabled or not state.thresholds.has(threshold_id):
 		return AssignmentResult.failure(REAPING_THRESHOLD_NOT_FOUND, {"threshold_id": threshold_id})
@@ -170,13 +179,13 @@ func validate_loadout_candidate(state: GameState, threshold_id: StringName, form
 	if not writ_record.ok or writ_record.record.type != "writ" or not writ_record.record.enabled:
 		return AssignmentResult.failure(REAPING_WRIT_NOT_FOUND, {"writ_id": writ_id})
 	var ok_result := AssignmentResult.ok_empty()
-	ok_result.loadout_identity = rate_context.loadout_identity(form_id, writ_id, [])
+	ok_result.loadout_identity = rate_context.loadout_identity(form_id, writ_id, ordered_retinue_ids)
 	return ok_result
 
 func _validate_candidate(candidate: GameState) -> AssignmentResult:
 	# Candidate validation keeps stale/overflow/duplicate commands from partially
 	# mutating live state. Only one Reaping-map replacement is committed after this.
-	var validation := GameStateValidator.validate(candidate, registry, false)
+	var validation := GameStateValidator.validate(candidate, registry, true)
 	if not validation.ok:
 		return AssignmentResult.failure(REAPING_STATE_INVALID, validation)
 	return AssignmentResult.ok_empty()
@@ -324,4 +333,6 @@ class AssignmentResult:
 			REAPING_ASSIGNMENT_REVISION_OVERFLOW: return "The Reaping assignment revision cannot advance."
 			REAPING_RESOLUTION_REQUIRED: return "Resolve current Reaping progress before changing this loadout."
 			REAPING_RATE_CONTEXT_NORMALIZATION_REQUIRED: return "This content requires rate-context normalization before redispatch."
+			REAPING_REGISTRY_NOT_READY: return "Reaping content is not ready."
+			REAPING_RETINUES_UNSUPPORTED: return "Retinue assignment is not available in this prototype slice."
 		return "The Reaping assignment command was rejected."

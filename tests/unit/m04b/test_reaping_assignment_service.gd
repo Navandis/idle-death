@@ -209,7 +209,7 @@ func test_command_failure_matrix_preserves_whole_state() -> void:
 	_assert_failure_unchanged(state, func(): return _service().dispatch(state, &"THR_MISSING", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD"), ReapingAssignmentService.REAPING_THRESHOLD_NOT_FOUND)
 	_assert_failure_unchanged(state, func(): return _service().dispatch(state, &"FORM_MAN_AT_ARMS", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD"), ReapingAssignmentService.REAPING_THRESHOLD_NOT_FOUND)
 	state.thresholds[&"THR_GLOAMWOOD"].availability_state = &"LOCKED"
-	_assert_failure_unchanged(state, func(): return _service().dispatch(state, &"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD"), ReapingAssignmentService.REAPING_THRESHOLD_UNAVAILABLE)
+	_assert_failure_unchanged(state, func(): return _service().dispatch(state, &"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD"), ReapingAssignmentService.REAPING_STATE_INVALID)
 	state.thresholds[&"THR_GLOAMWOOD"].availability_state = &"AVAILABLE"
 	_assert_failure_unchanged(state, func(): return _service().dispatch(state, &"THR_GLOAMWOOD", &"FORM_MISSING", &"WRIT_STANDARD"), ReapingAssignmentService.REAPING_FORM_NOT_FOUND)
 	_assert_failure_unchanged(state, func(): return _service().dispatch(state, &"THR_GLOAMWOOD", &"RES_ESSENCE", &"WRIT_STANDARD"), ReapingAssignmentService.REAPING_FORM_NOT_FOUND)

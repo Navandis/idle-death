@@ -2139,3 +2139,5 @@ M04D3 cannot merge until:
 - schema remains version 3 and content revision remains `prototype-content-r2`;
 - no authoritative Retinue/Art/Recollection/support/global modifier state, forecast/report, UI, concurrency, or platform work enters the diff;
 - actual scope remains within the approved assessment.
+
+M04D3 implementation note (PR #15 correction): `src/domain/reaping_rate_context_service.gd` is the realized bounded rate-context owner. `ReapingAssignmentService` uses it for candidate identity and residual continuity checks; `SimulationEngine` uses it for output-channel rate plans; acquisition queries and ETA display remain pure derived views. The owner verification package is `tools/test/owner/run_m04d3_owner_verification.ps1` and remains a Windows-owner pending gate until run against the current PR head.

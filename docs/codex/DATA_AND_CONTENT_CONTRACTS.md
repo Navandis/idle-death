@@ -2640,3 +2640,5 @@ ETA
 ```
 
 Selected component IDs already persisted in `ReapingState` remain authoritative. After supported redispatch and subsequent production, existing Reaping, Threshold acquisition, inventory, assignment revision, and simulation fields round-trip through schema v3 exactly.
+
+M04D3 implementation note (PR #15 correction): `src/domain/reaping_rate_context_service.gd` is the realized bounded rate-context owner. `ReapingAssignmentService` uses it for candidate identity and residual continuity checks; `SimulationEngine` uses it for output-channel rate plans; acquisition queries and ETA display remain pure derived views. The owner verification package is `tools/test/owner/run_m04d3_owner_verification.ps1` and remains a Windows-owner pending gate until run against the current PR head.
