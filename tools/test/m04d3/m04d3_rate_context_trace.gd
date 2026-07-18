@@ -116,16 +116,27 @@ func _modifier_and_eta_markers() -> bool:
 func _old_new_bank_marker() -> bool:
 	var registry := _registry_with_scribe_modifier()
 	registry._records["CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS"].rate.period_msec = 14400000
+	var service := ReapingRateContextService.new(registry)
 	var assignment := ReapingAssignmentService.new(registry)
 	var engine := SimulationEngine.new(registry)
 	var state := _state(true)
-	state.thresholds[&"THR_GLOAMWOOD"].channel_acquisition[CHANNEL].progress_subunits = 500000
-	if not engine.resolve_elapsed(state, 0).success: return false
+	var acq: GameState.ThresholdAcquisitionState = state.thresholds[&"THR_GLOAMWOOD"].channel_acquisition[CHANNEL]
+	acq.progress_subunits = 0
+	acq.rate_carry_units = 0
+	if not engine.resolve_elapsed(state, 7200000).success: return false
+	acq = state.thresholds[&"THR_GLOAMWOOD"].channel_acquisition[CHANNEL]
+	if acq.progress_subunits != 500000 or acq.total_banked_units != 0: return false
 	if not assignment.recall(state, &"THR_GLOAMWOOD", 1).success: return false
+	var progress_before_swap: int = acq.progress_subunits
 	if not assignment.redispatch(state, &"THR_GLOAMWOOD", &"FORM_SCRIBE", &"WRIT_STANDARD", 2).success: return false
-	if state.thresholds[&"THR_GLOAMWOOD"].channel_acquisition[CHANNEL].progress_subunits != 500000: return false
+	acq = state.thresholds[&"THR_GLOAMWOOD"].channel_acquisition[CHANNEL]
+	if acq.progress_subunits != progress_before_swap or acq.progress_subunits != 500000: return false
+	var query := service.query_acquisition(state, &"THR_GLOAMWOOD", CHANNEL)
+	if not (query.success and query.current_context_eta_msec == 6000000 and query.progress_subunits == 500000): return false
 	if not engine.resolve_elapsed(state, 6000000).success: return false
+	acq = state.thresholds[&"THR_GLOAMWOOD"].channel_acquisition[CHANNEL]
 	if state.inventory.entries.get(&"SOUL_FORM_SCRIBE", GameState.InventoryEntryState.new()).total != 1: return false
+	if acq.total_banked_units != 1 or acq.progress_subunits != 0: return false
 	_pass("old_context_then_new_context_banks_one=PASS")
 	return true
 
@@ -147,16 +158,35 @@ func _redispatch_markers() -> bool:
 	return true
 
 func _sequence_marker() -> bool:
+	var registry := _registry_with_scribe_modifier()
+	var service := ReapingRateContextService.new(registry)
+	var assignment := ReapingAssignmentService.new(registry)
 	var state := _two_threshold_state()
-	if not _assignment.dispatch(state, &"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD").success: return false
-	if not _assignment.dispatch(state, &"THR_BROKEN_WATCH", &"FORM_SCRIBE", &"WRIT_STANDARD").success: return false
-	if not _assignment.recall(state, &"THR_BROKEN_WATCH", 1).success: return false
-	if not _assignment.recall(state, &"THR_GLOAMWOOD", 1).success: return false
-	if not _assignment.redispatch(state, &"THR_BROKEN_WATCH", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD", 2).success: return false
-	if not _assignment.redispatch(state, &"THR_GLOAMWOOD", &"FORM_SCRIBE", &"WRIT_STANDARD", 2).success: return false
-	if not _assignment.recall(state, &"THR_BROKEN_WATCH", 3).success: return false
-	if not _assignment.redispatch(state, &"THR_BROKEN_WATCH", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD", 4).success: return false
-	if state.reapings[&"THR_GLOAMWOOD"].form_id != &"FORM_SCRIBE" or state.reapings[&"THR_BROKEN_WATCH"].form_id != &"FORM_MAN_AT_ARMS": return false
+	state.reapings.clear()
+	var loadout_a := service.loadout_identity(&"FORM_MAN_AT_ARMS", &"WRIT_STANDARD")
+	var loadout_b := service.loadout_identity(&"FORM_SCRIBE", &"WRIT_STANDARD")
+	if loadout_a == loadout_b: return false
+	if not assignment.dispatch(state, &"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD").success: return false
+	var gloamwood_first_start: int = state.reapings[&"THR_GLOAMWOOD"].started_simulation_msec
+	state.thresholds[&"THR_GLOAMWOOD"].channel_acquisition[CHANNEL].progress_subunits = 123456
+	if not assignment.recall(state, &"THR_GLOAMWOOD", 1).success: return false
+	if not assignment.redispatch(state, &"THR_GLOAMWOOD", &"FORM_SCRIBE", &"WRIT_STANDARD", 2).success: return false
+	state.simulation_time_msec = 1000
+	if not assignment.dispatch(state, &"THR_BROKEN_WATCH", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD").success: return false
+	state.thresholds[&"THR_BROKEN_WATCH"].channel_acquisition[&"CHANNEL_BROKEN_WATCH_PROVISIONS"].progress_subunits = 654321
+	var watch_first_start: int = state.reapings[&"THR_BROKEN_WATCH"].started_simulation_msec
+	if not assignment.recall(state, &"THR_BROKEN_WATCH", 1).success: return false
+	if not assignment.recall(state, &"THR_GLOAMWOOD", 3).success: return false
+	if not assignment.redispatch(state, &"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD", 4).success: return false
+	if state.reapings[&"THR_GLOAMWOOD"].threshold_id != &"THR_GLOAMWOOD": return false
+	if state.reapings[&"THR_GLOAMWOOD"].started_simulation_msec != gloamwood_first_start: return false
+	if state.reapings[&"THR_BROKEN_WATCH"].started_simulation_msec != watch_first_start: return false
+	if state.reapings[&"THR_GLOAMWOOD"].assignment_revision != 5 or state.reapings[&"THR_BROKEN_WATCH"].assignment_revision != 2: return false
+	if state.thresholds[&"THR_GLOAMWOOD"].channel_acquisition[CHANNEL].progress_subunits != 123456: return false
+	if state.thresholds[&"THR_BROKEN_WATCH"].channel_acquisition[&"CHANNEL_BROKEN_WATCH_PROVISIONS"].progress_subunits != 654321: return false
+	if service.loadout_identity(state.reapings[&"THR_GLOAMWOOD"].form_id, state.reapings[&"THR_GLOAMWOOD"].writ_id) != loadout_a: return false
+	if service.output_channel_rate_plan(&"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", CHANNEL, "OVERDUE").effective_rate_subunits_per_period != 1000000: return false
+	if service.output_channel_rate_plan(&"THR_GLOAMWOOD", &"FORM_SCRIBE", CHANNEL, "OVERDUE").effective_rate_subunits_per_period != 1200000: return false
 	_pass("sequence_1_3_2_1_identity=PASS")
 	return true
 

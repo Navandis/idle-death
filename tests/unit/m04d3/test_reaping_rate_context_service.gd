@@ -245,3 +245,89 @@ func _output_modifier(condition: String, values: Array, multiplier: int) -> Dict
 
 func _canonical(state: GameState) -> Dictionary:
 	return SaveSchemaMapper.runtime_to_snapshot(state, TimeAuthorityState.new(), 1, ContentRegistry.CURRENT_REVISION).game_state
+
+func test_nonzero_carry_eta_query_uses_persisted_carry_without_mutation() -> void:
+	var registry := _registry()
+	registry._records["CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS"].rate.period_msec = 14400000
+	var service := ReapingRateContextService.new(registry)
+	var state := _state(true)
+	var acq: GameState.ThresholdAcquisitionState = state.thresholds[&"THR_GLOAMWOOD"].channel_acquisition[&"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS"]
+	acq.progress_subunits = 500000
+	acq.rate_carry_units = 7200000
+	var before := _canonical(state)
+	var query := service.query_acquisition(state, &"THR_GLOAMWOOD", &"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS")
+	assert_true(query.success, str(query))
+	assert_eq(query.eta_basis, ReapingRateContextService.ETA_BASIS_CURRENT_RATE_CONTEXT)
+	assert_eq(query.current_context_eta_msec, 7199993)
+	assert_eq(_canonical(state), before)
+	var insufficient := FixedPoint.accumulate_for_elapsed_msec(1000000, 14400000, query.current_context_eta_msec - 1, 7200000)
+	var sufficient := FixedPoint.accumulate_for_elapsed_msec(1000000, 14400000, query.current_context_eta_msec, 7200000)
+	assert_true(insufficient.produced_subunits < 500000)
+	assert_true(sufficient.produced_subunits >= 500000)
+	assert_false(service._eta_msec_to_next_whole(500000, 14400000, 1000000, 14400000).success)
+	assert_eq(service._eta_msec_to_next_whole(0, 0, FixedPoint.INT64_MAX, FixedPoint.INT64_MAX).error_code, ReapingRateContextService.ERR_OVERFLOW)
+
+func test_stale_candidate_commit_revalidation_rejects_without_mutation() -> void:
+	var registry := _registry()
+	var assignment := ReapingAssignmentService.new(registry)
+	var state := _two_threshold_state_for_m04d3()
+	var candidate := assignment.validate_loadout_candidate(state, &"THR_GLOAMWOOD", &"FORM_SCRIBE", &"WRIT_STANDARD", [], &"THR_GLOAMWOOD")
+	assert_true(candidate.success, candidate.developer_details)
+	var broken := GameState.ReapingState.new()
+	broken.threshold_id = &"THR_BROKEN_WATCH"
+	broken.is_active = true
+	broken.form_id = &"FORM_SCRIBE"
+	broken.writ_id = &"WRIT_STANDARD"
+	broken.assignment_revision = 1
+	state.reapings[&"THR_BROKEN_WATCH"] = broken
+	var before := _canonical(state)
+	var result := assignment.redispatch(state, &"THR_GLOAMWOOD", &"FORM_SCRIBE", &"WRIT_STANDARD", 1)
+	assert_false(result.success)
+	assert_eq(result.error_code, ReapingAssignmentService.REAPING_FORM_ALREADY_ASSIGNED)
+	assert_eq(_canonical(state), before)
+
+func test_exact_sequence_1_3_2_1_preserves_operation_identity() -> void:
+	var registry := _registry_with_scribe_output_modifier("ALWAYS", [], 1200000)
+	var assignment := ReapingAssignmentService.new(registry)
+	var service := ReapingRateContextService.new(registry)
+	var state := _two_threshold_state_for_m04d3()
+	state.reapings.clear()
+	var loadout_a := service.loadout_identity(&"FORM_MAN_AT_ARMS", &"WRIT_STANDARD")
+	var loadout_b := service.loadout_identity(&"FORM_SCRIBE", &"WRIT_STANDARD")
+	assert_ne(loadout_a, loadout_b)
+	assert_true(assignment.dispatch(state, &"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD").success)
+	var gloamwood_first_start: int = state.reapings[&"THR_GLOAMWOOD"].started_simulation_msec
+	state.thresholds[&"THR_GLOAMWOOD"].channel_acquisition[&"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS"].progress_subunits = 123456
+	assert_true(assignment.recall(state, &"THR_GLOAMWOOD", 1).success)
+	assert_true(assignment.redispatch(state, &"THR_GLOAMWOOD", &"FORM_SCRIBE", &"WRIT_STANDARD", 2).success)
+	state.simulation_time_msec = 1000
+	assert_true(assignment.dispatch(state, &"THR_BROKEN_WATCH", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD").success)
+	state.thresholds[&"THR_BROKEN_WATCH"].channel_acquisition[&"CHANNEL_BROKEN_WATCH_PROVISIONS"].progress_subunits = 654321
+	var watch_first_start: int = state.reapings[&"THR_BROKEN_WATCH"].started_simulation_msec
+	assert_true(assignment.recall(state, &"THR_BROKEN_WATCH", 1).success)
+	assert_true(assignment.recall(state, &"THR_GLOAMWOOD", 3).success)
+	assert_true(assignment.redispatch(state, &"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD", 4).success)
+	assert_eq(state.reapings[&"THR_GLOAMWOOD"].threshold_id, &"THR_GLOAMWOOD")
+	assert_eq(state.reapings[&"THR_GLOAMWOOD"].started_simulation_msec, gloamwood_first_start)
+	assert_eq(state.reapings[&"THR_BROKEN_WATCH"].started_simulation_msec, watch_first_start)
+	assert_eq(state.reapings[&"THR_GLOAMWOOD"].assignment_revision, 5)
+	assert_eq(state.reapings[&"THR_BROKEN_WATCH"].assignment_revision, 2)
+	assert_eq(state.thresholds[&"THR_GLOAMWOOD"].channel_acquisition[&"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS"].progress_subunits, 123456)
+	assert_eq(state.thresholds[&"THR_BROKEN_WATCH"].channel_acquisition[&"CHANNEL_BROKEN_WATCH_PROVISIONS"].progress_subunits, 654321)
+	assert_eq(service.loadout_identity(state.reapings[&"THR_GLOAMWOOD"].form_id, state.reapings[&"THR_GLOAMWOOD"].writ_id), loadout_a)
+	assert_eq(service.output_channel_rate_plan(&"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS", "OVERDUE").effective_rate_subunits_per_period, 1000000)
+	assert_eq(service.output_channel_rate_plan(&"THR_GLOAMWOOD", &"FORM_SCRIBE", &"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS", "OVERDUE").effective_rate_subunits_per_period, 1200000)
+
+func _two_threshold_state_for_m04d3() -> GameState:
+	var state := _state(false)
+	state.progression.command_tether_capacity = 2
+	state.progression.unlocked_output_item_ids = [&"RES_PROVISIONS", &"SOUL_FORM_SCRIBE"]
+	var watch := GameState.ThresholdState.new()
+	watch.knowledge_state = &"CHARTED"
+	watch.availability_state = &"AVAILABLE"
+	watch.lifecycle_state = &"OVERDUE"
+	watch.remaining_backlog = 250000
+	watch.channel_acquisition[&"CHANNEL_BROKEN_WATCH_PROVISIONS"] = GameState.ThresholdAcquisitionState.new(0, 0, 0)
+	state.thresholds[&"THR_BROKEN_WATCH"] = watch
+	state.reapings[&"THR_GLOAMWOOD"].is_active = false
+	return state
