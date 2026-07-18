@@ -2,7 +2,7 @@
 
 **Document role:** Canonical test strategy, commands, fixture rules, and manual validation flows
 **Repository path:** `docs/codex/TESTING_AND_VALIDATION.md`
-**Document status:** Approved validation plan through M04D1 with M04D2 approved and M04D3 definition
+**Document status:** Approved validation plan through M04D2 implementation with M04D3 definition
 **Validation revision:** 20
 **Last updated:** 2026-07-18
 **Engine target:** Godot 4.7 standard build, GDScript only

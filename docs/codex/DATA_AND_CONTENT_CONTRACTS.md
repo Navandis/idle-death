@@ -1527,8 +1527,8 @@ The M03 prompt approval accepts the structure and values below only as editable 
 ### Catalog identity and compatibility
 
 - Root path: `content/prototype_content_catalog.tres`.
-- Current revision: `prototype-content-r1`.
-- Compatible save revisions, canonically sorted and duplicate-free: `prototype-content-r1`, `prototype-m02`.
+- Current revision: `prototype-content-r2`.
+- Compatible save revisions, canonically sorted and duplicate-free: `prototype-content-r1`, `prototype-content-r2`, `prototype-m02`.
 - Required first-class gameplay/content definitions: fifty-four non-channel definitions plus six `OutputChannelDefinition` records, for sixty total.
 - Required terminology: one `CoreTerminologyDefinition` containing the twenty `TERM_...` entries in §5.8.
 - Required inline Trait identities: `TRAIT_OLD_DRILL` and `TRAIT_UNCLOSED_LEDGER`, with editable names and stable modifiers.

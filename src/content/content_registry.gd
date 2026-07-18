@@ -8,8 +8,8 @@ extends RefCounted
 ## behavior. Construction is all-or-nothing: diagnostics are available on failure,
 ## but records are queryable only when `ready` is true.
 
-const CURRENT_REVISION := "prototype-content-r1"
-const COMPATIBLE_REVISIONS := ["prototype-content-r1", "prototype-m02"]
+const CURRENT_REVISION := "prototype-content-r2"
+const COMPATIBLE_REVISIONS := ["prototype-content-r1", "prototype-content-r2", "prototype-m02"]
 const REQUIRED_TERMS := ["TERM_ART", "TERM_CALLING_SOUL", "TERM_COMMAND_TETHER", "TERM_DENIZEN_SOUL", "TERM_ESSENCE", "TERM_FORM", "TERM_FORM_SOUL", "TERM_HALL", "TERM_MASTERY", "TERM_REAPING", "TERM_REAPING_REPORT", "TERM_RECOLLECTION", "TERM_RETINUE", "TERM_SEAL", "TERM_SOULWEAVE", "TERM_STORE", "TERM_THRESHOLD", "TERM_TRAIT", "TERM_WHOLE_SOUL", "TERM_WRIT"]
 const APPROVED_IDS := [
 	"FORM_MAN_AT_ARMS", "FORM_SCRIBE",

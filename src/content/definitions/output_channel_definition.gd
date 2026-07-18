@@ -5,8 +5,9 @@ extends ContentDefinitionBase
 ##
 ## Fields in this class are definition data only. ContentRegistry validates and
 ## copies them into normalized runtime records before gameplay can read them.
-## Discovery fields describe presentation disclosure only; unknown channels still
-## produce and bank output through later simulation systems.
+## Discovery fields describe presentation disclosure only. Access/source
+## initialization gates production; discovery metadata governs information after
+## the source is authoritative.
 
 @export var source_threshold_id: String = ""
 @export var output_item_id: String = ""
