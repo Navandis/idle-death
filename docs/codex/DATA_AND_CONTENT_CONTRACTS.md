@@ -1972,7 +1972,7 @@ Accepted `DEC-0037` supersedes the earlier M04D draft contract.
 
 Knowledge or insight never grants Access. Access never names an unavailable Threshold.
 
-M04D1 command results use the bounded `AccessActionResult`, `AccessChangeSummary`, and `AccessEvent` contracts. Events are `OUTPUT_ITEM_UNLOCKED` and `OUTPUT_SOURCE_IDENTIFIED`; stable access error codes include `OUTPUT_ACCESS_INVALID_ITEM`, `OUTPUT_ACCESS_ITEM_DISABLED`, `OUTPUT_ACCESS_ESSENCE_EXCLUDED`, `OUTPUT_ACCESS_CHANNEL_INVALID`, `OUTPUT_ACCESS_NO_VALID_SOURCE`, and `OUTPUT_ACCESS_MIGRATION_FINALIZATION_FAILED`.
+M04D1 command results use the bounded `AccessActionResult`, `AccessChangeSummary`, and `AccessEvent` contracts. Events are `OUTPUT_ITEM_UNLOCKED` and `OUTPUT_SOURCE_IDENTIFIED`; stable access error codes include `OUTPUT_ACCESS_ITEM_NOT_FOUND`, `OUTPUT_ACCESS_ITEM_DISABLED`, `OUTPUT_ACCESS_ESSENCE_EXCLUDED`, `OUTPUT_ACCESS_NO_AUTHORED_SOURCE`, `OUTPUT_ACCESS_CHANNEL_INVALID`, `OUTPUT_ACCESS_CHANNEL_OWNERSHIP_INVALID`, and `OUTPUT_ACCESS_MIGRATION_FINALIZATION_FAILED`.
 
 ### Schema version 3
 

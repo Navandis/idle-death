@@ -1140,7 +1140,7 @@ M04D is complete only when M04D1, M04D2, and M04D3 are all Merged and Passed. Th
 **Verification status:** Partial; Linux/Codex checks are repeatable, corrected Windows owner evidence remains pending
 **Recommended Codex task size:** Medium; one access-state, migration, and source-initialization pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M04D1-output-access-source-identification-foundation.md`
-**Current implementation scope:** Schema v3 output access, typed `OutputAccessService` results/events, access-consistency validation, content-aware v2 finalization, real-file trace, and corrected owner runner are in PR #13 on the current branch.
+**Current implementation scope:** Schema v3 output access, typed `OutputAccessService` results/events, access-consistency validation, content-aware v2 finalization, real-file trace, corrected owner runner, and final access-validation evidence are in PR #13 on the current correction head; the exact head is reported in the PR handoff and final response.
 
 #### Purpose
 

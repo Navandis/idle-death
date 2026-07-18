@@ -78,7 +78,7 @@ func _init(content_registry: ContentRegistry) -> void:
 func unlock_output_item(state: GameState, output_item_id: StringName) -> AccessActionResult:
 	var validation := GameStateValidator.validate(state, registry, false)
 	if not validation.ok: return _failure(ERR_STATE_INVALID, str(validation))
-	var item_check := _validate_item_id(str(output_item_id))
+	var item_check := validate_output_item_access(registry, str(output_item_id))
 	if not item_check.ok: return _failure(item_check.code, item_check.get("developer_details", ""))
 	var channels_result := _authored_channels_for_item(str(output_item_id), true)
 	if not channels_result.ok: return _failure(channels_result.code, channels_result.get("developer_details", ""))
@@ -89,7 +89,13 @@ func unlock_output_item(state: GameState, output_item_id: StringName) -> AccessA
 	var candidate := state.deep_clone()
 	candidate.progression.unlocked_output_item_ids.append(output_item_id)
 	candidate.progression.unlocked_output_item_ids.sort()
-	var source_events := _initialize_available_sources(candidate, channels, state.simulation_time_msec)
+	# The committed candidate must satisfy the full current-v3 invariant: once an
+	# unlock is accepted, every eligible currently available source exists. This
+	# includes non-progression-required sources such as Provisions that do not share
+	# the requested item ID but become complete-state obligations on the same pass.
+	var candidate_channels := _reconcilable_channels(candidate)
+	if not candidate_channels.ok: return _failure(candidate_channels.code, candidate_channels.get("developer_details", ""))
+	var source_events := _initialize_available_sources(candidate, candidate_channels.channels, state.simulation_time_msec)
 	var candidate_validation := GameStateValidator.validate(candidate, registry, true)
 	if not candidate_validation.ok: return _failure(ERR_STATE_INVALID, str(candidate_validation))
 	state.copy_from(candidate)
@@ -143,11 +149,20 @@ static func validate_channel_relationship(content_registry: ContentRegistry, cha
 	if not threshold.record.channel_ids.has(channel_id): return _static_fail(ERR_CHANNEL_OWNERSHIP_INVALID, "Source Threshold does not list channel: %s" % channel_id)
 	return {"ok": true, "code": OK, "channel": channel}
 
-func _validate_item_id(item_id: String) -> Dictionary:
+static func validate_output_item_access(content_registry: ContentRegistry, item_id: String) -> Dictionary:
+	if content_registry == null or not content_registry.ready: return _static_fail(ERR_STATE_INVALID, "Content registry is not ready.")
 	if item_id == ESSENCE_ID: return _static_fail(ERR_ESSENCE_EXCLUDED, "Essence is excluded from output access.")
-	var rec := registry.get_record(item_id)
-	if not rec.ok or rec.record.type != "item": return _static_fail(ERR_ITEM_NOT_FOUND, "Item is missing or not an item: %s" % item_id)
-	if not rec.record.enabled: return _static_fail(ERR_ITEM_DISABLED, "Item is disabled: %s" % item_id)
+	var item := content_registry.get_record(item_id)
+	if not item.ok or item.record.type != "item": return _static_fail(ERR_ITEM_NOT_FOUND, "Item is missing or not an item: %s" % item_id)
+	if not item.record.enabled: return _static_fail(ERR_ITEM_DISABLED, "Item is disabled: %s" % item_id)
+	var has_valid_source := false
+	for id in content_registry.ids():
+		var rec := content_registry.get_record(id)
+		if not rec.ok or rec.record.type != "channel" or rec.record.output_item_id != item_id: continue
+		var relationship := validate_channel_relationship(content_registry, id, item_id)
+		if not relationship.ok: return relationship
+		has_valid_source = true
+	if not has_valid_source: return _static_fail(ERR_NO_AUTHORED_SOURCE, "No valid authored non-Essence source channel outputs %s." % item_id)
 	return {"ok": true, "code": OK}
 
 func _authored_channels_for_item(item_id: String, strict: bool) -> Dictionary:

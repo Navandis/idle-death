@@ -25,8 +25,8 @@ static func validate(state: GameState, registry: ContentRegistry, require_comple
 	if state.progression.command_tether_capacity < 0: return _err(ERR_RANGE, "progression.command_tether_capacity")
 	if state.progression.unlocked_output_item_ids != _sorted_unique_string_names(state.progression.unlocked_output_item_ids): return _err(ERR_CROSS_FIELD, "progression.unlocked_output_item_ids")
 	for item_id in state.progression.unlocked_output_item_ids:
-		var item := registry.get_record(str(item_id))
-		if not item.ok or item.record.type != "item" or str(item_id) == "RES_ESSENCE": return _err(ERR_CONTENT, "progression.unlocked_output_item_ids.%s" % item_id)
+		var access := OutputAccessService.validate_output_item_access(registry, str(item_id))
+		if not access.ok: return _err(ERR_CONTENT, "progression.unlocked_output_item_ids.%s" % item_id)
 	var active := 0
 	for reaping in state.reapings.values(): if reaping.is_active: active += 1
 	if active > state.progression.command_tether_capacity: return _err(ERR_CROSS_FIELD, "reapings.active")
