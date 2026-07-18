@@ -112,5 +112,19 @@ func test_recall_freezes_and_same_loadout_resumes() -> void:
 	assert_true(_engine().resolve_elapsed(state, 6 * HOUR).success)
 	assert_eq(state.inventory.entries[&"SOUL_FORM_SCRIBE"].total, 1)
 
+func test_channel_bank_after_settlement_uses_segment_end_cursor() -> void:
+	var state := _state(&"THR_GLOAMWOOD", true, 1)
+	_unlock_and_init(state, [&"SOUL_CALLING_SOLDIER"])
+	state.thresholds[&"THR_GLOAMWOOD"].channel_acquisition[&"CHANNEL_GLOAMWOOD_SOLDIER_SOULS"].progress_subunits = 997099
+	var result := _engine().resolve_elapsed(state, 871)
+	assert_true(result.success, result.developer_details)
+	assert_eq(result.events.size(), 2)
+	assert_eq(result.events[0].event_type, SimulationEngine.EVENT_THRESHOLD_SETTLED)
+	assert_eq(result.events[0].occurred_simulation_msec, 870)
+	assert_eq(result.events[1].event_type, SimulationEngine.EVENT_OUTPUT_CHANNEL_BANKED)
+	assert_eq(result.events[1].occurred_simulation_msec, 871)
+	assert_eq(result.events[1].payload.lifecycle_state, "SETTLED")
+	assert_eq(state.inventory.entries[&"SOUL_CALLING_SOLDIER"].total, 1)
+
 func _canonical(state: GameState) -> Dictionary:
 	return SaveSchemaMapper.runtime_to_snapshot(state, TimeAuthorityState.new(), 1, ContentRegistry.CURRENT_REVISION).game_state

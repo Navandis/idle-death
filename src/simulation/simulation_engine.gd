@@ -89,9 +89,10 @@ func resolve_elapsed(state: GameState, elapsed_msec: int) -> SimulationResult:
 			if boundary.elapsed_msec <= remaining:
 				segment_msec = boundary.elapsed_msec
 				will_settle = true
-		var applied := _apply_segment(candidate, reaping, active_id, segment_msec)
+		var segment_end_msec := cursor + segment_msec
+		var applied := _apply_segment(candidate, reaping, active_id, segment_msec, segment_end_msec)
 		if not applied.ok: return SimulationResult.failure(StringName(applied.code), elapsed_msec, applied.details)
-		cursor += segment_msec
+		cursor = segment_end_msec
 		remaining -= segment_msec
 		result.segments.append({"start_simulation_msec": cursor - segment_msec, "end_simulation_msec": cursor, "elapsed_msec": segment_msec, "lifecycle": applied.lifecycle, "returned_souls_delta": applied.returned_souls_delta, "backlog_delta": applied.backlog_delta, "Essence_delta": applied.Essence_delta, "Mastery_delta_subunits": applied.Mastery_delta_subunits, "completed_cycles_delta": applied.completed_cycles_delta, "channel_deltas": applied.channel_deltas})
 		for event in applied.events:
@@ -108,7 +109,7 @@ func resolve_elapsed(state: GameState, elapsed_msec: int) -> SimulationResult:
 	result.events.sort_custom(_event_less)
 	return _commit_if_valid(state, candidate, result)
 
-func _apply_segment(state: GameState, reaping: GameState.ReapingState, threshold_id: StringName, elapsed_msec: int) -> Dictionary:
+func _apply_segment(state: GameState, reaping: GameState.ReapingState, threshold_id: StringName, elapsed_msec: int, segment_end_msec: int) -> Dictionary:
 	var threshold: GameState.ThresholdState = state.thresholds[threshold_id]
 	var form: GameState.FormState = state.forms[reaping.form_id]
 	var before_returns: int = threshold.persistent_returns_total
@@ -152,12 +153,12 @@ func _apply_segment(state: GameState, reaping: GameState.ReapingState, threshold
 	if reaping.completed_cycle_count > FixedPoint.INT64_MAX - completed: return _fail(ERR_OVERFLOW, "completed_cycle_count")
 	reaping.completed_cycle_count += completed
 	reaping.cycle_phase_msec = phase_total % int(form_record.cycle_duration_msec)
-	var channel_result := _apply_output_channels(state, threshold_id, elapsed_msec, str(threshold.lifecycle_state))
+	var channel_result := _apply_output_channels(state, threshold_id, elapsed_msec, segment_end_msec, str(threshold.lifecycle_state))
 	if not channel_result.ok: return channel_result
 	return {"ok": true, "lifecycle": str(threshold.lifecycle_state), "returned_souls_delta": threshold.persistent_returns_total - before_returns, "backlog_delta": threshold.remaining_backlog - before_backlog, "Essence_delta": state.inventory.entries.get(&"RES_ESSENCE", GameState.InventoryEntryState.new()).total - before_essence, "Mastery_delta_subunits": form.mastery_subunits - before_mastery, "completed_cycles_delta": reaping.completed_cycle_count - before_cycles, "channel_deltas": channel_result.channel_deltas, "events": channel_result.events}
 
 
-func _apply_output_channels(state: GameState, threshold_id: StringName, elapsed_msec: int, lifecycle_state: String) -> Dictionary:
+func _apply_output_channels(state: GameState, threshold_id: StringName, elapsed_msec: int, segment_end_msec: int, lifecycle_state: String) -> Dictionary:
 	var channels := _eligible_output_channels(state, threshold_id)
 	if not channels.ok: return channels
 	var deltas: Array = []
@@ -191,7 +192,10 @@ func _apply_output_channels(state: GameState, threshold_id: StringName, elapsed_
 			var delta := {"channel_id": str(channel.id), "output_item_id": str(channel.output_item_id), "banked_units_delta": whole, "progress_subunits_before": before_progress, "progress_subunits_after": acq.progress_subunits, "rate_carry_units_before": before_carry, "rate_carry_units_after": acq.rate_carry_units, "total_banked_units_before": before_banked, "total_banked_units_after": acq.total_banked_units}
 			deltas.append(delta)
 			if whole > 0:
-				events.append(SimulationEvent.output_channel_banked(state.simulation_time_msec + elapsed_msec, threshold_id, StringName(channel.id), delta, lifecycle_state))
+				# GameState.simulation_time_msec advances only after the transaction commits.
+				# Use the loop's segment-end cursor so banked events in a post-Settlement
+				# segment cannot sort before the Settlement event that enabled that segment.
+				events.append(SimulationEvent.output_channel_banked(segment_end_msec, threshold_id, StringName(channel.id), delta, lifecycle_state))
 	deltas.sort_custom(func(a, b): return a.channel_id < b.channel_id)
 	events.sort_custom(_event_less)
 	return {"ok": true, "channel_deltas": deltas, "events": events}
