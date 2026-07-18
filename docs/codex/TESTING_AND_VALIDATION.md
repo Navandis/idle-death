@@ -1874,9 +1874,3 @@ The M04D3 prompt is not yet drafted. Its fresh planning pass must include:
 - `500_000` progress remaining unchanged while ETA moves `7,200,000 -> 6,000,000` under ×1.20;
 - full `1 -> 3 -> 2 -> 1` Threshold/loadout identity behavior;
 - save/load and no persisted effective rate/ETA.
-
-## M04D1 output-access verification
-
-Codex/Linux verification for M04D1 includes the focused GUT run for `res://tests/unit/m04d1` and `res://tests/integration/m04d1`, a headless import, the deterministic trace at `tools/test/m04d1/m04d1_output_access_trace.gd`, the full GUT suite, `git diff --check`, and `git status --short`.
-
-The Windows owner package is `tools/test/owner/run_m04d1_owner_verification.ps1`. Run it from the repository root with `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\test\owner\run_m04d1_owner_verification.ps1 -CommitSha "<PR_HEAD_SHA>"` and preserve the UTF-8 console output as owner evidence. No interactive checklist is required for M04D1.

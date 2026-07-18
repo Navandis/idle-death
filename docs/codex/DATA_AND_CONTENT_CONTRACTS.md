@@ -1972,6 +1972,8 @@ Accepted `DEC-0037` supersedes the earlier M04D draft contract.
 
 Knowledge or insight never grants Access. Access never names an unavailable Threshold.
 
+M04D1 command results use the bounded `AccessActionResult`, `AccessChangeSummary`, and `AccessEvent` contracts. Events are `OUTPUT_ITEM_UNLOCKED` and `OUTPUT_SOURCE_IDENTIFIED`; stable access error codes include `OUTPUT_ACCESS_INVALID_ITEM`, `OUTPUT_ACCESS_ITEM_DISABLED`, `OUTPUT_ACCESS_ESSENCE_EXCLUDED`, `OUTPUT_ACCESS_CHANNEL_INVALID`, `OUTPUT_ACCESS_NO_VALID_SOURCE`, and `OUTPUT_ACCESS_MIGRATION_FINALIZATION_FAILED`.
+
 ### Schema version 3
 
 Explicit constants become:
@@ -2174,9 +2176,3 @@ M04D3 will:
 - prevent repeated redispatch compounding;
 - expose a pure non-persisted time-to-next-unit query;
 - retain stored percentage when future rate changes.
-
-## Schema v3 — M04D1 output access
-
-Schema v3 keeps the v2 envelope, codec, content revision, time-authority state, and gameplay families. Its only new wire field is `game_state.progression.unlocked_output_item_ids`, a sorted unique array of canonical non-Essence output item IDs.
-
-Version 2 remains a frozen historical shape. The pure v2-to-v3 migration adds an empty access array. During atomic load upgrade, content-aware finalization derives access from valid legacy `channel_acquisition` entries, preserves progress/carry/banked totals exactly, and initializes any other currently available matching source at zero.

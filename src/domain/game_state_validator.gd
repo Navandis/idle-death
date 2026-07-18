@@ -14,13 +14,13 @@ const ERR_TYPE := "GAME_STATE_TYPE"
 const ERR_RANGE := "GAME_STATE_RANGE"
 const ERR_CONTENT := "GAME_STATE_CONTENT_ID"
 const ERR_CROSS_FIELD := "GAME_STATE_CROSS_FIELD"
-static func validate(state: GameState, registry: ContentRegistry) -> Dictionary:
+static func validate(state: GameState, registry: ContentRegistry, require_complete_access := true) -> Dictionary:
 	if state == null: return _err(ERR_TYPE, "game_state")
 	if registry == null or not registry.ready: return _err(ERR_CONTENT, "content_registry")
 	if state.simulation_time_msec < 0: return _err(ERR_RANGE, "simulation_time_msec")
 	var result := _validate_inventory(state, registry); if not result.ok: return result
 	result = _validate_forms(state, registry); if not result.ok: return result
-	result = _validate_thresholds(state, registry); if not result.ok: return result
+	result = _validate_thresholds(state, registry, require_complete_access); if not result.ok: return result
 	result = _validate_reapings(state, registry); if not result.ok: return result
 	if state.progression.command_tether_capacity < 0: return _err(ERR_RANGE, "progression.command_tether_capacity")
 	if state.progression.unlocked_output_item_ids != _sorted_unique_string_names(state.progression.unlocked_output_item_ids): return _err(ERR_CROSS_FIELD, "progression.unlocked_output_item_ids")
@@ -60,7 +60,7 @@ static func _validate_forms(state: GameState, registry: ContentRegistry) -> Dict
 		if not form.awakened and not str(form.awakened_by).is_empty(): return _err(ERR_CROSS_FIELD, "forms.%s.awakened_by" % form_id)
 	return {"ok": true}
 
-static func _validate_thresholds(state: GameState, registry: ContentRegistry) -> Dictionary:
+static func _validate_thresholds(state: GameState, registry: ContentRegistry, require_complete_access: bool) -> Dictionary:
 	for threshold_id in _sorted_keys(state.thresholds):
 		var rec := registry.get_record(str(threshold_id))
 		if not rec.ok or rec.record.type != "threshold": return _err(ERR_CONTENT, "thresholds.%s" % threshold_id)
@@ -74,15 +74,26 @@ static func _validate_thresholds(state: GameState, registry: ContentRegistry) ->
 		if threshold.remaining_backlog > 0 and str(threshold.lifecycle_state) != "OVERDUE": return _err(ERR_CROSS_FIELD, "thresholds.%s.lifecycle_state" % threshold_id)
 		if threshold.persistent_returns_total < 0 or threshold.familiarity_subunits < 0: return _err(ERR_RANGE, "thresholds.%s" % threshold_id)
 		for channel_id in _sorted_keys(threshold.channel_acquisition):
-			var channel := registry.get_record(str(channel_id))
-			if not channel.ok or channel.record.type != "channel" or channel.record.source_threshold_id != str(threshold_id): return _err(ERR_CONTENT, "thresholds.%s.channel_acquisition.%s" % [threshold_id, channel_id])
-			if channel.record.output_item_id == "RES_ESSENCE": return _err(ERR_CROSS_FIELD, "thresholds.%s.channel_acquisition.%s" % [threshold_id, channel_id])
-			if channel.record.progression_required and not state.progression.unlocked_output_item_ids.has(StringName(channel.record.output_item_id)): return _err(ERR_CROSS_FIELD, "thresholds.%s.channel_acquisition.%s" % [threshold_id, channel_id])
+			var relationship := OutputAccessService.validate_channel_relationship(registry, str(channel_id), "", str(threshold_id))
+			if not relationship.ok: return _err(ERR_CONTENT, "thresholds.%s.channel_acquisition.%s" % [threshold_id, channel_id])
+			var channel: Dictionary = relationship.channel
+			if channel.progression_required and not state.progression.unlocked_output_item_ids.has(StringName(channel.output_item_id)): return _err(ERR_CROSS_FIELD, "thresholds.%s.channel_acquisition.%s" % [threshold_id, channel_id])
+			if require_complete_access and str(threshold.availability_state) != "AVAILABLE": return _err(ERR_CROSS_FIELD, "thresholds.%s.channel_acquisition.%s" % [threshold_id, channel_id])
 			var acq = threshold.channel_acquisition[channel_id]
 			if not acq is GameState.ThresholdAcquisitionState: return _err(ERR_TYPE, "thresholds.%s.channel_acquisition.%s" % [threshold_id, channel_id])
 			if acq.progress_subunits < 0 or acq.progress_subunits >= FixedPoint.SCALE: return _err(ERR_RANGE, "thresholds.%s.channel_acquisition.%s.progress_subunits" % [threshold_id, channel_id])
-			if acq.rate_carry_units < 0 or acq.rate_carry_units >= int(channel.record.rate.period_msec): return _err(ERR_RANGE, "thresholds.%s.channel_acquisition.%s.rate_carry_units" % [threshold_id, channel_id])
+			if acq.rate_carry_units < 0 or acq.rate_carry_units >= int(channel.rate.period_msec): return _err(ERR_RANGE, "thresholds.%s.channel_acquisition.%s.rate_carry_units" % [threshold_id, channel_id])
 			if acq.total_banked_units < 0: return _err(ERR_RANGE, "thresholds.%s.channel_acquisition.%s.total_banked_units" % [threshold_id, channel_id])
+		if require_complete_access and str(threshold.availability_state) == "AVAILABLE":
+			for authored_channel_id in rec.record.channel_ids:
+				var authored := OutputAccessService.validate_channel_relationship(registry, str(authored_channel_id), "", str(threshold_id))
+				if not authored.ok:
+					continue
+				var authored_channel: Dictionary = authored.channel
+				if authored_channel.progression_required and not state.progression.unlocked_output_item_ids.has(StringName(authored_channel.output_item_id)):
+					continue
+				if not threshold.channel_acquisition.has(StringName(authored_channel.id)):
+					return _err(ERR_CROSS_FIELD, "thresholds.%s.channel_acquisition.%s" % [threshold_id, authored_channel.id])
 	return {"ok": true}
 
 static func _validate_reapings(state: GameState, registry: ContentRegistry) -> Dictionary:

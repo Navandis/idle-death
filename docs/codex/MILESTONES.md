@@ -148,7 +148,7 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 | M04B | Dispatch, recall, and assignment integrity | Implementation slice | Approved | Approved | Merged | Passed |
 | M04C | Single-Reaping core resolver | Implementation slice | Approved | Approved | Merged | Passed |
 | M04D | Output access and discrete-channel progression | Conceptual sub-epic | Approved | Not applicable | Not directly executable | — |
-| M04D1 | Output access and source-identification foundation | Implementation slice | Approved | Approved | Not started | — |
+| M04D1 | Output access and source-identification foundation | Implementation slice | Approved | Approved | Pull request open | Partial |
 | M04D2 | Discrete channel accumulation and long-horizon banking | Implementation slice | Approved | Not drafted | Not started | — |
 | M04D3 | Compatible rate-context changes and acquisition queries | Implementation slice | Approved | Not drafted | Not started | — |
 | M04E | Forecast clone, report accumulator, and simulation harness | Implementation slice | Approved | Not drafted | Not started | — |
@@ -1136,10 +1136,11 @@ M04D is complete only when M04D1, M04D2, and M04D3 are all Merged and Passed. Th
 **Parent epic:** M04 / M04D  
 **Definition status:** Approved  
 **Prompt status:** Approved  
-**Implementation status:** Not started  
-**Verification status:** —  
+**Implementation status:** Pull request open (PR #13, `codex/implement-milestone-m04d1`)
+**Verification status:** Partial; Linux/Codex checks are repeatable, corrected Windows owner evidence remains pending
 **Recommended Codex task size:** Medium; one access-state, migration, and source-initialization pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M04D1-output-access-source-identification-foundation.md`
+**Current implementation scope:** Schema v3 output access, typed `OutputAccessService` results/events, access-consistency validation, content-aware v2 finalization, real-file trace, and corrected owner runner are in PR #13 on the current branch.
 
 #### Purpose
 
@@ -2869,7 +2870,3 @@ When a slice reveals a planning problem:
 5. resume only after the revised definition or prompt is approved.
 
 The commercial save-format/threat-model review remains a release gate, not an excuse to add encryption, binary encoding, Steam Cloud, or a backend to the 0–90 minute prototype without a new approved milestone.
-
-### M04D1 implementation evidence
-
-M04D1 is implemented in this branch with schema v3 output access, legacy acquisition finalization, focused unit/integration tests, deterministic trace markers, and a Windows owner-verification runner. Windows owner execution remains pending until the owner runs `tools/test/owner/run_m04d1_owner_verification.ps1`.

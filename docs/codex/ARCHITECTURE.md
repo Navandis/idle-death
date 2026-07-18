@@ -1380,7 +1380,7 @@ An external hint can affect player knowledge but not authoritative Access. A loc
 
 ### M04D1 transaction boundary
 
-`OutputAccessService` or an equivalent focused owner receives validated `GameState`, ready `ContentRegistry`, and a canonical output item ID. It reads no clock and awards no elapsed production.
+`OutputAccessService` is the focused M04D1 owner for global output-item access and source reconciliation. It receives `GameState`, a ready `ContentRegistry`, and a canonical output item ID; it reads no clock, advances no simulation, writes no UI/report/insight state, and awards no inventory or elapsed production.
 
 ```text
 validate state/content/item
@@ -1391,10 +1391,10 @@ validate state/content/item
     -> derive item/source identification facts
     -> validate schema/domain candidate
     -> replace live state once
-    -> return typed result/events/checkpoint request
+    -> return typed action result, change summary, ordered domain events, and checkpoint request
 ```
 
-A separate reconciliation operation applies existing global access to a Threshold that has just become available. It never changes Threshold availability itself and never reveals unavailable Thresholds.
+A separate reconciliation operation applies existing global access, plus authored non-progression-required sources, to a Threshold that has just become available. It never changes Threshold availability itself and never reveals unavailable Thresholds. Current-v3 validation is strict, while command pre-validation is intentionally narrow so a newly available Threshold can be reconciled before the full access/source consistency pass.
 
 The effective source query is pure. For an available initialized source, it returns at least `IDENTIFIED`; authored or later insight may provide `CHARTED`. M04D1 does not persist an independent insight meter.
 
@@ -1402,7 +1402,7 @@ The effective source query is pure. For an available initialized source, it retu
 
 Version 3 retains the existing envelope and adds the sorted `unlocked_output_item_ids` array under progression. The migration registry performs the pure `v2 -> v3` structural step. The persistence coordinator then performs content-aware finalization on the working candidate so valid version-2 acquisition records imply their output-item access and remain usable.
 
-The finalization is part of the same atomic upgrade transaction:
+The finalization is part of the same atomic upgrade transaction and uses deterministic Threshold/channel ordering, shared channel-relationship validation, and stable finalization errors:
 
 ```text
 source-version validation
@@ -1430,9 +1430,3 @@ M04D3 resolves the old setup to a command boundary and permits changed redispatc
 ### M04E and later systems
 
 M04E consumes the same results for forecast clones and report accumulation. M13 adds richer discovery/insight and presentation without changing Access or retroactively generating output. Progression slices invoke M04D1 access/reconciliation commands rather than writing unlock arrays or acquisition maps directly.
-
-## M04D1 output access realized boundary
-
-M04D1 adds `OutputAccessService` as the focused owner for global output-item access and source reconciliation. The service stores only sorted item IDs on `ProgressionState`; per-source acquisition work remains on `ThresholdState.channel_acquisition`. Unlock and reconciliation commands clone state, initialize only currently available source channels at zero, omit unavailable Thresholds from events, and perform no clock reads, simulation advancement, inventory grants, or elapsed production.
-
-Schema version 3 is now the current writer. The v2-to-v3 migration adds the global access array, and the persistence coordinator finalizes legacy acquisition by deriving valid item access from existing v2 channel records before exposing runtime state.

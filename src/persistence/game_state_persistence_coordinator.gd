@@ -60,15 +60,20 @@ func _finalize_legacy_access(game_state: GameState) -> Dictionary:
 	## any other currently available source at zero; existing progress/carry/banked
 	## values are never rebased or backfilled.
 	var service := OutputAccessService.new(registry)
-	for threshold_id in game_state.thresholds.keys():
+	var threshold_ids: Array = game_state.thresholds.keys()
+	threshold_ids.sort()
+	for threshold_id in threshold_ids:
 		var threshold = game_state.thresholds[threshold_id]
-		for channel_id in threshold.channel_acquisition.keys():
-			var channel := registry.get_record(str(channel_id))
-			if not channel.ok or channel.record.type != "channel" or channel.record.source_threshold_id != str(threshold_id): return {"ok": false, "code": OutputAccessService.ERR_CHANNEL_INVALID}
-			if channel.record.output_item_id == OutputAccessService.ESSENCE_ID: return {"ok": false, "code": OutputAccessService.ERR_ESSENCE_EXCLUDED}
-			var item_id := StringName(channel.record.output_item_id)
+		var channel_ids: Array = threshold.channel_acquisition.keys()
+		channel_ids.sort()
+		for channel_id in channel_ids:
+			var relationship := OutputAccessService.validate_channel_relationship(registry, str(channel_id), "", str(threshold_id))
+			if not relationship.ok:
+				return {"ok": false, "code": OutputAccessService.ERR_MIGRATION_FINALIZATION_FAILED, "diagnostic": relationship.code}
+			var channel: Dictionary = relationship.channel
+			var item_id := StringName(channel.output_item_id)
 			if not game_state.progression.unlocked_output_item_ids.has(item_id):
 				game_state.progression.unlocked_output_item_ids.append(item_id)
 	game_state.progression.unlocked_output_item_ids.sort()
 	var reconcile := service.reconcile_available_sources(game_state)
-	return {"ok": true} if reconcile.ok else {"ok": false, "code": OutputAccessService.ERR_STATE_INVALID, "diagnostic": reconcile}
+	return {"ok": true} if reconcile.success else {"ok": false, "code": OutputAccessService.ERR_MIGRATION_FINALIZATION_FAILED, "diagnostic": reconcile.developer_details}

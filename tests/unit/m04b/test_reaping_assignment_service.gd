@@ -24,6 +24,7 @@ func _base_state(time_msec := 1000, tethers := 1) -> GameState:
 	watch.availability_state = &"AVAILABLE"
 	watch.lifecycle_state = &"OVERDUE"
 	watch.remaining_backlog = 1000
+	watch.channel_acquisition[&"CHANNEL_BROKEN_WATCH_PROVISIONS"] = GameState.ThresholdAcquisitionState.new(0, 0, 0)
 	state.thresholds[&"THR_BROKEN_WATCH"] = watch
 	return state
 
