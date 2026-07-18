@@ -3,7 +3,7 @@
 **Document role:** Maintained implementation architecture for the 0-90 minute prototype  
 **Repository path:** `docs/codex/ARCHITECTURE.md`  
 **Document status:** Approved architecture  
-**Architecture revision:** 14  
+**Architecture revision:** 15  
 **Last updated:** 2026-07-18  
 **Engine target:** Godot 4.7, GDScript only  
 **Primary design context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md) and [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md)
@@ -1471,13 +1471,149 @@ Channel deltas are added to each M04C segment and to the overall change summary.
 
 Settlement preserves progress/carry. The boundary segment uses the Overdue channel rate, and only the remainder uses the channel's Settled rate. Current production channels remain continuous because their multiplier is `1.0`; copied fixtures prove non-`1.0` segmentation.
 
-### Deferred seams
+### Realized M04D2 implementation
 
-M04D3 later introduces prospective output-channel modifiers, resolve-before-reconfiguration, compatible denominator checks, non-compounding, and ETA queries. M04E consumes the same core/channel results for forecast and report views. M04D2 adds no new schema, clock, concurrency, progression evaluator, or presentation owner.
+M04D2 implements the approved channel-accumulation boundary through the existing `SimulationEngine`.
 
-### M04D3 extension seam
+- Resolver entry and commit both require complete current-v3 access/source validation.
+- Eligible initialized non-Essence channels resolve in canonical channel-ID order inside each existing M04C lifecycle segment.
+- Content revision `prototype-content-r2` is current; revisions `prototype-content-r1` and `prototype-m02` remain explicitly compatible.
+- The four current non-Essence channels use a Settled multiplier of `1.0`; Essence and Threshold core multipliers remain `0.25`.
+- Exact fixed-point accumulation updates Threshold-owned progress/carry, immediately banks all whole units, preserves reservation ledgers, and increments source history.
+- Segment and overall channel deltas are deterministic. Aggregate `OUTPUT_CHANNEL_BANKED` events use the cumulative segment-end cursor, sort before same-time Settlement, and remain reportable and tutorial-relevant.
+- Schema version 3 persists inventory and acquisition authority while excluding events, deltas, effective rates, and ETAs.
+- The real-file trace and final Windows package prove locked/no-backfill behavior, recall/resume continuity, copied non-`1.0` Settlement segmentation, chunk equality, event order, persistence, cleanup, and artifact auditing.
 
-M04D3 resolves the old setup to a command boundary and permits changed redispatch only when all affected denominators are compatible. It preserves normalized progress/carry and derives future rates from authored baselines plus current modifiers. It never persists effective rates or ETA and never rebases prior work.
+PR #14 merged from final head `96f4db53b2513a8ab6182c074113efe72d5fd968` at merge commit `24228a078199d9728eb57e4e26c27447aa6911a3`. Final owner verification passed `123/123` full tests and `15/15` focused M04D2 tests, all fourteen trace markers, import, cleanup, cleanup proof, and artifact audit with zero failed steps.
+
+## Proposed M04D3 compatible rate-context and acquisition-query boundary
+
+This boundary is proposed under `DEC-0039` and is not authoritative until the owner approves that decision and the M04D3 prompt.
+
+### One bounded rate-context owner
+
+M04D3 introduces one scene-independent `ReapingRateContextService` as the shared owner of:
+
+- loadout denominator signatures and compatibility comparisons;
+- non-Essence output-channel effective-rate plans;
+- deterministic applied-modifier traces;
+- pure acquisition progress and current-context ETA queries.
+
+`ReapingAssignmentService` consumes compatibility results before a changed redispatch. `SimulationEngine` consumes the exact same output-channel rate-plan builder. Queries consume that same builder rather than duplicating modifier evaluation.
+
+The service reads a ready `ContentRegistry` and explicit authoritative state. It reads no clock, frame delta, scene tree, save file, Steam API, report state, forecast state, or UI state and mutates no `GameState`.
+
+### Resolve-before-change ordering
+
+M04D3 does not add active in-place loadout mutation.
+
+```text
+resolve explicit elapsed under the old active setup
+    -> recall at the resulting simulation cursor
+    -> compare old/new rate-context denominators
+    -> reject incompatible context without mutation
+       or
+       redispatch the inactive Threshold operation with the new compatible loadout
+    -> derive all future rates from authored baselines plus the new current modifiers
+```
+
+Elapsed resolution remains owned by `SimulationEngine`; assignment remains owned by `ReapingAssignmentService`. The caller is responsible for invoking those owners in the exact order above. No service estimates uncredited wall time.
+
+### Denominator signature and compatibility
+
+The compatible signature contains every persisted residual denominator affected by the active Threshold operation:
+
+```text
+returned_soul_period_msec
+mastery_period_msec
+cycle_duration_msec
+essence_period_msec
+initialized_non_essence_channel_period_msec_by_channel_id
+```
+
+Form and Writ IDs are diagnostic loadout identity, not denominators by themselves.
+
+A changed redispatch is compatible only when the old and requested signatures are exactly equal. Current Man-at-Arms and Scribe periods/cycle duration are compatible. Equal signatures preserve:
+
+- every core flow progress/carry value;
+- cycle phase and completed-cycle count;
+- every Threshold acquisition progress/carry/history value;
+- immutable first-start time;
+- Threshold operation identity.
+
+Only assignment revision, active state, loadout IDs, and last-configuration-change cursor update through the existing assignment transaction.
+
+Any mismatch returns `REAPING_RATE_CONTEXT_INCOMPATIBLE` with canonical mismatched-field diagnostics and exact no mutation. M04D3 does not reset, floor-convert, proportionally scale, or otherwise normalize cross-denominator carry. A future period-changing mechanic requires a new accepted decision.
+
+### Prospective output-channel rate plan
+
+For one eligible channel and lifecycle segment:
+
+```text
+authored normalized baseline rate
+    -> matching active-Form Trait OUTPUT_CHANNEL_RATE multipliers
+       in authored Trait/modifier order, flooring once per multiplication
+    -> channel Settled multiplier once when lifecycle == SETTLED
+    -> checked effective numerator with the channel's unchanged period
+```
+
+The bounded M04D3 Form-Trait grammar is:
+
+```text
+metric: OUTPUT_CHANNEL_RATE
+operation: MULTIPLY
+scope: OUTPUT_CHANNEL
+conditions:
+  ALWAYS
+  OUTPUT_ITEM
+  OUTPUT_KIND
+  THRESHOLD_HAS_ANY_TAG
+  THRESHOLD_LIFECYCLE
+```
+
+Relevant malformed or unsupported output-channel modifiers fail visibly. Irrelevant Form modifiers remain ignored, so current Old Drill and Unclosed Ledger non-channel effects continue to work through their existing owners.
+
+Active Form Traits are the only executable new modifier source in M04D3. Writs currently expose no typed rate-modifier field; Retinue, Art, Recollection, support, and global-efficiency state are not yet authoritative runtime sources. Later slices append those normalized sources to the same builder at explicit command boundaries rather than replacing or compounding an earlier effective rate.
+
+Production content is unchanged. The exact `×1.20` behavior is proven through copied fixtures; content revision remains `prototype-content-r2`.
+
+### Pure acquisition query
+
+The service exposes one bounded query for an explicit Threshold/channel pair. A successful result contains:
+
+```text
+threshold_id
+channel_id
+output_item_id
+access_state
+disclosure_state
+is_active
+lifecycle_state
+progress_subunits
+progress_tenths_percent
+rate_plan
+eta_available
+current_context_eta_msec
+eta_basis = CURRENT_RATE_CONTEXT
+```
+
+Percentage is derived only from stored normalized progress:
+
+```text
+progress_tenths_percent = floor(progress_subunits * 1000 / FixedPoint.SCALE)
+```
+
+Because persisted progress is always below one whole, the result is at most `999`, representing `99.9%`.
+
+For an active eligible source, ETA is the minimum integer milliseconds needed to cross the next whole-unit boundary under the current unchanged rate plan, including the persisted arithmetic carry. It is calculated with checked bounded arithmetic, not per-millisecond replay. Locked, unavailable, invalid, Essence, or inactive sources expose no active ETA.
+
+This is a current-context estimate, not a forecast across future Settlement, support depletion, unlocks, or player commands. M04E remains the owner of boundary-aware clone forecasting.
+
+### Persistence and later seams
+
+Rate-context signatures, compatibility results, effective rates, applied-modifier traces, percentages, and ETAs are rebuildable views and are never serialized. Schema version 3 and content revision 2 remain current.
+
+M04E consumes the same rate-plan/query seam for forecast clones and report accumulation. Later progression slices provide Recollection, Art, support, and other modifier sources only after resolving the old context to the exact command cursor.
 
 ### M04E and later systems
 

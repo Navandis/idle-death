@@ -3,7 +3,7 @@
 **Document role:** Canonical prototype data, runtime-state, ID, and serialization contracts  
 **Repository path:** `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`  
 **Document status:** Approved architecture contract  
-**Revision:** 16  
+**Revision:** 17  
 **Last updated:** 2026-07-18
 
 ## 1. Purpose
@@ -2294,13 +2294,230 @@ A copied Settlement fixture uses one returned-soul backlog, a synthetic channel 
 - Events, deltas, effective rates, and ETAs are not serialized.
 - Essence remains solely in the M04C `ReapingState.flow_carry_units` path and must never appear in channel acquisition.
 
-### M04D3 planned rate-context contract
+### Realized M04D2 evidence
 
-M04D3 will:
+M04D2 is implemented and verified at merge commit `24228a078199d9728eb57e4e26c27447aa6911a3` from final head `96f4db53b2513a8ab6182c074113efe72d5fd968`.
 
-- preserve progress/carry through compatible loadout changes;
-- reject incompatible periods/durations;
-- derive future rates from immutable baseline content and current modifiers;
-- prevent repeated redispatch compounding;
-- expose a pure non-persisted time-to-next-unit query;
-- retain stored percentage when future rate changes.
+The realized contract retains:
+
+- schema version 3;
+- content revision `prototype-content-r2`;
+- strict complete-source validation at resolver entry and commit;
+- exact initialized-source accumulation and immediate whole banking;
+- current non-Essence Settled multipliers of `1_000_000`;
+- aggregate reportable/tutorial-relevant `OUTPUT_CHANNEL_BANKED` events;
+- exact Overdue/Settled segmentation;
+- no persisted result artifacts or duplicate Essence acquisition authority.
+
+Final owner verification passed `123/123` full tests, `15/15` focused M04D2 tests, all fourteen trace markers, import, cleanup, cleanup proof, and artifact audit.
+
+## Proposed M04D3 compatible rate-context and acquisition-query contract
+
+This section becomes authoritative only after owner approval of proposed `DEC-0039` and the M04D3 prompt.
+
+### RateContextSignature
+
+A `RateContextSignature` is a non-persisted value object containing:
+
+```text
+returned_soul_period_msec: int
+mastery_period_msec: int
+cycle_duration_msec: int
+essence_period_msec: int
+non_essence_channel_period_msec_by_id: Dictionary[StringName, int]
+```
+
+The channel-period map contains every initialized eligible non-Essence source at the Threshold and uses canonical channel-ID ordering when rendered or compared.
+
+Form ID and Writ ID remain loadout identity but are not themselves denominator fields. A changed ID is compatible when every denominator above remains equal.
+
+### CompatibilityResult
+
+A compatibility comparison returns a bounded result:
+
+```text
+compatible: bool
+error_code: StringName
+developer_details: String
+mismatched_fields: Array[String]
+old_signature: RateContextSignature
+new_signature: RateContextSignature
+```
+
+`mismatched_fields` is sorted and contains stable field paths such as:
+
+```text
+returned_soul_period_msec
+mastery_period_msec
+cycle_duration_msec
+essence_period_msec
+channel_period_msec.CHANNEL_...
+```
+
+The assignment-facing rejection code is:
+
+```text
+REAPING_RATE_CONTEXT_INCOMPATIBLE
+```
+
+An incompatible result never changes assignment revision, loadout, active state, core residuals, cycle state, acquisition state, inventory, or simulation time.
+
+### Compatible redispatch mutation
+
+After the caller has resolved old elapsed time and recalled the operation, a compatible changed redispatch preserves exactly:
+
+```text
+ReapingState.started_simulation_msec
+ReapingState.flow_carry_units
+ReapingState.cycle_phase_msec
+ReapingState.completed_cycle_count
+ThresholdState.channel_acquisition
+Threshold backlog/returns/familiarity
+inventory and reservations
+```
+
+The existing assignment transaction updates only:
+
+```text
+ReapingState.is_active = true
+ReapingState.form_id
+ReapingState.writ_id
+ReapingState.assignment_revision += 1
+ReapingState.last_configuration_change_simulation_msec
+```
+
+The existing `REAPING_REDISPATCHED` event remains the assignment fact. No separate persisted rate-context entity is introduced.
+
+### OutputChannelRatePlan
+
+A non-persisted output-channel rate plan contains:
+
+```text
+threshold_id: StringName
+channel_id: StringName
+output_item_id: StringName
+lifecycle_state: StringName
+baseline_rate_subunits_per_period: int
+effective_rate_subunits_per_period: int
+period_msec: int
+lifecycle_multiplier_subunits: int
+applied_modifiers: Array[ModifierTraceEntry]
+```
+
+The period is always the authored channel period in M04D3.
+
+A `ModifierTraceEntry` contains save-safe primitive diagnostic values:
+
+```text
+source_type = FORM_TRAIT
+source_id = Trait ID
+modifier_index: int
+metric = OUTPUT_CHANNEL_RATE
+operation = MULTIPLY
+scope = OUTPUT_CHANNEL
+condition
+condition_values: Array[String]
+multiplier_subunits: int
+rate_before_subunits_per_period: int
+rate_after_subunits_per_period: int
+```
+
+Form Trait evaluation order is authored Trait order, then authored modifier order. Each multiplication floors once through the central checked fixed-point helper. The channel lifecycle multiplier is applied last and exactly once.
+
+Supported conditions are:
+
+```text
+ALWAYS
+OUTPUT_ITEM
+OUTPUT_KIND
+THRESHOLD_HAS_ANY_TAG
+THRESHOLD_LIFECYCLE
+```
+
+Multiple condition operands use deterministic any-match semantics. Relevant malformed or unsupported operation/scope/condition data returns a typed failure. Non-`OUTPUT_CHANNEL_RATE` modifiers are irrelevant to this plan and are ignored.
+
+### Modifier-source boundary
+
+M04D3 executes active Form Trait modifiers only.
+
+The following remain non-executable until their authoritative state and command boundaries exist:
+
+```text
+Writ rate modifiers
+Retinue rate modifiers
+Form Arts
+Recollection modifiers
+support-state modifiers
+global efficiencies
+```
+
+The rate-plan API must accept later normalized sources without changing stored progress or deriving from a previously effective rate. Production content is not changed by M04D3; copied fixtures provide the `×1.20` demonstration. Content revision remains `prototype-content-r2`.
+
+### AcquisitionQueryResult
+
+A pure query result contains:
+
+```text
+success: bool
+error_code: StringName
+developer_details: String
+threshold_id: StringName
+channel_id: StringName
+output_item_id: StringName
+access_state: StringName
+disclosure_state: StringName
+is_active: bool
+lifecycle_state: StringName
+progress_subunits: int
+progress_tenths_percent: int
+rate_plan: OutputChannelRatePlan or null
+eta_available: bool
+current_context_eta_msec: int
+eta_basis = CURRENT_RATE_CONTEXT
+```
+
+Rules:
+
+- locked or uninitialized progression-gated source: `access_state = LOCKED`, no rate plan, no ETA;
+- initialized source: at least `IDENTIFIED`;
+- authored Charted source remains `CHARTED`;
+- unavailable Threshold source is not exposed as an active source;
+- Essence is rejected because its authority remains M04C core flow;
+- inactive Reaping returns stored progress but no active ETA;
+- active eligible Reaping returns the current rate plan and exact current-context ETA.
+
+Percentage uses:
+
+```text
+floor(progress_subunits * 1000 / FixedPoint.SCALE)
+```
+
+and therefore never displays `100.0%` for a stored remainder.
+
+ETA is the smallest non-negative integer millisecond duration for which checked accumulation using the current rate, current period, stored progress, and stored rate carry reaches the next whole-unit boundary. The algorithm uses bounded search or an equivalent checked exact method; it never loops once per millisecond.
+
+The query does not predict future lifecycle transitions, support depletion, player commands, unlocks, or content changes. M04E owns forecast-clone behavior across those boundaries.
+
+### Persistence and compatibility
+
+M04D3 adds no authoritative state.
+
+```text
+save schema = 3
+content revision = prototype-content-r2
+```
+
+The following never serialize:
+
+```text
+RateContextSignature
+CompatibilityResult
+OutputChannelRatePlan
+ModifierTraceEntry
+AcquisitionQueryResult
+effective rate
+progress percentage
+ETA
+```
+
+After compatible redispatch and subsequent production, existing Reaping, Threshold acquisition, inventory, assignment revision, and simulation fields round-trip through schema v3 exactly.

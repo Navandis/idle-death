@@ -2,8 +2,8 @@
 
 **Document role:** Canonical test strategy, commands, fixture rules, and manual validation flows
 **Repository path:** `docs/codex/TESTING_AND_VALIDATION.md`
-**Document status:** Approved validation plan through M04D2 implementation with M04D3 definition
-**Validation revision:** 20
+**Document status:** Approved validation plan through M04D2 with M04D3 draft
+**Validation revision:** 21
 **Last updated:** 2026-07-18
 **Engine target:** Godot 4.7 standard build, GDScript only
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)  
@@ -40,7 +40,9 @@ M04B merged through PR #9 at merge commit `c641d74cebedf07c51ebb579cccee21db7aa2
 
 M04C merged through PR #12 at merge commit `719592c85ca4e90ecd5df4593e37a81d36b2789e` from final head `acb48d0045e41a0f7d73f561e5c3756f8668dd46`. Transactional core resolution, exact Settlement segmentation, checked residual ownership, persistence, the eleven-marker trace, and Windows owner verification passed.
 
-M04D1 merged through PR #13 at merge commit `4569fbfb968deb73f54ba453834dd7af0b04d545` from final head `1171785562c4107921437339187a1e782fe0143b`. Schema-v3 access, migration/finalization, unlock/reconciliation, no-backfill, real-file trace, and owner Windows verification passed. Accepted `DEC-0038` and approved M04D2 v0.1 define strict initialized-source accumulation, content revision 2, whole banking, channel-specific Settlement, bounded events, and schema-v3 persistence.
+M04D1 merged through PR #13 at merge commit `4569fbfb968deb73f54ba453834dd7af0b04d545` from final head `1171785562c4107921437339187a1e782fe0143b`. Schema-v3 access, migration/finalization, unlock/reconciliation, no-backfill, real-file trace, and owner Windows verification passed.
+
+M04D2 merged through PR #14 at merge commit `24228a078199d9728eb57e4e26c27447aa6911a3` from final head `96f4db53b2513a8ab6182c074113efe72d5fd968`. Strict initialized-source accumulation, content revision 2, whole banking, source history, exact Settlement segmentation, deterministic banking events, schema-v3 persistence, the fourteen-marker trace, and owner Windows verification passed. Proposed `DEC-0039` and the M04D3 draft now define compatible rate-context changes and pure acquisition queries.
 
 ## 2. Pinned test and platform dependencies
 
@@ -1869,108 +1871,58 @@ Final evidence:
 
 `GATE-OUTPUT-ACCESS-SCHEMA` is satisfied.
 
-## 25. M04D2 approved discrete-channel accumulation validation package
+## 25. M04D2 completed discrete-channel accumulation validation package
 
-M04D2 extends the M04C resolver. Tests use explicit durations only and must not wait in real time.
+M04D2 extends the M04C resolver. Tests use explicit durations only and never wait in real time.
 
-### 25.1 Focused Linux/Codex checks
+### 25.1 Final evidence
 
-```bash
-./tools/test/run_gut.sh -- \
-  -gdir=res://tests/unit/m04d2 \
-  -gdir=res://tests/integration/m04d2
+PR #14 merged at final head `96f4db53b2513a8ab6182c074113efe72d5fd968` and merge commit `24228a078199d9728eb57e4e26c27447aa6911a3`.
 
-godot --headless --path . --import
-
-trace_root="$(mktemp -d)"
-godot --headless --path . \
-  -s res://tools/test/m04d2/m04d2_channel_accumulation_trace.gd \
-  -- --save-root "$trace_root"
-trace_exit=$?
-rm -rf "$trace_root"
-test ! -e "$trace_root"
-test "$trace_exit" -eq 0
-
-./tools/test/run_gut.sh
-git diff --check
-```
-
-### 25.2 Required focused groups
-
-1. content revision `prototype-content-r2` and exact sorted compatibility list;
-2. four non-Essence channel multipliers at `1.0`, both Essence and Threshold core multipliers unchanged at `0.25`;
-3. strict complete-source validation at resolver entry/commit;
-4. locked gated channel no production/no record creation;
-5. eligible missing source rejection with exact no mutation;
-6. no-active timeline-only and inactive freeze behavior;
-7. Gloamwood 2-hour fixture;
-8. Gloamwood 8-hour fixture;
-9. Broken Watch 6-hour fixture;
-10. Broken Watch 24-hour fixture;
-11. existing nonzero progress/carry continuation;
-12. multiple whole extraction in one segment;
-13. one-shot versus regular chunks;
-14. one-shot versus irregular chunks;
-15. late unlock versus early unlock opportunity-cost comparison;
-16. recall/inactive/same-loadout redispatch active-time continuity;
-17. production-channel `1.0` Settlement continuity;
-18. copied `0.5` channel exact M04C boundary segmentation;
-19. inventory creation, reservation preservation, and source-history increments;
-20. progress-only delta with no banking event;
-21. banking event fields, aggregate quantity, same-time priority, and deterministic order;
-22. channel delta fields and sorted result/segment arrays;
-23. timeline, inventory, total-banked, progress-add, rate, and carry overflow with no mutation;
-24. revision-1 compatibility and revision-2 new-save behavior;
-25. schema-v3 Overdue/Settled/inactive round trips;
-26. result events/deltas/rates absent from persistence;
-27. no channel acquisition for Essence and no mutation of M04C core residual ownership;
-28. no clock, access mutation, UI, report, forecast, M04D3 modifier/query, concurrency, or platform ownership.
-
-### 25.3 Exact fixtures
+Final Windows evidence:
 
 ```text
-Gloamwood 2h:
-  Soldier Souls = 24
-  Scribe progress = 250000
-
-Gloamwood 8h:
-  Soldier Souls = 96
-  Scribe Form Souls = 1
-  Scribe progress = 0
-
-Broken Watch 6h:
-  Provisions = 720
-  Man-at-Arms Form-Soul progress = 250000
-
-Broken Watch 24h:
-  Provisions = 2880
-  Man-at-Arms Form Souls = 1
-  progress = 0
+Godot version: 4.7.stable.official.5b4e0cb0f
+Full GUT before: 123/123 tests, 1936 assertions
+Focused M04D2: 15/15 tests, 392 assertions
+Import: PASS
+Trace markers: 14/14
+Cleanup: PASS
+Cleanup proof: PASS
+Artifact audit: PASS
+Full GUT after: 123/123 tests, 1936 assertions
+Failed step count: 0
+Automated result: PASS
 ```
 
-Late unlock:
+No interactive checklist was required.
 
-```text
-six active hours while Scribe channel locked
-unlock at exact cursor
-resolve two active hours
-result: 0 Scribe inventory, progress 250000
-no six-hour backfill
-```
+### 25.2 Verified groups
 
-Copied Settlement fixture:
+The completed package verifies:
 
-```text
-core backlog = 1
-channel baseline = 1 whole / 1000 ms
-channel Settled multiplier = 0.5
-resolve = 2000 ms
-core Settlement boundary = 870 ms
-Overdue channel rate applies through 870 ms
-Settled channel rate applies to remaining 1130 ms
-```
+1. content revision `prototype-content-r2` and exact compatibility list;
+2. four non-Essence Settled multipliers at `1.0`, with core/Essence values unchanged;
+3. strict complete-source validation at resolver entry and commit;
+4. locked/no-source/inactive/no-active behavior;
+5. all four exact production-duration fixtures;
+6. nonzero progress/carry continuation and multi-whole banking;
+7. regular/irregular chunk equality;
+8. late-unlock opportunity cost and no backfill;
+9. recall/inactive/same-loadout continuity;
+10. production `1.0` Settlement continuity and copied `0.5` exact segmentation;
+11. inventory reservation preservation and source-history equality;
+12. progress-only delta/no-event behavior;
+13. complete sorted channel deltas and aggregate ordered events;
+14. segment-end timestamps and same-time Settlement ordering;
+15. overflow/content/range failures with exact no mutation;
+16. revision-1 compatibility and revision-2 new saves;
+17. schema-v3 Overdue/Settled/inactive round trips;
+18. exclusion of result artifacts, rates, and ETAs from persistence;
+19. no duplicate Essence acquisition authority;
+20. no clock, access mutation, report, forecast, UI, M04D3, concurrency, or platform ownership.
 
-### 25.4 Required trace markers
+### 25.3 Final trace markers
 
 ```text
 TRACE M04D2 content_revision=prototype-content-r2_non_essence_settled=1000000
@@ -1989,63 +1941,172 @@ TRACE M04D2 no_duplicate_essence_or_reaping_progress=PASS
 TRACE M04D2 no_clock_or_later_slice_sources=PASS
 ```
 
+`DEC-0038`, `GATE-CHANNEL-ACCUMULATION`, and M04D2 `GATE-SLICE-SCOPE` are satisfied.
+
+## 26. M04D3 draft compatibility/query validation package
+
+The M04D3 package is proposed under `DEC-0039`. It must use explicit state and durations only.
+
+### 26.1 Focused Linux/Codex checks
+
+```bash
+./tools/test/run_gut.sh -- \
+  -gdir=res://tests/unit/m04d3 \
+  -gdir=res://tests/integration/m04d3
+
+godot --headless --path . --import
+
+trace_root="$(mktemp -d)"
+godot --headless --path . \
+  -s res://tools/test/m04d3/m04d3_rate_context_trace.gd \
+  -- --save-root "$trace_root"
+trace_exit=$?
+rm -rf "$trace_root"
+test ! -e "$trace_root"
+test "$trace_exit" -eq 0
+
+# Missing root must fail.
+godot --headless --path . \
+  -s res://tools/test/m04d3/m04d3_rate_context_trace.gd
+test "$?" -ne 0
+
+./tools/test/run_gut.sh
+git diff --check
+```
+
+### 26.2 Required focused groups
+
+1. M04D2 merged baseline, schema v3, content revision 2, and gate state;
+2. exact production Man-at-Arms/Scribe denominator signatures;
+3. compatible zero-residual Form change;
+4. compatible nonzero core progress/carry preservation;
+5. compatible nonzero cycle phase/count preservation;
+6. compatible nonzero channel progress/carry/history preservation;
+7. returned-soul-period mismatch rejection;
+8. Mastery-period mismatch rejection;
+9. cycle-duration mismatch rejection;
+10. canonical sorted mismatch diagnostics and exact no mutation;
+11. strict complete access/source validation for assignment entry and commit;
+12. same-loadout redispatch rate idempotency;
+13. real production core-rate change across Man-at-Arms/Scribe boundary;
+14. `OUTPUT_CHANNEL_RATE` `ALWAYS` Form modifier;
+15. `OUTPUT_ITEM`, `OUTPUT_KIND`, Threshold-tag, and lifecycle condition matrix;
+16. multiple modifier authored-order/floor behavior;
+17. lifecycle multiplier applied last and once;
+18. irrelevant modifier ignore and relevant unsupported/malformed rejection;
+19. exact `500_000`, `7_200_000`, `6_000_000`, `×1.20` fixture;
+20. carry-aware minimal-millisecond ETA and checked overflow/error behavior;
+21. progress-tenths flooring and maximum `99.9%`;
+22. locked, unavailable, inactive, invalid, and Essence query matrix;
+23. repeated modified redispatch non-compounding;
+24. return-to-prior-loadout baseline restoration;
+25. full `1 -> 3 -> 2 -> 1` two-Threshold identity/source-isolation sequence;
+26. regular/irregular chunk equality around the rate-change boundary;
+27. schema-v3 round trip and absence of signature/rate/trace/percentage/ETA artifacts;
+28. no clock, frame, scene, save, report, forecast, UI, platform, progression-evaluator, or later modifier-source ownership.
+
+### 26.3 Exact fixtures
+
+Compatible production Forms:
+
+```text
+Man-at-Arms returned period = 1000 ms
+Scribe returned period = 1000 ms
+Man-at-Arms Mastery period = 60000 ms
+Scribe Mastery period = 60000 ms
+both cycle durations = 60000 ms
+```
+
+Canonical acquisition fixture:
+
+```text
+copied channel baseline = 1000000 subunits / 14400000 ms
+stored progress = 500000
+stored carry = 0
+
+baseline current-context ETA = 7200000 ms
+copied active-Form multiplier = 1200000
+modified current-context rate = 1200000 / 14400000 ms
+modified current-context ETA = 6000000 ms
+stored progress after loadout change = 500000
+```
+
+The service must prove the ETA is the minimum integer millisecond duration and that one subsequent `6000000` ms productive segment banks exactly one whole unit.
+
+### 26.4 Required trace markers
+
+```text
+TRACE M04D3 compatible_swap_preserves_core_and_channel_residuals=PASS
+TRACE M04D3 incompatible_return_period_rejected=PASS
+TRACE M04D3 incompatible_mastery_period_rejected=PASS
+TRACE M04D3 incompatible_cycle_duration_rejected=PASS
+TRACE M04D3 output_modifier_rate_before=1000000_after=1200000
+TRACE M04D3 progress=500000_eta_before=7200000_eta_after=6000000
+TRACE M04D3 old_context_then_new_context_banks_one=PASS
+TRACE M04D3 repeated_redispatch_non_compounding=PASS
+TRACE M04D3 return_to_prior_loadout_restores_baseline=PASS
+TRACE M04D3 sequence_1_3_2_1_identity=PASS
+TRACE M04D3 inactive_query_has_progress_no_eta=PASS
+TRACE M04D3 rate_change_chunk_equivalence=PASS
+TRACE M04D3 schema_v3_round_trip_no_rate_eta=PASS
+TRACE M04D3 no_clock_or_later_slice_sources=PASS
+```
+
 The trace requires an explicit isolated `--save-root`, rejects missing/blank/`user://` roots, uses production persistence under that root, exits nonzero on any mismatch, and leaves cleanup to the owner runner.
 
-### 25.5 Owner Windows package
+### 26.5 Owner Windows package
 
 Codex creates:
 
 ```text
-tools/test/owner/run_m04d2_owner_verification.ps1
+tools/test/owner/run_m04d3_owner_verification.ps1
 ```
 
 Expected invocation:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass `
-    -File .\tools\test\owner\run_m04d2_owner_verification.ps1 `
+    -File .\tools\test\owner\run_m04d3_owner_verification.ps1 `
     -CommitSha "<PR_HEAD_SHA>"
 ```
 
-The script preserves the final M04D1 workflow in this exact M04D2 order: Godot 4.7 version validation, full GUT before, focused M04D2, explicit import, isolated real-file trace, exact 14-marker verification, `finally` cleanup, cleanup absence proof, prior-log-tolerant artifact audit, and full GUT after. It records Git-optional SHA evidence, writes one UTF-8 PR-head log, emits a standardized summary, and exits nonzero on any failed step.
+The script preserves the final M04D2 sequence:
+
+```text
+Godot 4.7 version validation
+full GUT before
+focused M04D3
+explicit import
+isolated real-file trace
+exact 14-marker verification
+finally cleanup
+cleanup absence proof
+prior-log-tolerant artifact audit
+full GUT after
+standardized UTF-8 summary
+```
 
 Expected summary:
 
 ```text
 Automated result: PASS
 Failed step count: 0
-Pending interactive checks: None for M04D2
+Pending interactive checks: None for M04D3
 Cleanup result: PASS
 Log path: <generated path>
 ```
 
 No interactive checklist is required.
 
-### 25.6 M04D2 merge evidence
+### 26.6 M04D3 merge evidence
 
-Current Linux focused evidence is implemented in `tests/unit/m04d2` and `tests/integration/m04d2`; as of this correction the focused package contains 15 tests covering the 28 required groups above. Windows owner verification remains pending until the corrected package is rerun against the new PR head.
+M04D3 cannot merge until:
 
-M04D2 cannot merge until:
-
-- accepted `DEC-0038` remains the implemented channel-accumulation contract;
+- proposed `DEC-0039` or a revised owner-approved contract is Accepted;
+- M04D2 remains Merged/Passed;
 - Linux/Codex focused/import/trace/full checks pass;
 - owner Windows verification passes against the exact PR head;
-- all four exact long-duration fixtures and early/late unlock comparison pass;
-- strict eligibility/no-auto-initialization and every failure no-mutation check pass;
-- content revision 2 and compatibility tests pass;
-- Settlement segmentation, event ordering, and one-shot/chunk equality pass;
-- schema remains version 3 and persistence round trips exact state;
-- no M04D3 modifiers/queries, progression evaluator, report/forecast, concurrency, UI, or platform behavior enters the diff;
-- actual scope remains within the approved prompt assessment.
-
-## 26. M04D3 preliminary compatibility/query validation boundary
-
-The M04D3 prompt is not yet drafted. Its fresh planning pass must include:
-
-- exact resolve-old-state-before-change ordering;
-- compatible residual preservation and incompatible-denominator rejection;
-- same-loadout and changed-loadout recall/redispatch matrices;
-- no repeated-rate compounding;
-- `500_000` progress remaining unchanged while ETA moves `7,200,000 -> 6,000,000` under ×1.20;
-- full `1 -> 3 -> 2 -> 1` Threshold/loadout identity behavior;
-- save/load and no persisted effective rate/ETA.
+- all compatibility, no-mutation, modifier, non-compounding, ETA, identity, persistence, and source-ownership groups pass;
+- schema remains version 3 and content revision remains `prototype-content-r2`;
+- no authoritative Recollection/Art/Retinue/support/global modifier state, forecast/report, UI, concurrency, or platform work enters the diff;
+- actual scope remains within the approved assessment.
