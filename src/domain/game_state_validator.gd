@@ -76,7 +76,8 @@ static func _validate_thresholds(state: GameState, registry: ContentRegistry) ->
 		for channel_id in _sorted_keys(threshold.channel_acquisition):
 			var channel := registry.get_record(str(channel_id))
 			if not channel.ok or channel.record.type != "channel" or channel.record.source_threshold_id != str(threshold_id): return _err(ERR_CONTENT, "thresholds.%s.channel_acquisition.%s" % [threshold_id, channel_id])
-			if channel.record.output_item_id == "RES_ESSENCE" or not state.progression.unlocked_output_item_ids.has(StringName(channel.record.output_item_id)): return _err(ERR_CROSS_FIELD, "thresholds.%s.channel_acquisition.%s" % [threshold_id, channel_id])
+			if channel.record.output_item_id == "RES_ESSENCE": return _err(ERR_CROSS_FIELD, "thresholds.%s.channel_acquisition.%s" % [threshold_id, channel_id])
+			if channel.record.progression_required and not state.progression.unlocked_output_item_ids.has(StringName(channel.record.output_item_id)): return _err(ERR_CROSS_FIELD, "thresholds.%s.channel_acquisition.%s" % [threshold_id, channel_id])
 			var acq = threshold.channel_acquisition[channel_id]
 			if not acq is GameState.ThresholdAcquisitionState: return _err(ERR_TYPE, "thresholds.%s.channel_acquisition.%s" % [threshold_id, channel_id])
 			if acq.progress_subunits < 0 or acq.progress_subunits >= FixedPoint.SCALE: return _err(ERR_RANGE, "thresholds.%s.channel_acquisition.%s.progress_subunits" % [threshold_id, channel_id])

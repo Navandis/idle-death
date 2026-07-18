@@ -18,6 +18,12 @@ func test_v2_to_v3_migration_preserves_legacy_acquisition_and_derives_access() -
 	assert_eq(acq.progress_subunits, 250000)
 	assert_eq(acq.rate_carry_units, 10)
 	assert_eq(acq.total_banked_units, 1)
+	var persisted: Dictionary = JsonSaveCodec.new().decode(storage.files[files.primary_path]).snapshot
+	assert_eq(persisted.game_state.progression.unlocked_output_item_ids, ["SOUL_CALLING_SOLDIER"])
+	var service := SaveService.new(storage, files)
+	var reloaded := GameStatePersistenceCoordinator.new(service, ContentRegistry.build(load("res://content/prototype_content_catalog.tres"))).load_runtime()
+	assert_true(reloaded.ok)
+	assert_false(reloaded.migration_persisted)
 
 func test_schema_v3_fixture_round_trips_without_rewrite() -> void:
 	var decoded := JsonSaveCodec.new().decode(FileAccess.get_file_as_bytes(V3_FIXTURE))

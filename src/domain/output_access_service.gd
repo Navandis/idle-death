@@ -53,8 +53,7 @@ func reconcile_available_sources(state: GameState) -> Dictionary:
 	if not validation.ok: return _fail(ERR_STATE_INVALID, validation)
 	var candidate := state.deep_clone()
 	var events: Array = []
-	for item_id in candidate.progression.unlocked_output_item_ids:
-		events.append_array(_initialize_available_sources(candidate, _authored_channels_for_item(str(item_id))))
+	events.append_array(_initialize_available_sources(candidate, _reconcilable_channels(candidate)))
 	if events.is_empty(): return _success([], [], false)
 	var candidate_validation := GameStateValidator.validate(candidate, registry)
 	if not candidate_validation.ok: return _fail(ERR_STATE_INVALID, candidate_validation)
@@ -63,8 +62,8 @@ func reconcile_available_sources(state: GameState) -> Dictionary:
 
 func effective_source_identification(state: GameState, output_item_id: StringName) -> Array:
 	var out: Array = []
-	if not state.progression.unlocked_output_item_ids.has(output_item_id): return out
 	for channel in _authored_channels_for_item(str(output_item_id)):
+		if channel.progression_required and not state.progression.unlocked_output_item_ids.has(output_item_id): continue
 		var tid := StringName(channel.source_threshold_id)
 		if not state.thresholds.has(tid): continue
 		var threshold = state.thresholds[tid]
@@ -85,6 +84,20 @@ func _authored_channels_for_item(item_id: String) -> Array:
 	for id in registry.ids():
 		var rec := registry.get_record(id)
 		if rec.ok and rec.record.type == "channel" and rec.record.output_item_id == item_id and rec.record.output_item_id != ESSENCE_ID:
+			channels.append(rec.record)
+	channels.sort_custom(func(a, b): return a.id < b.id)
+	return channels
+
+func _reconcilable_channels(candidate: GameState) -> Array:
+	## Non-gated channels, such as Broken Watch Provisions, become accessible when
+	## their Threshold is available. Gated channels need global item access first.
+	## This keeps knowledge/access separate without inventing artificial unlocks for
+	## ordinary materials.
+	var channels: Array = []
+	for id in registry.ids():
+		var rec := registry.get_record(id)
+		if not rec.ok or rec.record.type != "channel" or rec.record.output_item_id == ESSENCE_ID: continue
+		if not rec.record.progression_required or candidate.progression.unlocked_output_item_ids.has(StringName(rec.record.output_item_id)):
 			channels.append(rec.record)
 	channels.sort_custom(func(a, b): return a.id < b.id)
 	return channels
