@@ -6,6 +6,8 @@ func _registry() -> ContentRegistry:
 func _state() -> GameState:
 	var state := GameState.new(2000)
 	state.progression.command_tether_capacity = 1
+	state.progression.unlocked_output_item_ids = [&"SOUL_CALLING_SOLDIER"]
+	state.progression.unlocked_output_item_ids = [&"SOUL_CALLING_SOLDIER"]
 	state.forms[&"FORM_MAN_AT_ARMS"] = GameState.FormState.new(true, true, 0, &"TEST")
 	var threshold := GameState.ThresholdState.new()
 	threshold.knowledge_state = &"CHARTED"

@@ -1430,3 +1430,9 @@ M04D3 resolves the old setup to a command boundary and permits changed redispatc
 ### M04E and later systems
 
 M04E consumes the same results for forecast clones and report accumulation. M13 adds richer discovery/insight and presentation without changing Access or retroactively generating output. Progression slices invoke M04D1 access/reconciliation commands rather than writing unlock arrays or acquisition maps directly.
+
+## M04D1 output access realized boundary
+
+M04D1 adds `OutputAccessService` as the focused owner for global output-item access and source reconciliation. The service stores only sorted item IDs on `ProgressionState`; per-source acquisition work remains on `ThresholdState.channel_acquisition`. Unlock and reconciliation commands clone state, initialize only currently available source channels at zero, omit unavailable Thresholds from events, and perform no clock reads, simulation advancement, inventory grants, or elapsed production.
+
+Schema version 3 is now the current writer. The v2-to-v3 migration adds the global access array, and the persistence coordinator finalizes legacy acquisition by deriving valid item access from existing v2 channel records before exposing runtime state.

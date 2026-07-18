@@ -4,7 +4,7 @@ extends RefCounted
 ## Explicit mapper between M04A runtime objects and primitive save snapshots.
 ##
 ## The mapper owns no bytes, files, content Resources, or live state. It writes
-## only schema v2, can still read historical v1 through migration callers, and
+## only schema v3, can still read historical v1 through migration callers, and
 ## converts every authoritative integer to the canonical decimal string required
 ## at the JSON boundary.
 
@@ -32,7 +32,7 @@ static func runtime_to_snapshot(game_state: GameState, time_state: TimeAuthority
 	}
 
 static func snapshot_to_runtime(snapshot: Dictionary) -> Dictionary:
-	var validation := SaveSchemaValidator.validate_v2(snapshot)
+	var validation := SaveSchemaValidator.validate_current(snapshot)
 	if not validation.ok: return validation
 	var game := GameState.new(validation.simulation_time_msec)
 	var g: Dictionary = snapshot.game_state
@@ -63,6 +63,8 @@ static func snapshot_to_runtime(snapshot: Dictionary) -> Dictionary:
 		reaping.started_simulation_msec = SaveInt64.parse(r.started_simulation_msec, false, "").value; reaping.last_configuration_change_simulation_msec = SaveInt64.parse(r.last_configuration_change_simulation_msec, false, "").value
 		game.reapings[StringName(reaping_id)] = reaping
 	game.progression.command_tether_capacity = validation.command_tether_capacity
+	for item_id in validation.get("unlocked_output_item_ids", []):
+		game.progression.unlocked_output_item_ids.append(StringName(item_id))
 	var time := _map_time(snapshot.time_authority, validation)
 	return {"ok": true, "code": OK, "game_state": game, "time_authority_state": time, "save_revision": validation.save_revision, "content_revision": snapshot.content_revision}
 
@@ -73,8 +75,15 @@ static func _game_to_v2(game_state: GameState) -> Dictionary:
 		"forms": _forms_to_snapshot(game_state.forms),
 		"thresholds": _thresholds_to_snapshot(game_state.thresholds),
 		"reapings": _reapings_to_snapshot(game_state.reapings),
-		"progression": {"command_tether_capacity": SaveInt64.format(game_state.progression.command_tether_capacity)},
+		"progression": _progression_to_snapshot(game_state.progression),
 	}
+
+static func _progression_to_snapshot(progression: GameState.ProgressionState) -> Dictionary:
+	var unlocked := []
+	for item_id in progression.unlocked_output_item_ids:
+		unlocked.append(str(item_id))
+	unlocked.sort()
+	return {"command_tether_capacity": SaveInt64.format(progression.command_tether_capacity), "unlocked_output_item_ids": unlocked}
 
 static func _inventory_to_snapshot(inv) -> Dictionary:
 	var entries := {}

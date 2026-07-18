@@ -23,6 +23,10 @@ static func validate(state: GameState, registry: ContentRegistry) -> Dictionary:
 	result = _validate_thresholds(state, registry); if not result.ok: return result
 	result = _validate_reapings(state, registry); if not result.ok: return result
 	if state.progression.command_tether_capacity < 0: return _err(ERR_RANGE, "progression.command_tether_capacity")
+	if state.progression.unlocked_output_item_ids != _sorted_unique_string_names(state.progression.unlocked_output_item_ids): return _err(ERR_CROSS_FIELD, "progression.unlocked_output_item_ids")
+	for item_id in state.progression.unlocked_output_item_ids:
+		var item := registry.get_record(str(item_id))
+		if not item.ok or item.record.type != "item" or str(item_id) == "RES_ESSENCE": return _err(ERR_CONTENT, "progression.unlocked_output_item_ids.%s" % item_id)
 	var active := 0
 	for reaping in state.reapings.values(): if reaping.is_active: active += 1
 	if active > state.progression.command_tether_capacity: return _err(ERR_CROSS_FIELD, "reapings.active")
@@ -72,6 +76,7 @@ static func _validate_thresholds(state: GameState, registry: ContentRegistry) ->
 		for channel_id in _sorted_keys(threshold.channel_acquisition):
 			var channel := registry.get_record(str(channel_id))
 			if not channel.ok or channel.record.type != "channel" or channel.record.source_threshold_id != str(threshold_id): return _err(ERR_CONTENT, "thresholds.%s.channel_acquisition.%s" % [threshold_id, channel_id])
+			if channel.record.output_item_id == "RES_ESSENCE" or not state.progression.unlocked_output_item_ids.has(StringName(channel.record.output_item_id)): return _err(ERR_CROSS_FIELD, "thresholds.%s.channel_acquisition.%s" % [threshold_id, channel_id])
 			var acq = threshold.channel_acquisition[channel_id]
 			if not acq is GameState.ThresholdAcquisitionState: return _err(ERR_TYPE, "thresholds.%s.channel_acquisition.%s" % [threshold_id, channel_id])
 			if acq.progress_subunits < 0 or acq.progress_subunits >= FixedPoint.SCALE: return _err(ERR_RANGE, "thresholds.%s.channel_acquisition.%s.progress_subunits" % [threshold_id, channel_id])

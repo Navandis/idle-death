@@ -86,6 +86,7 @@ func test_reconciliation_candidate_preserves_v2_gameplay_substates() -> void:
 	threshold.channel_acquisition[&"CHANNEL_GLOAMWOOD_SOLDIER_SOULS"] = GameState.ThresholdAcquisitionState.new(123, 4, 5)
 	game.thresholds[&"THR_GLOAMWOOD"] = threshold
 	game.progression.command_tether_capacity = 1
+	game.progression.unlocked_output_item_ids = [&"SOUL_CALLING_SOLDIER"]
 	var reaping := GameState.ReapingState.new()
 	reaping.threshold_id = &"THR_GLOAMWOOD"
 	reaping.is_active = true

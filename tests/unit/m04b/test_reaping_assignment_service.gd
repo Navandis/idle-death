@@ -9,6 +9,7 @@ func _service() -> ReapingAssignmentService:
 func _base_state(time_msec := 1000, tethers := 1) -> GameState:
 	var state := GameState.new(time_msec)
 	state.progression.command_tether_capacity = tethers
+	state.progression.unlocked_output_item_ids = [&"SOUL_CALLING_SOLDIER"]
 	state.forms[&"FORM_MAN_AT_ARMS"] = GameState.FormState.new(true, true, 0, &"TEST")
 	state.forms[&"FORM_SCRIBE"] = GameState.FormState.new(true, true, 0, &"TEST")
 	var gloamwood := GameState.ThresholdState.new()

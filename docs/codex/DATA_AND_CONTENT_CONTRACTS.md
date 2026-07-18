@@ -2174,3 +2174,9 @@ M04D3 will:
 - prevent repeated redispatch compounding;
 - expose a pure non-persisted time-to-next-unit query;
 - retain stored percentage when future rate changes.
+
+## Schema v3 — M04D1 output access
+
+Schema v3 keeps the v2 envelope, codec, content revision, time-authority state, and gameplay families. Its only new wire field is `game_state.progression.unlocked_output_item_ids`, a sorted unique array of canonical non-Essence output item IDs.
+
+Version 2 remains a frozen historical shape. The pure v2-to-v3 migration adds an empty access array. During atomic load upgrade, content-aware finalization derives access from valid legacy `channel_acquisition` entries, preserves progress/carry/banked totals exactly, and initializes any other currently available matching source at zero.

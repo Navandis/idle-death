@@ -2869,3 +2869,7 @@ When a slice reveals a planning problem:
 5. resume only after the revised definition or prompt is approved.
 
 The commercial save-format/threat-model review remains a release gate, not an excuse to add encryption, binary encoding, Steam Cloud, or a backend to the 0–90 minute prototype without a new approved milestone.
+
+### M04D1 implementation evidence
+
+M04D1 is implemented in this branch with schema v3 output access, legacy acquisition finalization, focused unit/integration tests, deterministic trace markers, and a Windows owner-verification runner. Windows owner execution remains pending until the owner runs `tools/test/owner/run_m04d1_owner_verification.ps1`.
