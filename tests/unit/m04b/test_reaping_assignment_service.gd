@@ -110,19 +110,15 @@ func test_redispatch_same_loadout_preserves_first_start_and_frozen_state() -> vo
 	assert_eq(reaping.cycle_phase_msec, 5)
 	assert_eq(reaping.flow_carry_units[&"FLOW_TEST"], 2)
 
-func test_changed_redispatch_requires_resolution_for_nonzero_phase_or_carry() -> void:
+func test_changed_redispatch_preserves_residuals_when_denominators_match() -> void:
 	var state := _base_state()
 	assert_true(_dispatch_active(state).success)
 	assert_true(_service().recall(state, &"THR_GLOAMWOOD", 1).success)
 	state.reapings[&"THR_GLOAMWOOD"].cycle_phase_msec = 1
-	var rejected := _service().redispatch(state, &"THR_GLOAMWOOD", &"FORM_SCRIBE", &"WRIT_STANDARD", 2)
-	assert_false(rejected.success)
-	assert_eq(rejected.error_code, ReapingAssignmentService.REAPING_RESOLUTION_REQUIRED)
-	assert_eq(state.reapings[&"THR_GLOAMWOOD"].form_id, &"FORM_MAN_AT_ARMS")
-	state.reapings[&"THR_GLOAMWOOD"].cycle_phase_msec = 0
 	var accepted := _service().redispatch(state, &"THR_GLOAMWOOD", &"FORM_SCRIBE", &"WRIT_STANDARD", 2)
-	assert_true(accepted.success)
+	assert_true(accepted.success, accepted.developer_details)
 	assert_eq(state.reapings[&"THR_GLOAMWOOD"].form_id, &"FORM_SCRIBE")
+	assert_eq(state.reapings[&"THR_GLOAMWOOD"].cycle_phase_msec, 1)
 
 func test_form_exclusivity_and_same_loadout_on_different_threshold_identity() -> void:
 	var state := _base_state(1000, 2)
@@ -244,15 +240,14 @@ func test_revision_and_record_failure_matrix_preserves_whole_state() -> void:
 	_assert_failure_unchanged(state, func(): return _service().redispatch(state, &"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD", 1), ReapingAssignmentService.REAPING_STALE_ASSIGNMENT_REVISION)
 	_assert_failure_unchanged(state, func(): return _service().redispatch(state, &"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD", 99), ReapingAssignmentService.REAPING_STALE_ASSIGNMENT_REVISION)
 
-func test_resolution_required_separates_phase_and_carry() -> void:
+func test_changed_redispatch_no_longer_rejects_resolved_residuals() -> void:
 	var state := _base_state()
 	assert_true(_dispatch_active(state).success)
 	assert_true(_service().recall(state, &"THR_GLOAMWOOD", 1).success)
-	state.reapings[&"THR_GLOAMWOOD"].cycle_phase_msec = 1
-	_assert_failure_unchanged(state, func(): return _service().redispatch(state, &"THR_GLOAMWOOD", &"FORM_SCRIBE", &"WRIT_STANDARD", 2), ReapingAssignmentService.REAPING_RESOLUTION_REQUIRED)
-	state.reapings[&"THR_GLOAMWOOD"].cycle_phase_msec = 0
-	state.reapings[&"THR_GLOAMWOOD"].flow_carry_units[&"FLOW_TEST"] = 1
-	_assert_failure_unchanged(state, func(): return _service().redispatch(state, &"THR_GLOAMWOOD", &"FORM_SCRIBE", &"WRIT_STANDARD", 2), ReapingAssignmentService.REAPING_RESOLUTION_REQUIRED)
+	state.reapings[&"THR_GLOAMWOOD"].flow_carry_units[CoreFlowKeys.RETURNS_PROGRESS] = 500000
+	var result := _service().redispatch(state, &"THR_GLOAMWOOD", &"FORM_SCRIBE", &"WRIT_STANDARD", 2)
+	assert_true(result.success, result.developer_details)
+	assert_eq(state.reapings[&"THR_GLOAMWOOD"].flow_carry_units[CoreFlowKeys.RETURNS_PROGRESS], 500000)
 
 func _assert_same_reaping(expected: GameState.ReapingState, actual: GameState.ReapingState) -> void:
 	assert_eq(actual.threshold_id, expected.threshold_id)
