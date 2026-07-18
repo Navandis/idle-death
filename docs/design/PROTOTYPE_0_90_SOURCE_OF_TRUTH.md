@@ -2,8 +2,8 @@
 
 **Document role:** Maintained implementation contract for the playable first-session prototype  
 **Repository path:** `docs/design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md`  
-**Markdown revision:** 5  
-**Last updated:** 2026-07-17  
+**Markdown revision:** 6  
+**Last updated:** 2026-07-18  
 **Primary source:** *Death Idle - Prototype 0-90 Minute Beat Sheet & Implementation Brief v0.1* (12 July 2026)  
 **Broader design companion:** [IDLE_FORK_SOURCE_OF_TRUTH.md](IDLE_FORK_SOURCE_OF_TRUTH.md)
 
@@ -796,7 +796,7 @@ All other Soulweave nodes are presentational placeholders. They show position, a
 | Calling Soul channel | Soldier Souls; common repeatable source; guarantee reaches twelve by 1,000 returns |
 | Form Soul channel | Scribe Form Souls; uncommon repeatable source; guarantee reaches one by 2,500 returns |
 | Material channel | None required for this prototype |
-| Post-settlement | All essential channels remain at lower renewable Settled Passage rates |
+| Post-settlement | Core returned-soul and Essence streams use their existing Settled rules; Soldier and Scribe Soul channels default to their full authored renewable rate |
 
 ### 7.5 Broken Watch
 
@@ -809,7 +809,7 @@ All other Soulweave nodes are presentational placeholders. They show position, a
 | Material channel | Provisions; common repeatable source; guaranteed floor after identification |
 | Form Soul channel | Man-at-Arms Form Soul; uncommon repeatable source; not required for onboarding |
 | Future Calling Soul | Disabled backend slot; Roadwarden is only a later candidate, not prototype content |
-| Post-settlement | All essential channels remain at lower renewable Settled Passage rates |
+| Post-settlement | Core returned-soul and Essence streams use their existing Settled rules; Provisions and Man-at-Arms Form-Soul channels default to their full authored renewable rate |
 
 ### 7.6 Halls and Recollections
 
@@ -844,7 +844,7 @@ All other Soulweave nodes are presentational placeholders. They show position, a
 | Charted | Enough information exists to display backlog and known channels. | Can become Available when requirements are met. |
 | Available | Threshold can accept a Reaping. | Assign Form and Writ. |
 | Active — Overdue | Active Reaping and backlog `> 0`. | Reduce backlog and resolve parallel outputs. |
-| Active — Settled | Active Reaping and backlog `= 0`. | Continue lower renewable production. |
+| Active — Settled | Active Reaping and backlog `= 0`. | Continue renewable production; each core stream or output channel applies its own authored Settled rule. |
 | Inactive — Settled | No Form assigned after settlement. | No production; remains available for later assignment. |
 
 The exact relationship between Detected, Charted, and Available should remain data-driven. Prototype flow may combine an information reveal and availability in one exactly-once transaction when required.

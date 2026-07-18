@@ -3,8 +3,8 @@
 **Document role:** Maintained implementation architecture for the 0-90 minute prototype  
 **Repository path:** `docs/codex/ARCHITECTURE.md`  
 **Document status:** Approved architecture  
-**Architecture revision:** 12  
-**Last updated:** 2026-07-17  
+**Architecture revision:** 13  
+**Last updated:** 2026-07-18  
 **Engine target:** Godot 4.7, GDScript only  
 **Primary design context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md) and [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md)
 
@@ -1417,11 +1417,63 @@ source-version validation
 
 No failure path mutates or replaces the original valid source save. Current v3 loads do not rewrite.
 
-### M04D2 extension seam
+### Realized M04D1 access and migration boundary
 
-M04D2 resolves only channels whose access/source initialization is already authoritative. It does not auto-create gated sources during elapsed production and never backfills locked time. It extends the M04C segment transaction with sorted non-Essence channel deltas, whole inventory banking, and channel events.
+M04D1 implements the approved access foundation through `OutputAccessService`, schema version 3, and the existing persistence coordinator.
 
-Channel Settlement behavior comes from the channel record. Current non-Essence prototype channels default to multiplier `1.0`; core M04C streams retain their existing behavior.
+- `ProgressionState.unlocked_output_item_ids` is sorted, duplicate-free, deep-cloned, and mapped as canonical JSON strings.
+- Current-v3 validation rejects invalid access IDs, contradictory acquisition records, acquisition at unavailable Thresholds, and missing eligible records after reconciliation.
+- Unlock/reconciliation commands use a narrow transitional pre-validation mode, clone state, initialize all eligible available sources at zero, run strict candidate validation, and commit once.
+- Non-progression-required channels reconcile without artificial global access.
+- Typed action results, change summaries, and ordered `OUTPUT_ITEM_UNLOCKED` / `OUTPUT_SOURCE_IDENTIFIED` events are non-persisted.
+- The pure `v2 -> v3` migration remains content-agnostic; the coordinator's deterministic finalizer derives legacy access, preserves acquisition values, maps the finalized runtime back to the v3 snapshot, and persists once before exposure.
+- The real-file trace proves pure migration isolation, legacy preservation, current-v3 no rewrite/rotation, global unlock, unavailable-source omission, later availability reconciliation, no backfill, idempotency, schema-v3 round trip, and source ownership.
+
+PR #13 merged from final head `1171785562c4107921437339187a1e782fe0143b` at merge commit `4569fbfb968deb73f54ba453834dd7af0b04d545`. Final owner verification passed `108/108` full tests and `14/14` focused M04D1 tests, all twelve trace markers, import, cleanup, cleanup proof, and artifact audit.
+
+## Proposed M04D2 discrete-channel accumulation boundary
+
+Subject to approval of `DEC-0038`, M04D2 extends the same `SimulationEngine`; it does not add another elapsed-production owner.
+
+### Strict eligibility and no auto-initialization
+
+The engine begins and ends with complete current-v3 access/source validation. It processes only initialized non-Essence acquisitions at the active Reaping's available Threshold. Locked channels are absent and produce nothing. An eligible missing source is invalid and must be repaired by the M04D1 reconciliation command before simulation; elapsed resolution never creates access or acquisition records.
+
+```text
+validate complete state/content/duration
+    -> deep-clone candidate
+    -> derive M04C lifecycle segments
+    -> for each segment, in sorted channel-ID order:
+         validate initialized eligible source
+         derive authored baseline or channel-Settled rate
+         accumulate progress/carry
+         extract and bank all whole units
+         record channel delta and bounded banking event
+    -> apply lifecycle transition at the existing boundary
+    -> validate complete candidate
+    -> replace live state once
+    -> return core + channel summaries/events
+```
+
+### Rate and content-revision boundary
+
+M04D2 channel rate context is intentionally limited to authored baseline plus the channel's own lifecycle multiplier. Threshold core multipliers never apply to a discrete channel. Form/Writ/Retinue/Recollection and other prospective channel modifiers remain M04D3 work.
+
+The four current non-Essence channel multipliers change to `1.0`, advancing the authoritative content revision to `prototype-content-r2`. Revision 1 and `prototype-m02` remain explicitly compatible. Essence-channel and Threshold core multipliers remain `0.25`.
+
+### Whole banking and source history
+
+Each `ThresholdAcquisitionState` remains the sole source residual owner. Produced subunits are combined with its progress/carry, all complete units are added immediately to normal inventory, and the same quantity increments `total_banked_units`. Existing reservations remain unchanged. No report, claim, or UI step owns the gain.
+
+### Segment and event integration
+
+Channel deltas are added to each M04C segment and to the overall change summary. A channel that banks at least one unit emits one aggregate `OUTPUT_CHANNEL_BANKED` event for that segment at the segment-end cursor. Channel-gain priority sorts before `THRESHOLD_SETTLED` at the same timestamp; events are then ordered by Threshold and channel ID.
+
+Settlement preserves progress/carry. The boundary segment uses the Overdue channel rate, and only the remainder uses the channel's Settled rate. Current production channels remain continuous because their multiplier is `1.0`; copied fixtures prove non-`1.0` segmentation.
+
+### Deferred seams
+
+M04D3 later introduces prospective output-channel modifiers, resolve-before-reconfiguration, compatible denominator checks, non-compounding, and ETA queries. M04E consumes the same core/channel results for forecast and report views. M04D2 adds no new schema, clock, concurrency, progression evaluator, or presentation owner.
 
 ### M04D3 extension seam
 

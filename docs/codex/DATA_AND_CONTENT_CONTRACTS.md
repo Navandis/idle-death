@@ -3,8 +3,8 @@
 **Document role:** Canonical prototype data, runtime-state, ID, and serialization contracts  
 **Repository path:** `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`  
 **Document status:** Approved architecture contract  
-**Revision:** 14  
-**Last updated:** 2026-07-17
+**Revision:** 15  
+**Last updated:** 2026-07-18
 
 ## 1. Purpose
 
@@ -2154,17 +2154,145 @@ For M04D1:
 
 The query does not persist an insight meter or mutate content.
 
-### M04D2 planned accumulation contract
+## Proposed M04D2 discrete-channel accumulation contract
 
-M04D2 will:
+This section is proposed with `DEC-0038` and becomes authoritative when the M04D2 prompt is approved.
 
-- process only initialized eligible non-Essence channels;
-- never auto-unlock or backfill a source;
-- preserve Threshold-owned normalized progress/carry;
-- bank whole inventory and source-history totals;
-- use channel-specific Settlement multipliers;
-- set current non-Essence prototype channel multipliers to `1.0` before relying on them;
-- leave Essence in the M04C core path.
+### Content revision and authored values
+
+M04D2 advances normalized content to:
+
+```text
+CURRENT_REVISION = "prototype-content-r2"
+COMPATIBLE_REVISIONS = [
+    "prototype-content-r1",
+    "prototype-content-r2",
+    "prototype-m02"
+]
+```
+
+The four current non-Essence output channels use:
+
+```text
+settled_multiplier_subunits = 1_000_000
+```
+
+Both Essence channels and both Threshold core multipliers remain `250_000`. Channel IDs, output items, source Thresholds, periods, access requirements, and discovery metadata do not change. Historical revision-1 fixtures remain unchanged and compatible; new saves use revision 2.
+
+### Simulation eligibility
+
+M04D2 resolves a channel only when:
+
+```text
+one Reaping is active at the channel's Threshold
+Threshold is AVAILABLE
+channel relationship is enabled, referenced, and correctly owned
+output item is valid, enabled, whole-unit, and non-Essence
+ThresholdAcquisitionState already exists
+and access is satisfied when progression_required == true
+```
+
+Channels are sorted by canonical channel ID. The engine does not create access or acquisition state. A locked gated channel is ineligible and produces nothing. A currently eligible missing record is an invalid complete state.
+
+### Rate plan
+
+For each M04C lifecycle segment:
+
+| Context | Effective M04D2 channel rate |
+|---|---|
+| Overdue | Authored normalized channel rate |
+| Settled | Authored normalized channel rate multiplied once by that channel's Settled multiplier |
+
+The Threshold core multiplier is never applied. M04D2 applies no Form, Writ, Retinue, Art, Recollection, support, or global channel modifier; those prospective rate contexts belong to M04D3.
+
+### Accumulation and banking
+
+Given acquisition state `A`, normalized channel rate `R/P`, and segment duration `E`:
+
+```text
+acc = FixedPoint.accumulate_for_elapsed_msec(R, P, E, A.rate_carry_units)
+combined = A.progress_subunits + acc.produced_subunits
+whole = combined / FixedPoint.SCALE
+A.progress_subunits = combined % FixedPoint.SCALE
+A.rate_carry_units = acc.carry_units
+A.total_banked_units += whole
+inventory[channel.output_item_id].total += whole
+```
+
+Every operation is checked signed-64-bit arithmetic. Existing inventory reservations are preserved. Missing inventory entries are created only when at least one whole unit banks. A progress-only segment creates no fractional inventory entry.
+
+Required ranges after every successful segment:
+
+```text
+0 <= progress_subunits < FixedPoint.SCALE
+0 <= rate_carry_units < channel.period_msec
+0 <= total_banked_units <= INT64_MAX
+```
+
+### Channel delta record
+
+Each changed channel contributes one canonical delta to the segment and overall result:
+
+```text
+channel_id: StringName
+output_item_id: StringName
+banked_units_delta: int
+progress_subunits_before: int
+progress_subunits_after: int
+rate_carry_units_before: int
+rate_carry_units_after: int
+total_banked_units_before: int
+total_banked_units_after: int
+```
+
+Delta arrays are sorted by channel ID. They are result records, not save authority.
+
+### Banking event
+
+One segment-level aggregate event is emitted when `banked_units_delta > 0`:
+
+```text
+event_type = OUTPUT_CHANNEL_BANKED
+occurred_simulation_msec = segment end cursor
+priority = channel gain priority, before lifecycle transition
+subject_id = Threshold ID
+source_id = channel ID
+payload = {
+    output_item_id,
+    quantity,
+    lifecycle_state,
+    total_banked_units,
+    progress_subunits_after
+}
+reportable = true
+tutorial_relevant = true
+```
+
+A progress-only delta emits no event. Events are ordered by time, priority, Threshold ID, then channel ID and are not persisted.
+
+### Exact production fixtures
+
+All fixtures begin with eligible zeroed acquisition records, no channel inventory, and zero channel residuals.
+
+| Fixture | Expected channel result |
+|---|---|
+| Gloamwood, 2 Overdue hours | Soldier Souls `24`; Scribe progress `250_000` |
+| Gloamwood, 8 Overdue hours | Soldier Souls `96`; Scribe Form Souls `1`, progress `0` |
+| Broken Watch, 6 Overdue hours | Provisions `720`; Man-at-Arms Form Soul progress `250_000` |
+| Broken Watch, 24 Overdue hours | Provisions `2_880`; Man-at-Arms Form Souls `1`, progress `0` |
+
+A late-unlock fixture resolves six hours while the Scribe channel is locked, unlocks it at the exact cursor, then resolves two active hours. The channel ends at `250_000` progress and receives no six-hour backfill. An early-unlock eight-hour state banks one whole Scribe Form Soul.
+
+A copied Settlement fixture uses one returned-soul backlog, a synthetic channel baseline of one whole unit per `1_000` ms, channel Settled multiplier `0.5`, and a `2_000` ms call. The existing core boundary remains `870` ms; channel work uses the Overdue rate through that boundary and the Settled rate afterward.
+
+### Recall and persistence
+
+- Recall/inactivity changes no channel progress, carry, banked history, or inventory.
+- Same-loadout redispatch resumes the same Threshold-owned source state.
+- Changed-loadout compatibility and modifier re-derivation remain M04D3.
+- Schema version 3 persists inventory and acquisition values exactly.
+- Events, deltas, effective rates, and ETAs are not serialized.
+- Essence remains solely in the M04C `ReapingState.flow_carry_units` path and must never appear in channel acquisition.
 
 ### M04D3 planned rate-context contract
 

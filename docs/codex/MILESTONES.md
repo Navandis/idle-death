@@ -3,8 +3,8 @@
 **Document role:** Approved implementation sequence and acceptance map for the 0–90 minute prototype  
 **Repository path:** `docs/codex/MILESTONES.md`  
 **Document status:** Approved rolling-wave milestone map  
-**Milestone-map revision:** 21  
-**Last updated:** 2026-07-17  
+**Milestone-map revision:** 22  
+**Last updated:** 2026-07-18  
 **Primary context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md), [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md), [Architecture](ARCHITECTURE.md), [Data contracts](DATA_AND_CONTENT_CONTRACTS.md), [Testing](TESTING_AND_VALIDATION.md), [Owner verification](OWNER_VERIFICATION_WORKFLOW.md), [Milestone recalibration](MILESTONE_RECALIBRATION_PROPOSAL.md), and [Decisions](DECISIONS.md)
 
 ## 1. Purpose and authority
@@ -15,7 +15,7 @@ Use the source hierarchy in `AGENTS.md`. A milestone definition cannot weaken a 
 
 ## 2. Current repository baseline
 
-After M04C completion:
+After M04D1 completion:
 
 - Godot 4.7, GDScript, the 1920 × 1080 reference viewport, resizing/stretch settings, and a temporary dry-run main scene exist.
 - `AGENTS.md`, project Codex configuration, the maintained design sources, the architecture documents, the approved `PROMPT_TEMPLATE.md`, and `OWNER_VERIFICATION_WORKFLOW.md` are present in the repository.
@@ -35,7 +35,9 @@ After M04C completion:
 - M04B merged through PR #9 at final head `5301c94bfd0fb837f9961fda624d7559042327e2` and merge commit `c641d74cebedf07c51ebb579cccee21db7aa2410`; Linux/Codex and owner Windows verification passed.
 - M04C added the transactional `SimulationEngine`, checked core rate plans, exact Overdue-to-Settled segmentation, stable `CoreFlowKeys`, whole-return/Essence banking, Mastery/cycle resolution, typed result/segment/event records, schema-v2 residual validation, supplied-duration/debug paths, focused tests, real-file trace, and corrected Windows owner package.
 - M04C merged through PR #12 at final head `acb48d0045e41a0f7d73f561e5c3756f8668dd46` and merge commit `719592c85ca4e90ecd5df4593e37a81d36b2789e`; Linux/Codex and owner Windows verification passed.
-- The repository still has no non-Essence output-channel accumulation, forecast/report layer, application shell, or player-facing gameplay UI.
+- M04D1 added schema version 3, global prospective output-item Access, `OutputAccessService`, strict/transitional access-source validation, content-aware v2 finalization, typed results/events, source reconciliation, no-backfill proofs, a real-file trace, and a corrected Windows owner package.
+- M04D1 merged through PR #13 at final head `1171785562c4107921437339187a1e782fe0143b` and merge commit `4569fbfb968deb73f54ba453834dd7af0b04d545`; Linux/Codex and owner Windows verification passed.
+- The repository still has no elapsed non-Essence output-channel accumulation, output-channel modifiers, acquisition ETA query, forecast/report layer, application shell, or player-facing gameplay UI.
 - Existing dry-run assets and scene work are preserved unless a scoped milestone explicitly replaces or integrates them.
 
 ## 3. Milestone rules
@@ -115,7 +117,7 @@ A conceptual epic uses `Prompt: Not applicable` and `Implementation: Not directl
 | `GATE-REAPING-ASSIGNMENT` | M04B prompt approval | Satisfied by accepted `DEC-0035`: Threshold-scoped operation identity, canonical loadout tuples, revision/episode identity, immutable first-start timestamps, stable recalled records, Form exclusivity, tether derivation, and nonzero carry handling. |
 | `GATE-CORE-RESOLUTION` | M04C prompt approval | Satisfied by accepted `DEC-0036` and approved M04C v0.1: transactional mutation, exact Settlement segmentation, core rate semantics, residual ownership, no-active timeline behavior, and the temporary one-active-Reaping limit. |
 | `GATE-OUTPUT-ACCESS-SCHEMA` | M04D1 prompt approval | Satisfied by accepted `DEC-0037` and approved M04D1 v0.1: access/knowledge/insight separation, schema version 3, global item access, prospective unlocks, available-source initialization, no retroactive production, and no permanent lockout. |
-| `GATE-CHANNEL-ACCUMULATION` | M04D2 prompt approval | Requires M04D1 Merged/Passed, current non-Essence Settlement policy confirmed, and a fresh scope assessment. |
+| `GATE-CHANNEL-ACCUMULATION` | M04D2 prompt approval | Requires M04D1 Merged/Passed and owner approval of `DEC-0038` or a revised contract covering strict initialized-source eligibility, content revision 2, exact whole banking, channel-specific Settlement segmentation, bounded events, persistence, and scope. |
 | `GATE-RATE-CONTEXT-CHANGE` | M04D3 prompt approval | Requires M04D2 Merged/Passed and a fresh compatibility/ETA scope assessment. |
 | `GATE-STEAM-TIME` | The applicable M06 slice prompt/implementation | Satisfied for prompt drafting by `DEC-0024`: use pinned GodotSteam 4.20 and development App ID `480`. M06 must still verify license footprint, wrapper API, explicit initialization, and live Windows behavior. |
 | `GATE-PRODUCTION-OFFLINE` | The final applicable M16 slice merge | Fake-provider automation plus the owner-run Windows/GodotSteam connected, unavailable, reconnect, clock-change, and repeated-load checks must pass. |
@@ -130,7 +132,7 @@ A conceptual epic uses `Prompt: Not applicable` and `Implementation: Not directl
 
 `GATE-CONTENT-CATALOG` was satisfied by M03. PR #7 merged on 2026-07-15 at merge commit `5e2b9b23878c9280f75b987cc9ad567d8980030d`; its final head was `971cdaa0fd46f641ec7409148e259d54f953d8c7`. Linux/Codex and owner Windows verification passed the full and focused suites, explicit import, semantic catalog trace, artifact audit, and Godot Inspector checklist.
 
-`GATE-SLICE-SCOPE` is mandatory for every post-M03 prompt. `GATE-GAMEPLAY-SCHEMA` is fully satisfied by M04A. `GATE-REAPING-ASSIGNMENT` is fully satisfied by M04B. `GATE-CORE-RESOLUTION` is fully satisfied by M04C. `GATE-OUTPUT-ACCESS-SCHEMA` and M04D1 `GATE-SLICE-SCOPE` are satisfied by accepted `DEC-0037` and approved M04D1 v0.1. M04D2 and M04D3 remain blocked on their predecessor slices.
+`GATE-SLICE-SCOPE` is mandatory for every post-M03 prompt. `GATE-GAMEPLAY-SCHEMA` is fully satisfied by M04A. `GATE-REAPING-ASSIGNMENT` is fully satisfied by M04B. `GATE-CORE-RESOLUTION` is fully satisfied by M04C. `GATE-OUTPUT-ACCESS-SCHEMA` is fully satisfied by M04D1 implementation and verification. `GATE-CHANNEL-ACCUMULATION` is pending owner approval of proposed `DEC-0038` with the M04D2 prompt. M04D3 remains blocked on M04D2.
 
 
 When trusted time is unavailable, the approved behavior is to grant no guessed closed-session progress, retain pending reconciliation, and continue monotonic foreground production. No milestone may introduce a local-device-time fallback.
@@ -148,8 +150,8 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 | M04B | Dispatch, recall, and assignment integrity | Implementation slice | Approved | Approved | Merged | Passed |
 | M04C | Single-Reaping core resolver | Implementation slice | Approved | Approved | Merged | Passed |
 | M04D | Output access and discrete-channel progression | Conceptual sub-epic | Approved | Not applicable | Not directly executable | — |
-| M04D1 | Output access and source-identification foundation | Implementation slice | Approved | Approved | Pull request open | Partial |
-| M04D2 | Discrete channel accumulation and long-horizon banking | Implementation slice | Approved | Not drafted | Not started | — |
+| M04D1 | Output access and source-identification foundation | Implementation slice | Approved | Approved | Merged | Passed |
+| M04D2 | Discrete channel accumulation and long-horizon banking | Implementation slice | Approved | Drafted | Not started | — |
 | M04D3 | Compatible rate-context changes and acquisition queries | Implementation slice | Approved | Not drafted | Not started | — |
 | M04E | Forecast clone, report accumulator, and simulation harness | Implementation slice | Approved | Not drafted | Not started | — |
 | M05 | Persistent application shell, navigation, and debug access | Conceptual epic | Approved | Not applicable | Not directly executable | — |
@@ -1136,11 +1138,10 @@ M04D is complete only when M04D1, M04D2, and M04D3 are all Merged and Passed. Th
 **Parent epic:** M04 / M04D  
 **Definition status:** Approved  
 **Prompt status:** Approved  
-**Implementation status:** Pull request open (PR #13, `codex/implement-milestone-m04d1`)
-**Verification status:** Partial; Linux/Codex checks are repeatable, corrected Windows owner evidence remains pending
+**Implementation status:** Merged through PR #13  
+**Verification status:** Passed
 **Recommended Codex task size:** Medium; one access-state, migration, and source-initialization pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M04D1-output-access-source-identification-foundation.md`
-**Current implementation scope:** Schema v3 output access, typed `OutputAccessService` results/events, access-consistency validation, content-aware v2 finalization, real-file trace, corrected owner runner, and final access-validation evidence are in PR #13 on the current correction head; the exact head is reported in the PR handoff and final response.
 
 #### Purpose
 
@@ -1204,6 +1205,26 @@ A developer can unlock an output item globally, identify and initialize every cu
 - Codex creates `tools/test/owner/run_m04d1_owner_verification.ps1`; the owner runs one generated-log package against the exact PR head.
 - No editor, visual, gameplay, audio, A/B, or Steam checklist is required.
 
+#### Completion record
+
+- PR #13 merged on 2026-07-18.
+- Final PR head: `1171785562c4107921437339187a1e782fe0143b`.
+- Merge commit: `4569fbfb968deb73f54ba453834dd7af0b04d545`.
+- Final review surface: 33 changed files, 1,196 additions, and 48 deletions; 25 non-documentation, non-`.uid` source/test files remained below the approved file guardrail, and total additions were already below the 1,500 code/test stop threshold.
+- Added schema version 3, global access state, typed unlock/reconciliation service, complete access/source validation, pure and sequential migration, content-aware finalization, atomic failure preservation, current-v3 no-rewrite behavior, real-file trace, and Windows owner package.
+- Owner Windows verification passed against the final head:
+  - full suite before and after: `108/108` tests and `1,544` assertions;
+  - focused M04D1: `14/14` tests and `193` assertions;
+  - import, all 12 exact trace markers, cleanup, cleanup proof, and artifact audit passed;
+  - failed step count `0`; no interactive checks required.
+- `DEC-0037`, `GATE-OUTPUT-ACCESS-SCHEMA`, and M04D1 `GATE-SLICE-SCOPE` are satisfied.
+
+#### Known risks
+
+- M04D2 must require complete reconciliation and must not auto-create a source during elapsed resolution.
+- Existing revision-1 saves remain compatible when M04D2 advances authored channel balance to content revision 2.
+- Access and source initialization are implemented, but no non-Essence channel produces until M04D2.
+
 #### Follow-on dependencies
 
 - M04D2.
@@ -1215,7 +1236,7 @@ A developer can unlock an output item globally, identify and initialize every cu
 **Work item type:** Implementation slice  
 **Parent epic:** M04 / M04D  
 **Definition status:** Approved  
-**Prompt status:** Not drafted  
+**Prompt status:** Drafted  
 **Implementation status:** Not started  
 **Verification status:** —  
 **Recommended Codex task size:** Medium; one eligible-channel simulation pull request.  
@@ -1223,23 +1244,100 @@ A developer can unlock an output item globally, identify and initialize every cu
 
 #### Purpose
 
-Extend `SimulationEngine` with exact non-Essence accumulation for already-initialized eligible sources, whole banking, channel events, channel-specific Settlement behavior, chunk equality, and persistence.
+Extend the existing transactional `SimulationEngine` with exact production for initialized eligible non-Essence channels, immediate whole inventory banking, source-history counters, channel-specific Settlement segmentation, deterministic result/events, content revision 2, and schema-v3 persistence.
 
-#### Key boundaries
+#### Player or developer outcome
 
-- Depends on M04D1 Merged/Passed and `GATE-CHANNEL-ACCUMULATION`.
-- Locked/uninitialized channels produce nothing and are never auto-created by elapsed simulation.
-- Current non-Essence prototype channel Settled multipliers become `1.0`; later tuning remains data-driven.
-- Essence remains exclusively in M04C.
-- Recall/inactivity freezes Threshold-owned channel state.
-- No loadout-rate compatibility or ETA query; those remain M04D3.
+A developer can resolve long active intervals at Gloamwood and Broken Watch, inspect exact whole output plus fractional progress/carry, prove locked time is never backfilled, pause/resume a Reaping without losing source work, cross Settlement at the correct channel rate, save/load the result, and run one Windows verification package.
 
-#### Required fixtures
+#### Dependencies
 
-- Gloamwood 2h/8h and Broken Watch 6h/24h exact outputs.
-- Locked versus unlocked timing and no-retroactive-backfill comparison.
-- Settlement continuation at channel-specific rate.
-- One-shot/chunk, multi-whole, overflow, event, and schema-v3 round trips.
+- M04D1 Merged and Passed.
+- Proposed `DEC-0038` or an owner-approved replacement accumulation contract.
+- `GATE-SLICE-SCOPE` is completed in the M04D2 draft and must be approved with the prompt.
+- `GATE-CHANNEL-ACCUMULATION` remains pending prompt/decision approval.
+- Existing M04C transaction/segmentation and M04D1 access/source validation remain authoritative.
+
+#### Included scope
+
+- Extend `SimulationEngine`; add no parallel resolver.
+- Require complete current-v3 source reconciliation before simulation.
+- Process initialized eligible non-Essence channels in canonical channel-ID order.
+- Apply authored baseline rate in Overdue segments and the channel's own multiplier in Settled segments.
+- Advance content to `prototype-content-r2`, retain revision-1/`prototype-m02` compatibility, and set current non-Essence channel multipliers to `1.0`.
+- Accumulate exact `progress_subunits` and `rate_carry_units`.
+- Bank every whole unit immediately into inventory and `total_banked_units`.
+- Preserve inventory reservations and all unrelated state.
+- Add deterministic channel deltas and aggregate `OUTPUT_CHANNEL_BANKED` events.
+- Preserve acquisition state through inactivity, recall, same-loadout redispatch, Settlement, chunking, and schema-v3 save/load.
+- Add focused tests, copied lifecycle fixtures, real-file trace, Windows owner runner, and canonical documentation updates.
+
+#### Explicit non-goals
+
+- Output-channel Form/Writ/Retinue/Art/Recollection/support/global modifiers; those begin in M04D3.
+- Changed-loadout compatibility, denominator conversion, non-compounding tests, progress/ETA query, or modifier trace.
+- Access grants, source initialization, Threshold availability mutation, discovery/insight progression, guarantees, milestones, recipes, Halls, Retinues, support, concurrency, forecasts, reports, UI, Steam, or trusted-time acquisition.
+- Schema version 4, a save migration, new production IDs, or changes to core M04C balance/behavior.
+
+#### Acceptance criteria
+
+- Simulation validates complete access/source state and never unlocks or initializes a channel.
+- Locked gated channels produce nothing; an eligible missing source rejects without mutation.
+- No-active and inactive behavior retain the M04C timeline-only contract.
+- Gloamwood 2h yields exactly 24 Soldier Souls and `250_000` Scribe progress.
+- Gloamwood 8h yields exactly 96 Soldier Souls and one Scribe Form Soul.
+- Broken Watch 6h yields exactly 720 Provisions and `250_000` Man-at-Arms Form-Soul progress.
+- Broken Watch 24h yields exactly 2,880 Provisions and one Man-at-Arms Form Soul.
+- Whole units update normal inventory and source `total_banked_units` immediately; reservations are unchanged.
+- Recall/inactivity freezes channel state; same-loadout redispatch resumes it.
+- Six locked hours followed by unlock and two active hours yields only `250_000` Scribe progress, while eight unlocked hours banks one.
+- One-shot and regular/irregular chunks produce exact canonical equality.
+- Settlement uses Overdue channel rate through the exact boundary and channel Settled rate only afterward; progress/carry never reset.
+- Current non-Essence channels use multiplier `1.0`; Essence and Threshold core multipliers remain `0.25`.
+- Content revision becomes `prototype-content-r2`; revision 1 and `prototype-m02` remain explicitly compatible.
+- Progress-only segments emit no banking event; banked segments emit bounded, complete, ordered events.
+- Every content/arithmetic/inventory/history/residual failure preserves exact state.
+- Schema v3 round-trips exact inventory/acquisition state and persists no events/deltas/rates.
+- Essence is not duplicated in `channel_acquisition`, and core Reaping flow ownership remains unchanged.
+
+#### Automated verification
+
+- Exact content revision/multiplier compatibility matrix.
+- Eligibility, locked/ineligible, missing-source, inactive, and no-active matrices.
+- Four production-duration fixtures and residual continuation.
+- Early/late unlock and recall/redispatch continuity.
+- One-shot, regular chunk, irregular chunk, and multi-whole equivalence.
+- Current `1.0` Settlement continuity plus copied non-`1.0` exact boundary segmentation.
+- Inventory reservation, source-history, result-delta, event-order, and progress-only matrices.
+- Overflow/no-mutation matrix.
+- Revision-1 load, revision-2 new save, schema-v3 exact round trip, and non-persisted result artifacts.
+- Source audit for clocks, access mutation, reports, UI, M04D3, and duplicate Essence ownership.
+
+#### Manual verification
+
+- Codex creates `tools/test/owner/run_m04d2_owner_verification.ps1`; the owner runs one generated UTF-8 log package against the exact PR head.
+- No editor, visual, gameplay, audio, A/B, or Steam checklist is required.
+
+#### Demonstration path
+
+- Resolve the four production fixtures and display exact whole/progress results.
+- Compare one-shot with irregular chunks.
+- Resolve six locked hours, unlock, then resolve two hours and prove no backfill.
+- Recall after partial progress, advance inactive time, redispatch the same loadout, and prove active-time-only completion.
+- Cross the exact 870-ms core Settlement boundary in a copied channel fixture and prove lifecycle-specific channel arithmetic/event order.
+- Save/load the final state and compare canonical state.
+
+#### Save/load expectations
+
+Schema version 3 remains current. New saves use content revision 2. Revision-1 and `prototype-m02` saves remain compatible. Inventory totals, reservations, acquisition progress/carry/banked totals, lifecycle, and simulation state round-trip exactly. Events, deltas, rates, and ETAs do not persist.
+
+#### Known risks
+
+- Using transitional rather than complete access validation could let simulation skip a missing eligible source silently.
+- Applying both Threshold and channel Settled multipliers would underproduce.
+- Updating multipliers without advancing the content revision would violate compatibility governance.
+- Per-unit loops or events would make long offline intervals unbounded.
+- Mixing M04D3 modifiers into this slice would exceed the intended behavioral boundary.
 
 #### Follow-on dependencies
 
