@@ -151,7 +151,7 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 | M04C | Single-Reaping core resolver | Implementation slice | Approved | Approved | Merged | Passed |
 | M04D | Output access and discrete-channel progression | Conceptual sub-epic | Approved | Not applicable | Not directly executable | — |
 | M04D1 | Output access and source-identification foundation | Implementation slice | Approved | Approved | Merged | Passed |
-| M04D2 | Discrete channel accumulation and long-horizon banking | Implementation slice | Approved | Approved | Not started | — |
+| M04D2 | Discrete channel accumulation and long-horizon banking | Implementation slice | Approved | Approved | Pull request open | Partial |
 | M04D3 | Compatible rate-context changes and acquisition queries | Implementation slice | Approved | Not drafted | Not started | — |
 | M04E | Forecast clone, report accumulator, and simulation harness | Implementation slice | Approved | Not drafted | Not started | — |
 | M05 | Persistent application shell, navigation, and debug access | Conceptual epic | Approved | Not applicable | Not directly executable | — |
@@ -1237,8 +1237,8 @@ A developer can unlock an output item globally, identify and initialize every cu
 **Parent epic:** M04 / M04D  
 **Definition status:** Approved  
 **Prompt status:** Approved  
-**Implementation status:** Not started  
-**Verification status:** —  
+**Implementation status:** Pull request open
+**Verification status:** Partial
 **Recommended Codex task size:** Medium; one eligible-channel simulation pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M04D2-discrete-channel-accumulation-banking.md`
 
@@ -1301,6 +1301,8 @@ A developer can resolve long active intervals at Gloamwood and Broken Watch, ins
 - Essence is not duplicated in `channel_acquisition`, and core Reaping flow ownership remains unchanged.
 
 #### Automated verification
+
+Current PR #14 head implements the M04D2 elapsed-channel owner in `SimulationEngine`, content revision `prototype-content-r2`, strict initialized-source production, immediate banking, deterministic channel deltas/events, schema-v3 persistence coverage, the strengthened fourteen-marker trace, and the restored final owner workflow. Verification remains **Partial** until the owner reruns the corrected Windows package against the new PR head.
 
 - Exact content revision/multiplier compatibility matrix.
 - Eligibility, locked/ineligible, missing-source, inactive, and no-active matrices.

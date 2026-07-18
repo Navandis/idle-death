@@ -2,7 +2,7 @@
 
 **Document role:** Canonical test strategy, commands, fixture rules, and manual validation flows
 **Repository path:** `docs/codex/TESTING_AND_VALIDATION.md`
-**Document status:** Approved validation plan through M04D1 with M04D2 approved and M04D3 definition
+**Document status:** Approved validation plan through M04D2 implementation with M04D3 definition
 **Validation revision:** 20
 **Last updated:** 2026-07-18
 **Engine target:** Godot 4.7 standard build, GDScript only
@@ -2007,7 +2007,7 @@ powershell -NoProfile -ExecutionPolicy Bypass `
     -CommitSha "<PR_HEAD_SHA>"
 ```
 
-The script must preserve the final M04D1 workflow: resolved Godot 4.7 executable, Git-optional SHA evidence, one UTF-8 PR-head log, full suite before, focused M04D2, import, isolated trace, stable 14-marker verification, `finally` cleanup/proof, prior-log-tolerant artifact audit, full suite after, standardized summary, and nonzero failure exit.
+The script preserves the final M04D1 workflow in this exact M04D2 order: Godot 4.7 version validation, full GUT before, focused M04D2, explicit import, isolated real-file trace, exact 14-marker verification, `finally` cleanup, cleanup absence proof, prior-log-tolerant artifact audit, and full GUT after. It records Git-optional SHA evidence, writes one UTF-8 PR-head log, emits a standardized summary, and exits nonzero on any failed step.
 
 Expected summary:
 
@@ -2022,6 +2022,8 @@ Log path: <generated path>
 No interactive checklist is required.
 
 ### 25.6 M04D2 merge evidence
+
+Current Linux focused evidence is implemented in `tests/unit/m04d2` and `tests/integration/m04d2`; as of this correction the focused package contains 15 tests covering the 28 required groups above. Windows owner verification remains pending until the corrected package is rerun against the new PR head.
 
 M04D2 cannot merge until:
 

@@ -8,8 +8,8 @@ extends Resource
 ## scanning; ContentRegistry validates these explicit references into immutable
 ## runtime lookup records.
 
-@export var content_revision: String = "prototype-content-r1"
-@export var compatible_save_revisions: Array[String] = ["prototype-content-r1", "prototype-m02"]
+@export var content_revision: String = "prototype-content-r2"
+@export var compatible_save_revisions: Array[String] = ["prototype-content-r1", "prototype-content-r2", "prototype-m02"]
 @export var terminology: CoreTerminologyDefinition
 @export var items: Array[ItemDefinition] = []
 @export var forms: Array[FormDefinition] = []

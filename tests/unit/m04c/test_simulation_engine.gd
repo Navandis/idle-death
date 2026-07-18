@@ -165,7 +165,7 @@ func test_duration_configuration_and_failure_results_preserve_state() -> void:
 	var two_active := _state(1000, true)
 	two_active.progression.command_tether_capacity = 2
 	two_active.forms[&"FORM_SCRIBE"] = GameState.FormState.new(true, true, 0, &"TEST")
-	var watch := GameState.ThresholdState.new(); watch.knowledge_state = &"CHARTED"; watch.availability_state = &"AVAILABLE"; watch.lifecycle_state = &"OVERDUE"; watch.remaining_backlog = 1000; two_active.thresholds[&"THR_BROKEN_WATCH"] = watch
+	var watch := GameState.ThresholdState.new(); watch.knowledge_state = &"CHARTED"; watch.availability_state = &"AVAILABLE"; watch.lifecycle_state = &"OVERDUE"; watch.remaining_backlog = 1000; watch.channel_acquisition[&"CHANNEL_BROKEN_WATCH_PROVISIONS"] = GameState.ThresholdAcquisitionState.new(); two_active.thresholds[&"THR_BROKEN_WATCH"] = watch
 	var second := GameState.ReapingState.new(); second.threshold_id = &"THR_BROKEN_WATCH"; second.is_active = true; second.form_id = &"FORM_SCRIBE"; second.writ_id = &"WRIT_STANDARD"; second.assignment_revision = 1; two_active.reapings[&"THR_BROKEN_WATCH"] = second
 	_assert_failure_result(_engine().resolve_elapsed(two_active, 1000), SimulationEngine.ERR_UNSUPPORTED_CONCURRENCY, 1000, _canonical_state_for_unit(two_active), two_active)
 	var retinue := _state(); retinue.reapings[&"THR_GLOAMWOOD"].retinue_ids.append(&"RET_SOLDIER_COMPANY")
