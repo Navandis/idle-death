@@ -32,9 +32,9 @@ const DISCOVERY_STATES := ["UNKNOWN", "IDENTIFIED", "CHARTED"]
 const FREQUENCY_TIERS := ["NONE", "COMMON", "UNCOMMON"]
 const APPROVED_TAGS := ["TAG_FOREST", "TAG_SETTLEMENT", "TAG_ROAD", "TAG_MARTIAL"]
 const RETINUE_CATEGORIES := ["MARTIAL", "LOGISTICS", "EXTRACTION"]
-const OUTPUT_KIND_CONDITIONS := ["WHOLE_SOUL"]
+const OUTPUT_KIND_CONDITIONS := ["RESOURCE", "STORE", "WHOLE_SOUL"]
 const SUPPORT_STATES := ["FULL", "REDUCED"]
-const THRESHOLD_LIFECYCLES := ["STANDING", "SETTLED"]
+const THRESHOLD_LIFECYCLES := ["OVERDUE", "SETTLED", "STANDING"]
 const DERIVED_POLICIES := ["", "SUM_REMAINING_COSTS", "LARDER_RESTORE_PLUS_FIRST_BATCH_AND_BUFFER"]
 const GROUP_SPECS := {
 	"items": {"ids": ["RES_ESSENCE", "RES_PROVISIONS", "STORE_RATIONS", "SOUL_CALLING_SOLDIER", "SOUL_FORM_SCRIBE", "SOUL_FORM_MAN_AT_ARMS"], "type": "item"},
@@ -333,8 +333,16 @@ func _normalize_modifiers(modifiers: Array, owner: Resource, field: String) -> A
 		if not SCOPES.has(modifier.scope): _add_error(owner.resource_path, field + ".scope", "approved scope", modifier.scope)
 		if not CONDITIONS.has(modifier.condition): _add_error(owner.resource_path, field + ".condition", "approved condition", modifier.condition)
 		_validate_modifier_operands(modifier, owner, field)
-		result.append({"metric": modifier.metric, "operation": modifier.operation, "scope": modifier.scope, "condition": modifier.condition, "condition_values": modifier.condition_values.duplicate(), "value_subunits": _normalize_decimal(modifier.value, owner, field + ".value")})
+		result.append({"metric": modifier.metric, "operation": modifier.operation, "scope": modifier.scope, "condition": modifier.condition, "condition_values": _normalize_modifier_condition_values(modifier), "value_subunits": _normalize_decimal(modifier.value, owner, field + ".value")})
 	return result
+
+func _normalize_modifier_condition_values(modifier: ModifierDefinition) -> Array[String]:
+	var values := modifier.condition_values.duplicate()
+	if modifier.condition == "THRESHOLD_LIFECYCLE":
+		for i in range(values.size()):
+			if values[i] == "STANDING":
+				values[i] = "OVERDUE"
+	return values
 
 func _normalize_effects(effects: Array, owner: Resource, field: String) -> Array:
 	var result := []

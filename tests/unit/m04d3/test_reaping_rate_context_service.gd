@@ -76,9 +76,12 @@ func test_public_contract_fields_and_eta_display_edges() -> void:
 	for key in ["threshold_id", "channel_id", "output_item_id", "loadout_identity", "access_state", "disclosure_state", "is_active", "lifecycle_state", "progress_subunits", "progress_tenths_percent", "rate_plan", "eta_available", "current_context_eta_msec", "eta_basis", "eta_display"]:
 		assert_true(query.has(key), "missing query key %s" % key)
 	var plan: Dictionary = query.rate_plan
-	for key in ["threshold_id", "channel_id", "output_item_id", "output_kind", "lifecycle_state", "baseline_rate_subunits_per_period", "effective_rate_subunits_per_period", "period_msec", "lifecycle_multiplier_subunits", "applied_modifiers"]:
+	for key in ["threshold_id", "channel_id", "output_item_id", "output_kind", "lifecycle_state", "loadout_identity", "baseline_rate_subunits_per_period", "effective_rate_subunits_per_period", "period_msec", "lifecycle_multiplier_subunits", "applied_modifiers"]:
 		assert_true(plan.has(key), "missing rate-plan key %s" % key)
+	assert_eq(plan.loadout_identity.form_id, "FORM_MAN_AT_ARMS")
 	assert_eq(service.eta_display(0).english_text, "00 hours, 00 minutes, 00 seconds")
+	assert_eq(service.eta_display(0).fallback_text, "00 hours, 00 minutes, 00 seconds")
+	assert_eq(service.eta_display(0).exact_eta_msec, 0)
 	assert_eq(service.eta_display(1).english_text, "00 hours, 00 minutes, 01 second")
 	assert_eq(service.eta_display(86400000).english_text, "01 day, 00 hours, 00 minutes")
 	assert_eq(service.eta_display(100 * 86400000).english_text, "100 days, 00 hours, 00 minutes")
@@ -146,11 +149,12 @@ func test_modifier_fixture_matrix_and_query_uses_shared_plan() -> void:
 	var cases := [
 		["OUTPUT_ITEM", ["SOUL_FORM_SCRIBE"], 1200000],
 		["OUTPUT_ITEM", ["SOUL_CALLING_SOLDIER"], 1000000],
-		["OUTPUT_KIND", ["WHOLE_ITEM"], 1200000],
+		["OUTPUT_KIND", ["WHOLE_SOUL"], 1200000],
 		["OUTPUT_KIND", ["RESOURCE"], 1000000],
 		["THRESHOLD_HAS_ANY_TAG", ["TAG_FOREST"], 1200000],
 		["THRESHOLD_HAS_ANY_TAG", ["TAG_ROAD"], 1000000],
 		["THRESHOLD_LIFECYCLE", ["OVERDUE"], 1200000],
+		["THRESHOLD_LIFECYCLE", ["STANDING"], 1200000],
 		["THRESHOLD_LIFECYCLE", ["SETTLED"], 1000000],
 	]
 	for case in cases:
@@ -158,6 +162,30 @@ func test_modifier_fixture_matrix_and_query_uses_shared_plan() -> void:
 		var p := ReapingRateContextService.new(reg).output_channel_rate_plan(&"THR_GLOAMWOOD", &"FORM_SCRIBE", &"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS", "OVERDUE")
 		assert_true(p.success, str(case) + str(p))
 		assert_eq(p.effective_rate_subunits_per_period, case[2], str(case))
+
+func test_typed_resource_modifier_operands_match_runtime_rate_plan() -> void:
+	var whole_soul_registry := _typed_registry_with_scribe_output_modifier("OUTPUT_KIND", ["WHOLE_SOUL"], 1.2)
+	assert_true(whole_soul_registry.ready, str(whole_soul_registry.diagnostics))
+	var whole_soul_plan := ReapingRateContextService.new(whole_soul_registry).output_channel_rate_plan(&"THR_GLOAMWOOD", &"FORM_SCRIBE", &"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS", "OVERDUE", &"WRIT_STANDARD", [&"RET_SOLDIER_COMPANY"])
+	assert_true(whole_soul_plan.success, str(whole_soul_plan))
+	assert_eq(whole_soul_plan.effective_rate_subunits_per_period, 1200000)
+	assert_eq(whole_soul_plan.loadout_identity.form_id, "FORM_SCRIBE")
+	assert_eq(whole_soul_plan.loadout_identity.writ_id, "WRIT_STANDARD")
+	assert_eq(whole_soul_plan.loadout_identity.ordered_retinue_ids, ["RET_SOLDIER_COMPANY"])
+	var legacy_lifecycle_registry := _typed_registry_with_scribe_output_modifier("THRESHOLD_LIFECYCLE", ["STANDING"], 1.2)
+	assert_true(legacy_lifecycle_registry.ready, str(legacy_lifecycle_registry.diagnostics))
+	var normalized_form: Dictionary = legacy_lifecycle_registry.get_record("FORM_SCRIBE").record
+	assert_eq(normalized_form.traits[0].modifiers[0].condition_values, ["OVERDUE"])
+	var legacy_lifecycle_plan := ReapingRateContextService.new(legacy_lifecycle_registry).output_channel_rate_plan(&"THR_GLOAMWOOD", &"FORM_SCRIBE", &"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS", "OVERDUE")
+	assert_true(legacy_lifecycle_plan.success, str(legacy_lifecycle_plan))
+	assert_eq(legacy_lifecycle_plan.effective_rate_subunits_per_period, 1200000)
+	var invalid_whole_item_registry := _typed_registry_with_scribe_output_modifier("OUTPUT_KIND", ["WHOLE_ITEM"], 1.2)
+	assert_false(invalid_whole_item_registry.ready)
+	var generic_whole_item_registry := _registry_with_scribe_output_modifier("OUTPUT_KIND", ["WHOLE_SOUL"], 1200000)
+	generic_whole_item_registry._records["CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS"].output_item_id = "RES_PROVISIONS"
+	var generic_plan := ReapingRateContextService.new(generic_whole_item_registry).output_channel_rate_plan(&"THR_GLOAMWOOD", &"FORM_SCRIBE", &"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS", "OVERDUE")
+	assert_true(generic_plan.success, str(generic_plan))
+	assert_eq(generic_plan.effective_rate_subunits_per_period, 1000000)
 
 func test_modifier_order_floor_lifecycle_and_failure_matrix() -> void:
 	var registry := _registry_with_scribe_output_modifier("ALWAYS", [], 1500000)
@@ -179,6 +207,7 @@ func test_modifier_order_floor_lifecycle_and_failure_matrix() -> void:
 		func(reg): reg._records["FORM_SCRIBE"].traits[0].modifiers[0].condition = "SUPPORT_STATE",
 		func(reg): reg._records["FORM_SCRIBE"].traits[0].modifiers[0].condition = "OUTPUT_ITEM"; reg._records["FORM_SCRIBE"].traits[0].modifiers[0].condition_values = [],
 		func(reg): reg._records["FORM_SCRIBE"].traits[0].modifiers[0].condition = "OUTPUT_ITEM"; reg._records["FORM_SCRIBE"].traits[0].modifiers[0].condition_values = ["NOPE"],
+		func(reg): reg._records["FORM_SCRIBE"].traits[0].modifiers[0].condition = "OUTPUT_KIND"; reg._records["FORM_SCRIBE"].traits[0].modifiers[0].condition_values = ["WHOLE_ITEM"],
 		func(reg): reg._records["FORM_SCRIBE"].traits[0].modifiers[0].value_subunits = 0,
 	]
 	for failure in failures:
@@ -229,6 +258,7 @@ func test_equal_identity_non_compounding_return_and_chunk_sequence() -> void:
 	assert_true(assignment.redispatch(state, &"THR_GLOAMWOOD", &"FORM_SCRIBE", &"WRIT_STANDARD", 1).success)
 	var b_plan := service.output_channel_rate_plan(&"THR_GLOAMWOOD", &"FORM_SCRIBE", &"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS", "OVERDUE")
 	assert_eq(b_plan.effective_rate_subunits_per_period, 1200000)
+	assert_ne(a_plan.loadout_identity, b_plan.loadout_identity)
 	assert_true(assignment.recall(state, &"THR_GLOAMWOOD", 2).success)
 	assert_true(assignment.redispatch(state, &"THR_GLOAMWOOD", &"FORM_SCRIBE", &"WRIT_STANDARD", 3).success)
 	assert_eq(service.output_channel_rate_plan(&"THR_GLOAMWOOD", &"FORM_SCRIBE", &"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS", "OVERDUE").effective_rate_subunits_per_period, 1200000)
@@ -241,6 +271,35 @@ func _registry_with_scribe_output_modifier(condition: String, values: Array, mul
 	var registry := _registry()
 	registry._records["FORM_SCRIBE"].traits[0].modifiers = [_output_modifier(condition, values, multiplier)]
 	return registry
+
+func _typed_registry_with_scribe_output_modifier(condition: String, values: Array, multiplier: float) -> ContentRegistry:
+	var catalog: ContentCatalog = load("res://content/prototype_content_catalog.tres").duplicate(true)
+	var modifier := ModifierDefinition.new()
+	modifier.metric = "OUTPUT_CHANNEL_RATE"
+	modifier.operation = "MULTIPLY"
+	modifier.scope = "OUTPUT_CHANNEL"
+	modifier.condition = condition
+	var condition_values: Array[String] = []
+	for value in values:
+		condition_values.append(str(value))
+	modifier.condition_values = condition_values
+	modifier.value = multiplier
+	var form: FormDefinition = null
+	for candidate in catalog.forms:
+		if candidate.id == "FORM_SCRIBE":
+			form = candidate.duplicate(true)
+			break
+	assert_not_null(form)
+	var trait_def: TraitDefinition = form.traits[0].duplicate(true)
+	var modifiers: Array[ModifierDefinition] = [modifier]
+	trait_def.modifiers = modifiers
+	var traits: Array[TraitDefinition] = [trait_def]
+	form.traits = traits
+	for i in range(catalog.forms.size()):
+		if catalog.forms[i].id == "FORM_SCRIBE":
+			catalog.forms[i] = form
+			break
+	return ContentRegistry.build(catalog)
 
 func _output_modifier(condition: String, values: Array, multiplier: int) -> Dictionary:
 	return {"metric": "OUTPUT_CHANNEL_RATE", "operation": "MULTIPLY", "scope": "OUTPUT_CHANNEL", "condition": condition, "condition_values": values.duplicate(), "value_subunits": multiplier}

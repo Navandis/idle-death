@@ -2504,6 +2504,11 @@ THRESHOLD_LIFECYCLE
 
 Multiple operands use deterministic any-match semantics. Relevant malformed or unsupported operation/scope/condition data returns a typed failure. Non-`OUTPUT_CHANNEL_RATE` modifiers are irrelevant and ignored.
 
+Canonical M04D3 operand tokens are:
+
+- `OUTPUT_KIND`: `RESOURCE`, `STORE`, or `WHOLE_SOUL`. `WHOLE_SOUL` means channels whose `output_kind` is `WHOLE_ITEM` and whose output item is a Calling Soul or Form Soul; it is not equivalent to generic `WHOLE_ITEM`.
+- `THRESHOLD_LIFECYCLE`: `OVERDUE` or `SETTLED`. Legacy authored `STANDING` is accepted only as an import-time compatibility alias and normalizes to `OVERDUE` before runtime evaluation.
+
 ### Modifier-source boundary
 
 M04D3 executes active Form Trait modifiers only.

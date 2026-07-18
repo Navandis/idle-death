@@ -92,7 +92,7 @@ func _modifier_and_eta_markers() -> bool:
 	var scribe_identity := service.loadout_identity(&"FORM_SCRIBE", &"WRIT_STANDARD")
 	var equal_a := _rate_context.output_channel_rate_plan(&"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", CHANNEL, "OVERDUE")
 	var equal_b := _rate_context.output_channel_rate_plan(&"THR_GLOAMWOOD", &"FORM_SCRIBE", CHANNEL, "OVERDUE")
-	if not (maa_identity != scribe_identity and equal_a.success and equal_b.success and equal_a.effective_rate_subunits_per_period == equal_b.effective_rate_subunits_per_period): return false
+	if not (maa_identity != scribe_identity and equal_a.success and equal_b.success and equal_a.effective_rate_subunits_per_period == equal_b.effective_rate_subunits_per_period and equal_a.loadout_identity != equal_b.loadout_identity): return false
 	_pass("equal_output_loadouts_remain_distinct=PASS")
 	var baseline_state := _state(true)
 	baseline_state.reapings[&"THR_GLOAMWOOD"].form_id = &"FORM_MAN_AT_ARMS"

@@ -20,7 +20,8 @@ const ERR_QUERY_NOT_ELIGIBLE := &"RATE_CONTEXT_QUERY_NOT_ELIGIBLE"
 const ETA_BASIS_CURRENT_RATE_CONTEXT := "CURRENT_RATE_CONTEXT"
 const SUPPORTED_OUTPUT_CHANNEL_CONDITIONS := ["ALWAYS", "OUTPUT_ITEM", "OUTPUT_KIND", "THRESHOLD_HAS_ANY_TAG", "THRESHOLD_LIFECYCLE"]
 const VALID_LIFECYCLE_STATES := ["OVERDUE", "SETTLED"]
-const VALID_OUTPUT_KIND_TOKENS := ["RESOURCE", "STORE", "WHOLE_ITEM", "WHOLE_SOUL"]
+const VALID_LIFECYCLE_OPERAND_TOKENS := ["OVERDUE", "SETTLED", "STANDING"]
+const VALID_OUTPUT_KIND_TOKENS := ["RESOURCE", "STORE", "WHOLE_SOUL"]
 
 var registry: ContentRegistry
 
@@ -79,7 +80,7 @@ func compare_residual_signatures(state: GameState, threshold_id: StringName, old
 		return {"ok": true, "success": true, "compatible": true, "code": OK, "error_code": OK, "developer_details": "", "mismatched_fields": [], "old_signature": old_sig.signature, "new_signature": new_sig.signature}
 	return {"ok": false, "success": false, "compatible": false, "code": REAPING_RATE_CONTEXT_NORMALIZATION_REQUIRED, "error_code": REAPING_RATE_CONTEXT_NORMALIZATION_REQUIRED, "developer_details": "Rate-context normalization required for: %s" % ", ".join(mismatches), "mismatched_fields": mismatches, "old_signature": old_sig.signature, "new_signature": new_sig.signature}
 
-func output_channel_rate_plan(threshold_id: StringName, form_id: StringName, channel_id: StringName, lifecycle_state: String) -> Dictionary:
+func output_channel_rate_plan(threshold_id: StringName, form_id: StringName, channel_id: StringName, lifecycle_state: String, writ_id: StringName = &"WRIT_STANDARD", retinue_ids: Array[StringName] = []) -> Dictionary:
 	if registry == null or not registry.ready:
 		return _failure(ERR_CONTENT, "registry not ready")
 	var form_result := registry.get_record(str(form_id))
@@ -136,7 +137,7 @@ func output_channel_rate_plan(threshold_id: StringName, form_id: StringName, cha
 		if not settled.ok:
 			return _failure(ERR_OVERFLOW, "settled multiplier overflow")
 		value = int(settled.subunits)
-	return {"ok": true, "success": true, "threshold_id": str(threshold_id), "channel_id": str(channel_id), "output_item_id": str(channel.output_item_id), "output_kind": str(channel.output_kind), "lifecycle_state": lifecycle_state, "baseline_rate_subunits_per_period": baseline, "effective_rate_subunits_per_period": value, "rate_subunits_per_period": value, "period_msec": int(channel.rate.period_msec), "lifecycle_multiplier_subunits": int(channel.settled_multiplier_subunits) if lifecycle_state == "SETTLED" else FixedPoint.SCALE, "applied_modifiers": trace, "modifier_trace": trace}
+	return {"ok": true, "success": true, "threshold_id": str(threshold_id), "channel_id": str(channel_id), "output_item_id": str(channel.output_item_id), "output_kind": str(channel.output_kind), "lifecycle_state": lifecycle_state, "loadout_identity": loadout_identity(form_id, writ_id, retinue_ids), "baseline_rate_subunits_per_period": baseline, "effective_rate_subunits_per_period": value, "rate_subunits_per_period": value, "period_msec": int(channel.rate.period_msec), "lifecycle_multiplier_subunits": int(channel.settled_multiplier_subunits) if lifecycle_state == "SETTLED" else FixedPoint.SCALE, "applied_modifiers": trace, "modifier_trace": trace}
 
 func query_acquisition(state: GameState, threshold_id: StringName, channel_id: StringName) -> Dictionary:
 	if registry == null or not registry.ready:
@@ -165,7 +166,7 @@ func query_acquisition(state: GameState, threshold_id: StringName, channel_id: S
 	if not active:
 		return result
 	var reaping: GameState.ReapingState = state.reapings[threshold_id]
-	var plan := output_channel_rate_plan(threshold_id, reaping.form_id, channel_id, str(threshold.lifecycle_state))
+	var plan := output_channel_rate_plan(threshold_id, reaping.form_id, channel_id, str(threshold.lifecycle_state), reaping.writ_id, reaping.retinue_ids)
 	if not plan.ok: return plan
 	result["loadout_identity"] = loadout_identity(reaping.form_id, reaping.writ_id, reaping.retinue_ids)
 	result["rate_plan"] = plan
@@ -194,7 +195,8 @@ func eta_display(eta_msec: int) -> Dictionary:
 		var word := label + ("" if value == 1 else "s")
 		parts.append("%02d %s" % [value, word])
 		components.append({"unit": unit[0], "value": value, "minimum_width": 2})
-	return {"components": components, "english_text": ", ".join(parts)}
+	var fallback_text := ", ".join(parts)
+	return {"exact_eta_msec": eta_msec, "components": components, "fallback_text": fallback_text, "english_text": fallback_text}
 
 func _eta_msec_to_next_whole(progress_subunits: int, carry_units: int, rate: int, period: int) -> Dictionary:
 	if progress_subunits < 0 or progress_subunits >= FixedPoint.SCALE:
@@ -234,13 +236,38 @@ func _modifier_applicability(modifier: Dictionary, threshold: Dictionary, channe
 	match modifier.condition:
 		"ALWAYS": return {"ok": true, "applies": true}
 		"OUTPUT_ITEM": return {"ok": true, "applies": modifier.condition_values.has(channel.output_item_id)}
-		"OUTPUT_KIND": return {"ok": true, "applies": modifier.condition_values.has(channel.output_kind)}
+		"OUTPUT_KIND": return {"ok": true, "applies": _output_kind_modifier_applies(modifier.condition_values, channel)}
 		"THRESHOLD_HAS_ANY_TAG":
 			for tag in modifier.condition_values:
 				if threshold.tags.has(tag): return {"ok": true, "applies": true}
 			return {"ok": true, "applies": false}
-		"THRESHOLD_LIFECYCLE": return {"ok": true, "applies": modifier.condition_values.has(lifecycle_state)}
+		"THRESHOLD_LIFECYCLE": return {"ok": true, "applies": _normalized_lifecycle_values(modifier.condition_values).has(lifecycle_state)}
 	return _failure(ERR_CONTENT, "unsupported OUTPUT_CHANNEL_RATE condition: %s" % modifier.condition)
+
+func _output_kind_modifier_applies(condition_values: Array, channel: Dictionary) -> bool:
+	for value in condition_values:
+		var token := str(value)
+		if token == "RESOURCE" or token == "STORE":
+			if str(channel.output_kind) == token:
+				return true
+		elif token == "WHOLE_SOUL" and _channel_outputs_whole_soul(channel):
+			return true
+	return false
+
+func _channel_outputs_whole_soul(channel: Dictionary) -> bool:
+	if str(channel.output_kind) != "WHOLE_ITEM":
+		return false
+	var item := registry.get_record(str(channel.output_item_id))
+	if not item.ok or item.record.type != "item":
+		return false
+	return ["CALLING_SOUL", "FORM_SOUL"].has(str(item.record.item_kind))
+
+func _normalized_lifecycle_values(values: Array) -> Array[String]:
+	var normalized: Array[String] = []
+	for value in values:
+		var token := str(value)
+		normalized.append("OVERDUE" if token == "STANDING" else token)
+	return normalized
 
 func _signature_mismatches(old_signature: Dictionary, new_signature: Dictionary) -> Array[String]:
 	var mismatches: Array[String] = []
@@ -286,7 +313,7 @@ func _validate_modifier_operands(modifier: Dictionary) -> Dictionary:
 				if not ContentRegistry.APPROVED_TAGS.has(text):
 					return _failure(ERR_CONTENT, "invalid THRESHOLD_HAS_ANY_TAG operand: %s" % text)
 			"THRESHOLD_LIFECYCLE":
-				if not VALID_LIFECYCLE_STATES.has(text):
+				if not VALID_LIFECYCLE_OPERAND_TOKENS.has(text):
 					return _failure(ERR_CONTENT, "invalid THRESHOLD_LIFECYCLE operand: %s" % text)
 	return {"ok": true}
 
