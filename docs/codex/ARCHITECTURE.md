@@ -3,7 +3,7 @@
 **Document role:** Maintained implementation architecture for the 0-90 minute prototype  
 **Repository path:** `docs/codex/ARCHITECTURE.md`  
 **Document status:** Approved architecture  
-**Architecture revision:** 15  
+**Architecture revision:** 16  
 **Last updated:** 2026-07-18  
 **Engine target:** Godot 4.7, GDScript only  
 **Primary design context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md) and [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md)
@@ -1486,42 +1486,114 @@ M04D2 implements the approved channel-accumulation boundary through the existing
 
 PR #14 merged from final head `96f4db53b2513a8ab6182c074113efe72d5fd968` at merge commit `24228a078199d9728eb57e4e26c27447aa6911a3`. Final owner verification passed `123/123` full tests and `15/15` focused M04D2 tests, all fourteen trace markers, import, cleanup, cleanup proof, and artifact audit with zero failed steps.
 
-## Proposed M04D3 compatible rate-context and acquisition-query boundary
+## Approved M04D3 rate-context, loadout-identity, and acquisition-query boundary
 
-This boundary is proposed under `DEC-0039` and is not authoritative until the owner approves that decision and the M04D3 prompt.
+Accepted `DEC-0039` and the approved M04D3 v0.2 prompt authorize this boundary.
+
+### Performance is not compatibility
+
+M04D3 separates three concerns that must never be conflated:
+
+1. **Loadout validity** — whether the selected Form, Writ, Retinues, slots, Threshold restrictions, ownership, reservations, and future policies form a legal assignment.
+2. **Loadout identity** — the canonical selected component tuple that identifies the configuration.
+3. **Rate-context continuity** — whether persisted arithmetic carry retains the same mathematical meaning across a configuration change.
+
+A faster or slower loadout is valid. Ordinary performance changes alter rate numerators or multipliers while keeping stable authored periods. For example:
+
+```text
+baseline = 1,000,000 subunits / 14,400,000 ms
+modified = 1,200,000 subunits / 14,400,000 ms
+```
+
+These rates have different performance and the same denominator, so swapping between them preserves existing progress and carry exactly.
+
+A denominator is not a power score. It defines the unit of an arithmetic remainder. Carry recorded against a `1,000 ms` period cannot automatically be interpreted against a `750 ms` period without an explicit exact-normalization rule.
+
+### Valid loadouts remain swappable
+
+The full-game rule is:
+
+> Every loadout presented as valid to the player must be swappable into an existing eligible Reaping after old-context elapsed time is resolved.
+
+M04D3 supports this rule by requiring all currently valid production loadouts and ordinary live modifiers to preserve stable denominators. A copied fixture that changes a period or cycle duration is treated as unsupported content and returns:
+
+```text
+REAPING_RATE_CONTEXT_NORMALIZATION_REQUIRED
+```
+
+This is a developer/content-integrity guard, not a player-facing performance restriction. A denominator-changing Form, Writ, Art, Retinue, support rule, or other mechanic must not be exposed as a valid production choice until an exact residual-normalization contract is implemented. The final game may add that contract; it may not permanently reject an otherwise intended valid loadout merely because it performs differently.
+
+### Assembly-time validation with commit-time revalidation
+
+`ReapingAssignmentService` exposes one pure loadout-candidate validation path. Future loadout assembly UI uses that path while the player selects components:
+
+- impossible options may be hidden;
+- incompatible options may be disabled with an explanation;
+- Threshold Circle, Form, Writ, Retinue Slot/category, ownership, reservation, and future policy constraints are checked before confirmation.
+
+Dispatch and redispatch invoke the same validation again immediately before commit. That second check protects against stale state, changed ownership, changed availability, or content revisions; it is not intended to be the first time the player learns that an assembled loadout is invalid.
+
+M04D3 implements the current Form/Writ validation seam. Retinue Slot composition, Arts, support policies, and later loadout-builder UI remain owned by their later milestones.
+
+### Component-based loadout identity
+
+A loadout is identified by its canonical selected components, never by calculated output:
+
+```text
+form_id
+writ_id
+ordered_retinue_ids
+future selected policy/component IDs when those systems exist
+```
+
+Two different loadouts may produce the same rate plan or the same complete output vector. They remain separate because their component identities differ.
+
+The architecture must not:
+
+- merge loadouts because effective rates are equal;
+- use a rate/result hash as loadout identity;
+- collapse comparison rows with equal values;
+- reuse one assignment identity for another component tuple;
+- transfer one Threshold's acquisition progress to another equal-performing loadout or operation.
+
+Derived caches may share immutable calculations internally, but every result, query, assignment event, comparison row, and future history/preset record retains the canonical loadout identity that requested it. Current assignment episodes remain identified by Threshold operation plus assignment revision. A later saved-preset feature may add a stable preset ID without replacing component identity.
 
 ### One bounded rate-context owner
 
-M04D3 introduces one scene-independent `ReapingRateContextService` as the shared owner of:
+M04D3 adds one scene-independent `ReapingRateContextService` as the shared owner of:
 
-- loadout denominator signatures and compatibility comparisons;
+- residual-denominator signatures;
+- exact continuity comparisons;
+- canonical loadout identity values;
 - non-Essence output-channel effective-rate plans;
 - deterministic applied-modifier traces;
-- pure acquisition progress and current-context ETA queries.
+- pure acquisition progress, current-context ETA, and ETA-display values.
 
-`ReapingAssignmentService` consumes compatibility results before a changed redispatch. `SimulationEngine` consumes the exact same output-channel rate-plan builder. Queries consume that same builder rather than duplicating modifier evaluation.
+`ReapingAssignmentService` consumes continuity results before changed redispatch. `SimulationEngine` consumes the same output-channel rate-plan builder. Queries consume that builder rather than duplicating modifier evaluation.
 
-The service reads a ready `ContentRegistry` and explicit authoritative state. It reads no clock, frame delta, scene tree, save file, Steam API, report state, forecast state, or UI state and mutates no `GameState`.
+The rate-context service reads a ready `ContentRegistry` and explicit authoritative state. It reads no clock, frame delta, scene tree, save file, Steam API, report state, forecast state, or UI state and mutates no `GameState`.
 
 ### Resolve-before-change ordering
 
 M04D3 does not add active in-place loadout mutation.
 
 ```text
-resolve explicit elapsed under the old active setup
+validate candidate while assembling the loadout
+    -> resolve explicit elapsed under the old active setup
     -> recall at the resulting simulation cursor
-    -> compare old/new rate-context denominators
-    -> reject incompatible context without mutation
+    -> validate the candidate again
+    -> compare old/new residual denominators
+    -> reject unsupported denominator-changing content without mutation
        or
-       redispatch the inactive Threshold operation with the new compatible loadout
-    -> derive all future rates from authored baselines plus the new current modifiers
+       redispatch the inactive Threshold operation with the valid new loadout
+    -> derive all future rates from authored baselines plus current modifiers
 ```
 
-Elapsed resolution remains owned by `SimulationEngine`; assignment remains owned by `ReapingAssignmentService`. The caller is responsible for invoking those owners in the exact order above. No service estimates uncredited wall time.
+Elapsed resolution remains owned by `SimulationEngine`; assignment remains owned by `ReapingAssignmentService`. No service estimates uncredited wall time.
 
-### Denominator signature and compatibility
+### Residual-denominator signature
 
-The compatible signature contains every persisted residual denominator affected by the active Threshold operation:
+The non-persisted signature contains every denominator that gives meaning to persisted residual state:
 
 ```text
 returned_soul_period_msec
@@ -1531,9 +1603,9 @@ essence_period_msec
 initialized_non_essence_channel_period_msec_by_channel_id
 ```
 
-Form and Writ IDs are diagnostic loadout identity, not denominators by themselves.
+Form and Writ IDs are loadout identity and diagnostics, not automatic continuity failures.
 
-A changed redispatch is compatible only when the old and requested signatures are exactly equal. Current Man-at-Arms and Scribe periods/cycle duration are compatible. Equal signatures preserve:
+Equal signatures preserve:
 
 - every core flow progress/carry value;
 - cycle phase and completed-cycle count;
@@ -1541,9 +1613,7 @@ A changed redispatch is compatible only when the old and requested signatures ar
 - immutable first-start time;
 - Threshold operation identity.
 
-Only assignment revision, active state, loadout IDs, and last-configuration-change cursor update through the existing assignment transaction.
-
-Any mismatch returns `REAPING_RATE_CONTEXT_INCOMPATIBLE` with canonical mismatched-field diagnostics and exact no mutation. M04D3 does not reset, floor-convert, proportionally scale, or otherwise normalize cross-denominator carry. A future period-changing mechanic requires a new accepted decision.
+Only assignment revision, active state, selected component IDs, and the configuration-change cursor update through the existing assignment transaction.
 
 ### Prospective output-channel rate plan
 
@@ -1554,7 +1624,7 @@ authored normalized baseline rate
     -> matching active-Form Trait OUTPUT_CHANNEL_RATE multipliers
        in authored Trait/modifier order, flooring once per multiplication
     -> channel Settled multiplier once when lifecycle == SETTLED
-    -> checked effective numerator with the channel's unchanged period
+    -> checked effective numerator with the unchanged authored period
 ```
 
 The bounded M04D3 Form-Trait grammar is:
@@ -1571,17 +1641,18 @@ conditions:
   THRESHOLD_LIFECYCLE
 ```
 
-Relevant malformed or unsupported output-channel modifiers fail visibly. Irrelevant Form modifiers remain ignored, so current Old Drill and Unclosed Ledger non-channel effects continue to work through their existing owners.
+Relevant malformed or unsupported output-channel modifiers fail visibly. Irrelevant Form modifiers remain ignored.
 
-Active Form Traits are the only executable new modifier source in M04D3. Writs currently expose no typed rate-modifier field; Retinue, Art, Recollection, support, and global-efficiency state are not yet authoritative runtime sources. Later slices append those normalized sources to the same builder at explicit command boundaries rather than replacing or compounding an earlier effective rate.
+Active Form Traits are the only executable new modifier source in M04D3. Writs currently expose no typed rate-modifier field; Retinue, Art, Recollection, support, and global-efficiency state are not yet authoritative runtime sources. Later slices append those normalized sources to the same baseline-derived builder at explicit command boundaries.
 
-Production content is unchanged. The exact `×1.20` behavior is proven through copied fixtures; content revision remains `prototype-content-r2`.
+Production content is unchanged. Copied fixtures prove `x1.20` and equal-output/different-loadout cases; content revision remains `prototype-content-r2`.
 
-### Pure acquisition query
+### Pure acquisition query and player-facing ETA
 
-The service exposes one bounded query for an explicit Threshold/channel pair. A successful result contains:
+A successful acquisition query contains exact backend values and a derived presentation value:
 
 ```text
+loadout_identity
 threshold_id
 channel_id
 output_item_id
@@ -1595,25 +1666,42 @@ rate_plan
 eta_available
 current_context_eta_msec
 eta_basis = CURRENT_RATE_CONTEXT
+eta_display
 ```
 
-Percentage is derived only from stored normalized progress:
+`current_context_eta_msec` remains the exact backend value. Traces, logs, tests, and simulation continue to use milliseconds unless they explicitly validate presentation.
+
+`eta_display` is a non-persisted localization-ready value with no more than three units:
 
 ```text
-progress_tenths_percent = floor(progress_subunits * 1000 / FixedPoint.SCALE)
+eta_msec < 1 day:
+    HH hours, MM minutes, SS seconds
+
+eta_msec >= 1 day:
+    DD days, HH hours, MM minutes
 ```
 
-Because persisted progress is always below one whole, the result is at most `999`, representing `99.9%`.
+Rules:
 
-For an active eligible source, ETA is the minimum integer milliseconds needed to cross the next whole-unit boundary under the current unchanged rate plan, including the persisted arithmetic carry. It is calculated with checked bounded arithmetic, not per-millisecond replay. Locked, unavailable, invalid, Essence, or inactive sources expose no active ETA.
+- allowed units are only days, hours, minutes, and seconds;
+- the two templates contain exactly three components;
+- hours, minutes, and seconds use two-digit minimum padding;
+- days use at least two digits and may grow beyond two digits;
+- English fallback text uses correct singular/plural labels;
+- positive sub-second values display as at least one second;
+- no player-facing ETA contains aggregate milliseconds;
+- no weeks, months, years, or a fourth unit are introduced;
+- component tokens remain localization-ready.
+
+For an active eligible source, ETA is the minimum integer milliseconds needed to cross the next whole-unit boundary under the current unchanged rate plan, including persisted carry. The calculation uses checked bounded arithmetic, not per-millisecond replay.
 
 This is a current-context estimate, not a forecast across future Settlement, support depletion, unlocks, or player commands. M04E remains the owner of boundary-aware clone forecasting.
 
 ### Persistence and later seams
 
-Rate-context signatures, compatibility results, effective rates, applied-modifier traces, percentages, and ETAs are rebuildable views and are never serialized. Schema version 3 and content revision 2 remain current.
+Loadout-validation results, derived loadout keys, denominator signatures, continuity results, effective rates, applied-modifier traces, percentages, ETAs, and ETA-display values are rebuildable views and are never serialized. The selected loadout components and assignment revision remain authoritative through existing schema-version-3 fields.
 
-M04E consumes the same rate-plan/query seam for forecast clones and report accumulation. Later progression slices provide Recollection, Art, support, and other modifier sources only after resolving the old context to the exact command cursor.
+Schema version 3 and content revision 2 remain current.
 
 ### M04E and later systems
 

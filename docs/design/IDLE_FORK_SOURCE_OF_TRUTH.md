@@ -2,8 +2,8 @@
 
 **Document role:** Maintained implementation context for the idle/incremental branch  
 **Repository path:** `docs/design/IDLE_FORK_SOURCE_OF_TRUTH.md`  
-**Markdown revision:** 6  
-**Last updated:** 2026-07-17  
+**Markdown revision:** 7  
+**Last updated:** 2026-07-18  
 **Primary source:** *Death Idle - Idle & Incremental Fork - Design Direction v0.1* (12 July 2026)  
 **Companion prototype contract:** [PROTOTYPE_0_90_SOURCE_OF_TRUTH.md](PROTOTYPE_0_90_SOURCE_OF_TRUTH.md)
 
@@ -85,6 +85,7 @@ Avoid language that frames souls as disposable troops or loot. Avoid terms such 
 | Logistics determine efficiency, not permission | Shortages reduce rate, quality, or premium effects. A valid Standing Reaping should rarely become completely inert. |
 | Visible compounding | Rate, yield, quality, and efficiency are distinct and should visibly improve through different systems. |
 | Information is progression | Basic clarity is free; improved forecasts, source knowledge, comparisons, records, and automation are progression rewards. |
+| Loadout identity is component-based | Different Form/Writ/Retinue choices remain distinct even when their current calculated outputs are equal. |
 | No permanent tutorial regret | Critical sources are guaranteed, discovery is recoverable, and finite backlog progress cannot consume irreplaceable hidden rewards. |
 | Milestones inside milestones | Cycles, backlog thresholds, settlement, regional completion, and seal work create nested payoff horizons. |
 
@@ -169,6 +170,9 @@ The identifiers below are stable requirement references for later architecture a
 - **IF-REQ-16 - Storefront independence:** Authoritative gameplay rules, save-schema meaning, and content must not depend on Steamworks or another storefront SDK. A narrowly approved platform adapter may supply trusted time through the project-owned interface, but domain and simulation code remain storefront-independent.
 - **IF-REQ-17 - Trusted time authority:** Foreground elapsed time uses a monotonic process clock. Closed-session elapsed time is credited only from an approved external trusted-time provider; the player's local wall clock, timezone, calendar, file timestamps, and manually supplied time are never authoritative fallbacks. If trusted time is unavailable, unresolved closed-session progress remains pending rather than being guessed.
 - **IF-REQ-18 - Persistent long-horizon source progress:** After a source is authoritatively unlocked, deterministic partial progress toward a rare whole output belongs to its Threshold channel, survives Form/Writ/Retinue reconfiguration and inactivity, banks whole units automatically, and is never represented as fractional inventory.
+- **IF-REQ-19 - Valid loadouts remain swappable:** A loadout presented as valid may replace another eligible loadout after old-context resolution. Validation is available while assembling the loadout and is repeated at commit for stale-state safety; ordinary faster/slower performance is never itself an incompatibility.
+- **IF-REQ-20 - Equal output does not merge identity:** Loadout identity is the canonical selected component tuple, not a rate, ETA, modifier total, or output vector. Different loadouts remain separately addressable and trackable when their current results are identical.
+- **IF-REQ-21 - Readable player-facing ETA:** Backend time remains integer milliseconds. Player-facing ETA uses at most three components and only days, hours, minutes, and seconds: below one day use hours/minutes/seconds; at least one day use days/hours/minutes. Aggregate milliseconds are never player-facing.
 
 ## 7. Incremental progression architecture
 
@@ -248,15 +252,16 @@ Some rare Souls, Denizen Souls, catalysts, or future materials may require many 
 - A locked progression-gated channel owns no generated work. When global item access is unlocked, every currently available matching source begins at canonical zero; later-available sources also begin at zero when they become available.
 - After source initialization, partial acquisition progress is owned by the Threshold's stable output channel/source and represents normalized completed work toward the next whole unit.
 - The stored percentage is not elapsed time and is not recalculated from the current estimated duration.
-- A Form, Writ, Retinue, Form Art, Recollection, support state, or other modifier change first resolves elapsed time to the exact change boundary under the old rate. The new configuration changes only the future rate.
-- Existing progress is never multiplied by a newly acquired efficiency bonus. Recalling and redispatching the same loadout cannot apply the same bonus again because effective rate is always derived from the authored baseline plus current modifiers, never from a previous effective rate. The channel keeps one stable normalized rate period within the current content revision; ordinary live bonuses alter future throughput rather than changing that denominator.
-- At `50.0%` progress, a stronger setup can shorten the remaining estimate from two hours to one hour forty minutes while the bar remains `50.0%`. Ordinary rate modifiers do not turn the bar into `60.0%` or reduce the displayed remaining percentage to `40.0%`.
+- A Form, Writ, Retinue, Form Art, Recollection, support state, or other modifier change first resolves elapsed time to the exact change boundary under the old rate. The new configuration changes only the future rate. Any player-valid loadout may be swapped after that resolution; ordinary rate differences do not invalidate the swap.
+- Existing progress is never multiplied by a newly acquired efficiency bonus. Recalling and redispatching the same loadout cannot apply the same bonus again because effective rate is always derived from the authored baseline plus current modifiers, never from a previous effective rate. The channel keeps one stable normalized rate period within the current content revision; ordinary live bonuses alter future throughput rather than changing that denominator. A future mechanic that changes a residual denominator must add exact carry normalization before it is offered as a valid loadout choice.
+- At `50.0%` progress, a stronger setup can shorten the remaining estimate from two hours to one hour forty minutes while the bar remains `50.0%`. Ordinary rate modifiers do not turn the bar into `60.0%` or reduce the displayed remaining percentage to `40.0%`. Backend calculations retain exact milliseconds; player-facing ETA displays `HH hours, MM minutes, SS seconds` below one day or `DD days, HH hours, MM minutes` at one day or more.
 - An inactive Threshold retains progress without advancing it.
 - Settlement does not clear progress when the source remains available in Settled Passage. Settlement efficiency is channel-specific: rare, resource, or location-exclusive outputs default to full renewable rate in the prototype unless their own authored channel says otherwise.
 - Whole items are banked automatically when progress crosses the whole-unit boundary; the remainder continues toward the next item.
 - Unlock establishes at least Identified knowledge before the first possible banking event. A known source may show a progress bar and a percentage truncated to one decimal place. It must not present a fractional Soul or catalyst count.
 - Delaying an unlock causes only opportunity cost. There is no deadline, permanent lockout, future baseline-rate penalty, or retroactive production.
 - A future effect intended to grant explicit progress must be authored as an exactly-once progression grant. It must not masquerade as pre-unlock production or a rate modifier.
+- Loadout identity is never inferred from performance. Two different component tuples remain separate even when they produce exactly the same current output.
 - This is resolved by the shared simulation engine and is not a separate timer per item.
 
 ## 9. Persistent Reapings, Writs, support, and offline resolution

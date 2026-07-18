@@ -3,7 +3,7 @@
 **Document role:** Approved implementation sequence and acceptance map for the 0–90 minute prototype  
 **Repository path:** `docs/codex/MILESTONES.md`  
 **Document status:** Approved rolling-wave milestone map  
-**Milestone-map revision:** 24  
+**Milestone-map revision:** 25  
 **Last updated:** 2026-07-18  
 **Primary context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md), [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md), [Architecture](ARCHITECTURE.md), [Data contracts](DATA_AND_CONTENT_CONTRACTS.md), [Testing](TESTING_AND_VALIDATION.md), [Owner verification](OWNER_VERIFICATION_WORKFLOW.md), [Milestone recalibration](MILESTONE_RECALIBRATION_PROPOSAL.md), and [Decisions](DECISIONS.md)
 
@@ -120,7 +120,7 @@ A conceptual epic uses `Prompt: Not applicable` and `Implementation: Not directl
 | `GATE-CORE-RESOLUTION` | M04C prompt approval | Satisfied by accepted `DEC-0036` and approved M04C v0.1: transactional mutation, exact Settlement segmentation, core rate semantics, residual ownership, no-active timeline behavior, and the temporary one-active-Reaping limit. |
 | `GATE-OUTPUT-ACCESS-SCHEMA` | M04D1 prompt approval | Satisfied by accepted `DEC-0037` and approved M04D1 v0.1: access/knowledge/insight separation, schema version 3, global item access, prospective unlocks, available-source initialization, no retroactive production, and no permanent lockout. |
 | `GATE-CHANNEL-ACCUMULATION` | M04D2 prompt approval | Satisfied by M04D1 Merged/Passed, accepted `DEC-0038`, and approved M04D2 v0.1 covering strict initialized-source eligibility, content revision 2, exact whole banking, channel-specific Settlement segmentation, bounded events, persistence, and scope. |
-| `GATE-RATE-CONTEXT-CHANGE` | M04D3 prompt approval | Requires M04D2 Merged/Passed plus owner approval of proposed `DEC-0039` and M04D3 v0.1 covering denominator compatibility, prospective baseline-derived modifiers, non-compounding, pure current-context ETA queries, persistence boundaries, and scope. |
+| `GATE-RATE-CONTEXT-CHANGE` | M04D3 prompt approval | Satisfied by M04D2 Merged/Passed, accepted `DEC-0039`, and approved M04D3 v0.2 covering assembly-time loadout validation, component-based equal-output identity, stable residual denominators, prospective baseline-derived modifiers, non-compounding, exact/current-context ETA queries, readable ETA presentation, persistence boundaries, and scope. |
 | `GATE-STEAM-TIME` | The applicable M06 slice prompt/implementation | Satisfied for prompt drafting by `DEC-0024`: use pinned GodotSteam 4.20 and development App ID `480`. M06 must still verify license footprint, wrapper API, explicit initialization, and live Windows behavior. |
 | `GATE-PRODUCTION-OFFLINE` | The final applicable M16 slice merge | Fake-provider automation plus the owner-run Windows/GodotSteam connected, unavailable, reconnect, clock-change, and repeated-load checks must pass. |
 | `RELEASE-GATE-STEAM-APP` | Before external Steam Playtest or commercial distribution | Replace development App ID `480` with Death Idle's assigned App ID and validate package ownership, launch-through-Steam behavior, export contents, and absence of development-only App ID aids. |
@@ -134,7 +134,7 @@ A conceptual epic uses `Prompt: Not applicable` and `Implementation: Not directl
 
 `GATE-CONTENT-CATALOG` was satisfied by M03. PR #7 merged on 2026-07-15 at merge commit `5e2b9b23878c9280f75b987cc9ad567d8980030d`; its final head was `971cdaa0fd46f641ec7409148e259d54f953d8c7`. Linux/Codex and owner Windows verification passed the full and focused suites, explicit import, semantic catalog trace, artifact audit, and Godot Inspector checklist.
 
-`GATE-SLICE-SCOPE` is mandatory for every post-M03 prompt. `GATE-GAMEPLAY-SCHEMA` is fully satisfied by M04A. `GATE-REAPING-ASSIGNMENT` is fully satisfied by M04B. `GATE-CORE-RESOLUTION` is fully satisfied by M04C. `GATE-OUTPUT-ACCESS-SCHEMA` is fully satisfied by M04D1. `GATE-CHANNEL-ACCUMULATION` is fully satisfied by M04D2 implementation and verification. `GATE-RATE-CONTEXT-CHANGE` is pending owner approval of proposed `DEC-0039` and M04D3 v0.1.
+`GATE-SLICE-SCOPE` is mandatory for every post-M03 prompt. `GATE-GAMEPLAY-SCHEMA` is fully satisfied by M04A. `GATE-REAPING-ASSIGNMENT` is fully satisfied by M04B. `GATE-CORE-RESOLUTION` is fully satisfied by M04C. `GATE-OUTPUT-ACCESS-SCHEMA` is fully satisfied by M04D1. `GATE-CHANNEL-ACCUMULATION` is fully satisfied by M04D2. `GATE-RATE-CONTEXT-CHANGE` and M04D3 `GATE-SLICE-SCOPE` are satisfied by accepted `DEC-0039` and approved M04D3 v0.2.
 
 
 When trusted time is unavailable, the approved behavior is to grant no guessed closed-session progress, retain pending reconciliation, and continue monotonic foreground production. No milestone may introduce a local-device-time fallback.
@@ -154,7 +154,7 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 | M04D | Output access and discrete-channel progression | Conceptual sub-epic | Approved | Not applicable | Not directly executable | — |
 | M04D1 | Output access and source-identification foundation | Implementation slice | Approved | Approved | Merged | Passed |
 | M04D2 | Discrete channel accumulation and long-horizon banking | Implementation slice | Approved | Approved | Merged | Passed |
-| M04D3 | Compatible rate-context changes and acquisition queries | Implementation slice | Approved | Drafted | Not started | — |
+| M04D3 | Compatible rate-context changes and acquisition queries | Implementation slice | Approved | Approved | Not started | — |
 | M04E | Forecast clone, report accumulator, and simulation harness | Implementation slice | Approved | Not drafted | Not started | — |
 | M05 | Persistent application shell, navigation, and debug access | Conceptual epic | Approved | Not applicable | Not directly executable | — |
 | M06 | Steam trusted-time adapter and transactional offline resolution | Conceptual epic | Approved | Not applicable | Not directly executable | — |
@@ -1302,7 +1302,7 @@ A developer can resolve long active intervals at Gloamwood and Broken Watch, ins
 **Work item type:** Implementation slice  
 **Parent epic:** M04 / M04D  
 **Definition status:** Approved  
-**Prompt status:** Drafted  
+**Prompt status:** Approved  
 **Implementation status:** Not started  
 **Verification status:** —  
 **Recommended Codex task size:** Small-medium; one rate-context/reconfiguration/query pull request.  
@@ -1310,44 +1310,57 @@ A developer can resolve long active intervals at Gloamwood and Broken Watch, ins
 
 #### Purpose
 
-Permit compatible changed redispatch while preserving core/channel residuals, reject incompatible denominators, apply prospective baseline-derived active-Form output-channel modifiers without compounding, and expose pure acquisition progress/current-context ETA queries.
+Permit every currently valid supported changed loadout to redispatch while preserving core/channel residuals, keep structurally different equal-output loadouts distinct, guard unsupported denominator-changing content until exact normalization exists, apply prospective baseline-derived active-Form output-channel modifiers without compounding, and expose exact plus readable acquisition ETA queries.
 
 #### Player or developer outcome
 
-A developer can resolve old elapsed time, recall a Threshold operation, swap between compatible Man-at-Arms and Scribe loadouts without losing source or core residuals, prove incompatible period/cycle changes reject, inspect unchanged 50% progress with a shorter future ETA under a copied `×1.20` Form modifier, repeat and reverse loadouts without compounding, and verify separate Threshold operation identity through a `1 -> 3 -> 2 -> 1` sequence.
+A developer can:
+
+- validate a loadout while assembling it and revalidate at commit;
+- swap between current Man-at-Arms and Scribe setups even when performance differs;
+- preserve all residuals and operation identity;
+- prove copied denominator-changing content is blocked as a technical normalization guard rather than a rate/power restriction;
+- compare two different loadouts with identical numeric output without either being merged;
+- keep progress at exactly `50.0%` while ETA changes from two hours to one hour forty minutes;
+- expose `03 hours, 52 minutes, 15 seconds` or `02 days, 03 hours, 04 minutes` instead of player-facing milliseconds;
+- repeat and reverse loadouts without compounding;
+- execute a `1 -> 3 -> 2 -> 1` sequence without moving source progress between Threshold operations.
 
 #### Dependencies
 
 - M04D2 Merged and Passed.
-- Proposed `DEC-0039` or an owner-approved replacement rate-context/query contract.
-- `GATE-RATE-CONTEXT-CHANGE` pending owner approval with the M04D3 prompt.
-- `GATE-SLICE-SCOPE` is completed in the draft and requires owner approval.
+- Accepted `DEC-0039`.
+- `GATE-RATE-CONTEXT-CHANGE` and M04D3 `GATE-SLICE-SCOPE` satisfied.
 - Existing M04B assignment identity/revisions, M04C core resolver, M04D1 Access, and M04D2 channel accumulation remain authoritative.
 
 #### Included scope
 
 - Add one scene-independent `ReapingRateContextService`.
-- Define canonical denominator signatures and sorted mismatch diagnostics.
+- Add a pure current Form/Writ loadout-candidate validation entry point in the assignment domain and reuse it at dispatch/redispatch commit.
+- Define canonical component-based `LoadoutIdentity` values.
+- Preserve different loadout identities when calculated rates, ETAs, or full outputs are equal.
+- Define residual-denominator signatures and canonical normalization-required diagnostics.
 - Resolve-before-change remains an explicit caller sequence; no active in-place reconfiguration.
-- Permit inactive changed redispatch only when old/new signatures are exactly compatible.
+- Permit changed redispatch when the selected loadout is valid and residual denominators remain supported.
 - Preserve core flow progress/carry, cycle phase/count, Threshold channel progress/carry/history, inventory, first-start time, and operation identity.
-- Reject returned-period, Mastery-period, cycle-duration, Essence-period, or initialized-channel-period incompatibility with exact no mutation.
-- Use the same baseline-derived output-channel rate-plan builder in simulation and queries.
-- Execute active Form Trait `OUTPUT_CHANNEL_RATE / MULTIPLY / OUTPUT_CHANNEL` modifiers with the approved bounded conditions.
+- Guard unsupported period/cycle changes with `REAPING_RATE_CONTEXT_NORMALIZATION_REQUIRED` and exact no mutation.
+- Use one baseline-derived output-channel rate-plan builder in simulation and queries.
+- Execute active Form Trait `OUTPUT_CHANNEL_RATE / MULTIPLY / OUTPUT_CHANNEL` modifiers with bounded conditions.
 - Apply the channel lifecycle multiplier last and once.
 - Ignore irrelevant Form modifiers and reject relevant malformed/unsupported output-channel modifiers.
 - Prove non-compounding through repeated and reversed redispatch.
 - Add a pure progress/rate/modifier-trace/current-context ETA query.
 - Add carry-aware minimal-millisecond ETA arithmetic without per-millisecond replay.
-- Keep schema version 3, content revision 2, and all production content unchanged.
-- Add focused tests, real-file trace, Windows owner runner, and canonical documentation updates.
+- Add a localization-ready three-component ETA display using only days/hours/minutes/seconds.
+- Keep schema version 3, content revision 2, and production content unchanged.
+- Add focused tests, a sixteen-marker real-file trace, Windows owner runner, and canonical documentation updates.
 
 #### Explicit non-goals
 
 - Active in-place loadout mutation.
 - Cross-denominator carry conversion, reset, or progress rebasing.
-- Production Writ/Retinue/Art/Recollection/support/global modifier state.
-- Recollection purchase, Form Art, Retinue support, or global-efficiency commands.
+- Full Retinue Slot/category assembly, Form Arts, Recollection effects, support policy, or global-efficiency runtime state.
+- Saved loadout presets or persisted loadout history; later systems must retain component identity and must not dedupe by output.
 - Boundary-aware forecast across future Settlement, support depletion, unlocks, or player actions; M04E owns forecast clones.
 - Reports, gameplay UI, progress bars, navigation, Steam, trusted-time acquisition, or concurrent Reapings.
 - Schema version 4, content revision 3, production balance changes, or new content IDs.
@@ -1355,36 +1368,41 @@ A developer can resolve old elapsed time, recall a Threshold operation, swap bet
 #### Acceptance criteria
 
 - One rate-context service is the sole output-channel modifier/query owner.
-- Caller ordering is old-context resolve, recall, compatibility check, redispatch, then future resolution.
-- Current Man-at-Arms/Scribe swaps are compatible and preserve every authoritative residual.
-- Returned-soul period, Mastery period, and cycle-duration mismatch fixtures reject with `REAPING_RATE_CONTEXT_INCOMPATIBLE`.
-- Same-loadout redispatch remains exact and idempotent with respect to rate.
+- Loadout validity, component identity, and performance are distinct contracts.
+- A pure candidate validator supports assembly-time checks; dispatch/redispatch revalidate the same rules before commit.
+- Ordinary faster/slower numerator changes do not block a valid loadout swap.
+- Different component tuples remain distinct even when rates, ETAs, modifier totals, and complete output vectors are equal.
+- Caller ordering is old-context resolve, recall, validation, continuity check, redispatch, then future resolution.
+- Current Man-at-Arms/Scribe swaps preserve every authoritative residual.
+- Copied returned-period, Mastery-period, and cycle-duration changes return normalization-required errors without mutation.
+- Same-loadout redispatch remains exact and rate-idempotent.
 - Active Form output-channel modifiers derive from baseline in deterministic authored order.
-- Conditions `ALWAYS`, `OUTPUT_ITEM`, `OUTPUT_KIND`, `THRESHOLD_HAS_ANY_TAG`, and `THRESHOLD_LIFECYCLE` behave exactly.
-- Relevant unsupported modifier data rejects; irrelevant Form modifiers do not affect channel rates.
+- Supported conditions and relevant error behavior are exact.
 - Lifecycle multiplier applies after Form modifiers exactly once.
-- A four-hour copied source at `500_000` progress reports `7_200_000` ms at baseline and `6_000_000` ms under `×1.20`, while stored progress remains `500_000`.
+- A four-hour copied source at `500_000` progress reports `7_200_000` ms at baseline and `6_000_000` ms under `x1.20`, while stored progress remains `500_000`.
 - ETA includes persisted carry and is the exact minimum integer milliseconds under the current unchanged context.
-- Inactive or locked sources expose no active ETA; Essence is rejected.
-- Repeated B redispatch stays `×1.20`; returning to A restores baseline rather than compounding.
+- Player-facing ETA uses exactly the approved three-unit day/hour/minute or hour/minute/second templates and never displays aggregate milliseconds.
+- Repeated B redispatch stays `x1.20`; returning to A restores baseline rather than compounding.
 - The `1 -> 3 -> 2 -> 1` sequence preserves distinct Threshold operation/source identity.
 - Segmented calls around the rate-change boundary are canonical-equal across equivalent chunking.
-- Schema v3/content r2 round-trip the resulting authoritative state; no rate, signature, trace, percentage, or ETA persists.
+- Schema v3/content r2 round-trip authoritative state; no validation identity, signature, rate, trace, percentage, ETA, or ETA-display artifact persists.
 - Every content/arithmetic/assignment/query failure leaves exact state unchanged.
 - No clock, scene, save, report, forecast, UI, platform, or later modifier-source ownership enters the rate-context service.
 
 #### Automated verification
 
-- Focused compatibility/signature matrix.
-- Strict assignment/source-state validation.
+- Focused candidate-validation and commit-revalidation matrix.
+- Component-identity and equal-output non-deduplication matrix.
+- Residual-denominator signature and normalization-required matrix.
 - Core and channel residual preservation.
 - Form modifier condition/order/error matrix.
 - Lifecycle-order and non-compounding matrix.
 - Exact percentage and carry-aware ETA tests.
+- Readable ETA-format and localization-component tests.
 - Same/different loadout and Threshold identity sequence.
-- Chunk equivalence around a rate-change boundary.
-- Schema-v3 round trip and non-persisted query/rate artifacts.
-- Real-file fourteen-marker trace and full regression.
+- Chunk equivalence around the rate-change boundary.
+- Schema-v3 round trip and non-persisted derived artifacts.
+- Real-file sixteen-marker trace and full regression.
 - Source-ownership audit.
 
 #### Manual verification
@@ -1392,28 +1410,21 @@ A developer can resolve old elapsed time, recall a Threshold operation, swap bet
 - Codex creates `tools/test/owner/run_m04d3_owner_verification.ps1`; the owner runs one generated UTF-8 log package against the exact PR head.
 - No editor, visual, gameplay, audio, A/B, or Steam checklist is required.
 
-#### Demonstration path
-
-- Use a copied four-hour Scribe channel and copied Form Trait `×1.20` modifier.
-- Resolve two baseline hours to exactly `500_000` progress and query `7_200_000` ms remaining.
-- Recall and redispatch the compatible modified Form; prove progress/carry unchanged and query `6_000_000` ms.
-- Resolve the new-context duration and bank exactly one whole unit.
-- Repeat the modified loadout, return to baseline, and prove no compounding.
-- Exercise the `1 -> 3 -> 2 -> 1` two-Threshold sequence.
-- Save/load the final state and prove no rate/ETA artifacts persisted.
-
 #### Save/load expectations
 
-Schema version 3 and content revision `prototype-content-r2` remain current. Existing Reaping assignment, core residual, acquisition, inventory, and simulation fields round-trip exactly after compatible changes. Rate-context signatures, compatibility diagnostics, effective rates, modifier traces, percentages, and ETAs are derived and absent from snapshots.
+Schema version 3 and content revision `prototype-content-r2` remain current. Existing selected component IDs, assignment revision, core residual, acquisition, inventory, and simulation fields round-trip exactly after supported changes. Loadout-validation results, derived identity keys, signatures, rates, traces, percentages, ETAs, and ETA-display values remain absent from snapshots.
 
 #### Known risks
 
-- Treating Form/Writ IDs themselves as denominator incompatibility would reject legitimate numerator-only changes.
+- Treating a rate numerator change as a denominator mismatch would incorrectly reject valid faster/slower loadouts.
 - Omitting a residual denominator could allow mathematically invalid carry reinterpretation.
 - Duplicating modifier logic between simulation and queries could create drift.
-- Applying modifiers to the previous effective rate would compound.
+- Applying modifiers to a previous effective rate would compound.
+- Using derived output as identity would merge distinct loadouts.
+- Deferring all validation until dispatch would create poor player feedback.
 - A current-context ETA could be mistaken for a full future forecast.
-- Broadening into authoritative Recollection/Art/Retinue/support state would cross the slice boundary.
+- Formatting ETA inside authoritative simulation would mix presentation with state.
+- Broadening into authoritative Retinue/Art/Recollection/support state would cross the slice boundary.
 
 #### Follow-on dependencies
 

@@ -2,8 +2,8 @@
 
 **Document role:** Canonical test strategy, commands, fixture rules, and manual validation flows
 **Repository path:** `docs/codex/TESTING_AND_VALIDATION.md`
-**Document status:** Approved validation plan through M04D2 with M04D3 draft
-**Validation revision:** 21
+**Document status:** Approved validation plan through M04D2 with M04D3 approved
+**Validation revision:** 22
 **Last updated:** 2026-07-18
 **Engine target:** Godot 4.7 standard build, GDScript only
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)  
@@ -42,7 +42,7 @@ M04C merged through PR #12 at merge commit `719592c85ca4e90ecd5df4593e37a81d36b2
 
 M04D1 merged through PR #13 at merge commit `4569fbfb968deb73f54ba453834dd7af0b04d545` from final head `1171785562c4107921437339187a1e782fe0143b`. Schema-v3 access, migration/finalization, unlock/reconciliation, no-backfill, real-file trace, and owner Windows verification passed.
 
-M04D2 merged through PR #14 at merge commit `24228a078199d9728eb57e4e26c27447aa6911a3` from final head `96f4db53b2513a8ab6182c074113efe72d5fd968`. Strict initialized-source accumulation, content revision 2, whole banking, source history, exact Settlement segmentation, deterministic banking events, schema-v3 persistence, the fourteen-marker trace, and owner Windows verification passed. Proposed `DEC-0039` and the M04D3 draft now define compatible rate-context changes and pure acquisition queries.
+M04D2 merged through PR #14 at merge commit `24228a078199d9728eb57e4e26c27447aa6911a3` from final head `96f4db53b2513a8ab6182c074113efe72d5fd968`. Strict initialized-source accumulation, content revision 2, whole banking, source history, exact Settlement segmentation, deterministic banking events, schema-v3 persistence, the fourteen-marker trace, and owner Windows verification passed. Accepted `DEC-0039` and approved M04D3 v0.2 define assembly-time loadout validation, distinct equal-output loadout identity, supported residual continuity, baseline-derived modifiers, exact/current-context ETA, and readable ETA presentation.
 
 ## 2. Pinned test and platform dependencies
 
@@ -1943,9 +1943,9 @@ TRACE M04D2 no_clock_or_later_slice_sources=PASS
 
 `DEC-0038`, `GATE-CHANNEL-ACCUMULATION`, and M04D2 `GATE-SLICE-SCOPE` are satisfied.
 
-## 26. M04D3 draft compatibility/query validation package
+## 26. M04D3 approved loadout/rate-context/query validation package
 
-The M04D3 package is proposed under `DEC-0039`. It must use explicit state and durations only.
+M04D3 uses explicit state and durations only. It must never wait for real time.
 
 ### 26.1 Focused Linux/Codex checks
 
@@ -1977,37 +1977,48 @@ git diff --check
 ### 26.2 Required focused groups
 
 1. M04D2 merged baseline, schema v3, content revision 2, and gate state;
-2. exact production Man-at-Arms/Scribe denominator signatures;
-3. compatible zero-residual Form change;
-4. compatible nonzero core progress/carry preservation;
-5. compatible nonzero cycle phase/count preservation;
-6. compatible nonzero channel progress/carry/history preservation;
-7. returned-soul-period mismatch rejection;
-8. Mastery-period mismatch rejection;
-9. cycle-duration mismatch rejection;
-10. canonical sorted mismatch diagnostics and exact no mutation;
-11. strict complete access/source validation for assignment entry and commit;
-12. same-loadout redispatch rate idempotency;
-13. real production core-rate change across Man-at-Arms/Scribe boundary;
-14. `OUTPUT_CHANNEL_RATE` `ALWAYS` Form modifier;
-15. `OUTPUT_ITEM`, `OUTPUT_KIND`, Threshold-tag, and lifecycle condition matrix;
-16. multiple modifier authored-order/floor behavior;
-17. lifecycle multiplier applied last and once;
-18. irrelevant modifier ignore and relevant unsupported/malformed rejection;
-19. exact `500_000`, `7_200_000`, `6_000_000`, `×1.20` fixture;
-20. carry-aware minimal-millisecond ETA and checked overflow/error behavior;
-21. progress-tenths flooring and maximum `99.9%`;
-22. locked, unavailable, inactive, invalid, and Essence query matrix;
-23. repeated modified redispatch non-compounding;
-24. return-to-prior-loadout baseline restoration;
-25. full `1 -> 3 -> 2 -> 1` two-Threshold identity/source-isolation sequence;
-26. regular/irregular chunk equality around the rate-change boundary;
-27. schema-v3 round trip and absence of signature/rate/trace/percentage/ETA artifacts;
-28. no clock, frame, scene, save, report, forecast, UI, platform, progression-evaluator, or later modifier-source ownership.
+2. pure loadout-candidate validation success/failure contract;
+3. assembly-time current Form/Writ validation and commit-time reuse;
+4. stale-state revalidation rejection without mutation;
+5. component-based `LoadoutIdentity` canonical ordering;
+6. two different loadouts with equal rate plans remain distinct;
+7. two different loadouts with equal complete output vectors remain distinct;
+8. exact production Man-at-Arms/Scribe residual-denominator signatures;
+9. faster/slower numerator-only change is supported;
+10. supported zero-residual Form change;
+11. supported nonzero core progress/carry preservation;
+12. supported nonzero cycle phase/count preservation;
+13. supported nonzero channel progress/carry/history preservation;
+14. returned-soul-period change requires normalization;
+15. Mastery-period change requires normalization;
+16. cycle-duration change requires normalization;
+17. canonical sorted normalization-required diagnostics and exact no mutation;
+18. strict complete access/source validation for assignment entry and commit;
+19. same-loadout redispatch rate idempotency;
+20. real production core-rate change across Man-at-Arms/Scribe boundary;
+21. `OUTPUT_CHANNEL_RATE` `ALWAYS` Form modifier;
+22. `OUTPUT_ITEM`, `OUTPUT_KIND`, Threshold-tag, and lifecycle condition matrix;
+23. multiple modifier authored-order/floor behavior;
+24. lifecycle multiplier applied last and once;
+25. irrelevant modifier ignore and relevant unsupported/malformed rejection;
+26. exact `500_000`, `7_200_000`, `6_000_000`, `x1.20` fixture;
+27. carry-aware minimal-millisecond ETA and checked overflow/error behavior;
+28. progress-tenths flooring and maximum `99.9%`;
+29. locked, unavailable, inactive, invalid, and Essence query matrix;
+30. ETA below one day formats hours/minutes/seconds with exactly three components;
+31. ETA at least one day formats days/hours/minutes with exactly three components;
+32. ETA singular/plural, minimum-width, positive-subsecond, and large-day behavior;
+33. no player-facing ETA exposes aggregate milliseconds;
+34. repeated modified redispatch non-compounding;
+35. return-to-prior-loadout baseline restoration;
+36. full `1 -> 3 -> 2 -> 1` two-Threshold identity/source-isolation sequence;
+37. regular/irregular chunk equality around the rate-change boundary;
+38. schema-v3 round trip and absence of validation identity/signature/rate/trace/percentage/ETA/display artifacts;
+39. no clock, frame, scene, save, report, forecast, UI, platform, progression-evaluator, or later modifier-source ownership.
 
 ### 26.3 Exact fixtures
 
-Compatible production Forms:
+Supported production Forms:
 
 ```text
 Man-at-Arms returned period = 1000 ms
@@ -2031,24 +2042,42 @@ modified current-context ETA = 6000000 ms
 stored progress after loadout change = 500000
 ```
 
-The service must prove the ETA is the minimum integer millisecond duration and that one subsequent `6000000` ms productive segment banks exactly one whole unit.
+Equal-output identity fixture:
+
+```text
+loadout A components != loadout B components
+loadout A effective output == loadout B effective output
+loadout A identity != loadout B identity
+both plans/results remain independently addressable
+```
+
+ETA-display fixtures:
+
+```text
+13935000 ms -> 03 hours, 52 minutes, 15 seconds
+183840000 ms -> 02 days, 03 hours, 04 minutes
+1000 ms -> 00 hours, 00 minutes, 01 second
+positive sub-second -> 00 hours, 00 minutes, 01 second
+```
 
 ### 26.4 Required trace markers
 
 ```text
-TRACE M04D3 compatible_swap_preserves_core_and_channel_residuals=PASS
-TRACE M04D3 incompatible_return_period_rejected=PASS
-TRACE M04D3 incompatible_mastery_period_rejected=PASS
-TRACE M04D3 incompatible_cycle_duration_rejected=PASS
+TRACE M04D3 supported_swap_preserves_core_and_channel_residuals=PASS
+TRACE M04D3 return_period_change_requires_normalization=PASS
+TRACE M04D3 mastery_period_change_requires_normalization=PASS
+TRACE M04D3 cycle_duration_change_requires_normalization=PASS
 TRACE M04D3 output_modifier_rate_before=1000000_after=1200000
+TRACE M04D3 equal_output_loadouts_remain_distinct=PASS
 TRACE M04D3 progress=500000_eta_before=7200000_eta_after=6000000
+TRACE M04D3 eta_display_short=03_hours_52_minutes_15_seconds_long=02_days_03_hours_04_minutes
 TRACE M04D3 old_context_then_new_context_banks_one=PASS
 TRACE M04D3 repeated_redispatch_non_compounding=PASS
 TRACE M04D3 return_to_prior_loadout_restores_baseline=PASS
 TRACE M04D3 sequence_1_3_2_1_identity=PASS
 TRACE M04D3 inactive_query_has_progress_no_eta=PASS
 TRACE M04D3 rate_change_chunk_equivalence=PASS
-TRACE M04D3 schema_v3_round_trip_no_rate_eta=PASS
+TRACE M04D3 schema_v3_round_trip_no_derived_rate_eta=PASS
 TRACE M04D3 no_clock_or_later_slice_sources=PASS
 ```
 
@@ -2078,7 +2107,7 @@ full GUT before
 focused M04D3
 explicit import
 isolated real-file trace
-exact 14-marker verification
+exact 16-marker verification
 finally cleanup
 cleanup absence proof
 prior-log-tolerant artifact audit
@@ -2102,11 +2131,11 @@ No interactive checklist is required.
 
 M04D3 cannot merge until:
 
-- proposed `DEC-0039` or a revised owner-approved contract is Accepted;
+- accepted `DEC-0039` remains authoritative;
 - M04D2 remains Merged/Passed;
 - Linux/Codex focused/import/trace/full checks pass;
 - owner Windows verification passes against the exact PR head;
-- all compatibility, no-mutation, modifier, non-compounding, ETA, identity, persistence, and source-ownership groups pass;
+- all validation, distinct-identity, continuity, no-mutation, modifier, non-compounding, exact ETA, ETA-display, sequence, persistence, and source-ownership groups pass;
 - schema remains version 3 and content revision remains `prototype-content-r2`;
-- no authoritative Recollection/Art/Retinue/support/global modifier state, forecast/report, UI, concurrency, or platform work enters the diff;
+- no authoritative Retinue/Art/Recollection/support/global modifier state, forecast/report, UI, concurrency, or platform work enters the diff;
 - actual scope remains within the approved assessment.

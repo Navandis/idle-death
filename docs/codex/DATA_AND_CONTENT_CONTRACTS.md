@@ -3,7 +3,7 @@
 **Document role:** Canonical prototype data, runtime-state, ID, and serialization contracts  
 **Repository path:** `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`  
 **Document status:** Approved architecture contract  
-**Revision:** 17  
+**Revision:** 18  
 **Last updated:** 2026-07-18
 
 ## 1. Purpose
@@ -2311,13 +2311,67 @@ The realized contract retains:
 
 Final owner verification passed `123/123` full tests, `15/15` focused M04D2 tests, all fourteen trace markers, import, cleanup, cleanup proof, and artifact audit.
 
-## Proposed M04D3 compatible rate-context and acquisition-query contract
+## Approved M04D3 rate-context, loadout-identity, and acquisition-query contract
 
-This section becomes authoritative only after owner approval of proposed `DEC-0039` and the M04D3 prompt.
+This section is authoritative under accepted `DEC-0039` and approved M04D3 prompt v0.2.
+
+### Loadout validity is separate from rate continuity
+
+A loadout candidate is structurally valid when all currently authoritative selection rules pass. The current prototype checks:
+
+```text
+Threshold exists, is enabled, is available, and permits the selected Form
+Form exists, is enabled, revealed, awakened, and not actively assigned elsewhere
+Writ exists, is enabled, and is selectable
+Retinue list is empty until the Retinue assignment slice implements slot rules
+command-tether capacity remains valid
+```
+
+Future rules extend the same validation result with Circle restrictions, Retinue Slot/category capacity, ownership, reservations, Arts, support policies, and other component constraints.
+
+`ReapingAssignmentService.validate_loadout_candidate(...)` is pure and may be used while assembling a loadout. Dispatch and redispatch must invoke the same rules again immediately before mutation.
+
+A failed commit-time revalidation indicates stale or contradictory state. It does not replace the assembly-time player-facing validation path.
+
+### LoadoutIdentity
+
+A non-persisted `LoadoutIdentity` contains canonical component identity:
+
+```text
+form_id: StringName
+writ_id: StringName
+retinue_ids: Array[StringName]  # ordered
+```
+
+Future selected component fields may extend the value object. Derived rate, output totals, ETA, and modifier values are never identity fields.
+
+Rules:
+
+- different component tuples remain different even when every calculated output is equal;
+- equal effective-rate plans do not compare as equal loadout identities;
+- collection deduplication, caches, comparison rows, assignment events, and later history/preset systems key by component identity, assignment identity, or explicit preset ID—not by output value;
+- current assignment identity remains Threshold operation plus assignment revision;
+- the component tuple is already persisted through existing `ReapingState` fields; a duplicate derived identity key is not serialized.
+
+### LoadoutValidationResult
+
+A bounded pure result contains:
+
+```text
+valid: bool
+error_code: StringName
+player_message: String
+developer_details: String
+loadout_identity: LoadoutIdentity or null
+invalid_component_ids: Array[StringName]
+constraint_ids: Array[StringName]
+```
+
+Arrays are canonical and sorted unless authored ordering is semantically required.
 
 ### RateContextSignature
 
-A `RateContextSignature` is a non-persisted value object containing:
+A non-persisted `RateContextSignature` contains:
 
 ```text
 returned_soul_period_msec: int
@@ -2329,22 +2383,40 @@ non_essence_channel_period_msec_by_id: Dictionary[StringName, int]
 
 The channel-period map contains every initialized eligible non-Essence source at the Threshold and uses canonical channel-ID ordering when rendered or compared.
 
-Form ID and Writ ID remain loadout identity but are not themselves denominator fields. A changed ID is compatible when every denominator above remains equal.
+The signature is about arithmetic remainder meaning. It is not a performance rating.
 
-### CompatibilityResult
-
-A compatibility comparison returns a bounded result:
+A numerator or multiplier change such as:
 
 ```text
-compatible: bool
-error_code: StringName
-developer_details: String
-mismatched_fields: Array[String]
-old_signature: RateContextSignature
-new_signature: RateContextSignature
+1,000,000 / 14,400,000 ms
+to
+1,200,000 / 14,400,000 ms
 ```
 
-`mismatched_fields` is sorted and contains stable field paths such as:
+is supported and preserves carry. A period or cycle-duration change requires exact normalization support.
+
+### RateContextContinuityResult
+
+A continuity comparison returns:
+
+```text
+supported: bool
+error_code: StringName
+developer_details: String
+normalization_required_fields: Array[String]
+old_signature: RateContextSignature
+new_signature: RateContextSignature
+old_loadout_identity: LoadoutIdentity
+new_loadout_identity: LoadoutIdentity
+```
+
+When an unsupported denominator change is detected:
+
+```text
+error_code = REAPING_RATE_CONTEXT_NORMALIZATION_REQUIRED
+```
+
+`normalization_required_fields` is sorted and contains stable field paths such as:
 
 ```text
 returned_soul_period_msec
@@ -2354,17 +2426,11 @@ essence_period_msec
 channel_period_msec.CHANNEL_...
 ```
 
-The assignment-facing rejection code is:
+This result is a prototype/content-authoring guard. A player-valid production loadout must not be exposed until its denominator change is exactly normalizable. Performance differences alone never cause this result.
 
-```text
-REAPING_RATE_CONTEXT_INCOMPATIBLE
-```
+### Supported redispatch mutation
 
-An incompatible result never changes assignment revision, loadout, active state, core residuals, cycle state, acquisition state, inventory, or simulation time.
-
-### Compatible redispatch mutation
-
-After the caller has resolved old elapsed time and recalled the operation, a compatible changed redispatch preserves exactly:
+After the caller resolves old elapsed time and recalls the operation, a supported changed redispatch preserves exactly:
 
 ```text
 ReapingState.started_simulation_msec
@@ -2372,7 +2438,7 @@ ReapingState.flow_carry_units
 ReapingState.cycle_phase_msec
 ReapingState.completed_cycle_count
 ThresholdState.channel_acquisition
-Threshold backlog/returns/familiarity
+Threshold backlog/returns/familiarity/lifecycle
 inventory and reservations
 ```
 
@@ -2382,17 +2448,19 @@ The existing assignment transaction updates only:
 ReapingState.is_active = true
 ReapingState.form_id
 ReapingState.writ_id
+ReapingState.retinue_ids
 ReapingState.assignment_revision += 1
 ReapingState.last_configuration_change_simulation_msec
 ```
 
-The existing `REAPING_REDISPATCHED` event remains the assignment fact. No separate persisted rate-context entity is introduced.
+The existing `REAPING_REDISPATCHED` event remains the assignment fact. No persisted rate-context entity is introduced.
 
 ### OutputChannelRatePlan
 
 A non-persisted output-channel rate plan contains:
 
 ```text
+loadout_identity: LoadoutIdentity
 threshold_id: StringName
 channel_id: StringName
 output_item_id: StringName
@@ -2404,7 +2472,7 @@ lifecycle_multiplier_subunits: int
 applied_modifiers: Array[ModifierTraceEntry]
 ```
 
-The period is always the authored channel period in M04D3.
+Two plans may be numerically equal while their `loadout_identity` and source trace remain different.
 
 A `ModifierTraceEntry` contains save-safe primitive diagnostic values:
 
@@ -2422,7 +2490,7 @@ rate_before_subunits_per_period: int
 rate_after_subunits_per_period: int
 ```
 
-Form Trait evaluation order is authored Trait order, then authored modifier order. Each multiplication floors once through the central checked fixed-point helper. The channel lifecycle multiplier is applied last and exactly once.
+Form Trait evaluation order is authored Trait order, then authored modifier order. Each multiplication floors once through central checked fixed-point arithmetic. The channel lifecycle multiplier is applied last and exactly once.
 
 Supported conditions are:
 
@@ -2434,13 +2502,13 @@ THRESHOLD_HAS_ANY_TAG
 THRESHOLD_LIFECYCLE
 ```
 
-Multiple condition operands use deterministic any-match semantics. Relevant malformed or unsupported operation/scope/condition data returns a typed failure. Non-`OUTPUT_CHANNEL_RATE` modifiers are irrelevant to this plan and are ignored.
+Multiple operands use deterministic any-match semantics. Relevant malformed or unsupported operation/scope/condition data returns a typed failure. Non-`OUTPUT_CHANNEL_RATE` modifiers are irrelevant and ignored.
 
 ### Modifier-source boundary
 
 M04D3 executes active Form Trait modifiers only.
 
-The following remain non-executable until their authoritative state and command boundaries exist:
+The following remain non-executable until authoritative state and command boundaries exist:
 
 ```text
 Writ rate modifiers
@@ -2451,7 +2519,7 @@ support-state modifiers
 global efficiencies
 ```
 
-The rate-plan API must accept later normalized sources without changing stored progress or deriving from a previously effective rate. Production content is not changed by M04D3; copied fixtures provide the `×1.20` demonstration. Content revision remains `prototype-content-r2`.
+The rate-plan API must accept later normalized sources without changing stored progress or deriving from a previous effective rate. Production content remains unchanged; copied fixtures provide `x1.20` and equal-output/different-loadout demonstrations.
 
 ### AcquisitionQueryResult
 
@@ -2461,6 +2529,7 @@ A pure query result contains:
 success: bool
 error_code: StringName
 developer_details: String
+loadout_identity: LoadoutIdentity or null
 threshold_id: StringName
 channel_id: StringName
 output_item_id: StringName
@@ -2474,17 +2543,18 @@ rate_plan: OutputChannelRatePlan or null
 eta_available: bool
 current_context_eta_msec: int
 eta_basis = CURRENT_RATE_CONTEXT
+eta_display: EtaDisplayValue or null
 ```
 
 Rules:
 
-- locked or uninitialized progression-gated source: `access_state = LOCKED`, no rate plan, no ETA;
+- locked or uninitialized progression-gated source: `access_state = LOCKED`, no active plan or ETA;
 - initialized source: at least `IDENTIFIED`;
 - authored Charted source remains `CHARTED`;
-- unavailable Threshold source is not exposed as an active source;
+- unavailable Threshold source is not exposed as active;
 - Essence is rejected because its authority remains M04C core flow;
 - inactive Reaping returns stored progress but no active ETA;
-- active eligible Reaping returns the current rate plan and exact current-context ETA.
+- active eligible Reaping returns the current plan and exact current-context ETA.
 
 Percentage uses:
 
@@ -2492,11 +2562,57 @@ Percentage uses:
 floor(progress_subunits * 1000 / FixedPoint.SCALE)
 ```
 
-and therefore never displays `100.0%` for a stored remainder.
+and cannot display `100.0%` for a stored remainder.
 
-ETA is the smallest non-negative integer millisecond duration for which checked accumulation using the current rate, current period, stored progress, and stored rate carry reaches the next whole-unit boundary. The algorithm uses bounded search or an equivalent checked exact method; it never loops once per millisecond.
+ETA is the smallest non-negative integer millisecond duration for which checked accumulation using current rate, period, progress, and carry reaches the next whole boundary. The algorithm uses bounded search or an equivalent checked exact method and never loops once per millisecond.
 
-The query does not predict future lifecycle transitions, support depletion, player commands, unlocks, or content changes. M04E owns forecast-clone behavior across those boundaries.
+### EtaDisplayValue
+
+`EtaDisplayValue` is derived, non-authoritative, and localization-ready:
+
+```text
+exact_eta_msec: int
+components: Array[EtaDisplayComponent]  # exactly 3 when present
+fallback_text: String
+```
+
+Each component contains:
+
+```text
+unit: DAY | HOUR | MINUTE | SECOND
+value: int
+```
+
+Formatting rules:
+
+```text
+eta < 86,400,000 ms:
+    HOUR, MINUTE, SECOND
+
+eta >= 86,400,000 ms:
+    DAY, HOUR, MINUTE
+```
+
+Additional rules:
+
+- only DAY, HOUR, MINUTE, and SECOND are valid;
+- no more than three units are shown; these templates show exactly three;
+- values use a minimum two-digit display width;
+- days may exceed two digits and are never converted to weeks, months, or years;
+- English fallback text uses singular for value `1` and plural otherwise;
+- positive sub-second ETA rounds up to one displayed second;
+- backend `current_context_eta_msec` remains unchanged and exact;
+- player-facing fallback text never displays aggregate milliseconds.
+
+Required examples:
+
+```text
+13,935,000 ms
+-> 03 hours, 52 minutes, 15 seconds
+
+183,840,000 ms
+-> 02 days, 03 hours, 04 minutes
+```
 
 ### Persistence and compatibility
 
@@ -2510,14 +2626,17 @@ content revision = prototype-content-r2
 The following never serialize:
 
 ```text
+LoadoutValidationResult
+LoadoutIdentity derived key
 RateContextSignature
-CompatibilityResult
+RateContextContinuityResult
 OutputChannelRatePlan
 ModifierTraceEntry
 AcquisitionQueryResult
+EtaDisplayValue
 effective rate
 progress percentage
 ETA
 ```
 
-After compatible redispatch and subsequent production, existing Reaping, Threshold acquisition, inventory, assignment revision, and simulation fields round-trip through schema v3 exactly.
+Selected component IDs already persisted in `ReapingState` remain authoritative. After supported redispatch and subsequent production, existing Reaping, Threshold acquisition, inventory, assignment revision, and simulation fields round-trip through schema v3 exactly.
