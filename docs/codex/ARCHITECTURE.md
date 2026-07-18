@@ -3,7 +3,7 @@
 **Document role:** Maintained implementation architecture for the 0-90 minute prototype  
 **Repository path:** `docs/codex/ARCHITECTURE.md`  
 **Document status:** Approved architecture  
-**Architecture revision:** 13  
+**Architecture revision:** 14  
 **Last updated:** 2026-07-18  
 **Engine target:** Godot 4.7, GDScript only  
 **Primary design context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md) and [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md)
@@ -1431,9 +1431,9 @@ M04D1 implements the approved access foundation through `OutputAccessService`, s
 
 PR #13 merged from final head `1171785562c4107921437339187a1e782fe0143b` at merge commit `4569fbfb968deb73f54ba453834dd7af0b04d545`. Final owner verification passed `108/108` full tests and `14/14` focused M04D1 tests, all twelve trace markers, import, cleanup, cleanup proof, and artifact audit.
 
-## Proposed M04D2 discrete-channel accumulation boundary
+## Approved M04D2 discrete-channel accumulation boundary
 
-Subject to approval of `DEC-0038`, M04D2 extends the same `SimulationEngine`; it does not add another elapsed-production owner.
+Accepted `DEC-0038` authorizes M04D2 to extend the same `SimulationEngine`; it does not add another elapsed-production owner.
 
 ### Strict eligibility and no auto-initialization
 

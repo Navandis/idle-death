@@ -3,7 +3,7 @@
 **Document role:** Durable record of approved and proposed design and architecture decisions  
 **Repository path:** `docs/codex/DECISIONS.md`  
 **Document status:** Approved architecture and active decision record  
-**Revision:** 19  
+**Revision:** 20  
 **Last updated:** 2026-07-18
 
 ## 1. How to use this file
@@ -67,7 +67,7 @@ Rules:
 | `DEC-0035` | Reaping operations are Threshold-scoped; recalled records persist and assignment commands are revision-guarded and Form-exclusive | Accepted | 2026-07-16 |
 | `DEC-0036` | Core Reaping resolution is transactional; settlement is an exact boundary and residual ownership is explicit | Accepted | 2026-07-17 |
 | `DEC-0037` | Output access is global and prospective; schema version 3 persists unlocks and available-source initialization | Accepted | 2026-07-17 |
-| `DEC-0038` | Discrete non-Essence channels resolve only initialized sources; whole banking is immediate and Settlement is channel-specific | Proposed | 2026-07-18 |
+| `DEC-0038` | Discrete non-Essence channels resolve only initialized sources; whole banking is immediate and Settlement is channel-specific | Accepted | 2026-07-18 |
 
 ---
 
@@ -1983,7 +1983,7 @@ The former single M04D prompt is superseded by:
 
 ## `DEC-0038` — Discrete non-Essence channels resolve only initialized sources; whole banking is immediate and Settlement is channel-specific
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-07-18  
 **Decision type:** Deterministic channel simulation, content compatibility, lifecycle segmentation, and event semantics  
 **Refines:** `DEC-0010`, `DEC-0012`, `DEC-0014`, `DEC-0026`–`DEC-0030`, `DEC-0036`, `DEC-0037`
@@ -2003,7 +2003,7 @@ The resolver must avoid several failure modes:
 - changing authoritative channel balance while retaining the old content revision;
 - emitting unbounded per-unit events during long offline intervals.
 
-### Proposed decision
+### Decision
 
 #### Resolver ownership and complete-state precondition
 
@@ -2200,8 +2200,7 @@ Events are ordered by occurred time, priority, Threshold ID, then channel ID. Th
 
 ## 3. Current approval state
 
-- `DEC-0001` through `DEC-0037` are Accepted.
-- `DEC-0038` is Proposed and awaits owner approval with the M04D2 prompt.
+- `DEC-0001` through `DEC-0038` are Accepted.
 - M03 prompt approval accepted `DEC-0029` through `DEC-0032`, including explicit revision compatibility, stable channel IDs, editable player-facing language, centralized terminology, and Essence as the single resource identity.
 - M01 prompt approval accepted `DEC-0026`; long-horizon source ownership is recorded in `DEC-0027`; prospective, non-compounding rate-change semantics are recorded in `DEC-0028`.
 - The Phase 6 architecture is approved with trusted-time, save-format, cross-machine testing, GodotSteam, owner-verification, fixed-point, Threshold-channel ownership, content compatibility, naming, and terminology refinements recorded in `DEC-0021` through `DEC-0032`.
@@ -2210,5 +2209,5 @@ Events are ordered by occurred time, priority, Threshold ID, then channel ID. Th
 - `DEC-0035` defines Threshold-scoped Reaping identity, canonical loadout values, assignment revisions/episodes, immutable first-start timestamps, stable recalled records, Form exclusivity, and resolve-before-rate-change handoff.
 - `DEC-0036` is implemented and verified by M04C.
 - `DEC-0037` amends pre-unlock channel semantics, authorizes schema version 3 and global output-item access, and replaces the former M04D prompt with M04D1–M04D3.
-- M04D1 is implemented, verified, and merged. M04D2 planning proposes `DEC-0038` and prompt v0.1; M04D3 remains defined but undrafted.
+- M04D1 is implemented, verified, and merged. M04D2 prompt v0.1 is approved for implementation under accepted `DEC-0038`; M04D3 remains defined but undrafted.
 - Future changes preserve decision IDs for wording clarifications and create a new decision only when semantics, ownership, compatibility, or security posture changes.

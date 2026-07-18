@@ -3,7 +3,7 @@
 **Document role:** Approved implementation sequence and acceptance map for the 0–90 minute prototype  
 **Repository path:** `docs/codex/MILESTONES.md`  
 **Document status:** Approved rolling-wave milestone map  
-**Milestone-map revision:** 22  
+**Milestone-map revision:** 23  
 **Last updated:** 2026-07-18  
 **Primary context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md), [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md), [Architecture](ARCHITECTURE.md), [Data contracts](DATA_AND_CONTENT_CONTRACTS.md), [Testing](TESTING_AND_VALIDATION.md), [Owner verification](OWNER_VERIFICATION_WORKFLOW.md), [Milestone recalibration](MILESTONE_RECALIBRATION_PROPOSAL.md), and [Decisions](DECISIONS.md)
 
@@ -117,7 +117,7 @@ A conceptual epic uses `Prompt: Not applicable` and `Implementation: Not directl
 | `GATE-REAPING-ASSIGNMENT` | M04B prompt approval | Satisfied by accepted `DEC-0035`: Threshold-scoped operation identity, canonical loadout tuples, revision/episode identity, immutable first-start timestamps, stable recalled records, Form exclusivity, tether derivation, and nonzero carry handling. |
 | `GATE-CORE-RESOLUTION` | M04C prompt approval | Satisfied by accepted `DEC-0036` and approved M04C v0.1: transactional mutation, exact Settlement segmentation, core rate semantics, residual ownership, no-active timeline behavior, and the temporary one-active-Reaping limit. |
 | `GATE-OUTPUT-ACCESS-SCHEMA` | M04D1 prompt approval | Satisfied by accepted `DEC-0037` and approved M04D1 v0.1: access/knowledge/insight separation, schema version 3, global item access, prospective unlocks, available-source initialization, no retroactive production, and no permanent lockout. |
-| `GATE-CHANNEL-ACCUMULATION` | M04D2 prompt approval | Requires M04D1 Merged/Passed and owner approval of `DEC-0038` or a revised contract covering strict initialized-source eligibility, content revision 2, exact whole banking, channel-specific Settlement segmentation, bounded events, persistence, and scope. |
+| `GATE-CHANNEL-ACCUMULATION` | M04D2 prompt approval | Satisfied by M04D1 Merged/Passed, accepted `DEC-0038`, and approved M04D2 v0.1 covering strict initialized-source eligibility, content revision 2, exact whole banking, channel-specific Settlement segmentation, bounded events, persistence, and scope. |
 | `GATE-RATE-CONTEXT-CHANGE` | M04D3 prompt approval | Requires M04D2 Merged/Passed and a fresh compatibility/ETA scope assessment. |
 | `GATE-STEAM-TIME` | The applicable M06 slice prompt/implementation | Satisfied for prompt drafting by `DEC-0024`: use pinned GodotSteam 4.20 and development App ID `480`. M06 must still verify license footprint, wrapper API, explicit initialization, and live Windows behavior. |
 | `GATE-PRODUCTION-OFFLINE` | The final applicable M16 slice merge | Fake-provider automation plus the owner-run Windows/GodotSteam connected, unavailable, reconnect, clock-change, and repeated-load checks must pass. |
@@ -132,7 +132,7 @@ A conceptual epic uses `Prompt: Not applicable` and `Implementation: Not directl
 
 `GATE-CONTENT-CATALOG` was satisfied by M03. PR #7 merged on 2026-07-15 at merge commit `5e2b9b23878c9280f75b987cc9ad567d8980030d`; its final head was `971cdaa0fd46f641ec7409148e259d54f953d8c7`. Linux/Codex and owner Windows verification passed the full and focused suites, explicit import, semantic catalog trace, artifact audit, and Godot Inspector checklist.
 
-`GATE-SLICE-SCOPE` is mandatory for every post-M03 prompt. `GATE-GAMEPLAY-SCHEMA` is fully satisfied by M04A. `GATE-REAPING-ASSIGNMENT` is fully satisfied by M04B. `GATE-CORE-RESOLUTION` is fully satisfied by M04C. `GATE-OUTPUT-ACCESS-SCHEMA` is fully satisfied by M04D1 implementation and verification. `GATE-CHANNEL-ACCUMULATION` is pending owner approval of proposed `DEC-0038` with the M04D2 prompt. M04D3 remains blocked on M04D2.
+`GATE-SLICE-SCOPE` is mandatory for every post-M03 prompt. `GATE-GAMEPLAY-SCHEMA` is fully satisfied by M04A. `GATE-REAPING-ASSIGNMENT` is fully satisfied by M04B. `GATE-CORE-RESOLUTION` is fully satisfied by M04C. `GATE-OUTPUT-ACCESS-SCHEMA` is fully satisfied by M04D1 implementation and verification. `GATE-CHANNEL-ACCUMULATION` and M04D2 `GATE-SLICE-SCOPE` are satisfied by accepted `DEC-0038` and approved M04D2 v0.1. M04D3 remains blocked on M04D2.
 
 
 When trusted time is unavailable, the approved behavior is to grant no guessed closed-session progress, retain pending reconciliation, and continue monotonic foreground production. No milestone may introduce a local-device-time fallback.
@@ -151,7 +151,7 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 | M04C | Single-Reaping core resolver | Implementation slice | Approved | Approved | Merged | Passed |
 | M04D | Output access and discrete-channel progression | Conceptual sub-epic | Approved | Not applicable | Not directly executable | — |
 | M04D1 | Output access and source-identification foundation | Implementation slice | Approved | Approved | Merged | Passed |
-| M04D2 | Discrete channel accumulation and long-horizon banking | Implementation slice | Approved | Drafted | Not started | — |
+| M04D2 | Discrete channel accumulation and long-horizon banking | Implementation slice | Approved | Approved | Not started | — |
 | M04D3 | Compatible rate-context changes and acquisition queries | Implementation slice | Approved | Not drafted | Not started | — |
 | M04E | Forecast clone, report accumulator, and simulation harness | Implementation slice | Approved | Not drafted | Not started | — |
 | M05 | Persistent application shell, navigation, and debug access | Conceptual epic | Approved | Not applicable | Not directly executable | — |
@@ -1236,7 +1236,7 @@ A developer can unlock an output item globally, identify and initialize every cu
 **Work item type:** Implementation slice  
 **Parent epic:** M04 / M04D  
 **Definition status:** Approved  
-**Prompt status:** Drafted  
+**Prompt status:** Approved  
 **Implementation status:** Not started  
 **Verification status:** —  
 **Recommended Codex task size:** Medium; one eligible-channel simulation pull request.  
@@ -1253,9 +1253,9 @@ A developer can resolve long active intervals at Gloamwood and Broken Watch, ins
 #### Dependencies
 
 - M04D1 Merged and Passed.
-- Proposed `DEC-0038` or an owner-approved replacement accumulation contract.
-- `GATE-SLICE-SCOPE` is completed in the M04D2 draft and must be approved with the prompt.
-- `GATE-CHANNEL-ACCUMULATION` remains pending prompt/decision approval.
+- Accepted `DEC-0038` is the authoritative accumulation contract.
+- `GATE-SLICE-SCOPE` is satisfied by the approved M04D2 v0.1 prompt.
+- `GATE-CHANNEL-ACCUMULATION` is satisfied by accepted `DEC-0038` and approved M04D2 v0.1.
 - Existing M04C transaction/segmentation and M04D1 access/source validation remain authoritative.
 
 #### Included scope

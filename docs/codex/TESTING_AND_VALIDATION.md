@@ -2,8 +2,8 @@
 
 **Document role:** Canonical test strategy, commands, fixture rules, and manual validation flows
 **Repository path:** `docs/codex/TESTING_AND_VALIDATION.md`
-**Document status:** Approved validation plan through M04D1 with M04D2 draft and M04D3 definition
-**Validation revision:** 19
+**Document status:** Approved validation plan through M04D1 with M04D2 approved and M04D3 definition
+**Validation revision:** 20
 **Last updated:** 2026-07-18
 **Engine target:** Godot 4.7 standard build, GDScript only
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)  
@@ -40,7 +40,7 @@ M04B merged through PR #9 at merge commit `c641d74cebedf07c51ebb579cccee21db7aa2
 
 M04C merged through PR #12 at merge commit `719592c85ca4e90ecd5df4593e37a81d36b2789e` from final head `acb48d0045e41a0f7d73f561e5c3756f8668dd46`. Transactional core resolution, exact Settlement segmentation, checked residual ownership, persistence, the eleven-marker trace, and Windows owner verification passed.
 
-M04D1 merged through PR #13 at merge commit `4569fbfb968deb73f54ba453834dd7af0b04d545` from final head `1171785562c4107921437339187a1e782fe0143b`. Schema-v3 access, migration/finalization, unlock/reconciliation, no-backfill, real-file trace, and owner Windows verification passed. M04D2 planning proposes `DEC-0038` for strict initialized-source accumulation, content revision 2, whole banking, channel-specific Settlement, bounded events, and schema-v3 persistence.
+M04D1 merged through PR #13 at merge commit `4569fbfb968deb73f54ba453834dd7af0b04d545` from final head `1171785562c4107921437339187a1e782fe0143b`. Schema-v3 access, migration/finalization, unlock/reconciliation, no-backfill, real-file trace, and owner Windows verification passed. Accepted `DEC-0038` and approved M04D2 v0.1 define strict initialized-source accumulation, content revision 2, whole banking, channel-specific Settlement, bounded events, and schema-v3 persistence.
 
 ## 2. Pinned test and platform dependencies
 
@@ -1869,7 +1869,7 @@ Final evidence:
 
 `GATE-OUTPUT-ACCESS-SCHEMA` is satisfied.
 
-## 25. M04D2 draft discrete-channel accumulation validation package
+## 25. M04D2 approved discrete-channel accumulation validation package
 
 M04D2 extends the M04C resolver. Tests use explicit durations only and must not wait in real time.
 
@@ -2025,7 +2025,7 @@ No interactive checklist is required.
 
 M04D2 cannot merge until:
 
-- proposed `DEC-0038` or an owner-approved replacement contract is Accepted;
+- accepted `DEC-0038` remains the implemented channel-accumulation contract;
 - Linux/Codex focused/import/trace/full checks pass;
 - owner Windows verification passes against the exact PR head;
 - all four exact long-duration fixtures and early/late unlock comparison pass;

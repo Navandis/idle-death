@@ -3,7 +3,7 @@
 **Document role:** Canonical prototype data, runtime-state, ID, and serialization contracts  
 **Repository path:** `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`  
 **Document status:** Approved architecture contract  
-**Revision:** 15  
+**Revision:** 16  
 **Last updated:** 2026-07-18
 
 ## 1. Purpose
@@ -2154,9 +2154,9 @@ For M04D1:
 
 The query does not persist an insight meter or mutate content.
 
-## Proposed M04D2 discrete-channel accumulation contract
+## Approved M04D2 discrete-channel accumulation contract
 
-This section is proposed with `DEC-0038` and becomes authoritative when the M04D2 prompt is approved.
+This section is authoritative under accepted `DEC-0038` and the approved M04D2 v0.1 prompt.
 
 ### Content revision and authored values
 

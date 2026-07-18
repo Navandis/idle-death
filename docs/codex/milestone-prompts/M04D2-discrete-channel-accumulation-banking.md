@@ -2,22 +2,33 @@
 
 **Prompt version:** v0.1  
 **Prompt date:** 2026-07-18  
-**Prompt status:** Draft  
+**Prompt status:** Approved  
 **Work item type:** Implementation slice  
 **Parent conceptual epic:** `M04 — Persistent Reaping simulation vertical slice` / M04D sub-epic  
 **Milestone definition:** `docs/codex/MILESTONES.md` — `### M04D2 — Discrete channel accumulation and long-horizon banking`  
 **Recommended task size:** Medium; one eligible-channel simulation pull request  
-**Scope-gate result:** Within guardrails at draft; stop if actual work needs another primary owner, more than two cross-layer seams, more than approximately 30 non-documentation source/test files, or more than approximately 1,500 non-documentation code/test lines  
+**Scope-gate result:** Approved within guardrails; stop if actual work needs another primary owner, more than two cross-layer seams, more than approximately 30 non-documentation source/test files, or more than approximately 1,500 non-documentation code/test lines  
 **Expected base branch or ref:** current `main` after M04D1 merge commit `4569fbfb968deb73f54ba453834dd7af0b04d545`  
 **Planned prompt path:** `docs/codex/milestone-prompts/M04D2-discrete-channel-accumulation-banking.md`
 
 > This prompt authorizes only exact elapsed production for already-initialized eligible non-Essence Threshold channels, immediate whole banking, channel deltas/events, channel-specific Settlement segmentation, content revision 2, persistence, and verification. It does not authorize output-channel loadout/progression modifiers, changed-loadout compatibility, ETA queries, M04D3, progression effects, reports, forecasts, concurrency, UI, or platform integration.
 
-## Approval dependency
+## Approval record
 
-This draft includes proposed `DEC-0038`. Approval of this prompt also accepts that decision unless the owner requests revised eligibility, content-revision, banking, lifecycle, result, or event semantics first.
+The project owner approved M04D2 prompt v0.1 and accepted `DEC-0038` on 2026-07-18.
 
-Do not execute this prompt while `DEC-0038` remains Proposed.
+The approved slice includes:
+
+- strict production only for already-initialized eligible non-Essence sources;
+- content revision `prototype-content-r2`;
+- current non-Essence prototype Settled multipliers of `1.0`;
+- exact progress/carry accumulation and immediate whole banking;
+- channel-specific lifecycle segmentation through the existing M04C boundary;
+- bounded ordered `OUTPUT_CHANNEL_BANKED` events;
+- schema-version-3 persistence without a new migration;
+- no access mutation, backfill, output-channel modifiers, changed-loadout handling, ETA queries, reports, forecasts, concurrency, UI, or platform integration.
+
+Do not execute a different eligibility, content-compatibility, lifecycle, banking, result, or event model without a new owner-approved decision. Do not draft or implement M04D3 in this task.
 
 ## Execution protocol
 
@@ -80,8 +91,8 @@ From focused tests and one headless trace, a developer can:
 | 1 | `AGENTS.md` | Full file | Repository rules |
 | 2 | `docs/codex/MILESTONES.md` | Gates, M04D2, scope guardrails | Slice authority |
 | 3 | `docs/codex/DECISIONS.md` | `DEC-0010`, `DEC-0012`, `DEC-0014`, `DEC-0026`–`DEC-0030`, `DEC-0033`–`DEC-0038` | Numeric/access/lifecycle/content authority |
-| 4 | `docs/codex/DATA_AND_CONTENT_CONTRACTS.md` | M04C, M04D1, proposed M04D2 contracts; inventory/acquisition/event schemas | Exact data rules |
-| 5 | `docs/codex/ARCHITECTURE.md` | M04C transaction; realized M04D1; proposed M04D2 boundary | Ownership/segmentation |
+| 4 | `docs/codex/DATA_AND_CONTENT_CONTRACTS.md` | M04C, M04D1, approved M04D2 contracts; inventory/acquisition/event schemas | Exact data rules |
+| 5 | `docs/codex/ARCHITECTURE.md` | M04C transaction; realized M04D1; approved M04D2 boundary | Ownership/segmentation |
 | 6 | `docs/codex/IMPLEMENTATION_RULES.md` | Determinism, arithmetic, state, comments, diagnostics | Engineering rules |
 | 7 | `docs/codex/TESTING_AND_VALIDATION.md` | §§23–25; owner workflow | Evidence |
 | 8 | `docs/codex/OWNER_VERIFICATION_WORKFLOW.md` | Complete | Windows runner/log |
@@ -121,7 +132,7 @@ Expected baseline:
 
 ## Scope and review-surface assessment
 
-| Assessment item | Draft estimate |
+| Assessment item | Approved estimate |
 |---|---|
 | Parent conceptual epic | M04 / M04D |
 | Primary subsystem owner | Existing `SimulationEngine` |
@@ -135,7 +146,7 @@ Expected baseline:
 | Estimated non-documentation source/test files | Approximately 12–22, excluding `.uid` and docs |
 | Estimated non-documentation code/test line delta | Approximately 850–1,350, excluding `.uid` and docs |
 | Owner package | `run_m04d2_owner_verification.ps1` |
-| Mandatory split trigger | Not crossed at draft |
+| Mandatory split trigger | Not crossed at approval |
 
 Stop before approximately 30 non-documentation source/test files, 1,500 code/test lines, more than two seams, or another primary owner.
 
@@ -479,7 +490,7 @@ Update canonical sections in:
 - `docs/codex/ARCHITECTURE.md`;
 - `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`;
 - `docs/codex/TESTING_AND_VALIDATION.md`;
-- `docs/codex/DECISIONS.md` only to mark `DEC-0038` Accepted after owner approval, not to weaken it;
+- `docs/codex/DECISIONS.md` only if implementation uncovers a genuine conflict requiring a new owner-approved decision; do not weaken accepted `DEC-0038` through implementation shortcuts;
 - `docs/design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md` only if implementation reveals a wording conflict;
 - `README.md` only if the developer trace command is useful.
 
