@@ -16,6 +16,7 @@ const ERR_CONTENT := &"RATE_CONTEXT_CONTENT_INVALID"
 const ERR_OVERFLOW := &"RATE_CONTEXT_OVERFLOW"
 const ERR_QUERY_INACTIVE := &"RATE_CONTEXT_QUERY_INACTIVE"
 const ETA_BASIS_CURRENT_RATE_CONTEXT := "CURRENT_RATE_CONTEXT"
+const SUPPORTED_OUTPUT_CHANNEL_CONDITIONS := ["ALWAYS", "OUTPUT_ITEM", "OUTPUT_KIND", "THRESHOLD_HAS_ANY_TAG", "THRESHOLD_LIFECYCLE"]
 
 var registry: ContentRegistry
 
@@ -80,7 +81,10 @@ func output_channel_rate_plan(threshold_id: StringName, form_id: StringName, cha
 				continue
 			if modifier.operation != "MULTIPLY" or modifier.scope != "OUTPUT_CHANNEL":
 				return {"ok": false, "code": ERR_CONTENT, "details": "unsupported OUTPUT_CHANNEL_RATE modifier"}
-			if not _modifier_applies(modifier, threshold, channel, lifecycle_state):
+			var applicability := _modifier_applicability(modifier, threshold, channel, lifecycle_state)
+			if not applicability.ok:
+				return applicability
+			if not applicability.applies:
 				continue
 			var before := value
 			var scaled := FixedPoint.multiply_scaled_floor(value, int(modifier.value_subunits))
@@ -153,14 +157,21 @@ func _eta_msec_to_next_whole(progress_subunits: int, carry_units: int, rate: int
 		return {"ok": true, "eta_msec": 0}
 	return {"ok": true, "eta_msec": (numerator + rate - 1) / rate}
 
-func _modifier_applies(modifier: Dictionary, threshold: Dictionary, channel: Dictionary, lifecycle_state: String) -> bool:
+func _modifier_applicability(modifier: Dictionary, threshold: Dictionary, channel: Dictionary, lifecycle_state: String) -> Dictionary:
+	# A modifier with metric OUTPUT_CHANNEL_RATE is relevant once the active Form
+	# exposes it. Conditions approved for the broader content grammar but deferred
+	# past M04D3 must therefore fail visibly instead of looking like an ordinary
+	# non-matching condition; otherwise simulation and queries would quietly use
+	# baseline rates for content that this slice cannot interpret.
+	if not SUPPORTED_OUTPUT_CHANNEL_CONDITIONS.has(modifier.condition):
+		return {"ok": false, "code": ERR_CONTENT, "details": "unsupported OUTPUT_CHANNEL_RATE condition: %s" % modifier.condition}
 	match modifier.condition:
-		"ALWAYS": return true
-		"OUTPUT_ITEM": return modifier.condition_values.has(channel.output_item_id)
-		"OUTPUT_KIND": return modifier.condition_values.has(channel.output_kind)
+		"ALWAYS": return {"ok": true, "applies": true}
+		"OUTPUT_ITEM": return {"ok": true, "applies": modifier.condition_values.has(channel.output_item_id)}
+		"OUTPUT_KIND": return {"ok": true, "applies": modifier.condition_values.has(channel.output_kind)}
 		"THRESHOLD_HAS_ANY_TAG":
 			for tag in modifier.condition_values:
-				if threshold.tags.has(tag): return true
-			return false
-		"THRESHOLD_LIFECYCLE": return modifier.condition_values.has(lifecycle_state)
-	return false
+				if threshold.tags.has(tag): return {"ok": true, "applies": true}
+			return {"ok": true, "applies": false}
+		"THRESHOLD_LIFECYCLE": return {"ok": true, "applies": modifier.condition_values.has(lifecycle_state)}
+	return {"ok": false, "code": ERR_CONTENT, "details": "unsupported OUTPUT_CHANNEL_RATE condition: %s" % modifier.condition}

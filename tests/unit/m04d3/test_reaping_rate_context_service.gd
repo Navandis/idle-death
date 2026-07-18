@@ -8,7 +8,7 @@ func _registry() -> ContentRegistry:
 func _state(active := true) -> GameState:
 	var state := GameState.new(0)
 	state.progression.command_tether_capacity = 1
-	state.progression.unlocked_output_item_ids = [&"SOUL_FORM_SCRIBE", &"SOUL_CALLING_SOLDIER"]
+	state.progression.unlocked_output_item_ids = [&"SOUL_FORM_SCRIBE"]
 	state.forms[&"FORM_MAN_AT_ARMS"] = GameState.FormState.new(true, true, 0, &"TEST")
 	state.forms[&"FORM_SCRIBE"] = GameState.FormState.new(true, true, 0, &"TEST")
 	var threshold := GameState.ThresholdState.new()
@@ -56,3 +56,13 @@ func test_inactive_query_has_no_eta() -> void:
 	assert_true(query.ok)
 	assert_false(query.is_active)
 	assert_eq(query.eta_msec, -1)
+
+func test_output_channel_rate_modifier_rejects_deferred_supported_conditions() -> void:
+	var service := ReapingRateContextService.new(_registry())
+	var threshold := {"tags": ["TAG_FOREST"]}
+	var channel := {"output_item_id": "SOUL_FORM_SCRIBE", "output_kind": "WHOLE_ITEM"}
+	var modifier := {"condition": "SUPPORT_STATE", "condition_values": ["FULL"]}
+	var result := service._modifier_applicability(modifier, threshold, channel, "OVERDUE")
+	assert_false(result.ok)
+	assert_eq(result.code, ReapingRateContextService.ERR_CONTENT)
+	assert_string_contains(result.details, "SUPPORT_STATE")

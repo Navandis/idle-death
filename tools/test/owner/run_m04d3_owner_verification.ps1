@@ -1,6 +1,6 @@
 param([string]$GodotBin, [string]$CommitSha = "")
 $ErrorActionPreference = "Stop"
-$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
+$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..\..")).Path
 $LogDir = Join-Path $RepoRoot "tools\test\owner\logs"
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
 $LogPath = Join-Path $LogDir ("m04d3_owner_verification_{0}.log" -f (Get-Date -Format "yyyyMMdd_HHmmss"))
