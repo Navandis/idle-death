@@ -16,8 +16,11 @@ const ERR_CONTENT := &"RATE_CONTEXT_CONTENT_INVALID"
 const ERR_OVERFLOW := &"RATE_CONTEXT_OVERFLOW"
 const ERR_QUERY_INACTIVE := &"RATE_CONTEXT_QUERY_INACTIVE"
 const ERR_NO_ACTIVE_ETA := &"RATE_CONTEXT_NO_ACTIVE_ETA"
+const ERR_QUERY_NOT_ELIGIBLE := &"RATE_CONTEXT_QUERY_NOT_ELIGIBLE"
 const ETA_BASIS_CURRENT_RATE_CONTEXT := "CURRENT_RATE_CONTEXT"
 const SUPPORTED_OUTPUT_CHANNEL_CONDITIONS := ["ALWAYS", "OUTPUT_ITEM", "OUTPUT_KIND", "THRESHOLD_HAS_ANY_TAG", "THRESHOLD_LIFECYCLE"]
+const VALID_LIFECYCLE_STATES := ["OVERDUE", "SETTLED"]
+const VALID_OUTPUT_KIND_TOKENS := ["RESOURCE", "STORE", "WHOLE_ITEM", "WHOLE_SOUL"]
 
 var registry: ContentRegistry
 
@@ -32,19 +35,23 @@ func loadout_identity(form_id: StringName, writ_id: StringName, retinue_ids: Arr
 
 func residual_signature(state: GameState, threshold_id: StringName, form_id: StringName) -> Dictionary:
 	if registry == null or not registry.ready:
-		return {"ok": false, "success": false, "error_code": ERR_CONTENT, "code": ERR_CONTENT, "developer_details": "registry not ready"}
+		return _failure(ERR_CONTENT, "registry not ready")
 	var state_validation := GameStateValidator.validate(state, registry, true)
 	if not state_validation.ok:
-		return {"ok": false, "success": false, "error_code": ERR_CONTENT, "code": ERR_CONTENT, "developer_details": str(state_validation)}
+		return _failure(ERR_CONTENT, str(state_validation))
 	var form_result := registry.get_record(str(form_id))
 	var threshold_result := registry.get_record(str(threshold_id))
-	if not form_result.ok or not threshold_result.ok:
-		return {"ok": false, "success": false, "error_code": ERR_CONTENT, "code": ERR_CONTENT, "developer_details": "missing form or threshold"}
+	if not form_result.ok or form_result.record.type != "form" or not form_result.record.enabled:
+		return _failure(ERR_CONTENT, "missing, disabled, or non-Form record: %s" % form_id)
+	if not threshold_result.ok or threshold_result.record.type != "threshold" or not threshold_result.record.enabled:
+		return _failure(ERR_CONTENT, "missing, disabled, or non-Threshold record: %s" % threshold_id)
 	var form: Dictionary = form_result.record
 	var threshold: Dictionary = threshold_result.record
 	var essence := CoreFlowKeys.find_single_essence_channel(registry, threshold_id, threshold)
 	if not essence.ok:
-		return {"ok": false, "success": false, "error_code": ERR_CONTENT, "code": ERR_CONTENT, "developer_details": str(essence)}
+		return _failure(ERR_CONTENT, str(essence))
+	if int(essence.channel.rate.period_msec) <= 0:
+		return _failure(ERR_CONTENT, "non-positive Essence period")
 	var channel_periods := {}
 	if state != null and state.thresholds.has(threshold_id):
 		var threshold_state: GameState.ThresholdState = state.thresholds[threshold_id]
@@ -53,12 +60,12 @@ func residual_signature(state: GameState, threshold_id: StringName, form_id: Str
 		for channel_id in channel_ids:
 			var relationship := OutputAccessService.validate_channel_relationship(registry, str(channel_id), "", str(threshold_id))
 			if not relationship.ok:
-				return {"ok": false, "success": false, "error_code": ERR_CONTENT, "code": ERR_CONTENT, "developer_details": "invalid initialized channel relationship: %s" % channel_id}
+				return _failure(ERR_CONTENT, "invalid initialized channel relationship: %s" % channel_id)
 			if int(relationship.channel.rate.period_msec) <= 0:
-				return {"ok": false, "success": false, "error_code": ERR_CONTENT, "code": ERR_CONTENT, "developer_details": "non-positive channel period: %s" % channel_id}
+				return _failure(ERR_CONTENT, "non-positive channel period: %s" % channel_id)
 			channel_periods[str(channel_id)] = int(relationship.channel.rate.period_msec)
 	if int(form.base_returned_souls_rate.period_msec) <= 0 or int(form.active_mastery_rate.period_msec) <= 0 or int(form.cycle_duration_msec) <= 0 or int(essence.channel.rate.period_msec) <= 0:
-		return {"ok": false, "success": false, "error_code": ERR_CONTENT, "code": ERR_CONTENT, "developer_details": "non-positive residual denominator"}
+		return _failure(ERR_CONTENT, "non-positive residual denominator")
 	var signature := {"returned_soul_period_msec": int(form.base_returned_souls_rate.period_msec), "returned_period_msec": int(form.base_returned_souls_rate.period_msec), "mastery_period_msec": int(form.active_mastery_rate.period_msec), "cycle_duration_msec": int(form.cycle_duration_msec), "essence_period_msec": int(essence.channel.rate.period_msec), "initialized_non_essence_channel_period_msec_by_channel_id": channel_periods, "channel_periods_msec": channel_periods}
 	return {"ok": true, "success": true, "signature": signature}
 
@@ -73,24 +80,33 @@ func compare_residual_signatures(state: GameState, threshold_id: StringName, old
 	return {"ok": false, "success": false, "compatible": false, "code": REAPING_RATE_CONTEXT_NORMALIZATION_REQUIRED, "error_code": REAPING_RATE_CONTEXT_NORMALIZATION_REQUIRED, "developer_details": "Rate-context normalization required for: %s" % ", ".join(mismatches), "mismatched_fields": mismatches, "old_signature": old_sig.signature, "new_signature": new_sig.signature}
 
 func output_channel_rate_plan(threshold_id: StringName, form_id: StringName, channel_id: StringName, lifecycle_state: String) -> Dictionary:
+	if registry == null or not registry.ready:
+		return _failure(ERR_CONTENT, "registry not ready")
 	var form_result := registry.get_record(str(form_id))
 	var threshold_result := registry.get_record(str(threshold_id))
 	var channel_result := registry.get_record(str(channel_id))
-	if not form_result.ok or not threshold_result.ok or not channel_result.ok:
-		return {"ok": false, "code": ERR_CONTENT, "details": "missing content"}
+	if not form_result.ok or form_result.record.type != "form" or not form_result.record.enabled:
+		return _failure(ERR_CONTENT, "missing, disabled, or non-Form record: %s" % form_id)
+	if not threshold_result.ok or threshold_result.record.type != "threshold" or not threshold_result.record.enabled:
+		return _failure(ERR_CONTENT, "missing, disabled, or non-Threshold record: %s" % threshold_id)
+	if not channel_result.ok:
+		return _failure(ERR_CONTENT, "missing channel: %s" % channel_id)
 	var form: Dictionary = form_result.record
 	var threshold: Dictionary = threshold_result.record
 	var channel: Dictionary = channel_result.record
 	if channel.type != "channel" or not channel.enabled or channel.source_threshold_id != str(threshold_id):
-		return {"ok": false, "success": false, "error_code": ERR_CONTENT, "code": ERR_CONTENT, "developer_details": "invalid channel ownership"}
+		return _failure(ERR_CONTENT, "invalid channel ownership")
 	var relationship := OutputAccessService.validate_channel_relationship(registry, str(channel_id), "", str(threshold_id))
 	if not relationship.ok:
-		return {"ok": false, "success": false, "error_code": ERR_CONTENT, "code": ERR_CONTENT, "developer_details": "Essence or misowned channel is not an output-channel rate plan"}
-	if lifecycle_state != "OVERDUE" and lifecycle_state != "SETTLED":
-		return {"ok": false, "success": false, "error_code": ERR_CONTENT, "code": ERR_CONTENT, "developer_details": "unsupported lifecycle: %s" % lifecycle_state}
+		return _failure(ERR_QUERY_NOT_ELIGIBLE, "Essence or misowned channel is not an output-channel rate plan")
+	var item := registry.get_record(str(channel.output_item_id))
+	if not item.ok or item.record.type != "item" or not item.record.enabled:
+		return _failure(ERR_CONTENT, "invalid channel output item: %s" % channel.output_item_id)
+	if not VALID_LIFECYCLE_STATES.has(lifecycle_state):
+		return _failure(ERR_CONTENT, "unsupported lifecycle: %s" % lifecycle_state)
 	var baseline := int(channel.rate.rate_subunits_per_period)
-	if baseline <= 0 or int(channel.rate.period_msec) <= 0:
-		return {"ok": false, "success": false, "error_code": ERR_CONTENT, "code": ERR_CONTENT, "developer_details": "non-positive channel rate"}
+	if baseline <= 0 or int(channel.rate.period_msec) <= 0 or int(channel.settled_multiplier_subunits) <= 0:
+		return _failure(ERR_CONTENT, "non-positive channel rate, period, or lifecycle multiplier")
 	var value := baseline
 	var trace: Array = []
 	# M04D3 modifiers are prospective: start from authored channel baseline every
@@ -103,7 +119,7 @@ func output_channel_rate_plan(threshold_id: StringName, form_id: StringName, cha
 			if modifier.metric != "OUTPUT_CHANNEL_RATE":
 				continue
 			if modifier.operation != "MULTIPLY" or modifier.scope != "OUTPUT_CHANNEL":
-				return {"ok": false, "code": ERR_CONTENT, "details": "unsupported OUTPUT_CHANNEL_RATE modifier"}
+				return _failure(ERR_CONTENT, "unsupported OUTPUT_CHANNEL_RATE modifier")
 			var applicability := _modifier_applicability(modifier, threshold, channel, lifecycle_state)
 			if not applicability.ok:
 				return applicability
@@ -112,27 +128,36 @@ func output_channel_rate_plan(threshold_id: StringName, form_id: StringName, cha
 			var before := value
 			var scaled := FixedPoint.multiply_scaled_floor(value, int(modifier.value_subunits))
 			if not scaled.ok:
-				return {"ok": false, "code": ERR_OVERFLOW, "details": "modifier overflow"}
+				return _failure(ERR_OVERFLOW, "modifier overflow")
 			value = int(scaled.subunits)
 			trace.append({"source_type": "FORM_TRAIT", "source_id": trait_record.id, "trait_id": trait_record.id, "modifier_index": modifier_index, "metric": modifier.metric, "operation": modifier.operation, "scope": modifier.scope, "condition": modifier.condition, "condition_values": modifier.condition_values.duplicate(), "multiplier_subunits": int(modifier.value_subunits), "rate_before_subunits_per_period": before, "rate_after_subunits_per_period": value, "rate_before": before, "rate_after": value})
 	if lifecycle_state == "SETTLED":
 		var settled := FixedPoint.multiply_scaled_floor(value, int(channel.settled_multiplier_subunits))
 		if not settled.ok:
-			return {"ok": false, "code": ERR_OVERFLOW, "details": "settled multiplier overflow"}
+			return _failure(ERR_OVERFLOW, "settled multiplier overflow")
 		value = int(settled.subunits)
 	return {"ok": true, "success": true, "threshold_id": str(threshold_id), "channel_id": str(channel_id), "output_item_id": str(channel.output_item_id), "output_kind": str(channel.output_kind), "lifecycle_state": lifecycle_state, "baseline_rate_subunits_per_period": baseline, "effective_rate_subunits_per_period": value, "rate_subunits_per_period": value, "period_msec": int(channel.rate.period_msec), "lifecycle_multiplier_subunits": int(channel.settled_multiplier_subunits) if lifecycle_state == "SETTLED" else FixedPoint.SCALE, "applied_modifiers": trace, "modifier_trace": trace}
 
 func query_acquisition(state: GameState, threshold_id: StringName, channel_id: StringName) -> Dictionary:
-	if state == null or not state.thresholds.has(threshold_id):
-		return {"ok": false, "success": false, "error_code": ERR_CONTENT, "code": ERR_CONTENT, "developer_details": "missing threshold"}
+	if registry == null or not registry.ready:
+		return _failure(ERR_CONTENT, "registry not ready")
+	var validation := GameStateValidator.validate(state, registry, true)
+	if not validation.ok:
+		return _failure(ERR_CONTENT, str(validation))
+	if not state.thresholds.has(threshold_id):
+		return _failure(ERR_CONTENT, "missing threshold")
 	var channel_result := registry.get_record(str(channel_id))
 	if not channel_result.ok or channel_result.record.type != "channel" or not channel_result.record.enabled:
-		return {"ok": false, "success": false, "error_code": ERR_CONTENT, "code": ERR_CONTENT, "developer_details": "invalid channel"}
+		return _failure(ERR_CONTENT, "invalid channel")
 	var channel: Dictionary = channel_result.record
 	var relationship := OutputAccessService.validate_channel_relationship(registry, str(channel_id), "", str(threshold_id))
 	var threshold: GameState.ThresholdState = state.thresholds[threshold_id]
-	if not relationship.ok or str(threshold.availability_state) != "AVAILABLE" or not threshold.channel_acquisition.has(channel_id):
-		return _no_eta_query(threshold_id, channel_id, channel, threshold, "LOCKED_OR_UNINITIALIZED")
+	if not relationship.ok:
+		return _failure(ERR_QUERY_NOT_ELIGIBLE, relationship.get("developer_details", "invalid, misowned, or Essence channel"))
+	if str(threshold.availability_state) != "AVAILABLE":
+		return _no_eta_query(threshold_id, channel_id, channel, threshold, "UNAVAILABLE")
+	if not threshold.channel_acquisition.has(channel_id):
+		return _no_eta_query(threshold_id, channel_id, channel, threshold, "LOCKED")
 	var acq: GameState.ThresholdAcquisitionState = threshold.channel_acquisition[channel_id]
 	var percent_tenths: int = min(999, (acq.progress_subunits * 1000) / FixedPoint.SCALE)
 	var active: bool = state.reapings.has(threshold_id) and state.reapings[threshold_id].is_active
@@ -173,11 +198,11 @@ func eta_display(eta_msec: int) -> Dictionary:
 
 func _eta_msec_to_next_whole(progress_subunits: int, carry_units: int, rate: int, period: int) -> Dictionary:
 	if progress_subunits < 0 or progress_subunits >= FixedPoint.SCALE:
-		return {"ok": false, "code": ERR_CONTENT, "details": "invalid progress"}
+		return _failure(ERR_CONTENT, "invalid progress")
 	if carry_units < 0 or (period > 0 and carry_units >= period):
-		return {"ok": false, "code": ERR_CONTENT, "details": "invalid carry"}
+		return _failure(ERR_CONTENT, "invalid carry")
 	if rate <= 0 or period <= 0:
-		return {"ok": false, "code": ERR_CONTENT, "details": "non-positive rate"}
+		return _failure(ERR_CONTENT, "non-positive rate")
 	var remaining := FixedPoint.SCALE - progress_subunits
 	if remaining <= 0:
 		return {"ok": true, "eta_msec": 0}
@@ -185,12 +210,12 @@ func _eta_msec_to_next_whole(progress_subunits: int, carry_units: int, rate: int
 	# This is ceil((remaining * period - carry) / rate) with all residual units left
 	# untouched; the query is a view and never rebases progress or carry.
 	if remaining > FixedPoint.INT64_MAX / period:
-		return {"ok": false, "code": ERR_OVERFLOW, "details": "eta numerator overflow"}
+		return _failure(ERR_OVERFLOW, "eta numerator overflow")
 	var numerator := remaining * period - carry_units
 	if numerator <= 0:
 		return {"ok": true, "eta_msec": 0}
 	if numerator > FixedPoint.INT64_MAX - rate + 1:
-		return {"ok": false, "code": ERR_OVERFLOW, "details": "eta ceiling overflow"}
+		return _failure(ERR_OVERFLOW, "eta ceiling overflow")
 	return {"ok": true, "eta_msec": (numerator + rate - 1) / rate}
 
 func _modifier_applicability(modifier: Dictionary, threshold: Dictionary, channel: Dictionary, lifecycle_state: String) -> Dictionary:
@@ -203,7 +228,9 @@ func _modifier_applicability(modifier: Dictionary, threshold: Dictionary, channe
 	if not operand_check.ok:
 		return operand_check
 	if not SUPPORTED_OUTPUT_CHANNEL_CONDITIONS.has(modifier.condition):
-		return {"ok": false, "code": ERR_CONTENT, "details": "unsupported OUTPUT_CHANNEL_RATE condition: %s" % modifier.condition}
+		return _failure(ERR_CONTENT, "unsupported OUTPUT_CHANNEL_RATE condition: %s" % modifier.condition)
+	if int(modifier.get("value_subunits", 0)) <= 0:
+		return _failure(ERR_CONTENT, "OUTPUT_CHANNEL_RATE modifier requires positive multiplier")
 	match modifier.condition:
 		"ALWAYS": return {"ok": true, "applies": true}
 		"OUTPUT_ITEM": return {"ok": true, "applies": modifier.condition_values.has(channel.output_item_id)}
@@ -213,7 +240,7 @@ func _modifier_applicability(modifier: Dictionary, threshold: Dictionary, channe
 				if threshold.tags.has(tag): return {"ok": true, "applies": true}
 			return {"ok": true, "applies": false}
 		"THRESHOLD_LIFECYCLE": return {"ok": true, "applies": modifier.condition_values.has(lifecycle_state)}
-	return {"ok": false, "code": ERR_CONTENT, "details": "unsupported OUTPUT_CHANNEL_RATE condition: %s" % modifier.condition}
+	return _failure(ERR_CONTENT, "unsupported OUTPUT_CHANNEL_RATE condition: %s" % modifier.condition)
 
 func _signature_mismatches(old_signature: Dictionary, new_signature: Dictionary) -> Array[String]:
 	var mismatches: Array[String] = []
@@ -239,7 +266,26 @@ func _validate_modifier_operands(modifier: Dictionary) -> Dictionary:
 	var values: Array = modifier.condition_values
 	match modifier.condition:
 		"ALWAYS":
-			if not values.is_empty(): return {"ok": false, "code": ERR_CONTENT, "details": "ALWAYS requires no operands"}
+			if not values.is_empty(): return _failure(ERR_CONTENT, "ALWAYS requires no operands")
 		"OUTPUT_ITEM", "OUTPUT_KIND", "THRESHOLD_HAS_ANY_TAG", "THRESHOLD_LIFECYCLE":
-			if values.is_empty(): return {"ok": false, "code": ERR_CONTENT, "details": "%s requires operands" % modifier.condition}
+			if values.is_empty(): return _failure(ERR_CONTENT, "%s requires operands" % modifier.condition)
+	for value in values:
+		var text := str(value)
+		match modifier.condition:
+			"OUTPUT_ITEM":
+				var item := registry.get_record(text)
+				if not item.ok or item.record.type != "item" or not item.record.enabled:
+					return _failure(ERR_CONTENT, "invalid OUTPUT_ITEM operand: %s" % text)
+			"OUTPUT_KIND":
+				if not VALID_OUTPUT_KIND_TOKENS.has(text):
+					return _failure(ERR_CONTENT, "invalid OUTPUT_KIND operand: %s" % text)
+			"THRESHOLD_HAS_ANY_TAG":
+				if not ContentRegistry.APPROVED_TAGS.has(text):
+					return _failure(ERR_CONTENT, "invalid THRESHOLD_HAS_ANY_TAG operand: %s" % text)
+			"THRESHOLD_LIFECYCLE":
+				if not VALID_LIFECYCLE_STATES.has(text):
+					return _failure(ERR_CONTENT, "invalid THRESHOLD_LIFECYCLE operand: %s" % text)
 	return {"ok": true}
+
+func _failure(code: StringName, details: String) -> Dictionary:
+	return {"ok": false, "success": false, "code": code, "error_code": code, "developer_details": details, "details": details}

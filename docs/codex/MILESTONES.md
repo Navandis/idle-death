@@ -1305,6 +1305,8 @@ A developer can resolve long active intervals at Gloamwood and Broken Watch, ins
 **Prompt status:** Approved  
 **Implementation status:** Pull request open
 **Verification status:** Partial
+**PR:** #15 (`codex/implement-milestone-m04d3`); final-head Windows owner verification pending.
+**Realized scope:** one bounded rate-context service with assignment and simulation/query seams; focused coverage in `tests/unit/m04d3` and `tests/integration/m04d3`; trace harness under `tools/test/m04d3`; owner package under `tools/test/owner`.
 **Recommended Codex task size:** Small-medium; one rate-context/reconfiguration/query pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M04D3-compatible-rate-context-and-acquisition-queries.md`
 

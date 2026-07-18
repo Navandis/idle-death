@@ -96,3 +96,152 @@ func test_eta_validation_and_minimality() -> void:
 	var at := FixedPoint.accumulate_for_elapsed_msec(1, 10, eta.eta_msec, 0)
 	assert_true(before.produced_subunits < 1)
 	assert_true(at.produced_subunits >= 1)
+
+
+func test_signature_mismatch_matrix_and_no_mutation() -> void:
+	var base_state := _state(false)
+	var form_fields := {
+		"returned_soul_period_msec": func(reg): reg._records["FORM_SCRIBE"].base_returned_souls_rate.period_msec = 2000,
+		"mastery_period_msec": func(reg): reg._records["FORM_SCRIBE"].active_mastery_rate.period_msec = 120000,
+		"cycle_duration_msec": func(reg): reg._records["FORM_SCRIBE"].cycle_duration_msec = 120000,
+	}
+	for field in form_fields.keys():
+		var registry := _registry()
+		form_fields[field].call(registry)
+		var state := base_state.deep_clone()
+		var before := _canonical(state)
+		var result := ReapingAssignmentService.new(registry).redispatch(state, &"THR_GLOAMWOOD", &"FORM_SCRIBE", &"WRIT_STANDARD", 1)
+		assert_false(result.success, field)
+		assert_eq(result.error_code, ReapingAssignmentService.REAPING_RATE_CONTEXT_NORMALIZATION_REQUIRED)
+		assert_true(result.developer_details.contains(field), result.developer_details)
+		assert_eq(_canonical(state), before, field)
+	var service := ReapingRateContextService.new(_registry())
+	var old_sig := {"returned_soul_period_msec": 1000, "mastery_period_msec": 60000, "cycle_duration_msec": 60000, "essence_period_msec": 1000, "initialized_non_essence_channel_period_msec_by_channel_id": {"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS": 28800000}}
+	var essence_sig := old_sig.duplicate(true); essence_sig.essence_period_msec = 2000
+	assert_eq(service._signature_mismatches(old_sig, essence_sig), ["essence_period_msec"])
+	var channel_sig := old_sig.duplicate(true); channel_sig.initialized_non_essence_channel_period_msec_by_channel_id.CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS = 14400000
+	assert_eq(service._signature_mismatches(old_sig, channel_sig), ["channel_period_msec.CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS"])
+
+func test_modifier_fixture_matrix_and_query_uses_shared_plan() -> void:
+	var registry := _registry_with_scribe_output_modifier("ALWAYS", [], 1200000)
+	registry._records["CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS"].rate.period_msec = 14400000
+	var service := ReapingRateContextService.new(registry)
+	var plan := service.output_channel_rate_plan(&"THR_GLOAMWOOD", &"FORM_SCRIBE", &"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS", "OVERDUE")
+	assert_true(plan.success, str(plan))
+	assert_eq(plan.baseline_rate_subunits_per_period, 1000000)
+	assert_eq(plan.effective_rate_subunits_per_period, 1200000)
+	assert_eq(plan.applied_modifiers.size(), 1)
+	assert_eq(plan.applied_modifiers[0].rate_before_subunits_per_period, 1000000)
+	assert_eq(plan.applied_modifiers[0].rate_after_subunits_per_period, 1200000)
+	var state := _state(true)
+	state.reapings[&"THR_GLOAMWOOD"].form_id = &"FORM_SCRIBE"
+	state.thresholds[&"THR_GLOAMWOOD"].channel_acquisition[&"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS"].progress_subunits = 500000
+	var query := service.query_acquisition(state, &"THR_GLOAMWOOD", &"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS")
+	assert_true(query.success, str(query))
+	assert_eq(query.rate_plan, plan)
+	assert_eq(query.current_context_eta_msec, 6000000)
+	assert_eq(query.progress_subunits, 500000)
+
+	var cases := [
+		["OUTPUT_ITEM", ["SOUL_FORM_SCRIBE"], 1200000],
+		["OUTPUT_ITEM", ["SOUL_CALLING_SOLDIER"], 1000000],
+		["OUTPUT_KIND", ["WHOLE_ITEM"], 1200000],
+		["OUTPUT_KIND", ["RESOURCE"], 1000000],
+		["THRESHOLD_HAS_ANY_TAG", ["TAG_FOREST"], 1200000],
+		["THRESHOLD_HAS_ANY_TAG", ["TAG_ROAD"], 1000000],
+		["THRESHOLD_LIFECYCLE", ["OVERDUE"], 1200000],
+		["THRESHOLD_LIFECYCLE", ["SETTLED"], 1000000],
+	]
+	for case in cases:
+		var reg := _registry_with_scribe_output_modifier(case[0], case[1], 1200000)
+		var p := ReapingRateContextService.new(reg).output_channel_rate_plan(&"THR_GLOAMWOOD", &"FORM_SCRIBE", &"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS", "OVERDUE")
+		assert_true(p.success, str(case) + str(p))
+		assert_eq(p.effective_rate_subunits_per_period, case[2], str(case))
+
+func test_modifier_order_floor_lifecycle_and_failure_matrix() -> void:
+	var registry := _registry_with_scribe_output_modifier("ALWAYS", [], 1500000)
+	registry._records["FORM_SCRIBE"].traits[0].modifiers.append(_output_modifier("ALWAYS", [], 1333333))
+	registry._records["CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS"].settled_multiplier_subunits = 500000
+	var plan := ReapingRateContextService.new(registry).output_channel_rate_plan(&"THR_GLOAMWOOD", &"FORM_SCRIBE", &"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS", "SETTLED")
+	assert_true(plan.success, str(plan))
+	assert_eq(plan.applied_modifiers.size(), 2)
+	assert_eq(plan.applied_modifiers[0].rate_after_subunits_per_period, 1500000)
+	assert_eq(plan.applied_modifiers[1].rate_before_subunits_per_period, 1500000)
+	assert_eq(plan.applied_modifiers[1].rate_after_subunits_per_period, 1999999)
+	assert_eq(plan.effective_rate_subunits_per_period, 999999)
+	var ignored := _registry()
+	ignored._records["FORM_SCRIBE"].traits[0].modifiers.append({"metric": "DISCOVERY_RATE", "operation": "MULTIPLY", "scope": "OUTPUT_CHANNEL", "condition": "ALWAYS", "condition_values": [], "value_subunits": 5000000})
+	assert_eq(ReapingRateContextService.new(ignored).output_channel_rate_plan(&"THR_GLOAMWOOD", &"FORM_SCRIBE", &"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS", "OVERDUE").effective_rate_subunits_per_period, 1000000)
+	var failures := [
+		func(reg): reg._records["FORM_SCRIBE"].traits[0].modifiers[0].operation = "ADD",
+		func(reg): reg._records["FORM_SCRIBE"].traits[0].modifiers[0].scope = "REAPING_TOTAL",
+		func(reg): reg._records["FORM_SCRIBE"].traits[0].modifiers[0].condition = "SUPPORT_STATE",
+		func(reg): reg._records["FORM_SCRIBE"].traits[0].modifiers[0].condition = "OUTPUT_ITEM"; reg._records["FORM_SCRIBE"].traits[0].modifiers[0].condition_values = [],
+		func(reg): reg._records["FORM_SCRIBE"].traits[0].modifiers[0].condition = "OUTPUT_ITEM"; reg._records["FORM_SCRIBE"].traits[0].modifiers[0].condition_values = ["NOPE"],
+		func(reg): reg._records["FORM_SCRIBE"].traits[0].modifiers[0].value_subunits = 0,
+	]
+	for failure in failures:
+		var reg := _registry_with_scribe_output_modifier("ALWAYS", [], 1200000)
+		failure.call(reg)
+		var failed := ReapingRateContextService.new(reg).output_channel_rate_plan(&"THR_GLOAMWOOD", &"FORM_SCRIBE", &"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS", "OVERDUE")
+		assert_false(failed.success, str(failed))
+		assert_eq(failed.error_code, ReapingRateContextService.ERR_CONTENT)
+
+func test_query_state_matrix_and_percentage_cap() -> void:
+	var service := ReapingRateContextService.new(_registry())
+	var inactive_state := _state(false)
+	inactive_state.thresholds[&"THR_GLOAMWOOD"].channel_acquisition[&"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS"].progress_subunits = 999999
+	var inactive := service.query_acquisition(inactive_state, &"THR_GLOAMWOOD", &"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS")
+	assert_true(inactive.success)
+	assert_eq(inactive.access_state, "INITIALIZED")
+	assert_false(inactive.eta_available)
+	assert_eq(inactive.progress_tenths_percent, 999)
+	var locked_state := _state(false)
+	locked_state.progression.unlocked_output_item_ids = []
+	locked_state.thresholds[&"THR_GLOAMWOOD"].channel_acquisition.erase(&"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS")
+	var locked := service.query_acquisition(locked_state, &"THR_GLOAMWOOD", &"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS")
+	assert_true(locked.success)
+	assert_eq(locked.access_state, "LOCKED")
+	assert_false(locked.eta_available)
+	var unavailable_state := _state(false)
+	unavailable_state.thresholds[&"THR_GLOAMWOOD"].availability_state = &"LOCKED"
+	unavailable_state.thresholds[&"THR_GLOAMWOOD"].channel_acquisition.clear()
+	var unavailable := service.query_acquisition(unavailable_state, &"THR_GLOAMWOOD", &"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS")
+	assert_true(unavailable.success)
+	assert_eq(unavailable.access_state, "UNAVAILABLE")
+	assert_false(service.query_acquisition(_state(true), &"THR_GLOAMWOOD", &"CHANNEL_GLOAMWOOD_ESSENCE").success)
+	assert_false(service.query_acquisition(_state(true), &"THR_GLOAMWOOD", &"CHANNEL_BROKEN_WATCH_PROVISIONS").success)
+	assert_false(service.query_acquisition(_state(true), &"THR_GLOAMWOOD", &"NOPE").success)
+
+func test_equal_identity_non_compounding_return_and_chunk_sequence() -> void:
+	var registry := _registry_with_scribe_output_modifier("ALWAYS", [], 1200000)
+	var service := ReapingRateContextService.new(registry)
+	var assignment := ReapingAssignmentService.new(registry)
+	var a_identity := service.loadout_identity(&"FORM_MAN_AT_ARMS", &"WRIT_STANDARD")
+	var b_identity := service.loadout_identity(&"FORM_SCRIBE", &"WRIT_STANDARD")
+	var a_plan := service.output_channel_rate_plan(&"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS", "OVERDUE")
+	assert_ne(a_identity, b_identity)
+	assert_true(a_plan.success)
+	var state := _state(false)
+	var before := _canonical(state)
+	assert_true(assignment.redispatch(state, &"THR_GLOAMWOOD", &"FORM_SCRIBE", &"WRIT_STANDARD", 1).success)
+	var b_plan := service.output_channel_rate_plan(&"THR_GLOAMWOOD", &"FORM_SCRIBE", &"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS", "OVERDUE")
+	assert_eq(b_plan.effective_rate_subunits_per_period, 1200000)
+	assert_true(assignment.recall(state, &"THR_GLOAMWOOD", 2).success)
+	assert_true(assignment.redispatch(state, &"THR_GLOAMWOOD", &"FORM_SCRIBE", &"WRIT_STANDARD", 3).success)
+	assert_eq(service.output_channel_rate_plan(&"THR_GLOAMWOOD", &"FORM_SCRIBE", &"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS", "OVERDUE").effective_rate_subunits_per_period, 1200000)
+	assert_true(assignment.recall(state, &"THR_GLOAMWOOD", 4).success)
+	assert_true(assignment.redispatch(state, &"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD", 5).success)
+	assert_eq(service.output_channel_rate_plan(&"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS", "OVERDUE").effective_rate_subunits_per_period, a_plan.effective_rate_subunits_per_period)
+	assert_eq(state.thresholds[&"THR_GLOAMWOOD"].channel_acquisition[&"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS"].progress_subunits, before.thresholds.THR_GLOAMWOOD.channel_acquisition.CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS.progress_subunits.to_int())
+
+func _registry_with_scribe_output_modifier(condition: String, values: Array, multiplier: int) -> ContentRegistry:
+	var registry := _registry()
+	registry._records["FORM_SCRIBE"].traits[0].modifiers = [_output_modifier(condition, values, multiplier)]
+	return registry
+
+func _output_modifier(condition: String, values: Array, multiplier: int) -> Dictionary:
+	return {"metric": "OUTPUT_CHANNEL_RATE", "operation": "MULTIPLY", "scope": "OUTPUT_CHANNEL", "condition": condition, "condition_values": values.duplicate(), "value_subunits": multiplier}
+
+func _canonical(state: GameState) -> Dictionary:
+	return SaveSchemaMapper.runtime_to_snapshot(state, TimeAuthorityState.new(), 1, ContentRegistry.CURRENT_REVISION).game_state

@@ -1,5 +1,7 @@
 extends SceneTree
 
+const CHANNEL := &"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS"
+
 var _registry: ContentRegistry
 var _rate_context: ReapingRateContextService
 var _assignment: ReapingAssignmentService
@@ -32,87 +34,191 @@ func _setup() -> Dictionary:
 	return {"ok": true}
 
 func _run_trace() -> Dictionary:
-	var state := _state(true)
-	var sim := _engine.resolve_elapsed(state, 1000)
-	if not _require(sim.success, "old context resolution failed: %s" % sim.developer_details): return _fail(10, "old context resolution")
-	var recall := _assignment.recall(state, &"THR_GLOAMWOOD", 1)
-	if not _require(recall.success, "recall failed: %s" % recall.developer_details): return _fail(11, "recall")
-	var before_progress: int = state.thresholds[&"THR_GLOAMWOOD"].channel_acquisition[&"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS"].progress_subunits
-	var swap := _assignment.redispatch(state, &"THR_GLOAMWOOD", &"FORM_SCRIBE", &"WRIT_STANDARD", 2)
-	if not _require(swap.success, "supported swap failed: %s" % swap.developer_details): return _fail(12, "swap")
-	if not _require(state.thresholds[&"THR_GLOAMWOOD"].channel_acquisition[&"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS"].progress_subunits == before_progress, "channel residual changed on swap"): return _fail(13, "residual")
-	_pass("supported_swap_preserves_core_and_channel_residuals=PASS")
-
-	var sig := _rate_context.residual_signature(state, &"THR_GLOAMWOOD", &"FORM_SCRIBE")
-	if not _require(sig.ok and sig.signature.returned_period_msec == 1000, "return signature mismatch"): return _fail(14, "return signature")
+	if not _supported_swap_marker(): return _fail(10, "supported swap")
+	if not _normalization_marker("returned_soul_period_msec", func(reg): reg._records["FORM_SCRIBE"].base_returned_souls_rate.period_msec = 2000): return _fail(11, "return normalization")
 	_pass("return_period_change_requires_normalization=PASS")
-	if not _require(sig.signature.mastery_period_msec == 60000, "mastery signature mismatch"): return _fail(15, "mastery signature")
+	if not _normalization_marker("mastery_period_msec", func(reg): reg._records["FORM_SCRIBE"].active_mastery_rate.period_msec = 120000): return _fail(12, "mastery normalization")
 	_pass("mastery_period_change_requires_normalization=PASS")
-	if not _require(sig.signature.cycle_duration_msec == 60000, "cycle signature mismatch"): return _fail(16, "cycle signature")
+	if not _normalization_marker("cycle_duration_msec", func(reg): reg._records["FORM_SCRIBE"].cycle_duration_msec = 120000): return _fail(13, "cycle normalization")
 	_pass("cycle_duration_change_requires_normalization=PASS")
-
-	var scaled := FixedPoint.multiply_scaled_floor(1000000, 1200000)
-	if not _require(scaled.ok and scaled.subunits == 1200000, "x1.20 fixed-point multiplier mismatch"): return _fail(17, "modifier rate")
-	_pass("output_modifier_rate_before=1000000_after=1200000")
-
-	var maa_identity := _rate_context.loadout_identity(&"FORM_MAN_AT_ARMS", &"WRIT_STANDARD")
-	var scribe_identity := _rate_context.loadout_identity(&"FORM_SCRIBE", &"WRIT_STANDARD")
-	if not _require(maa_identity != scribe_identity and maa_identity.writ_id == scribe_identity.writ_id, "equal-output identity collapsed"): return _fail(18, "identity")
-	_pass("equal_output_loadouts_remain_distinct=PASS")
-
-	var eta_before := _rate_context._eta_msec_to_next_whole(500000, 0, 1000000, 14400000)
-	var eta_after := _rate_context._eta_msec_to_next_whole(500000, 0, 1200000, 14400000)
-	if not _require(eta_before.ok and eta_after.ok and eta_before.eta_msec == 7200000 and eta_after.eta_msec == 6000000, "ETA fixture mismatch"): return _fail(19, "eta")
-	_pass("progress=500000_eta_before=7200000_eta_after=6000000")
-
-	var short_text: String = _rate_context.eta_display(13935000).english_text.replace(", ", "_").replace(" ", "_")
-	var long_text: String = _rate_context.eta_display(183840000).english_text.replace(", ", "_").replace(" ", "_")
-	if not _require(short_text == "03_hours_52_minutes_15_seconds" and long_text == "02_days_03_hours_04_minutes", "ETA display mismatch"): return _fail(20, "display")
-	_pass("eta_display_short=03_hours_52_minutes_15_seconds_long=02_days_03_hours_04_minutes")
-
-	var bank := _state(true)
-	var acq: GameState.ThresholdAcquisitionState = bank.thresholds[&"THR_GLOAMWOOD"].channel_acquisition[&"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS"]
-	acq.progress_subunits = 999999
-	acq.rate_carry_units = 28799999
-	var banked := _engine.resolve_elapsed(bank, 1)
-	if not _require(banked.success and bank.inventory.entries[&"SOUL_FORM_SCRIBE"].total == 1, "banking boundary failed"): return _fail(21, "bank")
-	_pass("old_context_then_new_context_banks_one=PASS")
-
-	var plan_a := _rate_context.output_channel_rate_plan(&"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS", "OVERDUE")
-	var plan_b := _rate_context.output_channel_rate_plan(&"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS", "OVERDUE")
-	if not _require(plan_a.ok and plan_b.ok and plan_a.rate_subunits_per_period == plan_b.rate_subunits_per_period, "rate compounding detected"): return _fail(22, "non-compounding")
-	_pass("repeated_redispatch_non_compounding=PASS")
-	_pass("return_to_prior_loadout_restores_baseline=PASS")
-
-	var watch_state := _two_threshold_state()
-	if not _require(_assignment.dispatch(watch_state, &"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD").success, "dispatch 1 failed"): return _fail(23, "sequence dispatch 1")
-	if not _require(_assignment.dispatch(watch_state, &"THR_BROKEN_WATCH", &"FORM_SCRIBE", &"WRIT_STANDARD").success, "dispatch 2 failed"): return _fail(24, "sequence dispatch 2")
-	if not _require(watch_state.reapings[&"THR_GLOAMWOOD"].form_id != watch_state.reapings[&"THR_BROKEN_WATCH"].form_id, "operation identity collapsed"): return _fail(25, "sequence identity")
-	_pass("sequence_1_3_2_1_identity=PASS")
-
-	var inactive := _rate_context.query_acquisition(_state(false), &"THR_GLOAMWOOD", &"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS")
-	if not _require(inactive.ok and inactive.progress_subunits == 500000 and inactive.eta_msec == -1, "inactive query mismatch"): return _fail(26, "inactive")
-	_pass("inactive_query_has_progress_no_eta=PASS")
-
-	var one := _state(true)
-	var chunks := _state(true)
-	if not _require(_engine.resolve_elapsed(one, 7200000).success, "one-shot failed"): return _fail(27, "one-shot")
-	for elapsed in [3600000, 1800000, 1800000]:
-		if not _require(_engine.resolve_elapsed(chunks, elapsed).success, "chunk failed"): return _fail(28, "chunk")
-	if not _require(_canonical(one) == _canonical(chunks), "chunking mismatch"): return _fail(29, "chunk equality")
-	_pass("rate_change_chunk_equivalence=PASS")
-
-	var storage := FileSaveStorage.new()
-	var save := SaveService.new(storage, SaveFileSet.new(_save_root, "m04d3_trace"))
-	var write: Dictionary = save.save_runtime(state, TimeAuthorityState.new(), 1, ContentRegistry.CURRENT_REVISION)
-	if not _require(write.ok, "save failed: %s" % str(write)): return _fail(30, "save")
-	var loaded: Dictionary = save.load_snapshot()
-	if not _require(loaded.ok, "load failed: %s" % str(loaded)): return _fail(31, "load")
-	var text := JSON.stringify(loaded.snapshot)
-	if not _require(not text.contains("eta_msec") and not text.contains("rate_plan") and not text.contains("percent_tenths"), "derived query artifact persisted"): return _fail(32, "artifact")
-	_pass("schema_v3_round_trip_no_derived_rate_eta=PASS")
-	_pass("no_clock_or_later_slice_sources=PASS")
+	if not _modifier_and_eta_markers(): return _fail(14, "modifier and eta")
+	if not _old_new_bank_marker(): return _fail(15, "old/new bank")
+	if not _redispatch_markers(): return _fail(16, "redispatch markers")
+	if not _sequence_marker(): return _fail(17, "sequence")
+	if not _inactive_marker(): return _fail(18, "inactive")
+	if not _chunk_marker(): return _fail(19, "chunk")
+	if not _persistence_marker(): return _fail(20, "persistence")
+	if not _source_audit_marker(): return _fail(21, "source audit")
 	return {"ok": true}
+
+func _supported_swap_marker() -> bool:
+	var state := _state(true)
+	state.reapings[&"THR_GLOAMWOOD"].flow_carry_units[CoreFlowKeys.RETURNS_PROGRESS] = 111111
+	state.reapings[&"THR_GLOAMWOOD"].flow_carry_units[CoreFlowKeys.RETURNS_CARRY] = 222
+	state.reapings[&"THR_GLOAMWOOD"].flow_carry_units[CoreFlowKeys.ESSENCE_PROGRESS] = 333333
+	state.reapings[&"THR_GLOAMWOOD"].flow_carry_units[CoreFlowKeys.ESSENCE_CARRY] = 444
+	state.reapings[&"THR_GLOAMWOOD"].flow_carry_units[CoreFlowKeys.MASTERY_CARRY] = 555
+	state.reapings[&"THR_GLOAMWOOD"].cycle_phase_msec = 1000
+	state.reapings[&"THR_GLOAMWOOD"].completed_cycle_count = 2
+	state.reapings[&"THR_GLOAMWOOD"].started_simulation_msec = 0
+	if not _engine.resolve_elapsed(state, 1000).success: return false
+	var before := _canonical(state)
+	if not _assignment.recall(state, &"THR_GLOAMWOOD", 1).success: return false
+	if not _assignment.redispatch(state, &"THR_GLOAMWOOD", &"FORM_SCRIBE", &"WRIT_STANDARD", 2).success: return false
+	var after := _canonical(state)
+	for key in ["flow_carry_units", "cycle_phase_msec", "completed_cycle_count", "started_simulation_msec"]:
+		if before.reapings.THR_GLOAMWOOD[key] != after.reapings.THR_GLOAMWOOD[key]: return false
+	if before.thresholds != after.thresholds or before.inventory != after.inventory: return false
+	if after.reapings.THR_GLOAMWOOD.form_id != "FORM_SCRIBE" or after.reapings.THR_GLOAMWOOD.assignment_revision != "3": return false
+	_pass("supported_swap_preserves_core_and_channel_residuals=PASS")
+	return true
+
+func _normalization_marker(field: String, mutate: Callable) -> bool:
+	var registry := ContentRegistry.build(load("res://content/prototype_content_catalog.tres"))
+	mutate.call(registry)
+	var state := _state(false)
+	var before := _canonical(state)
+	var result := ReapingAssignmentService.new(registry).redispatch(state, &"THR_GLOAMWOOD", &"FORM_SCRIBE", &"WRIT_STANDARD", 1)
+	return (not result.success and result.error_code == ReapingAssignmentService.REAPING_RATE_CONTEXT_NORMALIZATION_REQUIRED and result.developer_details.contains(field) and _canonical(state) == before)
+
+func _modifier_and_eta_markers() -> bool:
+	var registry := _registry_with_scribe_modifier()
+	registry._records["CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS"].rate.period_msec = 14400000
+	var service := ReapingRateContextService.new(registry)
+	var plan := service.output_channel_rate_plan(&"THR_GLOAMWOOD", &"FORM_SCRIBE", CHANNEL, "OVERDUE")
+	if not (plan.success and plan.baseline_rate_subunits_per_period == 1000000 and plan.effective_rate_subunits_per_period == 1200000): return false
+	_pass("output_modifier_rate_before=1000000_after=1200000")
+	var maa_identity := service.loadout_identity(&"FORM_MAN_AT_ARMS", &"WRIT_STANDARD")
+	var scribe_identity := service.loadout_identity(&"FORM_SCRIBE", &"WRIT_STANDARD")
+	var equal_a := _rate_context.output_channel_rate_plan(&"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", CHANNEL, "OVERDUE")
+	var equal_b := _rate_context.output_channel_rate_plan(&"THR_GLOAMWOOD", &"FORM_SCRIBE", CHANNEL, "OVERDUE")
+	if not (maa_identity != scribe_identity and equal_a.success and equal_b.success and equal_a.effective_rate_subunits_per_period == equal_b.effective_rate_subunits_per_period): return false
+	_pass("equal_output_loadouts_remain_distinct=PASS")
+	var baseline_state := _state(true)
+	baseline_state.reapings[&"THR_GLOAMWOOD"].form_id = &"FORM_MAN_AT_ARMS"
+	baseline_state.thresholds[&"THR_GLOAMWOOD"].channel_acquisition[CHANNEL].progress_subunits = 500000
+	var modified_state := _state(true)
+	modified_state.reapings[&"THR_GLOAMWOOD"].form_id = &"FORM_SCRIBE"
+	modified_state.thresholds[&"THR_GLOAMWOOD"].channel_acquisition[CHANNEL].progress_subunits = 500000
+	var before_q := service.query_acquisition(baseline_state, &"THR_GLOAMWOOD", CHANNEL)
+	var after_q := service.query_acquisition(modified_state, &"THR_GLOAMWOOD", CHANNEL)
+	if not (before_q.success and after_q.success and before_q.current_context_eta_msec == 7200000 and after_q.current_context_eta_msec == 6000000 and after_q.progress_subunits == 500000): return false
+	_pass("progress=500000_eta_before=7200000_eta_after=6000000")
+	var short_display := service.eta_display(13935000)
+	var long_display := service.eta_display(183840000)
+	if not (short_display.components.size() == 3 and long_display.components.size() == 3): return false
+	var short_text: String = short_display.english_text.replace(", ", "_").replace(" ", "_")
+	var long_text: String = long_display.english_text.replace(", ", "_").replace(" ", "_")
+	if not (short_text == "03_hours_52_minutes_15_seconds" and long_text == "02_days_03_hours_04_minutes"): return false
+	_pass("eta_display_short=03_hours_52_minutes_15_seconds_long=02_days_03_hours_04_minutes")
+	return true
+
+func _old_new_bank_marker() -> bool:
+	var registry := _registry_with_scribe_modifier()
+	registry._records["CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS"].rate.period_msec = 14400000
+	var assignment := ReapingAssignmentService.new(registry)
+	var engine := SimulationEngine.new(registry)
+	var state := _state(true)
+	state.thresholds[&"THR_GLOAMWOOD"].channel_acquisition[CHANNEL].progress_subunits = 500000
+	if not engine.resolve_elapsed(state, 0).success: return false
+	if not assignment.recall(state, &"THR_GLOAMWOOD", 1).success: return false
+	if not assignment.redispatch(state, &"THR_GLOAMWOOD", &"FORM_SCRIBE", &"WRIT_STANDARD", 2).success: return false
+	if state.thresholds[&"THR_GLOAMWOOD"].channel_acquisition[CHANNEL].progress_subunits != 500000: return false
+	if not engine.resolve_elapsed(state, 6000000).success: return false
+	if state.inventory.entries.get(&"SOUL_FORM_SCRIBE", GameState.InventoryEntryState.new()).total != 1: return false
+	_pass("old_context_then_new_context_banks_one=PASS")
+	return true
+
+func _redispatch_markers() -> bool:
+	var registry := _registry_with_scribe_modifier()
+	var service := ReapingRateContextService.new(registry)
+	var assignment := ReapingAssignmentService.new(registry)
+	var state := _state(false)
+	if not assignment.redispatch(state, &"THR_GLOAMWOOD", &"FORM_SCRIBE", &"WRIT_STANDARD", 1).success: return false
+	if service.output_channel_rate_plan(&"THR_GLOAMWOOD", &"FORM_SCRIBE", CHANNEL, "OVERDUE").effective_rate_subunits_per_period != 1200000: return false
+	if not assignment.recall(state, &"THR_GLOAMWOOD", 2).success: return false
+	if not assignment.redispatch(state, &"THR_GLOAMWOOD", &"FORM_SCRIBE", &"WRIT_STANDARD", 3).success: return false
+	if service.output_channel_rate_plan(&"THR_GLOAMWOOD", &"FORM_SCRIBE", CHANNEL, "OVERDUE").effective_rate_subunits_per_period != 1200000: return false
+	_pass("repeated_redispatch_non_compounding=PASS")
+	if not assignment.recall(state, &"THR_GLOAMWOOD", 4).success: return false
+	if not assignment.redispatch(state, &"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD", 5).success: return false
+	if service.output_channel_rate_plan(&"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", CHANNEL, "OVERDUE").effective_rate_subunits_per_period != 1000000: return false
+	_pass("return_to_prior_loadout_restores_baseline=PASS")
+	return true
+
+func _sequence_marker() -> bool:
+	var state := _two_threshold_state()
+	if not _assignment.dispatch(state, &"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD").success: return false
+	if not _assignment.dispatch(state, &"THR_BROKEN_WATCH", &"FORM_SCRIBE", &"WRIT_STANDARD").success: return false
+	if not _assignment.recall(state, &"THR_BROKEN_WATCH", 1).success: return false
+	if not _assignment.recall(state, &"THR_GLOAMWOOD", 1).success: return false
+	if not _assignment.redispatch(state, &"THR_BROKEN_WATCH", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD", 2).success: return false
+	if not _assignment.redispatch(state, &"THR_GLOAMWOOD", &"FORM_SCRIBE", &"WRIT_STANDARD", 2).success: return false
+	if not _assignment.recall(state, &"THR_BROKEN_WATCH", 3).success: return false
+	if not _assignment.redispatch(state, &"THR_BROKEN_WATCH", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD", 4).success: return false
+	if state.reapings[&"THR_GLOAMWOOD"].form_id != &"FORM_SCRIBE" or state.reapings[&"THR_BROKEN_WATCH"].form_id != &"FORM_MAN_AT_ARMS": return false
+	_pass("sequence_1_3_2_1_identity=PASS")
+	return true
+
+func _inactive_marker() -> bool:
+	var inactive := _rate_context.query_acquisition(_state(false), &"THR_GLOAMWOOD", CHANNEL)
+	if not (inactive.success and inactive.progress_subunits == 500000 and not inactive.eta_available and inactive.eta_msec == -1): return false
+	_pass("inactive_query_has_progress_no_eta=PASS")
+	return true
+
+func _chunk_marker() -> bool:
+	var registry := _registry_with_scribe_modifier()
+	var one := _state(true)
+	var chunked := _state(true)
+	var engine := SimulationEngine.new(registry)
+	var assignment := ReapingAssignmentService.new(registry)
+	if not engine.resolve_elapsed(one, 1000).success: return false
+	if not assignment.recall(one, &"THR_GLOAMWOOD", 1).success: return false
+	if not assignment.redispatch(one, &"THR_GLOAMWOOD", &"FORM_SCRIBE", &"WRIT_STANDARD", 2).success: return false
+	if not engine.resolve_elapsed(one, 2000).success: return false
+	if not engine.resolve_elapsed(chunked, 400).success: return false
+	if not engine.resolve_elapsed(chunked, 600).success: return false
+	if not assignment.recall(chunked, &"THR_GLOAMWOOD", 1).success: return false
+	if not assignment.redispatch(chunked, &"THR_GLOAMWOOD", &"FORM_SCRIBE", &"WRIT_STANDARD", 2).success: return false
+	for elapsed in [333, 667, 1000]:
+		if not engine.resolve_elapsed(chunked, elapsed).success: return false
+	if _canonical(one) != _canonical(chunked): return false
+	_pass("rate_change_chunk_equivalence=PASS")
+	return true
+
+func _persistence_marker() -> bool:
+	var state := _state(false)
+	state.thresholds[&"THR_GLOAMWOOD"].channel_acquisition[CHANNEL].progress_subunits = 345678
+	if not _assignment.redispatch(state, &"THR_GLOAMWOOD", &"FORM_SCRIBE", &"WRIT_STANDARD", 1).success: return false
+	var save := SaveService.new(FileSaveStorage.new(), SaveFileSet.new(_save_root, "m04d3_trace"))
+	var coordinator := GameStatePersistenceCoordinator.new(save, _registry)
+	if not coordinator.save_runtime(state, TimeAuthorityState.new(), 5).ok: return false
+	var loaded := coordinator.load_runtime()
+	if not loaded.ok: return false
+	if _canonical(loaded.game_state) != _canonical(state): return false
+	var text := JSON.stringify(save.load_snapshot().snapshot)
+	for forbidden in ["loadout_identity", "rate_context_signature", "continuity_result", "rate_plan", "modifier_trace", "percent_tenths", "current_context_eta_msec", "eta_msec", "eta_display"]:
+		if text.contains(forbidden): return false
+	_pass("schema_v3_round_trip_no_derived_rate_eta=PASS")
+	return true
+
+func _source_audit_marker() -> bool:
+	var files := {
+		"src/domain/reaping_rate_context_service.gd": ["class_name ReapingRateContextService", "never mutates GameState", "output_channel_rate_plan", "eta_display"],
+		"src/domain/reaping_assignment_service.gd": ["rate_context.compare_residual_signatures", "validate_loadout_candidate"],
+		"src/simulation/simulation_engine.gd": ["rate_context.output_channel_rate_plan"],
+		"tools/test/m04d3/m04d3_rate_context_trace.gd": ["TRACE M04D3", "--save-root"],
+	}
+	var prohibited := ["get_ticks_msec(", "get_unix_time", "get_datetime", "_process(", "Steam.", "FileAccess.open("]
+	for path in files.keys():
+		var text := FileAccess.get_file_as_string("res://" + path)
+		for required in files[path]:
+			if not text.contains(required): return false
+		if path != "tools/test/m04d3/m04d3_rate_context_trace.gd":
+			for token in prohibited:
+				if text.contains(token): return false
+	_pass("no_clock_or_later_slice_sources=PASS")
+	return true
 
 func _state(active: bool) -> GameState:
 	var state := GameState.new(0)
@@ -122,7 +228,7 @@ func _state(active: bool) -> GameState:
 	state.forms[&"FORM_SCRIBE"] = GameState.FormState.new(true, true, 0, &"TEST")
 	var threshold := GameState.ThresholdState.new()
 	threshold.knowledge_state = &"CHARTED"; threshold.availability_state = &"AVAILABLE"; threshold.lifecycle_state = &"OVERDUE"; threshold.remaining_backlog = 1000000
-	threshold.channel_acquisition[&"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS"] = GameState.ThresholdAcquisitionState.new(500000, 0, 0)
+	threshold.channel_acquisition[CHANNEL] = GameState.ThresholdAcquisitionState.new(500000, 0, 0)
 	state.thresholds[&"THR_GLOAMWOOD"] = threshold
 	var reaping := GameState.ReapingState.new()
 	reaping.threshold_id = &"THR_GLOAMWOOD"; reaping.is_active = active; reaping.form_id = &"FORM_MAN_AT_ARMS"; reaping.writ_id = &"WRIT_STANDARD"; reaping.assignment_revision = 1
@@ -132,6 +238,7 @@ func _state(active: bool) -> GameState:
 func _two_threshold_state() -> GameState:
 	var state := _state(false)
 	state.progression.command_tether_capacity = 2
+	state.progression.unlocked_output_item_ids = [&"RES_PROVISIONS", &"SOUL_FORM_SCRIBE"]
 	var watch := GameState.ThresholdState.new()
 	watch.knowledge_state = &"CHARTED"; watch.availability_state = &"AVAILABLE"; watch.lifecycle_state = &"OVERDUE"; watch.remaining_backlog = 250000
 	watch.channel_acquisition[&"CHANNEL_BROKEN_WATCH_PROVISIONS"] = GameState.ThresholdAcquisitionState.new(0, 0, 0)
@@ -139,14 +246,13 @@ func _two_threshold_state() -> GameState:
 	state.reapings.clear()
 	return state
 
+func _registry_with_scribe_modifier() -> ContentRegistry:
+	var registry := ContentRegistry.build(load("res://content/prototype_content_catalog.tres"))
+	registry._records["FORM_SCRIBE"].traits[0].modifiers = [{"metric": "OUTPUT_CHANNEL_RATE", "operation": "MULTIPLY", "scope": "OUTPUT_CHANNEL", "condition": "ALWAYS", "condition_values": [], "value_subunits": 1200000}]
+	return registry
+
 func _canonical(state: GameState) -> Dictionary:
 	return SaveSchemaMapper.runtime_to_snapshot(state, TimeAuthorityState.new(), 1, ContentRegistry.CURRENT_REVISION).game_state
-
-func _require(condition: bool, message: String) -> bool:
-	if not condition:
-		printerr(message)
-		return false
-	return true
 
 func _pass(marker: String) -> void:
 	print("TRACE M04D3 " + marker)
