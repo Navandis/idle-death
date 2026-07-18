@@ -65,6 +65,7 @@ static func snapshot_to_runtime(snapshot: Dictionary) -> Dictionary:
 	game.progression.command_tether_capacity = validation.command_tether_capacity
 	for item_id in validation.get("unlocked_output_item_ids", []):
 		game.progression.unlocked_output_item_ids.append(StringName(item_id))
+	game.progression.unlocked_output_item_ids.sort()
 	var time := _map_time(snapshot.time_authority, validation)
 	return {"ok": true, "code": OK, "game_state": game, "time_authority_state": time, "save_revision": validation.save_revision, "content_revision": snapshot.content_revision}
 

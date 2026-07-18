@@ -59,7 +59,8 @@ func _run() -> void:
 	_assert(g2.thresholds[&"THR_GLOAMWOOD"].channel_acquisition[&"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS"].progress_subunits == 250000, "g2 scribe progress")
 	_earn(MARKERS[1])
 	var g8 := _state(&"THR_GLOAMWOOD", true, 1000000); _unlock(g8, [&"SOUL_CALLING_SOLDIER", &"SOUL_FORM_SCRIBE"])
-	_assert(_engine().resolve_elapsed(g8, 8 * HOUR).success, "g8 resolve")
+	var g8_result := _engine().resolve_elapsed(g8, 8 * HOUR)
+	_assert(g8_result.success, "g8 resolve")
 	_assert(g8.inventory.entries[&"SOUL_CALLING_SOLDIER"].total == 96 and g8.inventory.entries[&"SOUL_FORM_SCRIBE"].total == 1, "g8 whole")
 	_earn(MARKERS[2])
 	var b6 := _state(&"THR_BROKEN_WATCH", true, 250000); _unlock(b6, [&"SOUL_FORM_MAN_AT_ARMS"])
@@ -78,20 +79,52 @@ func _run() -> void:
 	_earn(MARKERS[6])
 	late.reapings[&"THR_GLOAMWOOD"].is_active = false; var frozen: Dictionary = _canonical(late).thresholds; _engine().resolve_elapsed(late, HOUR); _assert(_canonical(late).thresholds == frozen, "inactive freeze"); late.reapings[&"THR_GLOAMWOOD"].is_active = true; late.reapings[&"THR_GLOAMWOOD"].assignment_revision += 1; _engine().resolve_elapsed(late, 6 * HOUR); _assert(late.inventory.entries[&"SOUL_FORM_SCRIBE"].total == 1, "resume")
 	_earn(MARKERS[7])
-	var settled := _state(&"THR_GLOAMWOOD", true, 1); _unlock(settled, [&"SOUL_CALLING_SOLDIER", &"SOUL_FORM_SCRIBE"]); _engine().resolve_elapsed(settled, 2000); _assert(str(settled.thresholds[&"THR_GLOAMWOOD"].lifecycle_state) == "SETTLED", "settles and keeps channel residual")
+	var half_registry := _copied_registry_with_channel(&"CHANNEL_GLOAMWOOD_SOLDIER_SOULS", 1.0, 1000, 0.5)
+	var half := _state(&"THR_GLOAMWOOD", true, 1)
+	_unlock_with_registry(half, half_registry, [&"SOUL_CALLING_SOLDIER"])
+	var half_result := SimulationEngine.new(half_registry).resolve_elapsed(half, 2000)
+	_assert(half_result.success, "half fixture resolves")
+	_assert(half_result.segments.size() == 2, "half fixture segments")
+	_assert(half_result.segments[0].elapsed_msec == 870 and half_result.segments[0].lifecycle == "OVERDUE", "half overdue segment")
+	_assert(half_result.segments[0].channel_deltas[0].progress_subunits_after == 870000, "half overdue channel arithmetic")
+	_assert(half_result.segments[1].elapsed_msec == 1130 and half_result.segments[1].lifecycle == "SETTLED", "half settled segment")
+	_assert(half_result.segments[1].channel_deltas[0].banked_units_delta == 1, "half settled bank")
+	var half_acq: GameState.ThresholdAcquisitionState = half.thresholds[&"THR_GLOAMWOOD"].channel_acquisition[&"CHANNEL_GLOAMWOOD_SOLDIER_SOULS"]
+	_assert(half.inventory.entries[&"SOUL_CALLING_SOLDIER"].total == 1 and half_acq.progress_subunits == 435000 and half_acq.rate_carry_units == 0, "half final acquisition")
 	_earn(MARKERS[8])
 	var one := _state(&"THR_GLOAMWOOD", true, 1000000); _unlock(one, [&"SOUL_CALLING_SOLDIER", &"SOUL_FORM_SCRIBE"])
 	var chunks := _state(&"THR_GLOAMWOOD", true, 1000000); _unlock(chunks, [&"SOUL_CALLING_SOLDIER", &"SOUL_FORM_SCRIBE"])
 	_engine().resolve_elapsed(one, 8 * HOUR)
 	for elapsed in [HOUR, 1234567, 2 * HOUR, 4 * HOUR, 2365433]:
 		_engine().resolve_elapsed(chunks, elapsed)
-	_assert(chunks.inventory.entries[&"SOUL_CALLING_SOLDIER"].total == one.inventory.entries[&"SOUL_CALLING_SOLDIER"].total and chunks.inventory.entries[&"SOUL_FORM_SCRIBE"].total == one.inventory.entries[&"SOUL_FORM_SCRIBE"].total, "chunks equal")
+	_assert(_canonical(chunks) == _canonical(one), "chunks canonical equal")
 	_earn(MARKERS[9])
-	_assert(g8.inventory.entries[&"SOUL_CALLING_SOLDIER"].total == 96 and g8.inventory.entries[&"SOUL_FORM_SCRIBE"].total == 1, "ordered aggregate banking observed")
+	var bank_events := []
+	for event in g8_result.events:
+		if event.event_type == SimulationEngine.EVENT_OUTPUT_CHANNEL_BANKED:
+			bank_events.append(event)
+	_assert(bank_events.size() == 2, "two aggregate bank events")
+	_assert(bank_events[0].occurred_simulation_msec == 8 * HOUR and bank_events[0].priority == SimulationEngine.EVENT_PRIORITY_CHANNEL_GAIN, "bank event time priority")
+	_assert(bank_events[0].source_id == &"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS" and bank_events[0].payload.quantity == 1, "scribe event first")
+	_assert(bank_events[1].source_id == &"CHANNEL_GLOAMWOOD_SOLDIER_SOULS" and bank_events[1].payload.quantity == 96, "soldier aggregate event")
+	_assert(bank_events[0].payload.lifecycle_state == "OVERDUE" and bank_events[1].reportable and not bank_events[1].tutorial_relevant, "bank payload flags")
 	_earn(MARKERS[10])
-	var files := SaveFileSet.new(_save_root.path_join("roundtrip"), "save"); var service := SaveService.new(FileSaveStorage.new(), files); _assert(service.save_runtime(g8, TimeAuthorityState.new(), 7, _registry.content_revision).ok, "save"); var loaded := service.load_runtime(); _assert(loaded.ok and _canonical(loaded.game_state) == _canonical(g8), "round trip")
+	var files := SaveFileSet.new(_save_root.path_join("roundtrip"), "save")
+	var service := SaveService.new(FileSaveStorage.new(), files)
+	_assert(service.save_runtime(g8, TimeAuthorityState.new(), 3, _registry.content_revision).ok, "save")
+	var decoded := JsonSaveCodec.new().decode(FileAccess.get_file_as_bytes(files.primary_path))
+	_assert(decoded.ok and decoded.snapshot.schema_version == "3" and decoded.snapshot.content_revision == "prototype-content-r2", "schema v3 r2 bytes")
+	_assert(str(decoded.snapshot).find("OUTPUT_CHANNEL_BANKED") == -1 and str(decoded.snapshot).find("channel_deltas") == -1, "result artifacts absent")
+	var loaded := service.load_runtime()
+	_assert(loaded.ok and _canonical(loaded.game_state) == _canonical(g8), "round trip")
 	_earn(MARKERS[11])
-	_assert(not g8.thresholds[&"THR_GLOAMWOOD"].channel_acquisition.has(&"CHANNEL_GLOAMWOOD_ESSENCE") and g8.reapings[&"THR_GLOAMWOOD"].flow_carry_units.has(SimulationEngine.FLOW_CORE_ESSENCE_PROGRESS_SUBUNITS), "essence ownership")
+	var source_before := _state(&"THR_GLOAMWOOD", true, 1000000)
+	_unlock(source_before, [&"SOUL_CALLING_SOLDIER"])
+	var source_after := source_before.deep_clone()
+	_assert(_engine().resolve_elapsed(source_after, HOUR).success, "source owner resolve")
+	_assert(not source_after.thresholds[&"THR_GLOAMWOOD"].channel_acquisition.has(&"CHANNEL_GLOAMWOOD_ESSENCE"), "essence channel absent")
+	_assert(source_after.reapings[&"THR_GLOAMWOOD"].flow_carry_units.has(SimulationEngine.FLOW_CORE_ESSENCE_PROGRESS_SUBUNITS), "essence carry under reaping")
+	_assert(source_after.reapings[&"THR_GLOAMWOOD"].flow_carry_units[SimulationEngine.FLOW_CORE_ESSENCE_PROGRESS_SUBUNITS] != source_before.reapings[&"THR_GLOAMWOOD"].flow_carry_units.get(SimulationEngine.FLOW_CORE_ESSENCE_PROGRESS_SUBUNITS, -1), "core essence advanced separately")
 	_earn(MARKERS[12])
 	_assert(_source_audit(), "source audit")
 	_earn(MARKERS[13])
@@ -109,10 +142,29 @@ func _unlock(s: GameState, items: Array[StringName]) -> void:
 func _engine() -> SimulationEngine: return SimulationEngine.new(_registry)
 func _canonical(s: GameState) -> Dictionary: return SaveSchemaMapper.runtime_to_snapshot(s, TimeAuthorityState.new(), 1, ContentRegistry.CURRENT_REVISION).game_state
 func _source_audit() -> bool:
-	var text := FileAccess.get_file_as_string("res://src/simulation/simulation_engine.gd")
-	for token in ["Time.get", "get_ticks", "Steam", "Forecast", "ReportService"]:
-		if text.find(token) != -1: return false
+	var engine_text := FileAccess.get_file_as_string("res://src/simulation/simulation_engine.gd")
+	for token in ["Time.get", "get_ticks", "OS.get_datetime", "_process(", "extends Node", "FileAccess.get_modified_time", "DirAccess.get_modified_time", "Steam.", "GodotSteam", "ReportService", "ForecastService", "unlock_output_item(", "reconcile_available_sources(", "eta_msec", "effective_rate"]:
+		if engine_text.find(token) != -1:
+			return false
 	return true
+
+func _unlock_with_registry(s: GameState, registry: ContentRegistry, items: Array[StringName]) -> void:
+	var service := OutputAccessService.new(registry)
+	for item in items: _assert(service.unlock_output_item(s, item).success, "unlock fixture %s" % item)
+	_assert(service.reconcile_available_sources(s).success, "reconcile fixture")
+
+func _copied_registry_with_channel(channel_id: StringName, amount_per_period: float, period_msec: int, settled_multiplier: float) -> ContentRegistry:
+	var catalog: ContentCatalog = load("res://content/prototype_content_catalog.tres").duplicate(true)
+	for i in range(catalog.output_channels.size()):
+		if StringName(catalog.output_channels[i].id) == channel_id:
+			var channel: OutputChannelDefinition = catalog.output_channels[i].duplicate(true)
+			channel.rate = channel.rate.duplicate(true)
+			channel.rate.amount_per_period = amount_per_period
+			channel.rate.period_msec = period_msec
+			channel.settled_multiplier = settled_multiplier
+			catalog.output_channels[i] = channel
+			break
+	return ContentRegistry.build(catalog)
 func _earn(marker: String) -> void: _earned[marker] = true
 func _assert(condition: bool, label: String) -> void:
 	if not condition: _fail(label)

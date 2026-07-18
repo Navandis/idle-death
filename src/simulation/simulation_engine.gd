@@ -329,7 +329,7 @@ func _validate_core_flows(reaping: GameState.ReapingState) -> Dictionary:
 	return {"ok": true}
 
 func _commit_if_valid(live: GameState, candidate: GameState, result: SimulationResult) -> SimulationResult:
-	var validation := GameStateValidator.validate(candidate, registry, false)
+	var validation := GameStateValidator.validate(candidate, registry, true)
 	if not validation.ok: return SimulationResult.failure(ERR_STATE_INVALID, result.requested_elapsed_msec, str(validation))
 	live.copy_from(candidate)
 	return result
@@ -412,4 +412,6 @@ class SimulationEvent:
 	static func threshold_settled(occurred: int, threshold_id: StringName, returns_total: int) -> SimulationEvent:
 		return SimulationEvent.new(EVENT_THRESHOLD_SETTLED, occurred, EVENT_PRIORITY_LIFECYCLE, threshold_id, &"SIMULATION_ENGINE", {"remaining_backlog": 0, "lifecycle_state": "SETTLED", "persistent_returns_total": returns_total})
 	static func output_channel_banked(occurred: int, threshold_id: StringName, channel_id: StringName, delta: Dictionary, lifecycle_state: String) -> SimulationEvent:
-		return SimulationEvent.new(EVENT_OUTPUT_CHANNEL_BANKED, occurred, EVENT_PRIORITY_CHANNEL_GAIN, threshold_id, channel_id, {"output_item_id": delta.output_item_id, "quantity": delta.banked_units_delta, "lifecycle_state": lifecycle_state, "total_banked_units": delta.total_banked_units_after, "progress_subunits_after": delta.progress_subunits_after})
+		var event := SimulationEvent.new(EVENT_OUTPUT_CHANNEL_BANKED, occurred, EVENT_PRIORITY_CHANNEL_GAIN, threshold_id, channel_id, {"output_item_id": delta.output_item_id, "quantity": delta.banked_units_delta, "lifecycle_state": lifecycle_state, "total_banked_units": delta.total_banked_units_after, "progress_subunits_after": delta.progress_subunits_after})
+		event.tutorial_relevant = false
+		return event
