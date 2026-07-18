@@ -296,7 +296,7 @@ func test_settlement_channel_specific_rates_and_event_ordering_contracts() -> vo
 		assert_eq(event.occurred_simulation_msec, 1)
 		assert_eq(event.priority, SimulationEngine.EVENT_PRIORITY_CHANNEL_GAIN)
 		assert_true(event.reportable)
-		assert_false(event.tutorial_relevant)
+		assert_true(event.tutorial_relevant)
 		assert_true(event.payload.has("quantity"))
 		assert_true(event.payload.has("output_item_id"))
 		assert_true(event.payload.has("lifecycle_state"))

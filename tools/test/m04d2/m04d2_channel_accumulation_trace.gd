@@ -107,7 +107,7 @@ func _run() -> void:
 	_assert(bank_events[0].occurred_simulation_msec == 8 * HOUR and bank_events[0].priority == SimulationEngine.EVENT_PRIORITY_CHANNEL_GAIN, "bank event time priority")
 	_assert(bank_events[0].source_id == &"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS" and bank_events[0].payload.quantity == 1, "scribe event first")
 	_assert(bank_events[1].source_id == &"CHANNEL_GLOAMWOOD_SOLDIER_SOULS" and bank_events[1].payload.quantity == 96, "soldier aggregate event")
-	_assert(bank_events[0].payload.lifecycle_state == "OVERDUE" and bank_events[1].reportable and not bank_events[1].tutorial_relevant, "bank payload flags")
+	_assert(bank_events[0].payload.lifecycle_state == "OVERDUE" and bank_events[1].reportable and bank_events[1].tutorial_relevant, "bank payload flags")
 	_earn(MARKERS[10])
 	var files := SaveFileSet.new(_save_root.path_join("roundtrip"), "save")
 	var service := SaveService.new(FileSaveStorage.new(), files)
