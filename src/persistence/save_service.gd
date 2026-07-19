@@ -29,7 +29,7 @@ func save_runtime(game_state: GameState, time_state: TimeAuthorityState, save_re
 	return save_snapshot(snapshot)
 
 func save_snapshot(snapshot: Dictionary) -> Dictionary:
-	var validation := SaveSchemaValidator.validate_v3(snapshot)
+	var validation := SaveSchemaValidator.validate_current(snapshot)
 	if not validation.ok:
 		return validation
 	var encoded := codec.encode(snapshot)
@@ -114,7 +114,7 @@ func _read_candidate(path: String, role: String) -> Dictionary:
 	var migrated := migration_registry.migrate(decoded.snapshot, schema_parse.value)
 	if not migrated.ok:
 		return {"ok": false, "role": role, "path": path, "code": migrated.code}
-	var validation := SaveSchemaValidator.validate_v3(migrated.snapshot)
+	var validation := SaveSchemaValidator.validate_current(migrated.snapshot)
 	if not validation.ok:
 		return {"ok": false, "role": role, "path": path, "code": validation.code, "field_path": validation.get("field_path", "")}
 	return {"ok": true, "role": role, "path": path, "snapshot": migrated.snapshot, "save_revision": validation.save_revision, "migration_required": migrated.get("migrated", false)}

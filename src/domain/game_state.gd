@@ -24,6 +24,7 @@ var forms: Dictionary = {}
 var thresholds: Dictionary = {}
 var reapings: Dictionary = {}
 var progression: ProgressionState = ProgressionState.new()
+var report_state: ReportState = ReportState.new()
 
 func _init(initial_simulation_time_msec: int = 0) -> void:
 	if initial_simulation_time_msec < 0:
@@ -53,11 +54,13 @@ func copy_from(other: GameState) -> void:
 	reapings.clear()
 	for key in other.reapings.keys(): reapings[key] = other.reapings[key].deep_clone()
 	progression = other.progression.deep_clone()
+	report_state = other.report_state.deep_clone()
 
 func deep_clone() -> GameState:
 	var clone := GameState.new(simulation_time_msec)
 	clone.inventory = inventory.deep_clone()
 	clone.progression = progression.deep_clone()
+	clone.report_state = report_state.deep_clone()
 	for key in forms.keys():
 		clone.forms[key] = forms[key].deep_clone()
 	for key in thresholds.keys():

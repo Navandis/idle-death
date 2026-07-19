@@ -20,6 +20,7 @@ var _steps := {}
 func _init() -> void:
 	register_step(SaveEnvelope.SCHEMA_VERSION_V1, Callable(self, "_migrate_v1_to_v2"))
 	register_step(SaveEnvelope.SCHEMA_VERSION_V2, Callable(self, "_migrate_v2_to_v3"))
+	register_step(SaveEnvelope.SCHEMA_VERSION_V3, Callable(self, "_migrate_v3_to_v4"))
 
 func register_step(from_version: int, callable: Callable) -> void:
 	_steps[from_version] = callable
@@ -58,3 +59,23 @@ func _migrate_v2_to_v3(snapshot: Dictionary) -> Dictionary:
 	migrated.schema_version = SaveInt64.format(SaveEnvelope.SCHEMA_VERSION_V3)
 	migrated.game_state.progression["unlocked_output_item_ids"] = []
 	return {"ok": true, "code": OK, "snapshot": migrated}
+
+
+func _migrate_v3_to_v4(snapshot: Dictionary) -> Dictionary:
+	var source := SaveSchemaValidator.validate_v3(snapshot)
+	if not source.ok: return {"ok": false, "code": ERR_SOURCE_INVALID, "source_code": source.code}
+	var migrated := snapshot.duplicate(true)
+	migrated.schema_version = SaveInt64.format(SaveEnvelope.SCHEMA_VERSION_V4)
+	var cursor: String = migrated.game_state.simulation_time_msec
+	migrated.game_state["report_state"] = {
+		"report_cursor_msec": cursor,
+		"next_report_sequence": "1",
+		"next_event_sequence": "1",
+		"dropped_history_record_count": "0",
+		"live": _empty_report_window(cursor),
+		"history": [],
+	}
+	return {"ok": true, "code": OK, "snapshot": migrated}
+
+func _empty_report_window(cursor: String) -> Dictionary:
+	return {"start_simulation_msec": cursor, "end_simulation_msec": cursor, "run_count": "0", "mode_counts": {}, "slices": {}, "events_by_type": {}, "event_details": [], "omitted_oldest_event_detail_count": "0"}

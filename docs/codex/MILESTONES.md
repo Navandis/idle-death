@@ -3146,3 +3146,7 @@ When a slice reveals a planning problem:
 5. resume only after the revised definition or prompt is approved.
 
 The commercial save-format/threat-model review remains a release gate, not an excuse to add encryption, binary encoding, Steam Cloud, or a backend to the 0–90 minute prototype without a new approved milestone.
+
+### M04E2A report state schema/history slice
+
+M04E2A introduces schema v4 report-state foundations: typed report runtime state, `ReportService` ingestion of already-applied committed simulation results, pure live/history peeks, bounded event details, bounded recent report history, v3-to-v4 migration with empty report windows at the existing simulation cursor, and the owner-run M04E2A verification package. UI, claim flows, trusted-time acquisition, M04E2B atomic coordination, and Codex analytics remain deferred.

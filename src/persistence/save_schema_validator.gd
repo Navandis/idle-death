@@ -103,6 +103,8 @@ static func validate_current(snapshot: Variant) -> Dictionary:
 		return validate_v2(snapshot)
 	if version.value == SaveEnvelope.SCHEMA_VERSION_V3:
 		return validate_v3(snapshot)
+	if version.value == SaveEnvelope.SCHEMA_VERSION_V4:
+		return validate_v4(snapshot)
 	return _err(ERR_SCHEMA_VERSION, "schema_version")
 
 
@@ -112,14 +114,32 @@ static func get_schema_version(snapshot: Variant) -> Dictionary:
 	return SaveInt64.parse((snapshot as Dictionary).get("schema_version", ""), false, "schema_version")
 
 
+static func validate_v4(snapshot: Variant) -> Dictionary:
+	var base := _validate_v2_or_v3(snapshot, SaveEnvelope.SCHEMA_VERSION_V4, ["command_tether_capacity", "unlocked_output_item_ids"], SaveEnvelope.GAME_KEYS_V4)
+	if not base.ok: return base
+	var rs = (snapshot as Dictionary).game_state.report_state
+	if typeof(rs) != TYPE_DICTIONARY: return _err(ERR_TYPE, "game_state.report_state")
+	var k := _require_keys(rs, ["dropped_history_record_count", "history", "live", "next_event_sequence", "next_report_sequence", "report_cursor_msec"], "game_state.report_state"); if not k.ok: return k
+	for ik in ["report_cursor_msec", "next_report_sequence", "next_event_sequence", "dropped_history_record_count"]:
+		var pi := SaveInt64.parse(rs[ik], false, "game_state.report_state.%s" % ik); if not pi.ok: return pi
+	if typeof(rs.history) != TYPE_ARRAY: return _err(ERR_TYPE, "game_state.report_state.history")
+	var lw := _validate_report_window(rs.live, "game_state.report_state.live"); if not lw.ok: return lw
+	for i in range(rs.history.size()):
+		if typeof(rs.history[i]) != TYPE_DICTIONARY: return _err(ERR_TYPE, "game_state.report_state.history.%d" % i)
+		var rk := _require_keys(rs.history[i], ["report_sequence", "snapshot_reason", "window"], "game_state.report_state.history.%d" % i); if not rk.ok: return rk
+		var seq := SaveInt64.parse(rs.history[i].report_sequence, false, "game_state.report_state.history.%d.report_sequence" % i); if not seq.ok: return seq
+		if typeof(rs.history[i].snapshot_reason) != TYPE_STRING: return _err(ERR_TYPE, "game_state.report_state.history.%d.snapshot_reason" % i)
+		var hw := _validate_report_window(rs.history[i].window, "game_state.report_state.history.%d.window" % i); if not hw.ok: return hw
+	return base
+
 static func validate_v3(snapshot: Variant) -> Dictionary:
 	return _validate_v2_or_v3(snapshot, SaveEnvelope.SCHEMA_VERSION_V3, ["command_tether_capacity", "unlocked_output_item_ids"])
 
 static func validate_v2(snapshot: Variant) -> Dictionary:
 	return _validate_v2_or_v3(snapshot, SaveEnvelope.SCHEMA_VERSION_V2, ["command_tether_capacity"])
 
-static func _validate_v2_or_v3(snapshot: Variant, expected_version: int, progression_keys: Array) -> Dictionary:
-	var base := _validate_common_envelope(snapshot, expected_version, SaveEnvelope.GAME_KEYS_V2)
+static func _validate_v2_or_v3(snapshot: Variant, expected_version: int, progression_keys: Array, game_keys: Array = []) -> Dictionary:
+	var base := _validate_common_envelope(snapshot, expected_version, SaveEnvelope.GAME_KEYS_V2 if game_keys.is_empty() else game_keys)
 	if not base.ok:
 		return base
 	var g: Dictionary = (snapshot as Dictionary).game_state
@@ -201,6 +221,31 @@ static func _validate_common_envelope(snapshot: Variant, expected_version: int, 
 	else:
 		if anchor.value != 0 or foreground.value != 0 or not t.trusted_source_id.is_empty(): return _err(ERR_CROSS_FIELD, "time_authority")
 	return {"ok": true, "code": OK, "save_revision": revision.value, "simulation_time_msec": sim.value, "trusted_anchor_utc_msec": anchor.value, "foreground_credited_since_anchor_msec": foreground.value}
+
+static func _validate_report_window(w, path: String) -> Dictionary:
+	if typeof(w) != TYPE_DICTIONARY: return _err(ERR_TYPE, path)
+	var k := _require_keys(w, ["end_simulation_msec", "event_details", "events_by_type", "mode_counts", "omitted_oldest_event_detail_count", "run_count", "slices", "start_simulation_msec"], path); if not k.ok: return k
+	for ik in ["start_simulation_msec", "end_simulation_msec", "run_count", "omitted_oldest_event_detail_count"]:
+		var pi := SaveInt64.parse(w[ik], false, "%s.%s" % [path, ik]); if not pi.ok: return pi
+	for map_key in ["mode_counts", "events_by_type"]:
+		if typeof(w[map_key]) != TYPE_DICTIONARY: return _err(ERR_TYPE, "%s.%s" % [path, map_key])
+		for mk in w[map_key].keys():
+			var mi := SaveInt64.parse(w[map_key][mk], false, "%s.%s.%s" % [path, map_key, mk]); if not mi.ok: return mi
+	if typeof(w.slices) != TYPE_DICTIONARY or typeof(w.event_details) != TYPE_ARRAY: return _err(ERR_TYPE, path)
+	for sk in w.slices.keys():
+		var sd = w.slices[sk]; if typeof(sd) != TYPE_DICTIONARY: return _err(ERR_TYPE, "%s.slices.%s" % [path, sk])
+		for needed in ["threshold_id", "lifecycle_state", "form_id", "writ_id"]:
+			if typeof(sd.get(needed, null)) != TYPE_STRING: return _err(ERR_TYPE, "%s.slices.%s.%s" % [path, sk, needed])
+		for needed in ["retinue_ids"]:
+			if typeof(sd.get(needed, null)) != TYPE_ARRAY: return _err(ERR_TYPE, "%s.slices.%s.%s" % [path, sk, needed])
+		for ik in ["assignment_revision", "start_simulation_msec", "end_simulation_msec", "elapsed_msec", "returned_souls_delta", "backlog_delta", "completed_cycles_delta"]:
+			var si := SaveInt64.parse(sd.get(ik, ""), true, "%s.slices.%s.%s" % [path, sk, ik]); if not si.ok: return si
+		for map_key in ["inventory_gains", "mastery_gains"]:
+			if typeof(sd.get(map_key, null)) != TYPE_DICTIONARY: return _err(ERR_TYPE, "%s.slices.%s.%s" % [path, sk, map_key])
+		if typeof(sd.get("channel_summaries", null)) != TYPE_DICTIONARY: return _err(ERR_TYPE, "%s.slices.%s.channel_summaries" % [path, sk])
+	for i in range(w.event_details.size()):
+		var ed = w.event_details[i]; if typeof(ed) != TYPE_DICTIONARY: return _err(ERR_TYPE, "%s.event_details.%d" % [path, i])
+	return {"ok": true}
 
 static func _validate_v2_nested(g: Dictionary) -> Dictionary:
 	for item_id in g.inventory.entries.keys():

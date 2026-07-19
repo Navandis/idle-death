@@ -42,7 +42,7 @@ func load_runtime() -> Dictionary:
 		var upgrade_snapshot := SaveSchemaMapper.runtime_to_snapshot(runtime.game_state, runtime.time_authority_state, loaded.save_revision + 1, loaded.snapshot.content_revision)
 		upgrade_snapshot.metadata = loaded.snapshot.metadata.duplicate(true)
 		upgrade_snapshot.last_offline_resolution_id = loaded.snapshot.last_offline_resolution_id
-		var target_validation := SaveSchemaValidator.validate_v3(upgrade_snapshot)
+		var target_validation := SaveSchemaValidator.validate_current(upgrade_snapshot)
 		if not target_validation.ok: return target_validation
 		var save_result := save_service.save_snapshot(upgrade_snapshot)
 		if not save_result.ok: return save_result

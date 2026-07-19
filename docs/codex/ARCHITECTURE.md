@@ -2017,3 +2017,7 @@ M04E2B adds no new schema fields and receives no prompt until M04E2A is Merged/P
 ## Later systems
 
 M05 supplies application lifetime and makes the reported-run coordinator the normal foreground path. M06 supplies trusted closed-session elapsed time to that same path. M10 and M16 consume authoritative report records for player-facing flows. M12 replaces the current one-active-Reaping limit. Later progression, Hall, support, and service systems append report facts only through explicit stable source identities; none changes the no-claim rule.
+
+## M04E2A report state ownership
+
+`ReportService` is the single scene-independent owner for ingesting already-committed simulation-run results into report state, deriving detached live/history read models, and snapshotting live windows into bounded recent history. It does not own production formulas, clocks, UI, platform state, file I/O, tutorial state, progression, Halls, support, or Codex analytics; gameplay state remains authoritative and reports remain informational.

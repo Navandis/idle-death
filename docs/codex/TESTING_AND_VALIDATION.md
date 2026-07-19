@@ -2285,3 +2285,7 @@ M04E2A cannot merge until:
 - current content remains `prototype-content-r2`;
 - no atomic coordinator/final harness, UI, report presentation, last-click state, partial clearing, Codex analytics, claim action, tutorial, progression, Hall, support, trusted time, platform, concurrency, or arbitrary event-payload framework enters the diff;
 - actual scope remains within the approved assessment.
+
+## M04E2A report-state verification
+
+Use `./tools/test/run_gut.sh -- -gdir=res://tests/unit/m04e2a -gdir=res://tests/integration/m04e2a` for focused Linux validation, then run `godot --headless --path . -s res://tools/test/m04e2a/m04e2a_report_state_trace.gd -- --save-root <isolated-temp-dir>` to emit the required M04E2A trace markers. Windows owner verification uses `tools/test/owner/run_m04e2a_owner_verification.ps1` with an optional `-CommitSha`.

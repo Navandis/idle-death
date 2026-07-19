@@ -3029,3 +3029,7 @@ The coordinator's result contains the exact `SimulationRunResult`, report-ingest
 The final M04 harness will compare a M04E1 forecast with an equivalent atomic reported commit, snapshot report sequence 1, prove gameplay gains preexist report inspection, and round-trip the record through schema version 4.
 
 M04E2B receives no implementation prompt until M04E2A is Merged and Passed.
+
+## M04E2A report state schema-v4 addition
+
+Schema v4 adds `game_state.report_state` while retaining `JSON_V1` and `prototype-content-r2`. The report state stores a simulation-time report cursor, live window, monotonic report/event sequences, bounded recent history, attributed slices keyed by Threshold ID, positive assignment revision, and lifecycle state, plus bounded reportable event details. All report integers continue to use decimal-string wire encoding; report records are explanatory only and never claim, grant, delay, or remove gameplay output.
