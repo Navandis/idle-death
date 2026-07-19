@@ -151,12 +151,27 @@ func _event_and_delta_match() -> bool:
 		if a.event_type != b.event_type or a.occurred_simulation_msec != b.occurred_simulation_msec or a.subject_id != b.subject_id or a.source_id != b.source_id or a.payload != b.payload: return false
 	return true
 
-func _save_bytes_unchanged(snapshot: Dictionary, state: GameState) -> bool:
-	var save_path := _save_root.path_join("baseline.json")
-	var bytes := JSON.stringify(snapshot, "\t")
-	FileAccess.open(save_path, FileAccess.WRITE).store_string(bytes)
-	var before_bytes := FileAccess.get_file_as_string(save_path)
-	return _service.forecast(state, HOUR).success and FileAccess.get_file_as_string(save_path) == before_bytes
+func _save_bytes_unchanged(_snapshot: Dictionary, state: GameState) -> bool:
+	var root := _save_root.path_join("production-save-byte-proof")
+	DirAccess.make_dir_recursive_absolute(root)
+	var file_set := SaveFileSet.new(root, "m04e1_forecast")
+	var coordinator := GameStatePersistenceCoordinator.new(SaveService.new(FileSaveStorage.new(), file_set), _registry)
+	var saved := coordinator.save_runtime(state, TimeAuthorityState.new(), 41)
+	if not saved.ok: return false
+	var saved_again := coordinator.save_runtime(state, TimeAuthorityState.new(), 42)
+	if not saved_again.ok: return false
+	var loaded := coordinator.load_runtime()
+	if not loaded.ok or loaded.save_revision != 42: return false
+	if _canonical(loaded.game_state) != _canonical(state): return false
+	if not FileAccess.file_exists(file_set.primary_path) or not FileAccess.file_exists(file_set.backup_path): return false
+	var primary_before := FileAccess.get_file_as_bytes(file_set.primary_path)
+	var backup_before := FileAccess.get_file_as_bytes(file_set.backup_path)
+	if primary_before.is_empty() or backup_before.is_empty(): return false
+	var forecast := _service.forecast(loaded.game_state, HOUR)
+	if not forecast.success: return false
+	var primary_after := FileAccess.get_file_as_bytes(file_set.primary_path)
+	var backup_after := FileAccess.get_file_as_bytes(file_set.backup_path)
+	return primary_before == primary_after and backup_before == backup_after and not FileAccess.file_exists(file_set.temporary_path)
 
 func _no_side_effect_artifacts(state: GameState) -> bool:
 	var snapshot := _canonical(state)
