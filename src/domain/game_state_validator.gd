@@ -22,6 +22,8 @@ static func validate(state: GameState, registry: ContentRegistry, require_comple
 	result = _validate_forms(state, registry); if not result.ok: return result
 	result = _validate_thresholds(state, registry, require_complete_access); if not result.ok: return result
 	result = _validate_reapings(state, registry); if not result.ok: return result
+	var report := validate_report_state(state)
+	if not report.ok: return report
 	if state.progression.command_tether_capacity < 0: return _err(ERR_RANGE, "progression.command_tether_capacity")
 	if state.progression.unlocked_output_item_ids != _sorted_unique_string_names(state.progression.unlocked_output_item_ids): return _err(ERR_CROSS_FIELD, "progression.unlocked_output_item_ids")
 	for item_id in state.progression.unlocked_output_item_ids:
@@ -31,6 +33,85 @@ static func validate(state: GameState, registry: ContentRegistry, require_comple
 	for reaping in state.reapings.values(): if reaping.is_active: active += 1
 	if active > state.progression.command_tether_capacity: return _err(ERR_CROSS_FIELD, "reapings.active")
 	return {"ok": true, "code": OK}
+
+
+static func validate_report_state(state: GameState) -> Dictionary:
+	if state == null or state.report_state == null or not (state.report_state is ReportState):
+		return _err(ERR_TYPE, "report_state")
+	var rs: ReportState = state.report_state
+	if rs.report_cursor_msec < 0 or rs.report_cursor_msec > state.simulation_time_msec:
+		return _err(ERR_RANGE, "report_state.report_cursor_msec")
+	if rs.next_report_sequence <= 0:
+		return _err(ERR_RANGE, "report_state.next_report_sequence")
+	if rs.next_event_sequence <= 0:
+		return _err(ERR_RANGE, "report_state.next_event_sequence")
+	if rs.dropped_history_record_count < 0:
+		return _err(ERR_RANGE, "report_state.dropped_history_record_count")
+	if rs.history.size() > ReportState.MAX_HISTORY_RECORDS:
+		return _err(ERR_RANGE, "report_state.history")
+	var live_result := _validate_report_window(rs.live, "report_state.live", rs.report_cursor_msec)
+	if not live_result.ok: return live_result
+	var previous_sequence := 0
+	for i in range(rs.history.size()):
+		var record = rs.history[i]
+		if record == null or not (record is ReportState.ReportRecord):
+			return _err(ERR_TYPE, "report_state.history.%d" % i)
+		if record.report_sequence <= 0:
+			return _err(ERR_RANGE, "report_state.history.%d.report_sequence" % i)
+		if record.report_sequence <= previous_sequence:
+			return _err(ERR_CROSS_FIELD, "report_state.history.%d.report_sequence" % i)
+		previous_sequence = record.report_sequence
+		if not ReportState.VALID_REASONS.has(record.snapshot_reason):
+			return _err(ERR_RANGE, "report_state.history.%d.snapshot_reason" % i)
+		var window_result := _validate_report_window(record.window, "report_state.history.%d.window" % i, rs.report_cursor_msec)
+		if not window_result.ok: return window_result
+	return {"ok": true}
+
+static func _validate_report_window(window, path: String, max_end_msec: int) -> Dictionary:
+	if window == null or not (window is ReportState.ReportWindow):
+		return _err(ERR_TYPE, path)
+	if window.start_simulation_msec < 0 or window.end_simulation_msec < window.start_simulation_msec or window.end_simulation_msec > max_end_msec:
+		return _err(ERR_RANGE, path)
+	if window.run_count < 0 or window.omitted_oldest_event_detail_count < 0:
+		return _err(ERR_RANGE, path)
+	if window.event_details.size() > ReportState.MAX_EVENT_DETAILS:
+		return _err(ERR_RANGE, "%s.event_details" % path)
+	var counted_modes := 0
+	for key in window.mode_counts.keys():
+		if str(key).is_empty() or not ReportState.VALID_MODES.has(StringName(key)):
+			return _err(ERR_RANGE, "%s.mode_counts.%s" % [path, key])
+		if int(window.mode_counts[key]) < 0: return _err(ERR_RANGE, "%s.mode_counts.%s" % [path, key])
+		counted_modes += int(window.mode_counts[key])
+	if counted_modes != window.run_count: return _err(ERR_CROSS_FIELD, "%s.mode_counts" % path)
+	for key in window.events_by_type.keys():
+		if str(key).is_empty() or int(window.events_by_type[key]) < 0: return _err(ERR_RANGE, "%s.events_by_type.%s" % [path, key])
+	for key in window.slices.keys():
+		var slice = window.slices[key]
+		if slice == null or not (slice is ReportState.AttributionSlice): return _err(ERR_TYPE, "%s.slices.%s" % [path, key])
+		if slice.threshold_id == &"" or slice.lifecycle_state == &"" or slice.form_id == &"" or slice.writ_id == &"": return _err(ERR_TYPE, "%s.slices.%s" % [path, key])
+		if slice.assignment_revision <= 0 or slice.start_simulation_msec < window.start_simulation_msec or slice.end_simulation_msec > window.end_simulation_msec or slice.end_simulation_msec < slice.start_simulation_msec or slice.elapsed_msec < 0 or slice.returned_souls_delta < 0 or slice.completed_cycles_delta < 0:
+			return _err(ERR_RANGE, "%s.slices.%s" % [path, key])
+		if slice.retinue_ids != _sorted_unique_string_names(slice.retinue_ids): return _err(ERR_CROSS_FIELD, "%s.slices.%s.retinue_ids" % [path, key])
+		for retinue_id in slice.retinue_ids:
+			if str(retinue_id).is_empty(): return _err(ERR_TYPE, "%s.slices.%s.retinue_ids" % [path, key])
+		for value in slice.inventory_gains.values():
+			if int(value) < 0: return _err(ERR_RANGE, "%s.slices.%s.inventory_gains" % [path, key])
+		for value in slice.mastery_gains.values():
+			if int(value) < 0: return _err(ERR_RANGE, "%s.slices.%s.mastery_gains" % [path, key])
+		for channel_key in slice.channel_summaries.keys():
+			var channel = slice.channel_summaries[channel_key]
+			if channel == null or not (channel is ReportState.ChannelSummary): return _err(ERR_TYPE, "%s.slices.%s.channel_summaries.%s" % [path, key, channel_key])
+			if channel.channel_id == &"" or channel.output_item_id == &"" or str(channel.channel_id) != str(channel_key): return _err(ERR_CROSS_FIELD, "%s.slices.%s.channel_summaries.%s" % [path, key, channel_key])
+			if channel.banked_units_delta < 0 or channel.first_progress_subunits_before < 0 or channel.latest_progress_subunits_after < 0 or channel.first_rate_carry_units_before < 0 or channel.latest_rate_carry_units_after < 0 or channel.first_total_banked_units_before < 0 or channel.latest_total_banked_units_after < 0:
+				return _err(ERR_RANGE, "%s.slices.%s.channel_summaries.%s" % [path, key, channel_key])
+	var previous_event_sequence := 0
+	for i in range(window.event_details.size()):
+		var event = window.event_details[i]
+		if event == null or not (event is ReportState.ReportEventDetail): return _err(ERR_TYPE, "%s.event_details.%d" % [path, i])
+		if event.event_sequence <= 0 or event.event_sequence <= previous_event_sequence or event.event_type == &"" or event.occurred_simulation_msec < 0 or event.occurred_simulation_msec > window.end_simulation_msec or event.priority < 0 or event.subject_id == &"" or event.source_id == &"":
+			return _err(ERR_RANGE, "%s.event_details.%d" % [path, i])
+		previous_event_sequence = event.event_sequence
+	return {"ok": true}
 
 static func _validate_inventory(state: GameState, registry: ContentRegistry) -> Dictionary:
 	for item_id in _sorted_keys(state.inventory.entries):

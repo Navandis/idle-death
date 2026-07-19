@@ -132,14 +132,18 @@ static func validate_v4(snapshot: Variant) -> Dictionary:
 	if report_cursor.value > base.simulation_time_msec: return _err(ERR_CROSS_FIELD, "game_state.report_state.report_cursor_msec")
 	if typeof(rs.history) != TYPE_ARRAY: return _err(ERR_TYPE, "game_state.report_state.history")
 	if rs.history.size() > ReportState.MAX_HISTORY_RECORDS: return _err(ERR_RANGE, "game_state.report_state.history")
-	var lw := _validate_report_window(rs.live, "game_state.report_state.live"); if not lw.ok: return lw
+	var lw := _validate_report_window(rs.live, "game_state.report_state.live", report_cursor.value); if not lw.ok: return lw
 	for i in range(rs.history.size()):
 		if typeof(rs.history[i]) != TYPE_DICTIONARY: return _err(ERR_TYPE, "game_state.report_state.history.%d" % i)
 		var rk := _require_keys(rs.history[i], ["report_sequence", "snapshot_reason", "window"], "game_state.report_state.history.%d" % i); if not rk.ok: return rk
 		var seq := SaveInt64.parse(rs.history[i].report_sequence, false, "game_state.report_state.history.%d.report_sequence" % i); if not seq.ok: return seq
+		if seq.value <= 0: return _err(ERR_RANGE, "game_state.report_state.history.%d.report_sequence" % i)
+		if i > 0:
+			var previous_seq := SaveInt64.parse(rs.history[i - 1].report_sequence, false, "game_state.report_state.history.%d.report_sequence" % [i - 1])
+			if previous_seq.ok and seq.value <= previous_seq.value: return _err(ERR_CROSS_FIELD, "game_state.report_state.history.%d.report_sequence" % i)
 		if typeof(rs.history[i].snapshot_reason) != TYPE_STRING: return _err(ERR_TYPE, "game_state.report_state.history.%d.snapshot_reason" % i)
 		if not ReportState.VALID_REASONS.has(StringName(rs.history[i].snapshot_reason)): return _err(ERR_RANGE, "game_state.report_state.history.%d.snapshot_reason" % i)
-		var hw := _validate_report_window(rs.history[i].window, "game_state.report_state.history.%d.window" % i); if not hw.ok: return hw
+		var hw := _validate_report_window(rs.history[i].window, "game_state.report_state.history.%d.window" % i, report_cursor.value); if not hw.ok: return hw
 	return base
 
 static func validate_v3(snapshot: Variant) -> Dictionary:
@@ -232,44 +236,66 @@ static func _validate_common_envelope(snapshot: Variant, expected_version: int, 
 		if anchor.value != 0 or foreground.value != 0 or not t.trusted_source_id.is_empty(): return _err(ERR_CROSS_FIELD, "time_authority")
 	return {"ok": true, "code": OK, "save_revision": revision.value, "simulation_time_msec": sim.value, "trusted_anchor_utc_msec": anchor.value, "foreground_credited_since_anchor_msec": foreground.value}
 
-static func _validate_report_window(w, path: String) -> Dictionary:
+static func _validate_report_window(w, path: String, max_end_msec: int) -> Dictionary:
 	if typeof(w) != TYPE_DICTIONARY: return _err(ERR_TYPE, path)
 	var k := _require_keys(w, ["end_simulation_msec", "event_details", "events_by_type", "mode_counts", "omitted_oldest_event_detail_count", "run_count", "slices", "start_simulation_msec"], path); if not k.ok: return k
-	for ik in ["start_simulation_msec", "end_simulation_msec", "run_count", "omitted_oldest_event_detail_count"]:
-		var pi := SaveInt64.parse(w[ik], false, "%s.%s" % [path, ik]); if not pi.ok: return pi
+	var start := SaveInt64.parse(w.start_simulation_msec, false, "%s.start_simulation_msec" % path); if not start.ok: return start
+	var end := SaveInt64.parse(w.end_simulation_msec, false, "%s.end_simulation_msec" % path); if not end.ok: return end
+	var run_count := SaveInt64.parse(w.run_count, false, "%s.run_count" % path); if not run_count.ok: return run_count
+	var omitted_count := SaveInt64.parse(w.omitted_oldest_event_detail_count, false, "%s.omitted_oldest_event_detail_count" % path); if not omitted_count.ok: return omitted_count
+	if start.value > end.value or end.value > max_end_msec: return _err(ERR_CROSS_FIELD, path)
+	var counted_modes := 0
 	for map_key in ["mode_counts", "events_by_type"]:
 		if typeof(w[map_key]) != TYPE_DICTIONARY: return _err(ERR_TYPE, "%s.%s" % [path, map_key])
 		for mk in w[map_key].keys():
+			if typeof(mk) != TYPE_STRING or String(mk).is_empty(): return _err(ERR_TYPE, "%s.%s.%s" % [path, map_key, mk])
+			if map_key == "mode_counts" and not ReportState.VALID_MODES.has(StringName(mk)): return _err(ERR_RANGE, "%s.%s.%s" % [path, map_key, mk])
 			var mi := SaveInt64.parse(w[map_key][mk], false, "%s.%s.%s" % [path, map_key, mk]); if not mi.ok: return mi
+			if map_key == "mode_counts": counted_modes += mi.value
+	if counted_modes != run_count.value: return _err(ERR_CROSS_FIELD, "%s.mode_counts" % path)
 	if typeof(w.slices) != TYPE_DICTIONARY or typeof(w.event_details) != TYPE_ARRAY: return _err(ERR_TYPE, path)
 	if w.event_details.size() > ReportState.MAX_EVENT_DETAILS: return _err(ERR_RANGE, "%s.event_details" % path)
 	for sk in w.slices.keys():
 		var sd = w.slices[sk]; if typeof(sd) != TYPE_DICTIONARY: return _err(ERR_TYPE, "%s.slices.%s" % [path, sk])
 		for needed in ["threshold_id", "lifecycle_state", "form_id", "writ_id"]:
-			if typeof(sd.get(needed, null)) != TYPE_STRING: return _err(ERR_TYPE, "%s.slices.%s.%s" % [path, sk, needed])
-		for needed in ["retinue_ids"]:
-			if typeof(sd.get(needed, null)) != TYPE_ARRAY: return _err(ERR_TYPE, "%s.slices.%s.%s" % [path, sk, needed])
-			for rid in sd[needed]:
-				if typeof(rid) != TYPE_STRING: return _err(ERR_TYPE, "%s.slices.%s.%s" % [path, sk, needed])
-		for ik in ["assignment_revision", "start_simulation_msec", "end_simulation_msec", "elapsed_msec", "returned_souls_delta", "completed_cycles_delta"]:
+			if typeof(sd.get(needed, null)) != TYPE_STRING or String(sd[needed]).is_empty(): return _err(ERR_TYPE, "%s.slices.%s.%s" % [path, sk, needed])
+		if typeof(sd.get("retinue_ids", null)) != TYPE_ARRAY: return _err(ERR_TYPE, "%s.slices.%s.retinue_ids" % [path, sk])
+		var previous_retinue := ""
+		for rid in sd.retinue_ids:
+			if typeof(rid) != TYPE_STRING or String(rid).is_empty(): return _err(ERR_TYPE, "%s.slices.%s.retinue_ids" % [path, sk])
+			if previous_retinue != "" and String(rid) <= previous_retinue: return _err(ERR_CROSS_FIELD, "%s.slices.%s.retinue_ids" % [path, sk])
+			previous_retinue = String(rid)
+		var assignment_revision := SaveInt64.parse(sd.get("assignment_revision", ""), false, "%s.slices.%s.assignment_revision" % [path, sk]); if not assignment_revision.ok: return assignment_revision
+		if assignment_revision.value <= 0: return _err(ERR_RANGE, "%s.slices.%s.assignment_revision" % [path, sk])
+		var slice_start := SaveInt64.parse(sd.get("start_simulation_msec", ""), false, "%s.slices.%s.start_simulation_msec" % [path, sk]); if not slice_start.ok: return slice_start
+		var slice_end := SaveInt64.parse(sd.get("end_simulation_msec", ""), false, "%s.slices.%s.end_simulation_msec" % [path, sk]); if not slice_end.ok: return slice_end
+		if slice_start.value < start.value or slice_end.value > end.value or slice_start.value > slice_end.value: return _err(ERR_CROSS_FIELD, "%s.slices.%s" % [path, sk])
+		for ik in ["elapsed_msec", "returned_souls_delta", "completed_cycles_delta"]:
 			var si := SaveInt64.parse(sd.get(ik, ""), false, "%s.slices.%s.%s" % [path, sk, ik]); if not si.ok: return si
 		var backlog_delta := SaveInt64.parse(sd.get("backlog_delta", ""), true, "%s.slices.%s.backlog_delta" % [path, sk]); if not backlog_delta.ok: return backlog_delta
 		for map_key in ["inventory_gains", "mastery_gains"]:
 			if typeof(sd.get(map_key, null)) != TYPE_DICTIONARY: return _err(ERR_TYPE, "%s.slices.%s.%s" % [path, sk, map_key])
 			for gain_id in sd[map_key].keys():
-				var gain := SaveInt64.parse(sd[map_key][gain_id], true, "%s.slices.%s.%s.%s" % [path, sk, map_key, gain_id]); if not gain.ok: return gain
+				if typeof(gain_id) != TYPE_STRING or String(gain_id).is_empty(): return _err(ERR_TYPE, "%s.slices.%s.%s.%s" % [path, sk, map_key, gain_id])
+				var gain := SaveInt64.parse(sd[map_key][gain_id], false, "%s.slices.%s.%s.%s" % [path, sk, map_key, gain_id]); if not gain.ok: return gain
 		if typeof(sd.get("channel_summaries", null)) != TYPE_DICTIONARY: return _err(ERR_TYPE, "%s.slices.%s.channel_summaries" % [path, sk])
 		for channel_id in sd.channel_summaries.keys():
 			var channel = sd.channel_summaries[channel_id]; if typeof(channel) != TYPE_DICTIONARY: return _err(ERR_TYPE, "%s.slices.%s.channel_summaries.%s" % [path, sk, channel_id])
 			var ck := _require_keys(channel, ["banked_units_delta", "channel_id", "first_progress_subunits_before", "first_rate_carry_units_before", "first_total_banked_units_before", "latest_progress_subunits_after", "latest_rate_carry_units_after", "latest_total_banked_units_after", "output_item_id"], "%s.slices.%s.channel_summaries.%s" % [path, sk, channel_id]); if not ck.ok: return ck
 			if typeof(channel.channel_id) != TYPE_STRING or String(channel.channel_id).is_empty() or typeof(channel.output_item_id) != TYPE_STRING or String(channel.output_item_id).is_empty(): return _err(ERR_TYPE, "%s.slices.%s.channel_summaries.%s" % [path, sk, channel_id])
+			if String(channel.channel_id) != String(channel_id): return _err(ERR_CROSS_FIELD, "%s.slices.%s.channel_summaries.%s.channel_id" % [path, sk, channel_id])
 			for ikey in ["banked_units_delta", "first_progress_subunits_before", "latest_progress_subunits_after", "first_rate_carry_units_before", "latest_rate_carry_units_after", "first_total_banked_units_before", "latest_total_banked_units_after"]:
 				var ci := SaveInt64.parse(channel[ikey], false, "%s.slices.%s.channel_summaries.%s.%s" % [path, sk, channel_id, ikey]); if not ci.ok: return ci
 	for i in range(w.event_details.size()):
 		var ed = w.event_details[i]; if typeof(ed) != TYPE_DICTIONARY: return _err(ERR_TYPE, "%s.event_details.%d" % [path, i])
 		var event_path := "%s.event_details.%d" % [path, i]
 		var event_keys := _require_keys(ed, ["event_sequence", "event_type", "occurred_simulation_msec", "priority", "source_id", "subject_id"], event_path); if not event_keys.ok: return event_keys
-		for ik in ["event_sequence", "occurred_simulation_msec", "priority"]:
+		var event_sequence := SaveInt64.parse(ed.event_sequence, false, "%s.event_sequence" % event_path); if not event_sequence.ok: return event_sequence
+		if event_sequence.value <= 0: return _err(ERR_RANGE, "%s.event_sequence" % event_path)
+		if i > 0:
+			var previous_event_sequence := SaveInt64.parse(w.event_details[i - 1].event_sequence, false, "%s.event_details.%d.event_sequence" % [path, i - 1])
+			if previous_event_sequence.ok and event_sequence.value <= previous_event_sequence.value: return _err(ERR_CROSS_FIELD, "%s.event_sequence" % event_path)
+		for ik in ["occurred_simulation_msec", "priority"]:
 			var ei := SaveInt64.parse(ed[ik], false, "%s.%s" % [event_path, ik]); if not ei.ok: return ei
 		for skey in ["event_type", "subject_id", "source_id"]:
 			if typeof(ed[skey]) != TYPE_STRING or String(ed[skey]).is_empty(): return _err(ERR_TYPE, "%s.%s" % [event_path, skey])

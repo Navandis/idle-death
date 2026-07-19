@@ -167,3 +167,65 @@ func test_schema_v4_rejects_unknown_snapshot_reason() -> void:
 	var runtime := SaveSchemaMapper.snapshot_to_runtime(snapshot)
 	assert_false(runtime.ok)
 	assert_eq(runtime.code, SaveSchemaValidator.ERR_RANGE)
+
+func _populated_v4_snapshot(save_revision := 30) -> Dictionary:
+	var state := _state()
+	var service := ReportService.new()
+	var first_run := SimulationRunService.new(_registry()).run_committed(state, 60000, SimulationRunService.MODE_FOREGROUND_SUPPLIED)
+	assert_true(first_run.success, first_run.developer_details)
+	assert_true(service.ingest_committed_run(state, first_run).success)
+	assert_true(service.snapshot_live(state, 1, ReportState.REASON_MANUAL_REVIEW).success)
+	var second_run := SimulationRunService.new(_registry()).run_committed(state, 60000, SimulationRunService.MODE_DEBUG)
+	assert_true(second_run.success, second_run.developer_details)
+	assert_true(service.ingest_committed_run(state, second_run).success)
+	return SaveSchemaMapper.runtime_to_snapshot(state, TimeAuthorityState.new(), save_revision, ContentRegistry.CURRENT_REVISION)
+
+func _assert_v4_mutation_rejected_before_mapping(case_name: String, case_index: int, mutator: Callable) -> void:
+	var snapshot := _populated_v4_snapshot(40 + case_index)
+	mutator.call(snapshot)
+	var encoded := JsonSaveCodec.new().encode(snapshot)
+	var source_bytes: PackedByteArray = encoded.bytes if encoded.ok else JSON.stringify(snapshot).to_utf8_buffer()
+	var validation := SaveSchemaValidator.validate_current(snapshot)
+	assert_false(validation.ok, case_name)
+	var runtime := SaveSchemaMapper.snapshot_to_runtime(snapshot)
+	assert_false(runtime.ok, case_name)
+	var storage := MemorySaveStorage.new()
+	var files := SaveFileSet.new("memory://m04e2a_matrix_%d" % case_index, "save")
+	assert_true(storage.write_bytes(files.primary_path, source_bytes).ok, case_name)
+	var loaded := SaveService.new(storage, files).load_runtime()
+	assert_false(loaded.ok, case_name)
+	assert_true(storage.exists(files.primary_path), case_name)
+	assert_eq(storage.files[files.primary_path], source_bytes, case_name)
+
+func test_schema_v4_full_report_mutation_matrix_rejects_before_mapping() -> void:
+	var cases := [
+		{"name": "missing_key", "mutate": func(s): s.game_state.report_state.erase("live")},
+		{"name": "extra_key", "mutate": func(s): s.game_state.report_state["extra"] = "bad"},
+		{"name": "wrong_primitive_type", "mutate": func(s): s.game_state.report_state.live.run_count = true},
+		{"name": "null_nested", "mutate": func(s): s.game_state.report_state.live = null},
+		{"name": "empty_id", "mutate": func(s): s.game_state.report_state.live.slices[s.game_state.report_state.live.slices.keys()[0]].threshold_id = ""},
+		{"name": "negative_unsigned", "mutate": func(s): s.game_state.report_state.live.run_count = "-1"},
+		{"name": "zero_positive_sequence", "mutate": func(s): s.game_state.report_state.history[0].report_sequence = "0"},
+		{"name": "overflow_integer_string", "mutate": func(s): s.game_state.report_state.next_report_sequence = "9223372036854775808"},
+		{"name": "unknown_reason", "mutate": func(s): s.game_state.report_state.history[0].snapshot_reason = "UNKNOWN_REASON"},
+		{"name": "unknown_mode", "mutate": func(s): s.game_state.report_state.live.mode_counts.BAD_MODE = "1"},
+		{"name": "non_string_retinue_id", "mutate": func(s): s.game_state.report_state.live.slices[s.game_state.report_state.live.slices.keys()[0]].retinue_ids.append(7)},
+		{"name": "malformed_map_value", "mutate": func(s): s.game_state.report_state.live.slices[s.game_state.report_state.live.slices.keys()[0]].inventory_gains.RES_ESSENCE = "-1"},
+		{"name": "malformed_channel_summary", "mutate": func(s): s.game_state.report_state.live.slices[s.game_state.report_state.live.slices.keys()[0]].channel_summaries.CHANNEL_GLOAMWOOD_SOLDIER_SOULS.channel_id = "CHANNEL_OTHER"},
+		{"name": "malformed_event_detail", "mutate": func(s): s.game_state.report_state.live.event_details.append({"event_type": "TEST_EVENT"})},
+		{"name": "oversized_history", "mutate": func(s): while s.game_state.report_state.history.size() <= ReportState.MAX_HISTORY_RECORDS: s.game_state.report_state.history.append(s.game_state.report_state.history[0].duplicate(true))},
+		{"name": "oversized_event_details", "mutate": func(s): for i in range(ReportState.MAX_EVENT_DETAILS + 1): s.game_state.report_state.live.event_details.append({"event_sequence": SaveInt64.format(i + 1), "event_type": "TEST_EVENT", "occurred_simulation_msec": "0", "priority": "0", "source_id": "TEST_SOURCE", "subject_id": "THR_GLOAMWOOD"})},
+		{"name": "cursor_beyond_simulation", "mutate": func(s): s.game_state.report_state.report_cursor_msec = SaveInt64.format(SaveInt64.parse(s.game_state.simulation_time_msec, false, "").value + 1)},
+		{"name": "unsorted_duplicate_identity", "mutate": func(s): s.game_state.report_state.live.slices[s.game_state.report_state.live.slices.keys()[0]].retinue_ids = ["RET_Z", "RET_A"]},
+	]
+	for i in range(cases.size()):
+		_assert_v4_mutation_rejected_before_mapping(cases[i].name, i, cases[i].mutate)
+
+func test_schema_v4_writer_validate_reader_writer_canonical_equality() -> void:
+	var snapshot := _populated_v4_snapshot(70)
+	assert_true(SaveSchemaValidator.validate_current(snapshot).ok)
+	var runtime := SaveSchemaMapper.snapshot_to_runtime(snapshot)
+	assert_true(runtime.ok)
+	var rewritten := SaveSchemaMapper.runtime_to_snapshot(runtime.game_state, runtime.time_authority_state, runtime.save_revision, runtime.content_revision)
+	assert_true(SaveSchemaValidator.validate_current(rewritten).ok)
+	assert_eq(JSON.stringify(rewritten), JSON.stringify(snapshot))
