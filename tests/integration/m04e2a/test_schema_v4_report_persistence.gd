@@ -21,10 +21,13 @@ func test_report_live_and_archive_round_trip() -> void:
 	var run := SimulationRunService.new(_registry()).run_committed(state, 60000, SimulationRunService.MODE_FOREGROUND_SUPPLIED); assert_true(run.success)
 	assert_true(ReportService.new().ingest_committed_run(state, run).success)
 	assert_true(ReportService.new().snapshot_live(state, 1, ReportState.REASON_MANUAL_REVIEW).success)
+	var original_report := ReportService.new().get_report_record(state, 1)
+	assert_lt(original_report.totals.backlog_delta, 0)
 	var snap := SaveSchemaMapper.runtime_to_snapshot(state, TimeAuthorityState.new(), 7, ContentRegistry.CURRENT_REVISION)
 	assert_eq(snap.schema_version, "4")
 	var loaded := SaveSchemaMapper.snapshot_to_runtime(snap)
-	assert_true(loaded.ok); assert_eq(loaded.game_state.report_state.history.size(), 1); assert_eq(ReportService.new().get_report_record(loaded.game_state, 1).totals.returned_souls_delta, 69)
+	var loaded_report := ReportService.new().get_report_record(loaded.game_state, 1)
+	assert_true(loaded.ok); assert_eq(loaded.game_state.report_state.history.size(), 1); assert_eq(loaded_report.totals.returned_souls_delta, 69); assert_eq(loaded_report.totals.backlog_delta, original_report.totals.backlog_delta)
 func _read_json(path: String) -> Dictionary:
 	var file := FileAccess.open(path, FileAccess.READ); return JSON.parse_string(file.get_as_text())
 

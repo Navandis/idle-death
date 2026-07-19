@@ -127,7 +127,7 @@ static func _report_window_from_snapshot(w: Dictionary) -> ReportState.ReportWin
 	for key in w.slices:
 		var d = w.slices[key]; var s := ReportState.AttributionSlice.new(); s.threshold_id = StringName(d.threshold_id); s.assignment_revision = SaveInt64.parse(d.assignment_revision, false, "").value; s.lifecycle_state = StringName(d.lifecycle_state); s.form_id = StringName(d.form_id); s.writ_id = StringName(d.writ_id)
 		for id in d.retinue_ids: s.retinue_ids.append(StringName(id))
-		s.start_simulation_msec = SaveInt64.parse(d.start_simulation_msec, false, "").value; s.end_simulation_msec = SaveInt64.parse(d.end_simulation_msec, false, "").value; s.elapsed_msec = SaveInt64.parse(d.elapsed_msec, false, "").value; s.returned_souls_delta = SaveInt64.parse(d.returned_souls_delta, false, "").value; s.backlog_delta = SaveInt64.parse(d.backlog_delta, false, "").value; s.completed_cycles_delta = SaveInt64.parse(d.completed_cycles_delta, false, "").value
+		s.start_simulation_msec = SaveInt64.parse(d.start_simulation_msec, false, "").value; s.end_simulation_msec = SaveInt64.parse(d.end_simulation_msec, false, "").value; s.elapsed_msec = SaveInt64.parse(d.elapsed_msec, false, "").value; s.returned_souls_delta = SaveInt64.parse(d.returned_souls_delta, false, "").value; s.backlog_delta = SaveInt64.parse(d.backlog_delta, true, "").value; s.completed_cycles_delta = SaveInt64.parse(d.completed_cycles_delta, false, "").value
 		for ik in d.inventory_gains: s.inventory_gains[StringName(ik)] = SaveInt64.parse(d.inventory_gains[ik], false, "").value
 		for mk in d.mastery_gains: s.mastery_gains[StringName(mk)] = SaveInt64.parse(d.mastery_gains[mk], false, "").value
 		for cid in d.channel_summaries:
