@@ -22,7 +22,7 @@ static func validate(state: GameState, registry: ContentRegistry, require_comple
 	result = _validate_forms(state, registry); if not result.ok: return result
 	result = _validate_thresholds(state, registry, require_complete_access); if not result.ok: return result
 	result = _validate_reapings(state, registry); if not result.ok: return result
-	var report := validate_report_state(state)
+	var report := validate_report_state(state, registry)
 	if not report.ok: return report
 	if state.progression.command_tether_capacity < 0: return _err(ERR_RANGE, "progression.command_tether_capacity")
 	if state.progression.unlocked_output_item_ids != _sorted_unique_string_names(state.progression.unlocked_output_item_ids): return _err(ERR_CROSS_FIELD, "progression.unlocked_output_item_ids")
@@ -35,7 +35,7 @@ static func validate(state: GameState, registry: ContentRegistry, require_comple
 	return {"ok": true, "code": OK}
 
 
-static func validate_report_state(state: GameState) -> Dictionary:
+static func validate_report_state(state: GameState, registry: ContentRegistry = null) -> Dictionary:
 	if state == null or state.report_state == null or not (state.report_state is ReportState):
 		return _err(ERR_TYPE, "report_state")
 	var rs: ReportState = state.report_state
@@ -49,9 +49,12 @@ static func validate_report_state(state: GameState) -> Dictionary:
 		return _err(ERR_RANGE, "report_state.dropped_history_record_count")
 	if rs.history.size() > ReportState.MAX_HISTORY_RECORDS:
 		return _err(ERR_RANGE, "report_state.history")
-	var live_result := _validate_report_window(rs.live, "report_state.live", rs.report_cursor_msec)
+	var max_event_sequence := 0
+	var live_result := _validate_report_window(rs.live, "report_state.live", rs.report_cursor_msec, registry)
 	if not live_result.ok: return live_result
+	max_event_sequence = max(max_event_sequence, int(live_result.max_event_sequence))
 	var previous_sequence := 0
+	var max_report_sequence := 0
 	for i in range(rs.history.size()):
 		var record = rs.history[i]
 		if record == null or not (record is ReportState.ReportRecord):
@@ -61,13 +64,19 @@ static func validate_report_state(state: GameState) -> Dictionary:
 		if record.report_sequence <= previous_sequence:
 			return _err(ERR_CROSS_FIELD, "report_state.history.%d.report_sequence" % i)
 		previous_sequence = record.report_sequence
+		max_report_sequence = max(max_report_sequence, record.report_sequence)
 		if not ReportState.VALID_REASONS.has(record.snapshot_reason):
 			return _err(ERR_RANGE, "report_state.history.%d.snapshot_reason" % i)
-		var window_result := _validate_report_window(record.window, "report_state.history.%d.window" % i, rs.report_cursor_msec)
+		var window_result := _validate_report_window(record.window, "report_state.history.%d.window" % i, rs.report_cursor_msec, registry)
 		if not window_result.ok: return window_result
+		max_event_sequence = max(max_event_sequence, int(window_result.max_event_sequence))
+	if rs.next_report_sequence <= max_report_sequence:
+		return _err(ERR_CROSS_FIELD, "report_state.next_report_sequence")
+	if rs.next_event_sequence <= max_event_sequence:
+		return _err(ERR_CROSS_FIELD, "report_state.next_event_sequence")
 	return {"ok": true}
 
-static func _validate_report_window(window, path: String, max_end_msec: int) -> Dictionary:
+static func _validate_report_window(window, path: String, max_end_msec: int, registry: ContentRegistry = null) -> Dictionary:
 	if window == null or not (window is ReportState.ReportWindow):
 		return _err(ERR_TYPE, path)
 	if window.start_simulation_msec < 0 or window.end_simulation_msec < window.start_simulation_msec or window.end_simulation_msec > max_end_msec:
@@ -89,6 +98,7 @@ static func _validate_report_window(window, path: String, max_end_msec: int) -> 
 		var slice = window.slices[key]
 		if slice == null or not (slice is ReportState.AttributionSlice): return _err(ERR_TYPE, "%s.slices.%s" % [path, key])
 		if slice.threshold_id == &"" or slice.lifecycle_state == &"" or slice.form_id == &"" or slice.writ_id == &"": return _err(ERR_TYPE, "%s.slices.%s" % [path, key])
+		if not [&"OVERDUE", &"SETTLED"].has(slice.lifecycle_state): return _err(ERR_RANGE, "%s.slices.%s.lifecycle_state" % [path, key])
 		if slice.assignment_revision <= 0 or slice.start_simulation_msec < window.start_simulation_msec or slice.end_simulation_msec > window.end_simulation_msec or slice.end_simulation_msec < slice.start_simulation_msec or slice.elapsed_msec < 0 or slice.returned_souls_delta < 0 or slice.completed_cycles_delta < 0:
 			return _err(ERR_RANGE, "%s.slices.%s" % [path, key])
 		if slice.retinue_ids != _sorted_unique_string_names(slice.retinue_ids): return _err(ERR_CROSS_FIELD, "%s.slices.%s.retinue_ids" % [path, key])
@@ -102,16 +112,21 @@ static func _validate_report_window(window, path: String, max_end_msec: int) -> 
 			var channel = slice.channel_summaries[channel_key]
 			if channel == null or not (channel is ReportState.ChannelSummary): return _err(ERR_TYPE, "%s.slices.%s.channel_summaries.%s" % [path, key, channel_key])
 			if channel.channel_id == &"" or channel.output_item_id == &"" or str(channel.channel_id) != str(channel_key): return _err(ERR_CROSS_FIELD, "%s.slices.%s.channel_summaries.%s" % [path, key, channel_key])
+			if registry != null:
+				var relationship := OutputAccessService.validate_channel_relationship(registry, str(channel.channel_id), str(channel.output_item_id), str(slice.threshold_id))
+				if not relationship.ok: return _err(ERR_CONTENT, "%s.slices.%s.channel_summaries.%s" % [path, key, channel_key])
 			if channel.banked_units_delta < 0 or channel.first_progress_subunits_before < 0 or channel.latest_progress_subunits_after < 0 or channel.first_rate_carry_units_before < 0 or channel.latest_rate_carry_units_after < 0 or channel.first_total_banked_units_before < 0 or channel.latest_total_banked_units_after < 0:
 				return _err(ERR_RANGE, "%s.slices.%s.channel_summaries.%s" % [path, key, channel_key])
 	var previous_event_sequence := 0
+	var max_event_sequence := 0
 	for i in range(window.event_details.size()):
 		var event = window.event_details[i]
 		if event == null or not (event is ReportState.ReportEventDetail): return _err(ERR_TYPE, "%s.event_details.%d" % [path, i])
 		if event.event_sequence <= 0 or event.event_sequence <= previous_event_sequence or event.event_type == &"" or event.occurred_simulation_msec < 0 or event.occurred_simulation_msec > window.end_simulation_msec or event.priority < 0 or event.subject_id == &"" or event.source_id == &"":
 			return _err(ERR_RANGE, "%s.event_details.%d" % [path, i])
 		previous_event_sequence = event.event_sequence
-	return {"ok": true}
+		max_event_sequence = max(max_event_sequence, event.event_sequence)
+	return {"ok": true, "max_event_sequence": max_event_sequence}
 
 static func _validate_inventory(state: GameState, registry: ContentRegistry) -> Dictionary:
 	for item_id in _sorted_keys(state.inventory.entries):

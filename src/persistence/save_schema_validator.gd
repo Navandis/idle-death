@@ -123,27 +123,36 @@ static func validate_v4(snapshot: Variant) -> Dictionary:
 	var k := _require_keys(rs, ["dropped_history_record_count", "history", "live", "next_event_sequence", "next_report_sequence", "report_cursor_msec"], "game_state.report_state"); if not k.ok: return k
 	for ik in ["report_cursor_msec", "next_report_sequence", "next_event_sequence", "dropped_history_record_count"]:
 		var pi := SaveInt64.parse(rs[ik], false, "game_state.report_state.%s" % ik); if not pi.ok: return pi
-	for sequence_key in ["next_report_sequence", "next_event_sequence"]:
-		var sequence_value := SaveInt64.parse(rs[sequence_key], false, "game_state.report_state.%s" % sequence_key)
-		if not sequence_value.ok: return sequence_value
-		if sequence_value.value <= 0: return _err(ERR_RANGE, "game_state.report_state.%s" % sequence_key)
+	var next_report_sequence := SaveInt64.parse(rs.next_report_sequence, false, "game_state.report_state.next_report_sequence")
+	if not next_report_sequence.ok: return next_report_sequence
+	if next_report_sequence.value <= 0: return _err(ERR_RANGE, "game_state.report_state.next_report_sequence")
+	var next_event_sequence := SaveInt64.parse(rs.next_event_sequence, false, "game_state.report_state.next_event_sequence")
+	if not next_event_sequence.ok: return next_event_sequence
+	if next_event_sequence.value <= 0: return _err(ERR_RANGE, "game_state.report_state.next_event_sequence")
 	var report_cursor := SaveInt64.parse(rs.report_cursor_msec, false, "game_state.report_state.report_cursor_msec")
 	if not report_cursor.ok: return report_cursor
 	if report_cursor.value > base.simulation_time_msec: return _err(ERR_CROSS_FIELD, "game_state.report_state.report_cursor_msec")
 	if typeof(rs.history) != TYPE_ARRAY: return _err(ERR_TYPE, "game_state.report_state.history")
 	if rs.history.size() > ReportState.MAX_HISTORY_RECORDS: return _err(ERR_RANGE, "game_state.report_state.history")
+	var max_event_sequence := 0
+	var max_report_sequence := 0
 	var lw := _validate_report_window(rs.live, "game_state.report_state.live", report_cursor.value); if not lw.ok: return lw
+	max_event_sequence = max(max_event_sequence, int(lw.max_event_sequence))
 	for i in range(rs.history.size()):
 		if typeof(rs.history[i]) != TYPE_DICTIONARY: return _err(ERR_TYPE, "game_state.report_state.history.%d" % i)
 		var rk := _require_keys(rs.history[i], ["report_sequence", "snapshot_reason", "window"], "game_state.report_state.history.%d" % i); if not rk.ok: return rk
 		var seq := SaveInt64.parse(rs.history[i].report_sequence, false, "game_state.report_state.history.%d.report_sequence" % i); if not seq.ok: return seq
 		if seq.value <= 0: return _err(ERR_RANGE, "game_state.report_state.history.%d.report_sequence" % i)
+		max_report_sequence = max(max_report_sequence, seq.value)
 		if i > 0:
 			var previous_seq := SaveInt64.parse(rs.history[i - 1].report_sequence, false, "game_state.report_state.history.%d.report_sequence" % [i - 1])
 			if previous_seq.ok and seq.value <= previous_seq.value: return _err(ERR_CROSS_FIELD, "game_state.report_state.history.%d.report_sequence" % i)
 		if typeof(rs.history[i].snapshot_reason) != TYPE_STRING: return _err(ERR_TYPE, "game_state.report_state.history.%d.snapshot_reason" % i)
 		if not ReportState.VALID_REASONS.has(StringName(rs.history[i].snapshot_reason)): return _err(ERR_RANGE, "game_state.report_state.history.%d.snapshot_reason" % i)
 		var hw := _validate_report_window(rs.history[i].window, "game_state.report_state.history.%d.window" % i, report_cursor.value); if not hw.ok: return hw
+		max_event_sequence = max(max_event_sequence, int(hw.max_event_sequence))
+	if next_report_sequence.value <= max_report_sequence: return _err(ERR_CROSS_FIELD, "game_state.report_state.next_report_sequence")
+	if next_event_sequence.value <= max_event_sequence: return _err(ERR_CROSS_FIELD, "game_state.report_state.next_event_sequence")
 	return base
 
 static func validate_v3(snapshot: Variant) -> Dictionary:
@@ -257,8 +266,10 @@ static func _validate_report_window(w, path: String, max_end_msec: int) -> Dicti
 	if w.event_details.size() > ReportState.MAX_EVENT_DETAILS: return _err(ERR_RANGE, "%s.event_details" % path)
 	for sk in w.slices.keys():
 		var sd = w.slices[sk]; if typeof(sd) != TYPE_DICTIONARY: return _err(ERR_TYPE, "%s.slices.%s" % [path, sk])
+		var slice_keys := _require_keys(sd, ["assignment_revision", "backlog_delta", "channel_summaries", "completed_cycles_delta", "elapsed_msec", "end_simulation_msec", "form_id", "inventory_gains", "lifecycle_state", "mastery_gains", "returned_souls_delta", "retinue_ids", "start_simulation_msec", "threshold_id", "writ_id"], "%s.slices.%s" % [path, sk]); if not slice_keys.ok: return slice_keys
 		for needed in ["threshold_id", "lifecycle_state", "form_id", "writ_id"]:
 			if typeof(sd.get(needed, null)) != TYPE_STRING or String(sd[needed]).is_empty(): return _err(ERR_TYPE, "%s.slices.%s.%s" % [path, sk, needed])
+		if not ["OVERDUE", "SETTLED"].has(String(sd.lifecycle_state)): return _err(ERR_RANGE, "%s.slices.%s.lifecycle_state" % [path, sk])
 		if typeof(sd.get("retinue_ids", null)) != TYPE_ARRAY: return _err(ERR_TYPE, "%s.slices.%s.retinue_ids" % [path, sk])
 		var previous_retinue := ""
 		for rid in sd.retinue_ids:
@@ -286,12 +297,14 @@ static func _validate_report_window(w, path: String, max_end_msec: int) -> Dicti
 			if String(channel.channel_id) != String(channel_id): return _err(ERR_CROSS_FIELD, "%s.slices.%s.channel_summaries.%s.channel_id" % [path, sk, channel_id])
 			for ikey in ["banked_units_delta", "first_progress_subunits_before", "latest_progress_subunits_after", "first_rate_carry_units_before", "latest_rate_carry_units_after", "first_total_banked_units_before", "latest_total_banked_units_after"]:
 				var ci := SaveInt64.parse(channel[ikey], false, "%s.slices.%s.channel_summaries.%s.%s" % [path, sk, channel_id, ikey]); if not ci.ok: return ci
+	var max_event_sequence := 0
 	for i in range(w.event_details.size()):
 		var ed = w.event_details[i]; if typeof(ed) != TYPE_DICTIONARY: return _err(ERR_TYPE, "%s.event_details.%d" % [path, i])
 		var event_path := "%s.event_details.%d" % [path, i]
 		var event_keys := _require_keys(ed, ["event_sequence", "event_type", "occurred_simulation_msec", "priority", "source_id", "subject_id"], event_path); if not event_keys.ok: return event_keys
 		var event_sequence := SaveInt64.parse(ed.event_sequence, false, "%s.event_sequence" % event_path); if not event_sequence.ok: return event_sequence
 		if event_sequence.value <= 0: return _err(ERR_RANGE, "%s.event_sequence" % event_path)
+		max_event_sequence = max(max_event_sequence, event_sequence.value)
 		if i > 0:
 			var previous_event_sequence := SaveInt64.parse(w.event_details[i - 1].event_sequence, false, "%s.event_details.%d.event_sequence" % [path, i - 1])
 			if previous_event_sequence.ok and event_sequence.value <= previous_event_sequence.value: return _err(ERR_CROSS_FIELD, "%s.event_sequence" % event_path)
@@ -299,7 +312,7 @@ static func _validate_report_window(w, path: String, max_end_msec: int) -> Dicti
 			var ei := SaveInt64.parse(ed[ik], false, "%s.%s" % [event_path, ik]); if not ei.ok: return ei
 		for skey in ["event_type", "subject_id", "source_id"]:
 			if typeof(ed[skey]) != TYPE_STRING or String(ed[skey]).is_empty(): return _err(ERR_TYPE, "%s.%s" % [event_path, skey])
-	return {"ok": true}
+	return {"ok": true, "max_event_sequence": max_event_sequence}
 
 static func _validate_v2_nested(g: Dictionary) -> Dictionary:
 	for item_id in g.inventory.entries.keys():

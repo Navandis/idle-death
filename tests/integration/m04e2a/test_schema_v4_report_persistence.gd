@@ -229,3 +229,36 @@ func test_schema_v4_writer_validate_reader_writer_canonical_equality() -> void:
 	var rewritten := SaveSchemaMapper.runtime_to_snapshot(runtime.game_state, runtime.time_authority_state, runtime.save_revision, runtime.content_revision)
 	assert_true(SaveSchemaValidator.validate_current(rewritten).ok)
 	assert_eq(JSON.stringify(rewritten), JSON.stringify(snapshot))
+
+func test_schema_v4_rejects_stale_next_sequences_after_retained_records() -> void:
+	var snapshot := _populated_v4_snapshot(80)
+	snapshot.game_state.report_state.next_report_sequence = "1"
+	var report_validation := SaveSchemaValidator.validate_current(snapshot)
+	assert_false(report_validation.ok)
+	assert_eq(report_validation.field_path, "game_state.report_state.next_report_sequence")
+	assert_false(SaveSchemaMapper.snapshot_to_runtime(snapshot).ok)
+
+	snapshot = _populated_v4_snapshot(81)
+	snapshot.game_state.report_state.history[0].window.event_details.append({
+		"event_sequence": "1",
+		"event_type": "TEST_EVENT",
+		"occurred_simulation_msec": snapshot.game_state.report_state.history[0].window.end_simulation_msec,
+		"priority": "0",
+		"source_id": "SIMULATION_ENGINE",
+		"subject_id": "THR_GLOAMWOOD",
+	})
+	snapshot.game_state.report_state.next_event_sequence = "1"
+	var event_validation := SaveSchemaValidator.validate_current(snapshot)
+	assert_false(event_validation.ok)
+	assert_eq(event_validation.field_path, "game_state.report_state.next_event_sequence")
+	assert_false(SaveSchemaMapper.snapshot_to_runtime(snapshot).ok)
+
+func test_schema_v4_rejects_extra_attribution_slice_keys() -> void:
+	var snapshot := _populated_v4_snapshot(82)
+	var slice_key = snapshot.game_state.report_state.live.slices.keys()[0]
+	snapshot.game_state.report_state.live.slices[slice_key].unexpected_report_field = "bad"
+	var validation := SaveSchemaValidator.validate_current(snapshot)
+	assert_false(validation.ok)
+	assert_eq(validation.code, SaveSchemaValidator.ERR_KEY_SET)
+	assert_eq(validation.field_path, "game_state.report_state.live.slices.%s" % slice_key)
+	assert_false(SaveSchemaMapper.snapshot_to_runtime(snapshot).ok)
