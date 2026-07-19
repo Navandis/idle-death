@@ -15,6 +15,7 @@ const ERR_SCHEMA_VERSION := "SAVE_SCHEMA_UNSUPPORTED_VERSION"
 const ERR_CONTENT_REVISION := "SAVE_SCHEMA_CONTENT_REVISION"
 const ERR_TYPE := "SAVE_SCHEMA_TYPE"
 const ERR_CROSS_FIELD := "SAVE_SCHEMA_CROSS_FIELD"
+const ERR_RANGE := "SAVE_SCHEMA_RANGE"
 const ERR_ABSOLUTE_PATH := "SAVE_SCHEMA_ABSOLUTE_PATH"
 
 static func validate_v1(snapshot: Variant) -> Dictionary:
@@ -122,6 +123,10 @@ static func validate_v4(snapshot: Variant) -> Dictionary:
 	var k := _require_keys(rs, ["dropped_history_record_count", "history", "live", "next_event_sequence", "next_report_sequence", "report_cursor_msec"], "game_state.report_state"); if not k.ok: return k
 	for ik in ["report_cursor_msec", "next_report_sequence", "next_event_sequence", "dropped_history_record_count"]:
 		var pi := SaveInt64.parse(rs[ik], false, "game_state.report_state.%s" % ik); if not pi.ok: return pi
+	for sequence_key in ["next_report_sequence", "next_event_sequence"]:
+		var sequence_value := SaveInt64.parse(rs[sequence_key], false, "game_state.report_state.%s" % sequence_key)
+		if not sequence_value.ok: return sequence_value
+		if sequence_value.value <= 0: return _err(ERR_RANGE, "game_state.report_state.%s" % sequence_key)
 	var report_cursor := SaveInt64.parse(rs.report_cursor_msec, false, "game_state.report_state.report_cursor_msec")
 	if not report_cursor.ok: return report_cursor
 	if report_cursor.value > base.simulation_time_msec: return _err(ERR_CROSS_FIELD, "game_state.report_state.report_cursor_msec")

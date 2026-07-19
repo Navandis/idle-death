@@ -76,3 +76,16 @@ func test_schema_v4_rejects_report_cursor_after_simulation_time() -> void:
 	assert_false(validation.ok)
 	assert_eq(validation.code, SaveSchemaValidator.ERR_CROSS_FIELD)
 	assert_eq(validation.field_path, "game_state.report_state.report_cursor_msec")
+
+
+func test_schema_v4_rejects_zero_report_sequences() -> void:
+	for sequence_key in ["next_report_sequence", "next_event_sequence"]:
+		var snapshot := SaveSchemaMapper.runtime_to_snapshot(_state(), TimeAuthorityState.new(), 13, ContentRegistry.CURRENT_REVISION)
+		snapshot.game_state.report_state[sequence_key] = "0"
+		var validation := SaveSchemaValidator.validate_current(snapshot)
+		assert_false(validation.ok, sequence_key)
+		assert_eq(validation.code, SaveSchemaValidator.ERR_RANGE, sequence_key)
+		assert_eq(validation.field_path, "game_state.report_state.%s" % sequence_key, sequence_key)
+		var runtime := SaveSchemaMapper.snapshot_to_runtime(snapshot)
+		assert_false(runtime.ok, sequence_key)
+		assert_eq(runtime.code, SaveSchemaValidator.ERR_RANGE, sequence_key)
