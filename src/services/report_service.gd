@@ -34,13 +34,11 @@ func ingest_committed_run(state: GameState, run_result: SimulationRunService.Sim
 		return ReportResult.ok_result(false, false, false, cursor, "zero")
 	var candidate := state.deep_clone()
 	var rs := candidate.report_state
-	rs.live.start_simulation_msec = min(rs.live.start_simulation_msec, run_result.baseline_simulation_time_msec) if rs.live.run_count > 0 else run_result.baseline_simulation_time_msec
-	rs.live.end_simulation_msec = run_result.result_simulation_time_msec
-	rs.live.run_count += 1
-	rs.live.mode_counts[str(run_result.mode)] = int(rs.live.mode_counts.get(str(run_result.mode), 0)) + 1
-	var reaping: GameState.ReapingState = candidate.reapings[StringName(run_result.simulation_result.change_summary.threshold_id)]
-	for segment in run_result.simulation_result.segments:
-		_upsert_segment(rs.live, reaping, segment)
+	_record_run_window(rs.live, run_result)
+	if run_result.simulation_result.change_summary.has("threshold_id"):
+		var reaping: GameState.ReapingState = candidate.reapings[StringName(run_result.simulation_result.change_summary.threshold_id)]
+		for segment in run_result.simulation_result.segments:
+			_upsert_segment(rs.live, reaping, segment)
 	for event in run_result.simulation_result.events:
 		if event.reportable:
 			_ingest_event(rs, event)
@@ -93,9 +91,14 @@ func _validate_ingest_request(state: GameState, run_result: SimulationRunService
 	if not run_result.success or run_result.projected_state != null or run_result.simulation_result == null or not run_result.simulation_result.success: return {"ok": false, "code": ERR_INVALID_RESULT}
 	if run_result.requested_elapsed_msec != run_result.result_simulation_time_msec - run_result.baseline_simulation_time_msec: return {"ok": false, "code": ERR_INVALID_RESULT}
 	if run_result.simulation_result.committed_elapsed_msec != run_result.requested_elapsed_msec: return {"ok": false, "code": ERR_INVALID_RESULT}
-	if not run_result.simulation_result.change_summary.has("threshold_id"): return {"ok": false, "code": ERR_INVALID_RESULT}
-	if not state.reapings.has(StringName(run_result.simulation_result.change_summary.threshold_id)): return {"ok": false, "code": ERR_INVALID_RESULT}
+	if run_result.simulation_result.change_summary.has("threshold_id") and not state.reapings.has(StringName(run_result.simulation_result.change_summary.threshold_id)): return {"ok": false, "code": ERR_INVALID_RESULT}
 	return {"ok": true}
+
+func _record_run_window(window: ReportState.ReportWindow, run_result: SimulationRunService.SimulationRunResult) -> void:
+	window.start_simulation_msec = min(window.start_simulation_msec, run_result.baseline_simulation_time_msec) if window.run_count > 0 else run_result.baseline_simulation_time_msec
+	window.end_simulation_msec = run_result.result_simulation_time_msec
+	window.run_count += 1
+	window.mode_counts[str(run_result.mode)] = int(window.mode_counts.get(str(run_result.mode), 0)) + 1
 
 func _upsert_segment(window: ReportState.ReportWindow, reaping: GameState.ReapingState, segment: Dictionary) -> void:
 	var key := "%s|%d|%s" % [reaping.threshold_id, reaping.assignment_revision, segment.lifecycle]

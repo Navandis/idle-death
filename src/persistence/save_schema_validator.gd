@@ -160,7 +160,7 @@ static func _validate_v2_or_v3(snapshot: Variant, expected_version: int, progres
 		return nested
 	base["command_tether_capacity"] = tether.value
 	base["unlocked_output_item_ids"] = []
-	if expected_version == SaveEnvelope.SCHEMA_VERSION_V3:
+	if expected_version == SaveEnvelope.SCHEMA_VERSION_V3 or expected_version == SaveEnvelope.SCHEMA_VERSION_V4:
 		if typeof(g.progression.unlocked_output_item_ids) != TYPE_ARRAY: return _err(ERR_TYPE, "game_state.progression.unlocked_output_item_ids")
 		var previous := ""
 		for i in range(g.progression.unlocked_output_item_ids.size()):

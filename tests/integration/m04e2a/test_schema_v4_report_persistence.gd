@@ -27,3 +27,14 @@ func test_report_live_and_archive_round_trip() -> void:
 	assert_true(loaded.ok); assert_eq(loaded.game_state.report_state.history.size(), 1); assert_eq(ReportService.new().get_report_record(loaded.game_state, 1).totals.returned_souls_delta, 69)
 func _read_json(path: String) -> Dictionary:
 	var file := FileAccess.open(path, FileAccess.READ); return JSON.parse_string(file.get_as_text())
+
+func test_schema_v4_preserves_unlocked_output_ids_on_load() -> void:
+	var state := _state()
+	var snapshot := SaveSchemaMapper.runtime_to_snapshot(state, TimeAuthorityState.new(), 9, ContentRegistry.CURRENT_REVISION)
+	var validation := SaveSchemaValidator.validate_current(snapshot)
+	assert_true(validation.ok)
+	assert_eq(validation.unlocked_output_item_ids, ["SOUL_CALLING_SOLDIER"])
+	var loaded := SaveSchemaMapper.snapshot_to_runtime(snapshot)
+	assert_true(loaded.ok)
+	assert_eq(loaded.game_state.progression.unlocked_output_item_ids, [&"SOUL_CALLING_SOLDIER"])
+	assert_true(GameStateValidator.validate(loaded.game_state, _registry()).ok)

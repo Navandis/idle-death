@@ -43,3 +43,18 @@ func test_assignment_revision_and_retention() -> void:
 		assert_true(service.snapshot_live(state, state.report_state.next_report_sequence, ReportState.REASON_SYSTEM_BOUNDARY).success)
 		var run2 := SimulationRunService.new(_registry()).run_committed(state, 1, SimulationRunService.MODE_DEBUG); assert_true(run2.success); assert_true(service.ingest_committed_run(state, run2).success)
 	assert_eq(state.report_state.history.size(), 20); assert_eq(state.report_state.dropped_history_record_count, 5)
+
+func test_positive_no_reaping_interval_advances_report_cursor_and_snapshots() -> void:
+	var state := GameState.new(0)
+	var service := ReportService.new()
+	var run := SimulationRunService.new(_registry()).run_committed(state, HOUR, SimulationRunService.MODE_DEBUG)
+	assert_true(run.success, run.developer_details)
+	var ingest := service.ingest_committed_run(state, run)
+	assert_true(ingest.success, ingest.developer_details)
+	assert_true(ingest.changed)
+	assert_eq(state.report_state.report_cursor_msec, HOUR)
+	var live := service.peek_live_global(state)
+	assert_eq(live.run_count, 1)
+	assert_eq(live.slices.size(), 0)
+	assert_eq(live.totals.returned_souls_delta, 0)
+	assert_true(service.snapshot_live(state, 1, ReportState.REASON_SYSTEM_BOUNDARY).success)
