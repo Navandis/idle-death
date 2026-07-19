@@ -3,7 +3,7 @@
 **Document role:** Maintained implementation architecture for the 0-90 minute prototype  
 **Repository path:** `docs/codex/ARCHITECTURE.md`  
 **Document status:** Approved architecture  
-**Architecture revision:** 17  
+**Architecture revision:** 18  
 **Last updated:** 2026-07-19  
 **Engine target:** Godot 4.7, GDScript only  
 **Primary design context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md) and [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md)
@@ -1721,11 +1721,11 @@ The realized boundary includes:
 
 Final Windows evidence passed `144/144` full tests with `2,222` assertions before and after the trace, `18/18` focused M04D3 tests with `254` assertions, all sixteen markers, import, cleanup, cleanup proof, and artifact audit with zero failed steps.
 
-## Proposed M04E decomposition
+## Approved M04E decomposition
 
 M04E originally combined clone forecasting, mode adapters, authoritative report state, report persistence, and the final M04 developer harness. Under `DEC-0033`, those concerns now cross too many independent review domains for one implementation pull request.
 
-Proposed `DEC-0040` decomposes M04E into:
+Accepted `DEC-0040` decomposes M04E into:
 
 ```text
 M04E1 — Forecast clone and supplied-resolution adapters
@@ -1734,9 +1734,9 @@ M04E2 — Report accumulator, history, persistence, and final M04 harness
 
 M04E becomes a conceptual sub-epic and receives no direct implementation prompt.
 
-## Proposed M04E1 forecast and supplied-resolution boundary
+## Approved M04E1 forecast and supplied-resolution boundary
 
-This boundary is proposed under `DEC-0040` and becomes authoritative only after owner approval of the decision and M04E1 prompt.
+This boundary is authoritative under accepted `DEC-0040` and approved M04E1 prompt v0.2.
 
 ### One adapter owner, one formula owner
 
@@ -1777,6 +1777,20 @@ A forecast:
 - returns no projected state on failure.
 
 M04E1 forecasts the current authoritative configuration only. Applying a hypothetical player command to a clone is a later consumer of the same seam and is not implemented in this slice.
+
+### Generic stream and channel coverage
+
+`SimulationRunService` is deliberately channel-kind agnostic. It passes the complete baseline to `SimulationEngine` and returns the complete projected state plus the exact engine result; it does not enumerate current channel IDs, output items, or output kinds.
+
+The current forecast therefore includes:
+
+- Returned Souls, backlog, Essence, Mastery, cycle progress, and lifecycle changes owned by the core resolver;
+- every initialized, eligible non-Essence Threshold channel currently supported by the engine;
+- exact projected progress, carry, and banked totals for initialized channels even when the horizon crosses no whole-unit boundary.
+
+The complete projected `ThresholdState.channel_acquisition` map is the authoritative projection surface. Generic segment and summary channel deltas remain stable-ID-keyed evidence of changes. Access-locked or uninitialized channels still produce nothing and are not backfilled.
+
+When a future Threshold channel kind gains normalized content/state and deterministic support in `SimulationEngine`, it automatically participates in forecast through these generic collections. Only the simulation owner changes; the forecast adapter must not gain a type-specific formula or whitelist. Unsupported channel mechanics fail through the engine's typed result rather than being guessed.
 
 ### Run result
 
@@ -1822,9 +1836,9 @@ content revision = prototype-content-r2
 
 Forecast results, modes, projected states, engine results, segments, events, rate plans, and comparison data are not serialized. A real-file trace may load a schema-v3 fixture and prove that forecasting leaves the source save bytes unchanged, but the forecast service itself never receives a storage dependency.
 
-## Proposed M04E2 report boundary
+## Approved M04E2 planning boundary
 
-M04E2 is deliberately not prompted in this planning cycle.
+M04E2 is approved as the second decomposition slice but is deliberately not prompted in this planning cycle.
 
 It will own:
 

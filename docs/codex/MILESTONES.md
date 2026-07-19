@@ -3,7 +3,7 @@
 **Document role:** Approved implementation sequence and acceptance map for the 0–90 minute prototype  
 **Repository path:** `docs/codex/MILESTONES.md`  
 **Document status:** Approved rolling-wave milestone map  
-**Milestone-map revision:** 26  
+**Milestone-map revision:** 27  
 **Last updated:** 2026-07-19  
 **Primary context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md), [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md), [Architecture](ARCHITECTURE.md), [Data contracts](DATA_AND_CONTENT_CONTRACTS.md), [Testing](TESTING_AND_VALIDATION.md), [Owner verification](OWNER_VERIFICATION_WORKFLOW.md), [Milestone recalibration](MILESTONE_RECALIBRATION_PROPOSAL.md), and [Decisions](DECISIONS.md)
 
@@ -123,7 +123,7 @@ A conceptual epic uses `Prompt: Not applicable` and `Implementation: Not directl
 | `GATE-OUTPUT-ACCESS-SCHEMA` | M04D1 prompt approval | Satisfied by accepted `DEC-0037` and approved M04D1 v0.1: access/knowledge/insight separation, schema version 3, global item access, prospective unlocks, available-source initialization, no retroactive production, and no permanent lockout. |
 | `GATE-CHANNEL-ACCUMULATION` | M04D2 prompt approval | Satisfied by M04D1 Merged/Passed, accepted `DEC-0038`, and approved M04D2 v0.1 covering strict initialized-source eligibility, content revision 2, exact whole banking, channel-specific Settlement segmentation, bounded events, persistence, and scope. |
 | `GATE-RATE-CONTEXT-CHANGE` | M04D3 prompt approval | Satisfied by M04D2 Merged/Passed, accepted `DEC-0039`, and approved M04D3 v0.2 covering assembly-time loadout validation, component-based equal-output identity, stable residual denominators, prospective baseline-derived modifiers, non-compounding, exact/current-context ETA queries, readable ETA presentation, persistence boundaries, and scope. |
-| `GATE-FORECAST-CLONE` | M04E1 prompt approval | Requires M04D3 Merged/Passed plus owner approval of proposed `DEC-0040` and M04E1 v0.1 covering detached clone projection, shared supplied-duration modes, canonical equivalence, no persistence/report side effects, and scope. |
+| `GATE-FORECAST-CLONE` | M04E1 prompt approval | Satisfied by M04D3 Merged/Passed, accepted `DEC-0040`, and approved M04E1 v0.2 covering detached clone projection, complete core/generic-channel passthrough, shared supplied-duration modes, canonical equivalence, no persistence/report side effects, and scope. |
 | `GATE-REPORT-SCHEMA` | M04E2 prompt drafting | Requires M04E1 Merged/Passed and a separate owner-approved contract for report-state fields, schema version/migration, retention bounds, canonical ordering, idempotent ingestion, and snapshot/clear semantics. |
 | `GATE-STEAM-TIME` | The applicable M06 slice prompt/implementation | Satisfied for prompt drafting by `DEC-0024`: use pinned GodotSteam 4.20 and development App ID `480`. M06 must still verify license footprint, wrapper API, explicit initialization, and live Windows behavior. |
 | `GATE-PRODUCTION-OFFLINE` | The final applicable M16 slice merge | Fake-provider automation plus the owner-run Windows/GodotSteam connected, unavailable, reconnect, clock-change, and repeated-load checks must pass. |
@@ -138,7 +138,7 @@ A conceptual epic uses `Prompt: Not applicable` and `Implementation: Not directl
 
 `GATE-CONTENT-CATALOG` was satisfied by M03. PR #7 merged on 2026-07-15 at merge commit `5e2b9b23878c9280f75b987cc9ad567d8980030d`; its final head was `971cdaa0fd46f641ec7409148e259d54f953d8c7`. Linux/Codex and owner Windows verification passed the full and focused suites, explicit import, semantic catalog trace, artifact audit, and Godot Inspector checklist.
 
-`GATE-SLICE-SCOPE` is mandatory for every post-M03 prompt. `GATE-GAMEPLAY-SCHEMA`, `GATE-REAPING-ASSIGNMENT`, `GATE-CORE-RESOLUTION`, `GATE-OUTPUT-ACCESS-SCHEMA`, `GATE-CHANNEL-ACCUMULATION`, and `GATE-RATE-CONTEXT-CHANGE` are satisfied by M04A through M04D3. `GATE-FORECAST-CLONE` is pending owner approval of proposed `DEC-0040` and M04E1 v0.1. `GATE-REPORT-SCHEMA` remains blocked until M04E1 passes.
+`GATE-SLICE-SCOPE` is mandatory for every post-M03 prompt. `GATE-GAMEPLAY-SCHEMA`, `GATE-REAPING-ASSIGNMENT`, `GATE-CORE-RESOLUTION`, `GATE-OUTPUT-ACCESS-SCHEMA`, `GATE-CHANNEL-ACCUMULATION`, `GATE-RATE-CONTEXT-CHANGE`, and `GATE-FORECAST-CLONE` are satisfied through approved M04E1 v0.2. `GATE-REPORT-SCHEMA` remains blocked until M04E1 passes.
 
 
 When trusted time is unavailable, the approved behavior is to grant no guessed closed-session progress, retain pending reconciliation, and continue monotonic foreground production. No milestone may introduce a local-device-time fallback.
@@ -159,9 +159,9 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 | M04D1 | Output access and source-identification foundation | Implementation slice | Approved | Approved | Merged | Passed |
 | M04D2 | Discrete channel accumulation and long-horizon banking | Implementation slice | Approved | Approved | Merged | Passed |
 | M04D3 | Compatible rate-context changes and acquisition queries | Implementation slice | Approved | Approved | Merged | Passed |
-| M04E | Forecast and report foundations | Conceptual sub-epic | Proposed | Not applicable | Not directly executable | — |
-| M04E1 | Forecast clone and supplied-resolution adapters | Implementation slice | Proposed | Drafted | Not started | — |
-| M04E2 | Report accumulator, history, persistence, and final M04 harness | Implementation slice | Proposed | Not drafted | Not started | — |
+| M04E | Forecast and report foundations | Conceptual sub-epic | Approved | Not applicable | Not directly executable | — |
+| M04E1 | Forecast clone and supplied-resolution adapters | Implementation slice | Approved | Approved | Not started | — |
+| M04E2 | Report accumulator, history, persistence, and final M04 harness | Implementation slice | Approved | Not drafted | Not started | — |
 | M05 | Persistent application shell, navigation, and debug access | Conceptual epic | Approved | Not applicable | Not directly executable | — |
 | M06 | Steam trusted-time adapter and transactional offline resolution | Conceptual epic | Approved | Not applicable | Not directly executable | — |
 | M07 | Dialogue and save-safe tutorial orchestration framework | Conceptual epic | Approved | Not applicable | Not directly executable | — |
@@ -251,7 +251,7 @@ M03 demonstrated that a technically coherent architecture can still become an un
 ### 8.3 Changes from the starting hypothesis
 
 - State/time, persistence, and content were correctly separated into M01–M03.
-- M04A through M04D3 are complete. Proposed `DEC-0040` replaces the oversized direct M04E implementation slice with M04E1 and M04E2, yielding eight implementation slices in the completed plan.
+- M04A through M04D3 are complete. Accepted `DEC-0040` replaces the oversized direct M04E implementation slice with approved M04E1 and M04E2, yielding eight implementation slices in the approved plan.
 - Later first-session outcomes remain conceptually ordered but are decomposed only when their repository state is known.
 - Reports, forecasts, trusted time, and presentation remain incremental rather than becoming catch-all work.
 - M17 remains an acceptance epic and may not absorb unfinished major systems.
@@ -777,7 +777,7 @@ Schema version 1 and its key spelling remain unchanged. New-save calls pass the 
 **Prompt status:** Not applicable — no direct epic prompt  
 **Implementation status:** Not directly executable  
 **Verification status:** —  
-**Decomposition:** M04A → M04B → M04C → M04D1 → M04D2 → M04D3 → proposed M04E1 → proposed M04E2
+**Decomposition:** M04A → M04B → M04C → M04D1 → M04D2 → M04D3 → M04E1 → M04E2
 
 #### Purpose
 
@@ -1354,7 +1354,7 @@ Permit currently valid changed loadouts to redispatch without losing or reinterp
 
 #### Follow-on dependencies
 
-- Proposed M04E1.
+- M04E1.
 
 ---
 
@@ -1362,11 +1362,11 @@ Permit currently valid changed loadouts to redispatch without losing or reinterp
 
 **Work item type:** Conceptual sub-epic  
 **Parent epic:** M04  
-**Definition status:** Proposed  
+**Definition status:** Approved  
 **Prompt status:** Not applicable — no direct epic prompt  
 **Implementation status:** Not directly executable  
 **Verification status:** —  
-**Proposed decomposition:** M04E1 → M04E2
+**Approved decomposition:** M04E1 → M04E2
 
 #### Purpose
 
@@ -1374,7 +1374,7 @@ Complete the non-UI Reaping epic with non-authoritative clone projection and aut
 
 #### Completion rule
 
-M04E is complete only when M04E1 and M04E2 are both Merged and Passed. The former direct prompt path `docs/codex/milestone-prompts/M04E-forecast-report-simulation-harness.md` is superseded by the proposed decomposition and must not be created or executed.
+M04E is complete only when M04E1 and M04E2 are both Merged and Passed. The former direct prompt path `docs/codex/milestone-prompts/M04E-forecast-report-simulation-harness.md` is superseded by the approved decomposition and must not be created or executed.
 
 ---
 
@@ -1382,8 +1382,8 @@ M04E is complete only when M04E1 and M04E2 are both Merged and Passed. The forme
 
 **Work item type:** Implementation slice  
 **Parent epic:** M04 / M04E  
-**Definition status:** Proposed  
-**Prompt status:** Drafted  
+**Definition status:** Approved  
+**Prompt status:** Approved  
 **Implementation status:** Not started  
 **Verification status:** —  
 **Recommended Codex task size:** Small-medium; one projection/adapter pull request.  
@@ -1400,9 +1400,9 @@ A developer can load or build one canonical Gloamwood state, forecast one hour o
 #### Dependencies
 
 - M04D3 Merged and Passed.
-- Proposed `DEC-0040` or an owner-approved replacement projection/report-boundary decision.
-- `GATE-FORECAST-CLONE` pending owner approval with M04E1 v0.1.
-- M04E1 `GATE-SLICE-SCOPE` completed in the draft and pending owner approval.
+- Accepted `DEC-0040`.
+- `GATE-FORECAST-CLONE` satisfied by owner approval of M04E1 v0.2.
+- M04E1 `GATE-SLICE-SCOPE` satisfied within the approved review surface.
 
 #### Included scope
 
@@ -1410,12 +1410,13 @@ A developer can load or build one canonical Gloamwood state, forecast one hour o
 - Add non-persisted mode constants for foreground supplied, offline fixture, debug, and forecast.
 - Commit explicit durations through the current `SimulationEngine` without mode-specific formulas.
 - Deep-clone current authoritative state for forecast and return the detached projected state plus exact engine result.
+- Preserve complete core-stream results and generic stable-ID channel state/deltas without a current-channel or output-kind whitelist.
 - Prove complete canonical forecast/commit equivalence.
-- Prove one-hour, eight-hour, Settlement, chunking, zero-duration, and failure behavior.
+- Prove one-hour, complete eight-hour, resource/Whole-Soul channel passthrough, Settlement, chunking, zero-duration, and failure behavior.
 - Route `M04CDebugAdvance` through the shared run service while preserving its narrow API.
 - Prove that forecasting never writes save bytes, report state, tutorial state, or checkpoints.
 - Keep schema version 3, content revision 2, current one-active-Reaping limit, and production content unchanged.
-- Add focused tests, a fourteen-marker real-file trace, and `run_m04e1_owner_verification.ps1`.
+- Add focused tests, a fifteen-marker real-file trace, and `run_m04e1_owner_verification.ps1`.
 
 #### Explicit non-goals
 
@@ -1433,7 +1434,9 @@ A developer can load or build one canonical Gloamwood state, forecast one hour o
 - Forecast and committed-clone results are canonically equal for the same duration.
 - Foreground-supplied, offline-fixture, and debug modes produce the same committed state and engine result.
 - One-hour exact fixture produces 4,140 returns, 360 Essence, 60,000,000 Mastery subunits, 60 cycles, 12 Soldier Souls, and 125,000 Scribe progress.
-- Eight-hour exact fixture produces 96 Soldier Souls and one Scribe Form Soul.
+- Eight-hour exact fixture produces 33,120 Returned Souls, 2,880 Essence, 480,000,000 Mastery subunits, 480 cycles, 96 Soldier Souls, and one Scribe Form Soul with zero remainder.
+- Forecast includes every initialized, eligible engine-supported Threshold channel through generic stable-ID state/deltas, and a resource-channel fixture proves the adapter is not Soul-channel-specific.
+- A future channel kind requires deterministic support in `SimulationEngine`, not a forecast-service formula branch.
 - Settlement boundary results, event order, and deltas match between forecast and commit.
 - One-shot and chunked calls are canonically equal.
 - Zero-duration and every failure preserve the supplied baseline.
@@ -1444,7 +1447,7 @@ A developer can load or build one canonical Gloamwood state, forecast one hour o
 
 - Focused forecast/run-service unit matrix.
 - Integration equality and isolated-save-byte tests.
-- Fourteen-marker real-file trace.
+- Fifteen-marker real-file trace.
 - Negative-root trace behavior, import, full regression, source audit, and artifact audit.
 
 #### Manual verification
@@ -1466,7 +1469,7 @@ Forecasts do not save. A state loaded from schema version 3 may be forecast, but
 
 **Work item type:** Implementation slice  
 **Parent epic:** M04 / M04E  
-**Definition status:** Proposed  
+**Definition status:** Approved  
 **Prompt status:** Not drafted  
 **Implementation status:** Not started  
 **Verification status:** —  

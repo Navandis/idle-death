@@ -2,8 +2,8 @@
 
 **Document role:** Canonical test strategy, commands, fixture rules, and manual validation flows
 **Repository path:** `docs/codex/TESTING_AND_VALIDATION.md`
-**Document status:** Approved validation plan through M04D3 with M04E1 draft
-**Validation revision:** 23
+**Document status:** Approved validation plan through M04D3 with M04E1 approved
+**Validation revision:** 24
 **Last updated:** 2026-07-19
 **Engine target:** Godot 4.7 standard build, GDScript only
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)  
@@ -44,7 +44,7 @@ M04D1 merged through PR #13 at merge commit `4569fbfb968deb73f54ba453834dd7af0b0
 
 M04D2 merged through PR #14 at merge commit `24228a078199d9728eb57e4e26c27447aa6911a3` from final head `96f4db53b2513a8ab6182c074113efe72d5fd968`. Strict initialized-source accumulation, content revision 2, whole banking, source history, exact Settlement segmentation, deterministic banking events, schema-v3 persistence, the fourteen-marker trace, and owner Windows verification passed. Accepted `DEC-0039` and approved M04D3 v0.2 define assembly-time loadout validation, distinct equal-output loadout identity, supported residual continuity, baseline-derived modifiers, exact/current-context ETA, and readable ETA presentation.
 
-M04D3 merged through PR #15 at merge commit `9fd8f98e3787f711f3d03c9de03d3615d531216a` from final head `5a5cafc6b640001fba86c7ea9531ae9daf43fcc3`. Linux/Codex focused coverage passed `35/35` tests and `592` assertions. Owner Windows verification passed the full suite before and after (`144/144`, `2,222` assertions), focused M04D3 (`18/18`, `254` assertions), import, all sixteen markers, cleanup, cleanup proof, and artifact audit with zero failed steps. Proposed `DEC-0040` now decomposes M04E into forecast-only M04E1 and report-state M04E2.
+M04D3 merged through PR #15 at merge commit `9fd8f98e3787f711f3d03c9de03d3615d531216a` from final head `5a5cafc6b640001fba86c7ea9531ae9daf43fcc3`. Linux/Codex focused coverage passed `35/35` tests and `592` assertions. Owner Windows verification passed the full suite before and after (`144/144`, `2,222` assertions), focused M04D3 (`18/18`, `254` assertions), import, all sixteen markers, cleanup, cleanup proof, and artifact audit with zero failed steps. Accepted `DEC-0040` decomposes M04E into approved forecast-only M04E1 and report-state M04E2.
 
 ## 2. Pinned test and platform dependencies
 
@@ -2010,9 +2010,9 @@ TRACE M04D3 no_clock_or_later_slice_sources=PASS
 
 `DEC-0039`, `GATE-RATE-CONTEXT-CHANGE`, and M04D3 `GATE-SLICE-SCOPE` are satisfied.
 
-## 27. M04E1 draft forecast-clone validation package
+## 27. M04E1 approved forecast-clone validation package
 
-The M04E1 package is proposed under `DEC-0040`. Every duration is explicit; tests never wait for real time.
+The M04E1 package is approved under accepted `DEC-0040`. Every duration is explicit; tests never wait for real time.
 
 ### 27.1 Focused Linux/Codex commands
 
@@ -2058,9 +2058,11 @@ git diff --check
 13. negative duration, invalid state, overflow, unsupported flow/Retinue/concurrency failure passthrough with no mutation;
 14. exact engine summary, segment, channel-delta, and event preservation;
 15. M04D3 rate-plan and access semantics retained in forecast;
-16. production persistence load followed by forecast with unchanged source save bytes;
-17. absence of run mode, projection, result, event, report, and comparison artifacts from schema v3;
-18. no clock, scene, storage, report, tutorial, platform, alternate formula, or later-slice ownership.
+16. complete core-stream coverage in one-hour and eight-hour summaries;
+17. generic channel passthrough for every initialized eligible engine-supported channel, including a Broken Watch `RESOURCE` fixture;
+18. production persistence load followed by forecast with unchanged source save bytes;
+19. absence of run mode, projection, result, event, report, and comparison artifacts from schema v3;
+20. no clock, scene, storage, report, tutorial, platform, channel whitelist, alternate formula, or later-slice ownership.
 
 ### 27.3 Exact fixtures
 
@@ -2076,22 +2078,29 @@ Soldier Souls banked = 12
 Scribe Form-Soul progress = 125000
 ```
 
-Eight-hour copied channel fixture:
+Eight-hour copied complete forecast fixture:
 
 ```text
 elapsed_msec = 28800000
+returned_souls_delta = 33120
+Essence_delta = 2880
+Mastery_delta_subunits = 480000000
+completed_cycles_delta = 480
 Soldier Souls banked = 96
 Scribe Form Souls banked = 1
 Scribe progress remainder = 0
 ```
+
+A separate Broken Watch fixture initializes its Provisions `RESOURCE` channel and Whole-Soul channel, then proves both flow through generic projected state, deltas, and events without a type-specific branch in `SimulationRunService`.
 
 A separate low-backlog fixture crosses the exact M04C Settlement boundary and compares complete projected/committed state, segments, and events.
 
 ### 27.4 Required trace markers
 
 ```text
-TRACE M04E1 forecast_1h_returns=4140_essence=360_soldier=12_scribe_progress=125000
-TRACE M04E1 forecast_8h_soldier=96_scribe_banked=1
+TRACE M04E1 forecast_1h_returns=4140_essence=360_mastery=60000000_cycles=60_soldier=12_scribe_progress=125000
+TRACE M04E1 forecast_8h_returns=33120_essence=2880_mastery=480000000_cycles=480_soldier=96_scribe_banked=1
+TRACE M04E1 generic_channel_passthrough=PASS
 TRACE M04E1 baseline_unchanged_and_projection_detached=PASS
 TRACE M04E1 forecast_equals_committed_clone=PASS
 TRACE M04E1 settlement_boundary_equivalence=PASS
@@ -2132,7 +2141,7 @@ full GUT before
 focused M04E1 unit + integration
 explicit import
 isolated real-file trace
-exact 14-marker verification
+exact 15-marker verification
 finally cleanup
 cleanup absence proof
 prior-log-tolerant artifact audit
@@ -2156,7 +2165,7 @@ No interactive checklist is required.
 
 M04E1 cannot merge until:
 
-- proposed `DEC-0040` or a revised owner-approved contract is Accepted;
+- accepted `DEC-0040` remains authoritative;
 - M04D3 remains Merged/Passed;
 - focused/import/trace/full Linux checks pass;
 - owner Windows verification passes against the exact PR head;

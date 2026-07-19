@@ -3,7 +3,7 @@
 **Document role:** Canonical prototype data, runtime-state, ID, and serialization contracts  
 **Repository path:** `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`  
 **Document status:** Approved architecture contract  
-**Revision:** 19  
+**Revision:** 20  
 **Last updated:** 2026-07-19
 
 ## 1. Purpose
@@ -2657,9 +2657,9 @@ The realized derived contracts preserve:
 
 Schema version 3 and content revision `prototype-content-r2` remain current.
 
-## Proposed M04E1 simulation-run and forecast contracts
+## Approved M04E1 simulation-run and forecast contracts
 
-These contracts become authoritative only after owner approval of proposed `DEC-0040` and the M04E1 prompt.
+These contracts are authoritative under accepted `DEC-0040` and approved M04E1 prompt v0.2.
 
 ### SimulationRunMode
 
@@ -2715,6 +2715,33 @@ Mutating the projection after a successful forecast cannot change the baseline, 
 
 Canonical equality is measured through the current schema-v3 mapper or an equivalent complete canonical gameplay-state comparison, not selected totals only.
 
+### Generic stream and channel projection coverage
+
+The forecast contract is not a fixed list of current outputs. `SimulationRunResult` preserves the exact `SimulationEngine.SimulationResult`, while `projected_state` contains the complete post-run state. Together they expose:
+
+```text
+core summary/segments:
+  Returned Souls and backlog
+  Essence
+  Mastery
+  cycle and lifecycle changes
+
+generic Threshold channel state/results:
+  threshold_id
+  channel_id
+  output_item_id
+  progress_subunits before/after
+  rate_carry_units before/after
+  total_banked_units before/after
+  banked_units_delta
+```
+
+Every initialized, eligible channel supported by `SimulationEngine` participates regardless of whether its item is a resource, Store, Calling Soul, Form Soul, or a later supported output kind. Channel maps and delta arrays are keyed and ordered by stable IDs; `SimulationRunService` contains no current-channel whitelist or output-kind switch.
+
+An initialized channel with no whole-unit completion remains present in the projected state's acquisition map with its exact progress and carry. A locked or uninitialized channel produces nothing under the existing Access contract.
+
+A future channel kind may require new normalized content/state and arithmetic in `SimulationEngine`, but must not require a new forecast formula, result family, or adapter branch. Unsupported channel kinds return the engine's typed failure rather than disappearing from the forecast silently.
+
 ### Exact copied fixtures
 
 The controlled Gloamwood fixture uses:
@@ -2740,14 +2767,20 @@ Soldier Souls banked = 12
 Scribe Form-Soul progress = 125,000 subunits
 ```
 
-Expected eight-hour channel result:
+Expected eight-hour complete result:
 
 ```text
 elapsed = 28,800,000 ms
+returned Souls = 33,120
+Essence = 2,880
+Mastery delta = 480,000,000 subunits
+completed cycles = 480
 Soldier Souls banked = 96
 Scribe Form Souls banked = 1
 Scribe progress remainder = 0
 ```
+
+A separate Broken Watch/resource-channel fixture proves that a non-Soul `RESOURCE` channel and a Whole-Soul channel flow through the same generic forecast/commit contract without a type-specific branch in `SimulationRunService`.
 
 A separate copied low-backlog fixture proves exact Overdue-to-Settled segmentation and forecast/commit equality across the boundary.
 

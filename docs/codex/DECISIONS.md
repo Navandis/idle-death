@@ -3,7 +3,7 @@
 **Document role:** Durable record of approved and proposed design and architecture decisions  
 **Repository path:** `docs/codex/DECISIONS.md`  
 **Document status:** Approved architecture and active decision record  
-**Revision:** 23  
+**Revision:** 24  
 **Last updated:** 2026-07-19
 
 ## 1. How to use this file
@@ -69,7 +69,7 @@ Rules:
 | `DEC-0037` | Output access is global and prospective; schema version 3 persists unlocks and available-source initialization | Accepted | 2026-07-17 |
 | `DEC-0038` | Discrete non-Essence channels resolve only initialized sources; whole banking is immediate and Settlement is channel-specific | Accepted | 2026-07-18 |
 | `DEC-0039` | Valid loadouts remain distinct and swappable; rate-context changes preserve residuals and ETAs are baseline-derived views | Accepted | 2026-07-18 |
-| `DEC-0040` | Forecasts clone current state through the shared resolver; authoritative report history is a separate slice | Proposed | 2026-07-19 |
+| `DEC-0040` | Forecasts clone current state through the shared resolver; authoritative report history is a separate slice | Accepted | 2026-07-19 |
 
 ---
 
@@ -2446,7 +2446,7 @@ Loadout-validation results, derived loadout keys, denominator signatures, contin
 
 ## `DEC-0040` — Forecasts clone current state through the shared resolver; authoritative report history is a separate slice
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-07-19  
 **Decision type:** Projection ownership, supplied-duration adapters, report-state boundary, and milestone decomposition  
 **Refines:** `DEC-0010`, `DEC-0012`, `DEC-0016`, `DEC-0033`, `DEC-0039`
@@ -2465,7 +2465,7 @@ The merged repository now has a mature transactional `SimulationEngine`, deep-cl
 
 M04D3 also demonstrated that a nominally cohesive task can become difficult to review when multiple boundary contracts are changed together. `DEC-0033` requires a fresh rolling-wave split review before drafting the next prompt.
 
-### Proposed decision
+### Decision
 
 #### Decompose M04E
 
@@ -2500,6 +2500,20 @@ No mode may:
 - reorder boundaries or events;
 - call a different simulation formula;
 - sample elapsed time internally.
+
+#### Generic stream and channel coverage
+
+Forecasting delegates the complete state to `SimulationEngine` and returns the complete projected state plus the exact engine result. `SimulationRunService` must not enumerate or whitelist current Threshold IDs, channel IDs, item IDs, or output kinds.
+
+For the current prototype, a successful forecast covers:
+
+- every core stream resolved by the engine, including Returned Souls/backlog, Essence, Mastery, cycle progress, and lifecycle transitions;
+- every initialized, eligible Threshold output channel that the engine supports, represented through stable `Threshold ID + channel ID` state, delta, and event contracts;
+- initialized channel records whose selected horizon produces no whole item, because their exact projected progress and carry remain present in the projected state.
+
+Access still gates production. Locked or uninitialized channels receive no progress, carry, inventory, or retroactive output, and player-facing disclosure remains a later presentation concern.
+
+A future channel kind becomes forecastable by adding its normalized content/state and deterministic arithmetic once to `SimulationEngine` and its generic channel-result contract. The forecast adapter then passes that state and result through without a type-specific branch or major refactor. A channel kind that the engine does not yet support fails visibly rather than being silently omitted or approximated.
 
 #### Forecast is detached projection
 
@@ -2537,6 +2551,7 @@ M04E2 cannot be prompted until `GATE-REPORT-SCHEMA` approves the exact report-st
 
 - M04E1 remains a single-owner, no-migration projection slice.
 - Forecast and committed outcomes are directly comparable through complete canonical state.
+- Core streams and supported Threshold channels flow through one generic result/state contract; adding a future channel kind does not require a forecast-service branch.
 - The current one-active-Reaping engine limitation remains explicit until M12.
 - M05 and M06 gain one stable supplied-duration seam without importing clocks into simulation.
 - Report persistence cannot silently extend schema version 3.
@@ -2548,6 +2563,7 @@ M04E2 cannot be prompted until `GATE-REPORT-SCHEMA` approves the exact report-st
 - **Keep M04E as one pull request:** rejected because projection, new report authority, migration, idempotency, and harness behavior exceed the normal review surface.
 - **Put report state inside forecast results:** rejected because forecasts are non-authoritative and report history records committed gains.
 - **Add a second forecast formula:** rejected because online, offline, debug, and forecast modes must share the same resolver.
+- **Hard-code the current Soldier/Scribe channel set in the forecast adapter:** rejected because channel identity and kinds are content-driven and future engine-supported channels must pass through generically.
 - **Pass a mode into `SimulationEngine` and branch formulas:** rejected; mode-specific differences belong outside gameplay arithmetic.
 - **Persist forecast projections:** rejected because projections are rebuildable and may become stale immediately.
 - **Implement hypothetical command replay now:** rejected because current-state clone equivalence is sufficient for M04E1 and a generic replay framework would broaden scope.
@@ -2566,10 +2582,10 @@ M04E2 cannot be prompted until `GATE-REPORT-SCHEMA` approves the exact report-st
 
 ## 3. Current approval state
 
-- `DEC-0001` through `DEC-0039` are Accepted.
-- `DEC-0040` is Proposed and awaits owner approval with the M04E decomposition and M04E1 prompt.
+- `DEC-0001` through `DEC-0040` are Accepted.
 - M04A through M04D3 are implemented, verified, and merged.
 - M04D3 merged through PR #15 from final head `5a5cafc6b640001fba86c7ea9531ae9daf43fcc3` at merge commit `9fd8f98e3787f711f3d03c9de03d3615d531216a`.
-- M04E1 prompt v0.1 is drafted but not approved or started.
-- M04E2 is proposed and blocked on M04E1 plus `GATE-REPORT-SCHEMA`; its prompt is not drafted.
+- The M04E1/M04E2 decomposition is approved.
+- M04E1 prompt v0.2 is approved and implementation has not started.
+- M04E2's high-level definition is approved, but its prompt is not drafted and remains blocked on M04E1 plus `GATE-REPORT-SCHEMA`.
 - Future changes preserve decision IDs for wording clarifications and create a new decision only when semantics, ownership, compatibility, or security posture changes.

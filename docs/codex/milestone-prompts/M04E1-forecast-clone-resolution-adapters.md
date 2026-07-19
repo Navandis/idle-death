@@ -1,34 +1,37 @@
 # Implementation slice M04E1: Forecast clone and supplied-resolution adapters
 
-**Prompt version:** v0.1  
+**Prompt version:** v0.2  
 **Prompt date:** 2026-07-19  
-**Prompt status:** Draft  
+**Prompt status:** Approved  
 **Work item type:** Implementation slice  
-**Parent conceptual epic:** `M04 — Persistent Reaping simulation vertical slice` / proposed M04E sub-epic  
+**Parent conceptual epic:** `M04 — Persistent Reaping simulation vertical slice` / M04E sub-epic  
 **Milestone definition:** `docs/codex/MILESTONES.md` — `### M04E1 — Forecast clone and supplied-resolution adapters`  
 **Recommended task size:** Small-medium; one projection/adapter pull request  
-**Scope-gate result:** Within guardrails at draft; stop if actual work needs another primary owner, more than two cross-layer seams, more than approximately 25 non-documentation source/test files, or more than approximately 1,200 non-documentation code/test lines  
+**Scope-gate result:** Within approved guardrails; stop if actual work needs another primary owner, more than two cross-layer seams, more than approximately 25 non-documentation source/test files, or more than approximately 1,200 non-documentation code/test lines  
 **Expected base branch or ref:** current `main` after M04D3 merge commit `9fd8f98e3787f711f3d03c9de03d3615d531216a`; planning observed `main` at `de0824f1098cf974aa864d689a6139073b2a53a5`  
 **Planned prompt path:** `docs/codex/milestone-prompts/M04E1-forecast-clone-resolution-adapters.md`
 
 > This prompt authorizes one explicit-duration run adapter, detached current-state clone forecasts, exact forecast/commit equivalence, one-hour/eight-hour/Settlement demonstrations, and the M04E1 verification package. It does not authorize report state, report persistence, hypothetical command replay, clocks, trusted time, application lifecycle, UI, concurrency, Halls, progression, schema/content revisions, or M04E2.
 
-## Approval dependency
+## Approval record
 
-Do not execute this prompt until the project owner:
+The project owner accepted `DEC-0040`, approved the M04E1/M04E2 decomposition, and approved M04E1 prompt v0.2 on 2026-07-19 with these refinements:
 
-1. accepts proposed `DEC-0040` or approves a revised replacement decision;
-2. approves the M04E decomposition;
-3. approves M04E1 prompt v0.1;
-4. confirms M04D3 is recorded Merged/Passed at merge commit `9fd8f98e3787f711f3d03c9de03d3615d531216a`.
+- forecasting must preserve complete core-stream results, not only discrete item-channel output;
+- the eight-hour fixture includes Returned Souls, Essence, Mastery, cycles, and every current initialized eligible output channel;
+- `SimulationRunService` must be channel-kind agnostic and contain no whitelist of current Threshold/channel/item IDs or output kinds;
+- a future Threshold channel kind becomes forecastable by extending normalized content/state and `SimulationEngine`, while the forecast adapter and result family remain unchanged;
+- unsupported future mechanics fail visibly rather than being omitted or approximated.
 
-Until then:
+Current status:
 
 ```text
-DEC-0040: Proposed
-M04E1 prompt: Draft
+DEC-0040: Accepted
+M04E decomposition: Approved
+M04E1 prompt: Approved v0.2
 M04E1 implementation: Not started
-GATE-FORECAST-CLONE: Pending
+GATE-FORECAST-CLONE: Satisfied
+M04E2 definition: Approved
 M04E2 prompt: Not drafted
 ```
 
@@ -72,14 +75,15 @@ Do not describe M04E1 as complete while any merge-gate criterion is failed, bloc
 
 ## Objective
 
-Add one scene-independent adapter service that can commit an explicitly supplied duration through the existing simulation engine or forecast that same duration on a detached deep clone, with exact canonical equivalence and no report/save/time-source side effects.
+Add one scene-independent adapter service that can commit an explicitly supplied duration through the existing simulation engine or forecast that same duration on a detached deep clone, preserving complete core-stream and generic Threshold-channel results with exact canonical equivalence and no report/save/time-source side effects.
 
 ## Player or developer outcome
 
 From focused tests and one headless trace, a developer can:
 
-- forecast one hour and eight hours from a canonical Gloamwood state;
-- inspect the exact projected state, segments, deltas, and events;
+- forecast one hour and eight hours from a canonical Gloamwood state, including Returned Souls, Essence, Mastery, cycles, and every initialized eligible channel;
+- inspect the exact projected state, segments, generic stable-ID channel deltas, and events;
+- prove a Broken Watch resource channel and Whole-Soul channel pass through without a forecast-service type branch;
 - prove the live baseline and source save remain byte-for-byte unchanged;
 - commit the same duration on another clone and obtain complete canonical equality;
 - cross the Overdue-to-Settled boundary identically in forecast and commit;
@@ -93,10 +97,10 @@ From focused tests and one headless trace, a developer can:
 | Priority | Source | Required sections or records | Why it applies |
 |---:|---|---|---|
 | 1 | `AGENTS.md` | Full file | Repository rules and source hierarchy |
-| 2 | `docs/codex/MILESTONES.md` | M04, completed M04D3, proposed M04E/M04E1/M04E2, gates, guardrails | Slice authority |
+| 2 | `docs/codex/MILESTONES.md` | M04, completed M04D3, approved M04E/M04E1/M04E2, gates, guardrails | Slice authority |
 | 3 | `docs/codex/DECISIONS.md` | `DEC-0010`, `DEC-0012`, `DEC-0016`, `DEC-0026`–`DEC-0028`, `DEC-0033`, `DEC-0036`, `DEC-0038`–`DEC-0040` | One-engine, clone, reporting, and scope rules |
-| 4 | `docs/codex/ARCHITECTURE.md` | M04C–M04D3 realized boundaries; proposed M04E decomposition/M04E1 | Ownership and seams |
-| 5 | `docs/codex/DATA_AND_CONTENT_CONTRACTS.md` | State cloning, schema v3, simulation results/events, M04D3 results, proposed M04E1 contracts | Exact data rules |
+| 4 | `docs/codex/ARCHITECTURE.md` | M04C–M04D3 realized boundaries; approved M04E decomposition/M04E1 | Ownership and seams |
+| 5 | `docs/codex/DATA_AND_CONTENT_CONTRACTS.md` | State cloning, schema v3, simulation results/events, M04D3 results, approved M04E1 contracts | Exact data rules |
 | 6 | `docs/codex/IMPLEMENTATION_RULES.md` | §§4–6, 8, 10–11, 14, 17 | Typing, comments, determinism, forecast mode, serialization |
 | 7 | `docs/codex/TESTING_AND_VALIDATION.md` | §§26–27 and owner workflow | Evidence |
 | 8 | `docs/codex/OWNER_VERIFICATION_WORKFLOW.md` | Complete | Windows packaging |
@@ -136,24 +140,24 @@ Report unresolved conflicts before implementing.
 
 ## Scope and review-surface assessment
 
-| Assessment item | Draft estimate |
+| Assessment item | Approved estimate |
 |---|---|
-| Parent conceptual epic | M04 / proposed M04E |
+| Parent conceptual epic | M04 / M04E |
 | Primary subsystem owner | New bounded `SimulationRunService` |
 | Principal transition | Valid baseline + explicit elapsed + mode → committed engine result or detached projected result |
 | New authoritative aggregate family | None |
 | Save-schema change | None; schema v3 remains current |
 | Content compatibility change | None; `prototype-content-r2` remains current |
-| Deterministic algorithms | Clone detachment, canonical equality, mode delegation |
+| Deterministic algorithms | Clone detachment, canonical equality, mode delegation, generic stream/channel passthrough |
 | Cross-layer seams | 2: run service → simulation; trace/integration → persistence fixture |
-| Risk dimensions | Non-authoritative projection, execution-mode equivalence, detachment/evidence |
+| Risk dimensions | Non-authoritative projection, execution-mode equivalence, detachment/evidence, channel extensibility |
 | Expected non-documentation source/test files | Approximately 8–16 |
-| Expected non-documentation code/test delta | Approximately 600–1,000 lines |
+| Expected non-documentation code/test delta | Approximately 650–1,100 lines |
 | Bulk authored content | None; copied state fixtures only |
 | Platform/native work | None |
 | Interactive owner checks | None |
 | Automated owner checks | One generated PowerShell log |
-| Mandatory split trigger | Not crossed at draft |
+| Mandatory split trigger | Not crossed at approval |
 
 Stop for a revised prompt before adding another primary owner, report state, a migration, another broad integration seam, more than approximately 25 non-documentation source/test files, or more than approximately 1,200 non-documentation code/test lines.
 
@@ -187,7 +191,7 @@ Stop for a revised prompt before adding another primary owner, report state, a m
 | `RB-24` | Complete canonical equality uses schema-v3 mapping or an equivalent all-field comparison. | Evidence contract |
 | `RB-25` | Forecast and separately committed clone are canonically equal for unchanged state/content. | M04E1 outcome |
 | `RB-26` | One-hour copied fixture yields the exact approved core and channel values. | Test contract |
-| `RB-27` | Eight-hour copied fixture yields 96 Soldier Souls and one Scribe Form Soul. | Prototype forecast |
+| `RB-27` | Eight-hour copied fixture yields 33,120 Returned Souls, 2,880 Essence, 480,000,000 Mastery subunits, 480 cycles, 96 Soldier Souls, and one Scribe Form Soul with zero remainder. | Prototype forecast |
 | `RB-28` | A copied low-backlog fixture proves exact Settlement segmentation and event order. | `DEC-0036` |
 | `RB-29` | Foreground-supplied, offline-fixture, and debug committed modes are canonically equal. | IF-REQ-07 |
 | `RB-30` | `M04CDebugAdvance` delegates through the shared run service. | Adapter boundary |
@@ -205,6 +209,9 @@ Stop for a revised prompt before adding another primary owner, report state, a m
 | `RB-42` | Add focused unit/integration tests, real-file trace, Windows owner runner, and synchronized docs. | Merge gate |
 | `RB-43` | Report actual source/test scope against the approved estimate. | `DEC-0033` |
 | `RB-44` | Do not draft or implement M04E2. | Prompt boundary |
+| `RB-45` | `SimulationRunService` must not hard-code current Threshold IDs, channel IDs, output item IDs, or output kinds. | Owner refinement |
+| `RB-46` | Forecast preserves every core stream and every initialized, eligible engine-supported Threshold channel through complete projected state plus generic stable-ID deltas/events. | Owner refinement |
+| `RB-47` | Future channel kinds extend normalized content/state and `SimulationEngine`; the run service and result family require no type-specific branch. Unsupported kinds fail visibly. | Extensibility contract |
 
 ## Required state transitions
 
@@ -212,7 +219,7 @@ Stop for a revised prompt before adding another primary owner, report state, a m
 |---|---|---|
 | `ST-01` | Valid baseline + one-hour `FORECAST` | Detached exact projection; baseline unchanged |
 | `ST-02` | Same baseline clone + one-hour committed mode | Canonically equal to forecast projection |
-| `ST-03` | Valid baseline + eight-hour `FORECAST` | Exact 96 Soldier / 1 Scribe result |
+| `ST-03` | Valid baseline + eight-hour `FORECAST` | Exact complete core + 96 Soldier / 1 Scribe result |
 | `ST-04` | Low-backlog baseline + boundary-crossing forecast | Exact Overdue/Settled segmentation |
 | `ST-05` | Same state/duration under three committed modes | Equal state, result, segments, deltas, events |
 | `ST-06` | Debug adapter + explicit duration | Same nested engine result as direct run service |
@@ -226,6 +233,8 @@ Stop for a revised prompt before adding another primary owner, report state, a m
 | `ST-14` | Mutate baseline after forecast | Projection unchanged |
 | `ST-15` | Load real schema-v3 fixture then forecast | Projection succeeds; source save bytes unchanged |
 | `ST-16` | Inspect snapshot after all runs | No run/projection/result/report artifacts |
+| `ST-17` | Broken Watch with initialized Provisions and Whole-Soul channels + forecast | Both channel kinds appear through generic projected state/deltas and equal committed results |
+| `ST-18` | Source audit of run service | No current channel/item/output-kind whitelist or type-specific forecast branch |
 
 ## Implementation requirements
 
@@ -272,25 +281,39 @@ Do not add reflection cloning or JSON encode/decode cloning.
 
 Tests and trace compare complete current gameplay state through `SaveSchemaMapper.runtime_to_snapshot()` or the repository's complete canonical helper. Comparing only inventory, return totals, or selected fields is insufficient.
 
-### 5. Debug adapter
+### 5. Generic stream and channel coverage
+
+The run service returns the exact engine result and full projected state. It must not create a reduced forecast DTO that enumerates only the current Gloamwood channels.
+
+Tests and trace must verify:
+
+- core summary coverage for Returned Souls/backlog, Essence, Mastery, completed cycles, and lifecycle;
+- complete `ThresholdState.channel_acquisition` projection for every initialized channel;
+- generic segment and summary `channel_deltas` keyed by stable `channel_id`;
+- a Broken Watch fixture containing both a `RESOURCE` channel and a Whole-Soul channel;
+- no current Threshold/channel/item ID or output-kind whitelist in `SimulationRunService`.
+
+A new channel kind may require deterministic arithmetic support in `SimulationEngine`, but once supported it must flow through forecast without modifying `SimulationRunService` or inventing another result family. Unsupported kinds pass through the engine's typed failure.
+
+### 6. Debug adapter
 
 Refactor `M04CDebugAdvance` to delegate to `SimulationRunService` in `DEBUG` mode. Preserve the existing `advance_msec()` return behavior where practical so later debug callers are not broken solely for wrapper aesthetics.
 
 Do not add a Node, autoload, editor plugin, or UI control.
 
-### 6. Persistence evidence
+### 7. Persistence evidence
 
 Use production `SaveService`, storage, and `GameStatePersistenceCoordinator` in integration/trace setup to create or load an isolated schema-v3 fixture. Record the primary bytes before forecast and compare them after forecast.
 
 The run service itself must have no persistence dependency and must not know the trace root.
 
-### 7. Exact fixture construction
+### 8. Exact fixture construction
 
 Use copied state fixtures and current production content. Do not change `.tres` balance or content revision.
 
-The one-hour fixture must remain Overdue throughout. Use a separate low-backlog fixture for Settlement.
+The one-hour and eight-hour fixtures must remain Overdue throughout. The eight-hour assertions cover Returned Souls, Essence, Mastery, cycles, Soldier Souls, Scribe Form Souls, and the exact Scribe remainder. Use a separate Broken Watch fixture for generic resource/Whole-Soul channel passthrough and a separate low-backlog fixture for Settlement.
 
-### 8. Event and result equality
+### 9. Event and result equality
 
 Compare:
 
@@ -305,7 +328,7 @@ Wrapper mode metadata is the only expected difference among equivalent committed
 
 ## Required test matrix
 
-Cover all eighteen groups in `TESTING_AND_VALIDATION.md` §27. Prefer compact table-driven cases and one clear fixture builder.
+Cover all twenty groups in `TESTING_AND_VALIDATION.md` §27. Prefer compact table-driven cases and one clear fixture builder.
 
 For every failure, compare complete canonical baseline state before/after and prove no projected state was returned.
 
@@ -331,8 +354,9 @@ It must:
 10. emit exactly:
 
 ```text
-TRACE M04E1 forecast_1h_returns=4140_essence=360_soldier=12_scribe_progress=125000
-TRACE M04E1 forecast_8h_soldier=96_scribe_banked=1
+TRACE M04E1 forecast_1h_returns=4140_essence=360_mastery=60000000_cycles=60_soldier=12_scribe_progress=125000
+TRACE M04E1 forecast_8h_returns=33120_essence=2880_mastery=480000000_cycles=480_soldier=96_scribe_banked=1
+TRACE M04E1 generic_channel_passthrough=PASS
 TRACE M04E1 baseline_unchanged_and_projection_detached=PASS
 TRACE M04E1 forecast_equals_committed_clone=PASS
 TRACE M04E1 settlement_boundary_equivalence=PASS
@@ -373,7 +397,7 @@ Adapt the final M04D3 runner. Preserve:
 6. focused unit + integration directories;
 7. explicit import;
 8. isolated real-file trace;
-9. stable copied trace output and all fourteen markers;
+9. stable copied trace output and all fifteen markers;
 10. `finally` cleanup and absence proof;
 11. prior ignored-log tolerance and artifact audit;
 12. full suite after;
@@ -405,7 +429,7 @@ No interactive checklist is required.
 | `AC-08` | Failed forecast returns no projection and no mutation. | Failure matrix | Yes |
 | `AC-09` | Forecast equals separately committed clone for the same interval. | Canonical comparison | Yes |
 | `AC-10` | One-hour exact fixture matches all approved values. | Focused test/trace | Yes |
-| `AC-11` | Eight-hour exact fixture matches 96 Soldier and one Scribe. | Focused test/trace | Yes |
+| `AC-11` | Eight-hour exact fixture matches all approved core values plus 96 Soldier Souls and one Scribe Form Soul. | Focused test/trace | Yes |
 | `AC-12` | Settlement-boundary state, segments, and events match. | Copied fixture | Yes |
 | `AC-13` | Foreground/offline-fixture/debug committed modes are equal. | Mode matrix/trace | Yes |
 | `AC-14` | Debug adapter delegates through the shared run service. | Review/test | Yes |
@@ -419,10 +443,12 @@ No interactive checklist is required.
 | `AC-22` | Schema v3/content r2 remain current. | Persistence/content tests | Yes |
 | `AC-23` | No run/projection/result/comparison artifact serializes. | Snapshot audit | Yes |
 | `AC-24` | Linux focused/import/trace/full commands pass. | Commands/exits | Yes |
-| `AC-25` | All fourteen trace markers are earned and verified. | Trace/runner | Yes |
+| `AC-25` | All fifteen trace markers are earned and verified. | Trace/runner | Yes |
 | `AC-26` | Windows package passes full/focused/import/trace/cleanup/audit/full. | Owner log | Yes |
 | `AC-27` | Documentation and actual-versus-estimated scope evidence are complete. | Review/handoff | Yes |
 | `AC-28` | No M04E2 or later-slice work enters the diff. | Diff/source audit | Yes |
+| `AC-29` | Core-stream and generic channel coverage includes every initialized eligible engine-supported channel; the Broken Watch resource/Whole-Soul fixture passes. | Focused test/trace | Yes |
+| `AC-30` | Source audit proves the run service has no current channel/item/output-kind whitelist and future engine-supported kinds need no adapter branch. | Source audit | Yes |
 
 A pending owner result keeps M04E1 verification Partial and prevents merge.
 
@@ -460,7 +486,7 @@ git diff --check
 git status --short
 ```
 
-Report exact focused/full counts, all fourteen markers, negative-root result, commands, exit codes, and actual scope.
+Report exact focused/full counts, all fifteen markers, negative-root result, commands, exit codes, and actual scope.
 
 Leave actual Windows owner verification pending.
 
