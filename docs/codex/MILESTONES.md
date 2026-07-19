@@ -3,7 +3,7 @@
 **Document role:** Approved implementation sequence and acceptance map for the 0–90 minute prototype  
 **Repository path:** `docs/codex/MILESTONES.md`  
 **Document status:** Approved rolling-wave milestone map  
-**Milestone-map revision:** 27  
+**Milestone-map revision:** 28  
 **Last updated:** 2026-07-19  
 **Primary context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md), [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md), [Architecture](ARCHITECTURE.md), [Data contracts](DATA_AND_CONTENT_CONTRACTS.md), [Testing](TESTING_AND_VALIDATION.md), [Owner verification](OWNER_VERIFICATION_WORKFLOW.md), [Milestone recalibration](MILESTONE_RECALIBRATION_PROPOSAL.md), and [Decisions](DECISIONS.md)
 
@@ -15,7 +15,7 @@ Use the source hierarchy in `AGENTS.md`. A milestone definition cannot weaken a 
 
 ## 2. Current repository baseline
 
-After M04D3 completion:
+After M04E1 completion:
 
 - Godot 4.7, GDScript, the 1920 × 1080 reference viewport, resizing/stretch settings, and a temporary dry-run main scene exist.
 - `AGENTS.md`, project Codex configuration, the maintained design sources, the architecture documents, the approved `PROMPT_TEMPLATE.md`, and `OWNER_VERIFICATION_WORKFLOW.md` are present in the repository.
@@ -41,7 +41,9 @@ After M04D3 completion:
 - M04D2 merged through PR #14 at final head `96f4db53b2513a8ab6182c074113efe72d5fd968` and merge commit `24228a078199d9728eb57e4e26c27447aa6911a3`; Linux/Codex and owner Windows verification passed.
 - M04D3 added the shared rate-context service, assembly/commit validation, component-based loadout identity, supported residual-preserving redispatch, baseline-derived Form channel modifiers, exact/readable ETA queries, persistence proof, and the finalized branch-recovery guidance.
 - M04D3 merged through PR #15 from final head `5a5cafc6b640001fba86c7ea9531ae9daf43fcc3` at merge commit `9fd8f98e3787f711f3d03c9de03d3615d531216a`; Linux/Codex and owner Windows verification passed.
-- The repository still has no clone-forecast adapter layer, authoritative report accumulator/history, application shell, trusted offline adapter, concurrent-Reaping resolver, or player-facing gameplay UI.
+- M04E1 added `SimulationRunService`, detached current-state forecasts, complete core/generic-channel projection, foreground/offline-fixture/debug supplied-duration adapters, a corrected public result contract, production-persistence exclusion proof, focused unit/integration tests, a fifteen-marker trace, and the final owner workflow.
+- M04E1 merged through PR #16 from final head `738e89c606dd9f1f9f0396334ea9d8587ff389f3` at merge commit `03f05a3d78609a993cecab8b0077e5f7d7d55900`; Linux/Codex and owner Windows verification passed.
+- The repository still has no authoritative report accumulator/history, atomic reported-run coordinator, application shell, trusted offline adapter, concurrent-Reaping resolver, or player-facing gameplay UI.
 - Existing dry-run assets and scene work are preserved unless a scoped milestone explicitly replaces or integrates them.
 
 ## 3. Milestone rules
@@ -124,7 +126,7 @@ A conceptual epic uses `Prompt: Not applicable` and `Implementation: Not directl
 | `GATE-CHANNEL-ACCUMULATION` | M04D2 prompt approval | Satisfied by M04D1 Merged/Passed, accepted `DEC-0038`, and approved M04D2 v0.1 covering strict initialized-source eligibility, content revision 2, exact whole banking, channel-specific Settlement segmentation, bounded events, persistence, and scope. |
 | `GATE-RATE-CONTEXT-CHANGE` | M04D3 prompt approval | Satisfied by M04D2 Merged/Passed, accepted `DEC-0039`, and approved M04D3 v0.2 covering assembly-time loadout validation, component-based equal-output identity, stable residual denominators, prospective baseline-derived modifiers, non-compounding, exact/current-context ETA queries, readable ETA presentation, persistence boundaries, and scope. |
 | `GATE-FORECAST-CLONE` | M04E1 prompt approval | Satisfied by M04D3 Merged/Passed, accepted `DEC-0040`, and approved M04E1 v0.2 covering detached clone projection, complete core/generic-channel passthrough, shared supplied-duration modes, canonical equivalence, no persistence/report side effects, and scope. |
-| `GATE-REPORT-SCHEMA` | M04E2 prompt drafting | Requires M04E1 Merged/Passed and a separate owner-approved contract for report-state fields, schema version/migration, retention bounds, canonical ordering, idempotent ingestion, and snapshot/clear semantics. |
+| `GATE-REPORT-SCHEMA` | M04E2A prompt approval | Requires M04E1 Merged/Passed plus owner approval of proposed `DEC-0041` and M04E2A v0.1 covering schema v4, report fields, migration, cursor-idempotent ingestion, retention, ordering, event compaction, snapshot semantics, persistence, and scope. |
 | `GATE-STEAM-TIME` | The applicable M06 slice prompt/implementation | Satisfied for prompt drafting by `DEC-0024`: use pinned GodotSteam 4.20 and development App ID `480`. M06 must still verify license footprint, wrapper API, explicit initialization, and live Windows behavior. |
 | `GATE-PRODUCTION-OFFLINE` | The final applicable M16 slice merge | Fake-provider automation plus the owner-run Windows/GodotSteam connected, unavailable, reconnect, clock-change, and repeated-load checks must pass. |
 | `RELEASE-GATE-STEAM-APP` | Before external Steam Playtest or commercial distribution | Replace development App ID `480` with Death Idle's assigned App ID and validate package ownership, launch-through-Steam behavior, export contents, and absence of development-only App ID aids. |
@@ -138,7 +140,7 @@ A conceptual epic uses `Prompt: Not applicable` and `Implementation: Not directl
 
 `GATE-CONTENT-CATALOG` was satisfied by M03. PR #7 merged on 2026-07-15 at merge commit `5e2b9b23878c9280f75b987cc9ad567d8980030d`; its final head was `971cdaa0fd46f641ec7409148e259d54f953d8c7`. Linux/Codex and owner Windows verification passed the full and focused suites, explicit import, semantic catalog trace, artifact audit, and Godot Inspector checklist.
 
-`GATE-SLICE-SCOPE` is mandatory for every post-M03 prompt. `GATE-GAMEPLAY-SCHEMA`, `GATE-REAPING-ASSIGNMENT`, `GATE-CORE-RESOLUTION`, `GATE-OUTPUT-ACCESS-SCHEMA`, `GATE-CHANNEL-ACCUMULATION`, `GATE-RATE-CONTEXT-CHANGE`, and `GATE-FORECAST-CLONE` are satisfied through approved M04E1 v0.2. `GATE-REPORT-SCHEMA` remains blocked until M04E1 passes.
+`GATE-SLICE-SCOPE` is mandatory for every post-M03 prompt. `GATE-GAMEPLAY-SCHEMA`, `GATE-REAPING-ASSIGNMENT`, `GATE-CORE-RESOLUTION`, `GATE-OUTPUT-ACCESS-SCHEMA`, `GATE-CHANNEL-ACCUMULATION`, `GATE-RATE-CONTEXT-CHANGE`, and `GATE-FORECAST-CLONE` are satisfied through approved M04E1 v0.2. `GATE-FORECAST-CLONE` is fully satisfied by M04E1 implementation and verification. `GATE-REPORT-SCHEMA` is pending owner approval of proposed `DEC-0041` and M04E2A v0.1.
 
 
 When trusted time is unavailable, the approved behavior is to grant no guessed closed-session progress, retain pending reconciliation, and continue monotonic foreground production. No milestone may introduce a local-device-time fallback.
@@ -160,8 +162,10 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 | M04D2 | Discrete channel accumulation and long-horizon banking | Implementation slice | Approved | Approved | Merged | Passed |
 | M04D3 | Compatible rate-context changes and acquisition queries | Implementation slice | Approved | Approved | Merged | Passed |
 | M04E | Forecast and report foundations | Conceptual sub-epic | Approved | Not applicable | Not directly executable | — |
-| M04E1 | Forecast clone and supplied-resolution adapters | Implementation slice | Approved | Approved | Pull request open | Partial |
-| M04E2 | Report accumulator, history, persistence, and final M04 harness | Implementation slice | Approved | Not drafted | Not started | — |
+| M04E1 | Forecast clone and supplied-resolution adapters | Implementation slice | Approved | Approved | Merged | Passed |
+| M04E2 | Report persistence and final M04 closure | Conceptual sub-epic | Proposed | Not applicable | Not directly executable | — |
+| M04E2A | Report state, schema-v4 migration, ingestion, snapshot, and bounded history | Implementation slice | Proposed | Drafted | Not started | — |
+| M04E2B | Atomic reported-run coordinator and final M04 harness | Implementation slice | Proposed | Not drafted | Not started | — |
 | M05 | Persistent application shell, navigation, and debug access | Conceptual epic | Approved | Not applicable | Not directly executable | — |
 | M06 | Steam trusted-time adapter and transactional offline resolution | Conceptual epic | Approved | Not applicable | Not directly executable | — |
 | M07 | Dialogue and save-safe tutorial orchestration framework | Conceptual epic | Approved | Not applicable | Not directly executable | — |
@@ -194,8 +198,9 @@ M00 → M01 → M02 → M03
 | M04D1 | M04C Merged and Passed; accepted `DEC-0037` | M04D2 |
 | M04D2 | M04D1 Merged and Passed | M04D3 |
 | M04D3 | M04D2 Merged and Passed | M04E1 planning |
-| M04E1 | M04D3 Merged and Passed; `GATE-FORECAST-CLONE` satisfied | M04E2 planning |
-| M04E2 | M04E1 Merged and Passed; `GATE-REPORT-SCHEMA` satisfied | M05 decomposition and prompt drafting |
+| M04E1 | M04D3 Merged and Passed; `GATE-FORECAST-CLONE` satisfied | M04E2A planning |
+| M04E2A | M04E1 Merged and Passed; `GATE-REPORT-SCHEMA` and scope gate satisfied | M04E2B planning |
+| M04E2B | M04E2A Merged and Passed; atomic-coordinator prompt approved | M05 decomposition and prompt drafting |
 
 ### 7.2 Conceptual dependency sequence after M04E2
 
@@ -251,7 +256,7 @@ M03 demonstrated that a technically coherent architecture can still become an un
 ### 8.3 Changes from the starting hypothesis
 
 - State/time, persistence, and content were correctly separated into M01–M03.
-- M04A through M04D3 are complete. Accepted `DEC-0040` replaces the oversized direct M04E implementation slice with approved M04E1 and M04E2, yielding eight implementation slices in the approved plan.
+- M04A through M04E1 are complete. Accepted `DEC-0040` replaced the oversized direct M04E implementation slice with M04E1 and M04E2. Proposed `DEC-0041` further recalibrates M04E2 into M04E2A and M04E2B after the fresh post-M04E1 scope review; if approved, M04 will contain nine implementation slices.
 - Later first-session outcomes remain conceptually ordered but are decomposed only when their repository state is known.
 - Reports, forecasts, trusted time, and presentation remain incremental rather than becoming catch-all work.
 - M17 remains an acceptance epic and may not absorb unfinished major systems.
@@ -777,7 +782,7 @@ Schema version 1 and its key spelling remain unchanged. New-save calls pass the 
 **Prompt status:** Not applicable — no direct epic prompt  
 **Implementation status:** Not directly executable  
 **Verification status:** —  
-**Decomposition:** M04A → M04B → M04C → M04D1 → M04D2 → M04D3 → M04E1 → M04E2
+**Proposed final decomposition:** M04A → M04B → M04C → M04D1 → M04D2 → M04D3 → M04E1 → M04E2A → M04E2B
 
 #### Purpose
 
@@ -785,11 +790,11 @@ Prove the core idle machinery before narrative and production UI are layered ove
 
 #### Epic outcome
 
-After M04A, M04B, M04C, M04D1, M04D2, M04D3, M04E1, and M04E2 pass, one Gloamwood Reaping led by Man-at-Arms can be constructed, dispatched, advanced deterministically, saved, loaded, recalled, redispatched, forecast on a clone, and reported without claim-gating. Output access, backlog, Essence, Mastery, and configured eligible channels use scene-independent authority.
+After M04A, M04B, M04C, M04D1, M04D2, M04D3, M04E1, M04E2A, and M04E2B pass, one Gloamwood Reaping led by Man-at-Arms can be constructed, dispatched, advanced deterministically, saved, loaded, recalled, redispatched, forecast on a clone, atomically committed into report state, snapshotted into bounded history, and reloaded without claim-gating. Output access, backlog, Essence, Mastery, and configured eligible channels use scene-independent authority.
 
 #### Epic completion rule
 
-M04 is complete only when M04A, M04B, M04C, M04D1, M04D2, M04D3, M04E1, and M04E2 are all Merged and Passed. No `M04-persistent-reaping-simulation.md`, direct `M04D` prompt, or direct `M04E-forecast-report-simulation-harness.md` prompt is valid.
+M04 is complete only when M04A, M04B, M04C, M04D1, M04D2, M04D3, M04E1, M04E2A, and M04E2B are all Merged and Passed. No `M04-persistent-reaping-simulation.md`, direct `M04D` prompt, direct `M04E-forecast-report-simulation-harness.md` prompt, or direct M04E2 prompt is valid under the proposed recalibration.
 
 ---
 
@@ -1366,15 +1371,15 @@ Permit currently valid changed loadouts to redispatch without losing or reinterp
 **Prompt status:** Not applicable — no direct epic prompt  
 **Implementation status:** Not directly executable  
 **Verification status:** —  
-**Approved decomposition:** M04E1 → M04E2
+**Approved/proposed decomposition:** M04E1 → proposed M04E2A → proposed M04E2B
 
 #### Purpose
 
-Complete the non-UI Reaping epic with non-authoritative clone projection and authoritative already-applied reporting while keeping projection and save-schema risk in separate reviewable slices.
+Complete the non-UI Reaping epic with detached projection, save-safe already-applied reporting, and one atomic final harness while keeping projection, report schema, and cross-owner transaction risk reviewable.
 
 #### Completion rule
 
-M04E is complete only when M04E1 and M04E2 are both Merged and Passed. The former direct prompt path `docs/codex/milestone-prompts/M04E-forecast-report-simulation-harness.md` is superseded by the approved decomposition and must not be created or executed.
+M04E1 is Merged/Passed. Under proposed `DEC-0041`, M04E is complete only when M04E2A and M04E2B are also Merged/Passed. No direct M04E implementation prompt is valid.
 
 ---
 
@@ -1384,130 +1389,205 @@ M04E is complete only when M04E1 and M04E2 are both Merged and Passed. The forme
 **Parent epic:** M04 / M04E  
 **Definition status:** Approved  
 **Prompt status:** Approved  
-**Implementation status:** Pull request open (PR #16)
-**Verification status:** Partial; Linux/Codex automated checks pass, corrected Windows owner package pending owner rerun.
+**Implementation status:** Merged  
+**Verification status:** Passed  
 **Recommended Codex task size:** Small-medium; one projection/adapter pull request.  
-**Actual scope:** PR #16 adds one run-service source file, one debug-adapter update, focused unit and integration tests, one fifteen-marker trace, one M04D3-derived owner runner, and documentation synchronization; schema remains v3 and content remains `prototype-content-r2`.
 **Planned prompt file:** `docs/codex/milestone-prompts/M04E1-forecast-clone-resolution-adapters.md`
 
 #### Purpose
 
 Add one non-authoritative forecast seam and one explicit-duration adapter owner while preserving `SimulationEngine` as the only gameplay formula path.
 
-#### Player or developer outcome
+#### Realized scope
 
-A developer can load or build one canonical Gloamwood state, forecast one hour or eight hours on a detached clone, commit the same interval on a separate clone, prove complete state/event equality, run foreground/offline-fixture/debug modes through the same engine, cross Settlement correctly, and prove the baseline save and state remain unchanged.
+- Added `src/simulation/simulation_run_service.gd` with foreground-supplied, offline-fixture, debug, and forecast modes.
+- Added detached current-state projection through the existing `GameState.deep_clone()` and exact `SimulationEngine` result passthrough.
+- Added explicit baseline/result simulation-time fields and projection-only-on-success semantics.
+- Preserved complete core-stream and generic stable-ID channel state/deltas without a forecast whitelist.
+- Routed `M04CDebugAdvance` through `MODE_DEBUG`.
+- Proved forecast/commit, Settlement, mode, chunk, failure, source-ownership, and production-persistence equivalence.
+- Kept schema v3/content r2 and all report, clock, UI, trusted-time, command-replay, and concurrency systems out of scope.
 
-#### Dependencies
+#### Completion record
 
-- M04D3 Merged and Passed.
-- Accepted `DEC-0040`.
-- `GATE-FORECAST-CLONE` satisfied by owner approval of M04E1 v0.2.
-- M04E1 `GATE-SLICE-SCOPE` satisfied within the approved review surface.
+- PR #16 merged on 2026-07-19.
+- Final PR head: `738e89c606dd9f1f9f0396334ea9d8587ff389f3`.
+- Merge commit: `03f05a3d78609a993cecab8b0077e5f7d7d55900`.
+- Final review surface: 14 changed files, 917 additions, and 11 deletions; the slice remained within the approved guardrails.
+- Owner Windows verification passed against the final head:
+  - full suite before and after: `153/153` tests and `2,522` assertions;
+  - focused M04E1: `9/9` tests and `295` assertions across unit and integration directories;
+  - explicit import, all 15 exact trace markers, cleanup, cleanup proof, and artifact audit passed;
+  - failed step count `0`; no interactive checks required.
+- `DEC-0040`, `GATE-FORECAST-CLONE`, and M04E1 `GATE-SLICE-SCOPE` are satisfied.
+
+#### Known risks carried forward
+
+- Low-level committed runs do not yet update authoritative report state.
+- Schema version 3 contains no report cursor or history.
+- Atomic simulation/report commit belongs to M04E2B, not `SimulationRunService`.
+- Current `SimulationEngine` still supports at most one active Reaping.
+
+#### Follow-on dependencies
+
+- Proposed M04E2A.
+
+---
+
+### M04E2 — Report persistence and final M04 closure
+
+**Work item type:** Proposed conceptual sub-epic  
+**Parent epic:** M04 / M04E  
+**Definition status:** Proposed under `DEC-0041`  
+**Prompt status:** Not applicable — no direct prompt  
+**Implementation status:** Not directly executable  
+**Verification status:** —  
+**Proposed decomposition:** M04E2A → M04E2B
+
+#### Recalibration rationale
+
+A single direct M04E2 pull request would combine a new authoritative aggregate, schema migration, retention/idempotency rules, an atomic cross-owner coordinator, and the final harness. The projected review surface is approximately 22–32 non-documentation source/test files and 1,400–2,100 code/test lines, crossing the mandatory split-review threshold.
+
+#### Completion rule
+
+M04E2 is complete only when M04E2A and M04E2B are both Merged/Passed.
+
+---
+
+### M04E2A — Report state, schema-v4 migration, ingestion, snapshot, and bounded history
+
+**Work item type:** Implementation slice  
+**Parent epic:** M04 / M04E / M04E2  
+**Definition status:** Proposed  
+**Prompt status:** Drafted  
+**Implementation status:** Not started  
+**Verification status:** —  
+**Recommended Codex task size:** Medium; one report-state/migration/service pull request.  
+**Planned prompt file:** `docs/codex/milestone-prompts/M04E2A-report-state-schema-history.md`
+
+#### Purpose
+
+Introduce schema-v4 authoritative report state and one `ReportService` that cursor-idempotently aggregates already-applied committed simulation facts, snapshots non-empty live reports into bounded history, and never changes gameplay authority.
+
+#### Dependencies and gates
+
+- M04E1 Merged and Passed.
+- Proposed `DEC-0041` accepted or replaced by an owner-approved equivalent.
+- `GATE-REPORT-SCHEMA` satisfied at prompt approval.
+- M04E2A `GATE-SLICE-SCOPE` satisfied.
 
 #### Included scope
 
-- Add one scene-independent `SimulationRunService`.
-- Add non-persisted mode constants for foreground supplied, offline fixture, debug, and forecast.
-- Commit explicit durations through the current `SimulationEngine` without mode-specific formulas.
-- Deep-clone current authoritative state for forecast and return the detached projected state plus exact engine result.
-- Preserve complete core-stream results and generic stable-ID channel state/deltas without a current-channel or output-kind whitelist.
-- Prove complete canonical forecast/commit equivalence.
-- Prove one-hour, complete eight-hour, resource/Whole-Soul channel passthrough, Settlement, chunking, zero-duration, and failure behavior.
-- Route `M04CDebugAdvance` through the shared run service while preserving its narrow API.
-- Prove that forecasting never writes save bytes, report state, tutorial state, or checkpoints.
-- Keep schema version 3, content revision 2, current one-active-Reaping limit, and production content unchanged.
-- Add focused tests, a fifteen-marker real-file trace, and `run_m04e1_owner_verification.ps1`.
+- Add typed `ReportState`, `ReportAccumulatorState`, `ReportRecord`, Threshold/channel summaries, and bounded report-event records to `GameState`.
+- Add complete cloning, copy, domain validation, schema mapping/validation, and current-v4 persistence.
+- Add the sequential production `v3 -> v4` migration and preserve `v1 -> v2 -> v3 -> v4` support.
+- Initialize migrated report cursors to the source simulation cursor without reconstructing historical reports.
+- Add one scene-independent `ReportService`.
+- Ingest successful committed simulation intervals exactly once through the report cursor.
+- Treat wholly covered delivery as an idempotent duplicate even after later state advancement; reject gaps and partial overlaps.
+- Reject forecasts, failed/malformed results, projections, state/result cursor mismatches, and overflow without mutation.
+- Aggregate exact Threshold, Essence, Form Mastery, cycle, channel-progress/banking, and reportable-event facts.
+- Bound history at 20 records and recent event detail at 64 while preserving compaction counters and exact event-type counts.
+- Snapshot only when the report cursor equals the gameplay cursor and live content is non-empty; use an expected-sequence guard and clear live only after archive creation.
+- Add focused unit/integration tests, a real-file trace, and a final-pattern Windows owner runner.
+- Update canonical governance and contract documents.
 
 #### Explicit non-goals
 
-- Report accumulator or report history.
-- Schema version 4 or any migration.
-- Hypothetical command replay or a generic command scripting framework.
-- Player-facing forecast/report UI.
-- Trusted-time acquisition, monotonic-clock sampling, Steam, or application lifecycle.
-- Concurrent Reapings, Halls, milestones, tutorial, support, progression purchases, or new modifier sources.
-- M04E2 implementation.
+- Atomic simulation-plus-report live commit; M04E2B owns it.
+- Final M04 harness; M04E2B owns it.
+- Report UI, open/dismiss presentation, welcome-back flow, or claim buttons.
+- Standalone destructive report clear or history deletion.
+- Command/progression/Hall/support/service report ingestion.
+- Tutorial, milestones, guarantees, Halls, Retinues, support, trusted time, Steam, clocks, scenes, or concurrency.
+- Generic arbitrary event-payload persistence.
+- Content revision 3 or production balance changes.
 
 #### Acceptance criteria
 
-- Forecast baseline remains canonically unchanged and shares no mutable nested state with the projection.
-- Forecast and committed-clone results are canonically equal for the same duration.
-- Foreground-supplied, offline-fixture, and debug modes produce the same committed state and engine result.
-- One-hour exact fixture produces 4,140 returns, 360 Essence, 60,000,000 Mastery subunits, 60 cycles, 12 Soldier Souls, and 125,000 Scribe progress.
-- Eight-hour exact fixture produces 33,120 Returned Souls, 2,880 Essence, 480,000,000 Mastery subunits, 480 cycles, 96 Soldier Souls, and one Scribe Form Soul with zero remainder.
-- Forecast includes every initialized, eligible engine-supported Threshold channel through generic stable-ID state/deltas, and a resource-channel fixture proves the adapter is not Soul-channel-specific.
-- A future channel kind requires deterministic support in `SimulationEngine`, not a forecast-service formula branch.
-- Settlement boundary results, event order, and deltas match between forecast and commit.
-- One-shot and chunked calls are canonically equal.
-- Zero-duration and every failure preserve the supplied baseline.
-- Forecast creates no save, report, tutorial, progression, checkpoint, clock, scene, platform, or file-time side effect.
-- Schema v3/content r2 remain unchanged and no run/projection artifact serializes.
+- Schema version 4 and codec `JSON_V1` are current; content remains r2.
+- Version-3 migration adds canonical empty report state at the existing simulation cursor and changes no prior gameplay fact.
+- Sequential v1/v2/v3 upgrades reach v4; current v4 loads without rewrite.
+- Report state deep-clones and validates without mutable aliasing.
+- Successful positive contiguous committed intervals aggregate exactly once.
+- Zero and wholly covered intervals are unchanged successes.
+- Gap, overlap, forecast, projection, failed, malformed, state-mismatch, and overflow cases reject with complete no mutation.
+- Exact one-hour report values match the approved M04E1 fixture.
+- Progress-only channel change is retained even without whole banking.
+- Snapshot sequence, live reset, history append, pruning, and checkpoint semantics are exact.
+- Snapshot/duplicate/failure paths change no inventory, backlog, Mastery, channel progress, assignment, lifecycle, or simulation time.
+- Event detail/count compaction is bounded and deterministic.
+- Report data round-trips through production persistence and no unsupported runtime object serializes.
+- No report formula duplicates `SimulationEngine`.
 
 #### Automated verification
 
-- Focused forecast/run-service unit matrix.
-- Integration equality and isolated-save-byte tests.
-- Fifteen-marker real-file trace.
-- Negative-root trace behavior, import, full regression, source audit, and artifact audit.
+- Unit report-state/clone/validation matrices.
+- Unit ingestion, duplicate/gap/overlap/forecast/failure/overflow matrices.
+- Unit snapshot/sequence/retention/event-compaction matrices.
+- Integration migration, current-v4 no-rewrite, failure preservation, and production save/load matrices.
+- Fourteen-marker real-file trace and full regression.
+- Source-ownership audit.
 
 #### Manual verification
 
-- Owner runs one generated M04E1 Windows PowerShell package against the exact PR head.
+- Owner runs one generated M04E2A Windows PowerShell package against the exact PR head.
 - No editor, visual, gameplay, audio, A/B, or Steam checklist is required.
 
 #### Save/load expectations
 
-Forecasts do not save. A state loaded from schema version 3 may be forecast, but baseline save bytes remain unchanged. Run modes, projected states, engine results, segments, events, and comparison data never serialize.
+Version 4 persists report cursor, live accumulator, bounded immutable history, sequence counters, and compaction counters. Raw engine results, forecast projections, report-service results, and arbitrary event payloads do not serialize.
+
+#### Known risks
+
+- Accidentally re-deriving production in `ReportService`.
+- Treating partial overlap as a safely sliceable result.
+- Setting migrated cursor to zero and retroactively duplicating old output.
+- Making history or event detail unbounded.
+- Enforcing cursor equality globally and breaking valid low-level run candidates.
+- Clearing live before the record is safely represented in the candidate.
 
 #### Follow-on dependencies
 
-- M04E2 planning and `GATE-REPORT-SCHEMA`.
+- M04E2B.
 
 ---
 
-### M04E2 — Report accumulator, history, persistence, and final M04 harness
+### M04E2B — Atomic reported-run coordinator and final M04 harness
 
 **Work item type:** Implementation slice  
-**Parent epic:** M04 / M04E  
-**Definition status:** Approved  
+**Parent epic:** M04 / M04E / M04E2  
+**Definition status:** Proposed  
 **Prompt status:** Not drafted  
 **Implementation status:** Not started  
 **Verification status:** —  
-**Recommended Codex task size:** Medium; one report-state/migration/harness pull request after a fresh scope review.  
-**Planned prompt file:** `docs/codex/milestone-prompts/M04E2-report-accumulator-history-harness.md`
+**Recommended Codex task size:** Small-medium; one transaction-coordinator/harness pull request.  
+**Planned prompt file:** `docs/codex/milestone-prompts/M04E2B-atomic-reported-run-final-m04-harness.md`
 
 #### Purpose
 
-Add save-safe already-applied report accumulation and bounded history, then close M04 with one deterministic non-UI forecast/commit/report demonstration.
+Make the application-level supplied-duration path commit gameplay and report ingestion as one candidate transaction, then close M04 with one deterministic non-UI forecast/commit/report/save-load harness.
 
 #### Dependencies
 
-- M04E1 Merged and Passed.
-- `GATE-REPORT-SCHEMA` satisfied by a new owner-approved decision.
-- Fresh `GATE-SLICE-SCOPE` assessment.
+- M04E2A Merged and Passed.
+- Fresh prompt and scope approval.
 
 #### Preliminary included scope
 
-- Add `ReportService` as the sole accumulator/history owner.
-- Ingest committed simulation deltas/events exactly once; reject forecast ingestion.
-- Snapshot the live accumulator into bounded history and clear only the live presentation accumulator.
-- Add the approved sequential schema migration and persistence fixtures.
-- Prove inventory and gameplay gains exist before report inspection and remain unchanged by snapshot/clear.
-- Add the final M04 developer harness and owner package.
-
-#### Required planning decisions before prompt drafting
-
-- exact report-state field contract;
-- schema version and sequential migration;
-- ingestion/idempotency identity;
-- history retention bound and ordering;
-- atomicity between gameplay commit and report ingestion;
-- behavior for retries, load recovery, and duplicate result delivery.
+- Add one narrow `SimulationReportCoordinator` using the existing `SimulationRunService` and `ReportService`.
+- Deep-clone, simulate, ingest, validate, and copy live state once.
+- Return the exact run result, report result, and one checkpoint request.
+- Reject forecast mode and preserve both gameplay/report state on every failure.
+- Prove retry safety and gap detection.
+- Compare M04E1 forecast gameplay with an equivalent atomic reported commit.
+- Snapshot sequence 1, prove gains preexist report inspection, and round-trip through schema v4.
+- Add the final M04 developer harness, trace, and owner package.
 
 #### Explicit non-goals
 
-- Report UI, welcome-back presentation, tutorial, narrative, claim buttons, trusted time, Steam, concurrent Reapings, Halls, or milestones.
+- Any new report field or migration.
+- Report UI, trusted time, tutorial, progression, Halls, support, concurrent Reapings, or platform behavior.
 
 #### Follow-on dependencies
 

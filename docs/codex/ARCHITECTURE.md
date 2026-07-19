@@ -3,7 +3,7 @@
 **Document role:** Maintained implementation architecture for the 0-90 minute prototype  
 **Repository path:** `docs/codex/ARCHITECTURE.md`  
 **Document status:** Approved architecture  
-**Architecture revision:** 18  
+**Architecture revision:** 19  
 **Last updated:** 2026-07-19  
 **Engine target:** Godot 4.7, GDScript only  
 **Primary design context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md) and [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md)
@@ -77,7 +77,7 @@ GameApp (persistent root scene and Godot lifecycle owner)
         |      |      live, offline, forecast, and debug modes
         |      +--> TutorialCoordinator
         |      |      observes state and requests domain actions
-        |      +--> ReportService / ForecastService
+        |      +--> ReportService / SimulationRunService
         |      +--> SaveService
         |      +--> MonotonicClock / TrustedTimeProvider adapters
         |
@@ -1721,138 +1721,212 @@ The realized boundary includes:
 
 Final Windows evidence passed `144/144` full tests with `2,222` assertions before and after the trace, `18/18` focused M04D3 tests with `254` assertions, all sixteen markers, import, cleanup, cleanup proof, and artifact audit with zero failed steps.
 
-## Approved M04E decomposition
+## Realized M04E1 forecast and supplied-resolution boundary
 
-M04E originally combined clone forecasting, mode adapters, authoritative report state, report persistence, and the final M04 developer harness. Under `DEC-0033`, those concerns now cross too many independent review domains for one implementation pull request.
+M04E1 merged through PR #16 from final head `738e89c606dd9f1f9f0396334ea9d8587ff389f3` at merge commit `03f05a3d78609a993cecab8b0077e5f7d7d55900`.
 
-Accepted `DEC-0040` decomposes M04E into:
+The realized implementation lives at `src/simulation/simulation_run_service.gd` and preserves the accepted `DEC-0040` boundary:
 
-```text
-M04E1 — Forecast clone and supplied-resolution adapters
-M04E2 — Report accumulator, history, persistence, and final M04 harness
-```
+- `SimulationEngine` remains the sole gameplay formula and mutation owner;
+- `SimulationRunService` owns only explicit-duration mode metadata and detached projection;
+- committed foreground-supplied, offline-fixture, and debug modes call the same resolver;
+- forecast validates, deep-clones, and calls that resolver on the clone;
+- the public run result contains baseline/result simulation cursors, the exact engine result, and a projected state only for successful forecasts;
+- core streams and every initialized eligible engine-supported Threshold channel flow through generically;
+- production persistence proves forecasts leave source save bytes unchanged;
+- schema version 3 and content revision `prototype-content-r2` remain current;
+- no report, clock, scene, platform, tutorial, checkpoint, or hypothetical-command authority entered the adapter.
 
-M04E becomes a conceptual sub-epic and receives no direct implementation prompt.
+Final owner Windows evidence passed `153/153` full tests and `2,522` assertions before and after the trace, `9/9` focused M04E1 tests and `295` assertions, explicit import, all fifteen markers, cleanup, cleanup proof, and artifact audit with zero failed steps.
 
-## Approved M04E1 forecast and supplied-resolution boundary
+## Proposed M04E2 recalibration
 
-This boundary is authoritative under accepted `DEC-0040` and approved M04E1 prompt v0.2.
+The fresh post-M04E1 review finds that the currently approved direct M04E2 slice still combines two independently risky transitions:
 
-### One adapter owner, one formula owner
+1. a new authoritative report aggregate, schema version 4, sequential migration, retention, ordering, and idempotent ingestion;
+2. an atomic committed-run/report coordinator plus the final M04 forecast/commit/report harness.
 
-Add one scene-independent `SimulationRunService` as the adapter owner for explicit-duration execution modes.
-
-`SimulationEngine` remains the sole owner of production formulas, lifecycle segmentation, fixed-point accumulation, inventory banking, and event ordering. `SimulationRunService` does not reproduce formulas, inspect channel definitions independently, or add mode-specific balance branches.
-
-The run modes are non-persisted metadata:
-
-```text
-FOREGROUND_SUPPLIED
-OFFLINE_FIXTURE
-DEBUG
-FORECAST
-```
-
-The first three commit through the same `SimulationEngine.resolve_elapsed()` path. `FORECAST` deep-clones the supplied baseline and invokes that same method on the clone.
-
-### Forecast contract
-
-For a current-state forecast:
+Implementing both in one pull request is likely to cross the normal post-M03 review surface. Proposed `DEC-0041` therefore recalibrates M04E2 into:
 
 ```text
-validate baseline
-    -> deep-clone baseline
-    -> resolve explicit elapsed on clone through SimulationEngine
-    -> return detached projected state plus the exact SimulationResult
+M04E2A — Report state, schema-v4 migration, ingestion, snapshot, and bounded history
+M04E2B — Atomic reported-run coordinator and final M04 harness
 ```
 
-A forecast:
+M04E2 becomes a conceptual sub-epic and receives no direct implementation prompt. M04E closes only after M04E1, M04E2A, and M04E2B are all Merged and Passed.
 
-- never mutates the baseline or shares mutable nested state with it;
-- never writes a save or requests a checkpoint;
-- never appends report state;
-- never changes tutorial, presentation, or trusted-time state;
-- never reads a clock, scene tree, file timestamp, platform API, or user input;
-- preserves the same content, access, rate-plan, lifecycle, and event semantics as a committed run;
-- returns no projected state on failure.
+This recalibration is proposed, not authoritative, until the owner approves `DEC-0041` and the M04E2A prompt.
 
-M04E1 forecasts the current authoritative configuration only. Applying a hypothetical player command to a clone is a later consumer of the same seam and is not implemented in this slice.
+## Proposed M04E2A report-state boundary
 
-### Generic stream and channel coverage
+### One report owner
 
-`SimulationRunService` is deliberately channel-kind agnostic. It passes the complete baseline to `SimulationEngine` and returns the complete projected state plus the exact engine result; it does not enumerate current channel IDs, output items, or output kinds.
+Add one scene-independent `ReportService` as the sole owner of report accumulation, idempotent simulation-result ingestion, live snapshotting, and history retention.
 
-The current forecast therefore includes:
+`ReportService`:
 
-- Returned Souls, backlog, Essence, Mastery, cycle progress, and lifecycle changes owned by the core resolver;
-- every initialized, eligible non-Essence Threshold channel currently supported by the engine;
-- exact projected progress, carry, and banked totals for initialized channels even when the horizon crosses no whole-unit boundary.
+- reads a successful committed `SimulationRunResult` and the already-mutated candidate `GameState`;
+- mutates report state only;
+- never applies inventory, backlog, Mastery, channel progress, lifecycle, or simulation-time gains;
+- never invokes `SimulationEngine`, `SimulationRunService`, persistence, clocks, scenes, tutorial, or platform APIs;
+- never ingests `FORECAST` results;
+- never treats report interaction as a claim or reward command.
 
-The complete projected `ThresholdState.channel_acquisition` map is the authoritative projection surface. Generic segment and summary channel deltas remain stable-ID-keyed evidence of changes. Access-locked or uninitialized channels still produce nothing and are not backfilled.
+`SimulationEngine` continues to emit the exact summaries, channel deltas, and ordered events. `ReportService` aggregates those facts; it does not derive production again.
 
-When a future Threshold channel kind gains normalized content/state and deterministic support in `SimulationEngine`, it automatically participates in forecast through these generic collections. Only the simulation owner changes; the forecast adapter must not gain a type-specific formula or whitelist. Unsupported channel mechanics fail through the engine's typed result rather than being guessed.
+### Authoritative report state
 
-### Run result
-
-A bounded `SimulationRunResult` contains at least:
+Schema version 4 adds one `ReportState` to `GameState`:
 
 ```text
-success
-error_code
-developer_details
-mode
-requested_elapsed_msec
-baseline_simulation_time_msec
-result_simulation_time_msec
-simulation_result
-projected_state        # FORECAST only; null for committed modes
+ReportState
+  ingested_through_simulation_msec
+  next_report_sequence
+  next_event_sequence
+  dropped_history_count
+  live: ReportAccumulatorState
+  history: Array[ReportRecord]
 ```
 
-The projected state is mutable only as a detached caller-owned clone. It is never authoritative until a separate approved command explicitly commits equivalent state; M04E1 adds no such command.
-
-### Mode equivalence
-
-For the same canonical baseline and elapsed duration:
+The live accumulator stores:
 
 ```text
-FOREGROUND_SUPPLIED committed result
-OFFLINE_FIXTURE committed result
-DEBUG committed result
-FORECAST projected result
+window_started_simulation_msec
+window_ended_simulation_msec
+ingested_run_count
+essence_gained
+mastery_gained_subunits_by_form
+threshold_summaries
+channel_summaries
+event_type_counts
+recent_events
+omitted_event_count
 ```
 
-must produce canonically equal resulting gameplay state and equal engine deltas/events, apart from wrapper mode metadata and whether the result was committed to the supplied object.
+Threshold and channel summaries are typed stable-ID records. Report events retain stable event identity, simulation time, priority, subject, and source. The current report schema does not blindly serialize arbitrary `SimulationEvent.payload`; quantities required by the prototype report are represented by typed threshold/channel aggregates.
 
-The realized M04E1 implementation lives at `src/simulation/simulation_run_service.gd`. The existing `M04CDebugAdvance` delegates through `SimulationRunService.MODE_DEBUG` while preserving its narrow developer API. Current consumers are the focused M04E1 tests, the M04E1 forecast trace, and the debug adapter; M05 and M06 may later call the same committed seam after their own monotonic or trusted-time owners derive an elapsed duration.
+### Cursor-idempotent ingestion
 
-### Persistence boundary
-
-M04E1 adds no authoritative state and no migration:
+Simulation-result ingestion is identified by the explicit half-open simulation interval:
 
 ```text
-save schema = 3
-content revision = prototype-content-r2
+[baseline_simulation_time_msec, result_simulation_time_msec]
 ```
 
-Forecast results, modes, projected states, engine results, segments, events, rate plans, and comparison data are not serialized. A real-file trace may load a schema-v3 fixture and prove that forecasting leaves the source save bytes unchanged, but the forecast service itself never receives a storage dependency.
+For every candidate result, mode, success, projection, interval ordering, requested elapsed, and committed elapsed are validated first. Interval relation is then evaluated against `report_state.ingested_through_simulation_msec`.
 
-## Approved M04E2 planning boundary
+For a newly ingestible positive interval:
 
-M04E2 is approved as the second decomposition slice but is deliberately not prompted in this planning cycle.
+```text
+run baseline == report_state.ingested_through_simulation_msec
+state.simulation_time_msec == result_simulation_time_msec
+committed elapsed == result - baseline
+```
 
-It will own:
+Then `ReportService` aggregates the exact result and advances `ingested_through_simulation_msec` once. A wholly covered duplicate may be delivered after the state has advanced further; it requires only that the current state/report cursors are valid and does not require `state.simulation_time_msec` to equal the historical result end.
 
-- a `ReportService` and authoritative live report accumulator;
-- bounded report-history snapshots;
-- ingestion of already-committed simulation deltas/events only;
-- snapshot/clear behavior that changes no gameplay gains;
-- exactly-once or idempotent ingestion across save/load and retries;
-- the final non-UI M04 demonstration harness.
+Rules:
 
-Because current `GameState` and schema version 3 contain no report authority, M04E2 requires a separate `GATE-REPORT-SCHEMA` decision covering schema versioning, migration, retention bounds, ordering, and ingestion identity before its prompt may be drafted.
+- zero-duration successful committed runs are idempotent no-ops;
+- an interval wholly covered by the cursor is an idempotent duplicate no-op;
+- a partial overlap, forward gap, malformed interval, failed run, forecast mode, projection-bearing result, or state/result cursor mismatch rejects without mutation;
+- report cursor advancement is persisted even when a positive interval produced no reportable gains, preventing later replay;
+- ordinary duplicate delivery never increments totals, event sequences, or history.
 
-Forecast results are never ingested into report state. Reports observe committed gains; they never claim, delay, grant, or reverse inventory.
+This cursor identity is specific to committed simulation intervals. Later command, progression, Hall, support, or service-report sources require their own explicit stable ingestion identity rather than overloading this cursor.
+
+### Aggregation and bounds
+
+Current exact aggregates include:
+
+- Returned Souls and positive backlog reduction per Threshold;
+- Essence gained globally;
+- Mastery gained per Form;
+- completed cycles and lifecycle start/end per Threshold;
+- whole banked output plus progress/carry/total-banked start/end per Threshold/channel;
+- exact reportable-event counts by event type;
+- a bounded recent ordered event list.
+
+Prototype bounds are centralized constants:
+
+```text
+REPORT_HISTORY_LIMIT = 20
+REPORT_RECENT_EVENT_LIMIT = 64
+```
+
+When recent events exceed the bound, the oldest event detail is removed and `omitted_event_count` increases, while exact event-type counts remain. When history exceeds its bound, the oldest record is removed and `dropped_history_count` increases. Ordinary report volume never blocks gameplay production.
+
+### Snapshot lifecycle
+
+The only M04E2A operation that clears the live accumulator is `snapshot_live(...)`. Snapshotting first requires `report_state.ingested_through_simulation_msec == GameState.simulation_time_msec`; an unreported gap rejects without mutation.
+
+```text
+validate complete report cursor
+  -> validate expected next report sequence
+  -> deep-copy the non-empty live accumulator into immutable ReportRecord
+  -> assign the next sequence and current snapshot cursor
+  -> append in sequence order
+  -> reset live at the current report cursor
+  -> prune oldest history beyond the bound
+  -> request one save checkpoint
+```
+
+An empty live accumulator returns an idempotent success/no-op: no history record, sequence change, gameplay change, or checkpoint request.
+
+M04E2A adds no standalone destructive report-clear or history-delete command. Dismissing an archived report is presentation state. Snapshotting never changes inventory, backlog, Mastery, acquisition progress, assignments, lifecycle, or simulation time.
+
+### Schema version 4
+
+M04E2A advances the save schema to version 4 while retaining codec `JSON_V1` and content revision `prototype-content-r2`.
+
+The sequential `v3 -> v4` migration:
+
+- validates the complete version-3 source;
+- deep-copies the primitive snapshot;
+- adds canonical empty report state;
+- initializes report and live-window cursors to the source `game_state.simulation_time_msec`;
+- starts report/event sequences at `1`;
+- creates no history and fabricates no past report;
+- changes no gameplay, content, time-authority, metadata, offline-ID, or save-revision value in the pure transform;
+- participates in the existing atomic persisted-upgrade flow.
+
+Initializing the report cursor at the existing simulation cursor is deliberate: version-3 saves contain no evidence from which historical reports can be reconstructed safely, and no pre-migration output may be re-ingested retroactively.
+
+### Direct run-service boundary
+
+`SimulationRunService.run_committed()` remains the low-level explicit-duration seam and continues to work for focused equivalence tests. Report completeness is not enforced by `SimulationEngine` or `GameStateValidator`; report cursor may validly trail `GameState.simulation_time_msec` in a working candidate.
+
+After M04E2B, the application-level authoritative run path must use the atomic coordinator rather than calling the low-level committed seam directly. A gap then fails visibly instead of being silently ignored.
+
+## Proposed M04E2B atomic coordinator boundary
+
+M04E2B will add one narrow `SimulationReportCoordinator`. It is an orchestration boundary, not a second gameplay or report formula owner.
+
+For one authoritative supplied-duration run:
+
+```text
+deep-clone live GameState
+  -> SimulationRunService.run_committed(candidate, elapsed, committed mode)
+  -> ReportService.ingest_committed_run(candidate, run result)
+  -> validate complete candidate
+  -> copy candidate to live state once
+  -> request one persistence checkpoint
+```
+
+Any simulation, report, validation, overflow, or stale-cursor failure leaves both gameplay and report state unchanged. Retrying the same operation from the unchanged baseline is safe.
+
+M04E2B also owns the final non-UI M04 harness:
+
+- forecast one hour from a canonical baseline;
+- atomically commit/report one hour from an equivalent baseline;
+- prove all non-report gameplay state and exact engine results match;
+- prove gains exist before report snapshot;
+- snapshot report sequence 1;
+- prove snapshot changes no gameplay authority;
+- save/load schema version 4 and reconstruct the archived report.
+
+M04E2B adds no new schema fields and receives no prompt until M04E2A is Merged/Passed.
 
 ## Later systems
 
-M05 supplies application lifetime and debug access. M06 supplies trusted closed-session elapsed time. M10 and M16 consume report and forecast foundations for player-facing flows. M12 replaces the current one-active-Reaping limit through its separately approved concurrency slice. None of those systems changes the M04E1 one-engine rule.
+M05 supplies application lifetime and makes the reported-run coordinator the normal foreground path. M06 supplies trusted closed-session elapsed time to that same path. M10 and M16 consume authoritative report records for player-facing flows. M12 replaces the current one-active-Reaping limit. Later progression, Hall, support, and service systems append report facts only through explicit stable source identities; none changes the no-claim rule.

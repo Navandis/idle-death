@@ -2,8 +2,8 @@
 
 **Document role:** Canonical test strategy, commands, fixture rules, and manual validation flows
 **Repository path:** `docs/codex/TESTING_AND_VALIDATION.md`
-**Document status:** Approved validation plan through M04D3 with M04E1 approved
-**Validation revision:** 24
+**Document status:** Approved validation plan through M04E1 with M04E2A draft
+**Validation revision:** 25
 **Last updated:** 2026-07-19
 **Engine target:** Godot 4.7 standard build, GDScript only
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)  
@@ -45,6 +45,8 @@ M04D1 merged through PR #13 at merge commit `4569fbfb968deb73f54ba453834dd7af0b0
 M04D2 merged through PR #14 at merge commit `24228a078199d9728eb57e4e26c27447aa6911a3` from final head `96f4db53b2513a8ab6182c074113efe72d5fd968`. Strict initialized-source accumulation, content revision 2, whole banking, source history, exact Settlement segmentation, deterministic banking events, schema-v3 persistence, the fourteen-marker trace, and owner Windows verification passed. Accepted `DEC-0039` and approved M04D3 v0.2 define assembly-time loadout validation, distinct equal-output loadout identity, supported residual continuity, baseline-derived modifiers, exact/current-context ETA, and readable ETA presentation.
 
 M04D3 merged through PR #15 at merge commit `9fd8f98e3787f711f3d03c9de03d3615d531216a` from final head `5a5cafc6b640001fba86c7ea9531ae9daf43fcc3`. Linux/Codex focused coverage passed `35/35` tests and `592` assertions. Owner Windows verification passed the full suite before and after (`144/144`, `2,222` assertions), focused M04D3 (`18/18`, `254` assertions), import, all sixteen markers, cleanup, cleanup proof, and artifact audit with zero failed steps. Accepted `DEC-0040` decomposes M04E into approved forecast-only M04E1 and report-state M04E2.
+
+M04E1 merged through PR #16 at merge commit `03f05a3d78609a993cecab8b0077e5f7d7d55900` from final head `738e89c606dd9f1f9f0396334ea9d8587ff389f3`. Owner Windows verification passed the full suite before and after (`153/153`, `2,522` assertions), focused M04E1 (`9/9`, `295` assertions), explicit import, all fifteen markers, cleanup, cleanup proof, and artifact audit with zero failed steps. Proposed `DEC-0041` recalibrates report work into M04E2A state/migration/service and M04E2B atomic integration/harness.
 
 ## 2. Pinned test and platform dependencies
 
@@ -2010,92 +2012,50 @@ TRACE M04D3 no_clock_or_later_slice_sources=PASS
 
 `DEC-0039`, `GATE-RATE-CONTEXT-CHANGE`, and M04D3 `GATE-SLICE-SCOPE` are satisfied.
 
-## 27. M04E1 approved forecast-clone validation package
+## 27. M04E1 completed forecast-clone validation package
 
-The M04E1 package is approved under accepted `DEC-0040`. Every duration is explicit; tests never wait for real time. PR #16 currently provides `tests/unit/m04e1/test_simulation_run_service.gd`, `tests/integration/m04e1/test_simulation_run_service_persistence.gd`, `tools/test/m04e1/m04e1_forecast_trace.gd`, and a corrected M04D3-derived owner runner. Linux/Codex verification includes a fresh `.godot` cache removal to prove wrapper import/class registration before focused execution.
+M04E1 merged through PR #16 from final head `738e89c606dd9f1f9f0396334ea9d8587ff389f3` at merge commit `03f05a3d78609a993cecab8b0077e5f7d7d55900`.
 
-### 27.1 Focused Linux/Codex commands
+### 27.1 Final evidence
 
-```bash
-./tools/test/run_gut.sh -- \
-  -gdir=res://tests/unit/m04e1 \
-  -gdir=res://tests/integration/m04e1
-
-godot --headless --path . --import
-
-trace_root="$(mktemp -d)"
-godot --headless --path . \
-  -s res://tools/test/m04e1/m04e1_forecast_trace.gd \
-  -- --save-root "$trace_root"
-trace_exit=$?
-rm -rf "$trace_root"
-test ! -e "$trace_root"
-test "$trace_exit" -eq 0
-
-# Missing root must fail.
-godot --headless --path . \
-  -s res://tools/test/m04e1/m04e1_forecast_trace.gd
-test "$?" -ne 0
-
-./tools/test/run_gut.sh
-git diff --check
+```text
+Windows full GUT before: 153/153 tests, 2522 assertions
+Windows focused M04E1: 9/9 tests, 295 assertions
+Import: PASS
+Trace markers: 15/15
+Cleanup: PASS
+Cleanup proof: PASS
+Artifact audit: PASS
+Windows full GUT after: 153/153 tests, 2522 assertions
+Failed step count: 0
+Automated result: PASS
 ```
 
-### 27.2 Required focused groups
+No interactive checklist was required.
 
-1. M04D3 merged baseline, schema v3, and content r2;
-2. bounded run-mode and result contracts;
-3. forecast baseline canonical non-mutation;
-4. nested projection/baseline detachment in both directions;
-5. one-hour exact projection fixture;
-6. eight-hour exact projection fixture;
+### 27.2 Completed groups
+
+The final package verifies:
+
+1. fresh-cache global-class registration through canonical import;
+2. bounded run modes and complete public result fields;
+3. forecast baseline non-mutation;
+4. complete bidirectional clone detachment;
+5. one-hour exact core/channel fixture;
+6. eight-hour exact core/channel fixture;
 7. forecast versus separately committed clone canonical equality;
-8. exact Settlement-boundary equality and event ordering;
-9. foreground-supplied/offline-fixture/debug committed-mode equality;
-10. debug adapter delegation through the shared run service;
-11. one-shot versus regular and irregular chunk equality;
-12. zero-duration detached projection and committed behavior;
-13. negative duration, invalid state, overflow, unsupported flow/Retinue/concurrency failure passthrough with no mutation;
-14. exact engine summary, segment, channel-delta, and event preservation;
-15. M04D3 rate-plan and access semantics retained in forecast;
-16. complete core-stream coverage in one-hour and eight-hour summaries;
-17. generic channel passthrough for every initialized eligible engine-supported channel, including a Broken Watch `RESOURCE` fixture;
-18. production persistence load followed by forecast with unchanged source save bytes;
-19. absence of run mode, projection, result, event, report, and comparison artifacts from schema v3;
-20. no clock, scene, storage, report, tutorial, platform, channel whitelist, alternate formula, or later-slice ownership.
+8. Settlement-boundary state/event equality;
+9. foreground/offline-fixture/debug mode equality;
+10. debug adapter delegation;
+11. regular/irregular chunk equality;
+12. zero-duration and failure/no-mutation behavior;
+13. exact engine summary/segments/deltas/events;
+14. generic Broken Watch resource/Whole-Soul channel passthrough;
+15. production persistence load and unchanged source save bytes;
+16. schema-v3 exclusion of run/projection/result/report artifacts;
+17. no clock, scene, platform, report, tutorial, checkpoint, or alternate-formula ownership.
 
-### 27.3 Exact fixtures
-
-One-hour copied Gloamwood fixture:
-
-```text
-elapsed_msec = 3600000
-returned_souls_delta = 4140
-Essence_delta = 360
-Mastery_delta_subunits = 60000000
-completed_cycles_delta = 60
-Soldier Souls banked = 12
-Scribe Form-Soul progress = 125000
-```
-
-Eight-hour copied complete forecast fixture:
-
-```text
-elapsed_msec = 28800000
-returned_souls_delta = 33120
-Essence_delta = 2880
-Mastery_delta_subunits = 480000000
-completed_cycles_delta = 480
-Soldier Souls banked = 96
-Scribe Form Souls banked = 1
-Scribe progress remainder = 0
-```
-
-A separate Broken Watch fixture initializes its Provisions `RESOURCE` channel and Whole-Soul channel, then proves both flow through generic projected state, deltas, and events without a type-specific branch in `SimulationRunService`.
-
-A separate low-backlog fixture crosses the exact M04C Settlement boundary and compares complete projected/committed state, segments, and events.
-
-### 27.4 Required trace markers
+### 27.3 Final trace markers
 
 ```text
 TRACE M04E1 forecast_1h_returns=4140_essence=360_mastery=60000000_cycles=60_soldier=12_scribe_progress=125000
@@ -2115,33 +2075,139 @@ TRACE M04E1 no_report_tutorial_or_checkpoint_side_effects=PASS
 TRACE M04E1 no_clock_scene_platform_or_duplicate_rules=PASS
 ```
 
-The trace requires explicit nonblank isolated `--save-root`, rejects `user://`, uses production persistence through `SaveService`, `FileSaveStorage`, `SaveFileSet`, and `GameStatePersistenceCoordinator` inside the supplied root, leaves deletion to the owner runner, asserts the corrected `SimulationRunResult` field names/time values, and exits nonzero on any mismatch.
+`DEC-0040`, `GATE-FORECAST-CLONE`, and M04E1 `GATE-SLICE-SCOPE` are satisfied.
 
-### 27.5 Owner Windows package
+## 28. M04E2A draft report-state/schema/history validation package
+
+This package is proposed under `DEC-0041`. It is not executable until the owner approves the decision, recalibration, and prompt.
+
+### 28.1 Focused Linux/Codex commands
+
+```bash
+./tools/test/run_gut.sh -- \
+  -gdir=res://tests/unit/m04e2a \
+  -gdir=res://tests/integration/m04e2a
+
+godot --headless --path . --import
+
+trace_root="$(mktemp -d)"
+godot --headless --path . \
+  -s res://tools/test/m04e2a/m04e2a_report_state_trace.gd \
+  -- --save-root "$trace_root"
+trace_exit=$?
+rm -rf "$trace_root"
+test ! -e "$trace_root"
+test "$trace_exit" -eq 0
+
+# Missing root must fail.
+godot --headless --path . \
+  -s res://tools/test/m04e2a/m04e2a_report_state_trace.gd
+test "$?" -ne 0
+
+./tools/test/run_gut.sh
+git diff --check
+git status --short
+```
+
+### 28.2 Required focused groups
+
+1. M04E1 Merged/Passed baseline, schema v3, and content r2;
+2. complete typed report-state construction, deep clone, and copy isolation;
+3. report-state domain/content validation matrix;
+4. schema-v4 primitive mapping and current writer;
+5. frozen v3 validation and pure `v3 -> v4` migration;
+6. sequential `v1 -> v2 -> v3 -> v4` upgrade;
+7. migration cursor/window initialization at the source simulation cursor;
+8. migration no-history/no-retroactive-report/no-gameplay-change proof;
+9. current-v4 load no rewrite/rotation;
+10. migration/mapping/validation/write-failure preservation;
+11. successful positive contiguous committed-run ingestion;
+12. exact one-hour Threshold/Essence/Mastery/cycle/channel aggregate fixture;
+13. progress-only channel summary without whole banking;
+14. multiple contiguous runs merge first-start/latest-end values correctly;
+15. zero-duration no-op;
+16. wholly covered duplicate delivery idempotency, including delivery after later state advancement;
+17. partial overlap rejection;
+18. forward-gap rejection;
+19. forecast, projected, failed, malformed, and state/result mismatch rejection;
+20. checked overflow and sequence-overflow no-mutation matrix;
+21. reportable versus non-reportable event handling;
+22. canonical event sequencing, event-type counting, and 64-detail compaction;
+23. non-empty snapshot, complete-cursor requirement, expected-sequence guard, live reset, and checkpoint result;
+24. empty snapshot idempotency;
+25. twenty-record retention, oldest pruning, and dropped-history count;
+26. complete gameplay authority equality before/after ingestion, duplicate, snapshot, and failure;
+27. production save/load round trip with live and history state;
+28. absence of raw engine result, forecast, service result, projection, arbitrary payload, UI, or coordinator artifacts from snapshots;
+29. no formula, clock, scene, file, platform, tutorial, progression, Hall, support, or M04E2B ownership in `ReportService`;
+30. actual scope remains within the approved slice assessment.
+
+### 28.3 Exact one-hour report fixture
+
+Starting from canonical report cursor/window `0`, commit the approved M04E1 Gloamwood one-hour result on a candidate and ingest it:
+
+```text
+report cursor = 3,600,000
+live window = 0 -> 3,600,000
+ingested run count = 1
+THR_GLOAMWOOD returned Souls = 4,140
+THR_GLOAMWOOD backlog reduced = 4,140
+Essence gained = 360
+FORM_MAN_AT_ARMS Mastery gained = 60,000,000 subunits
+THR_GLOAMWOOD completed cycles = 60
+Soldier Souls banked = 12
+Scribe progress start = 0
+Scribe progress end = 125,000
+```
+
+Inventory, Threshold, Form, Reaping, progression, and simulation values already exist in the candidate before report ingestion and remain byte/canonical equal afterward.
+
+### 28.4 Required trace markers
+
+```text
+TRACE M04E2A schema_v4_migration_cursor_initialized=PASS
+TRACE M04E2A report_1h_returns=4140_essence=360_mastery=60000000_cycles=60_soldier=12_scribe_progress=125000
+TRACE M04E2A progress_only_channel_summary=PASS
+TRACE M04E2A duplicate_interval_ingestion_idempotent=PASS
+TRACE M04E2A gap_overlap_and_forecast_rejected=PASS
+TRACE M04E2A snapshot_sequence=1_live_cleared_history=1
+TRACE M04E2A snapshot_preserves_gameplay_authority=PASS
+TRACE M04E2A history_retention_bounded_ordered=PASS
+TRACE M04E2A event_compaction_bounded_counted=PASS
+TRACE M04E2A schema_v4_report_round_trip=PASS
+TRACE M04E2A v1_v2_v3_v4_upgrade_and_v4_no_rewrite=PASS
+TRACE M04E2A failures_preserve_report_and_gameplay=PASS
+TRACE M04E2A no_claim_gate_or_raw_result_authority=PASS
+TRACE M04E2A no_ui_clock_platform_or_m04e2b_sources=PASS
+```
+
+The trace requires explicit nonblank isolated `--save-root`, rejects `user://`, uses production persistence for migration/round-trip/no-rewrite evidence, checks every service result before reading it, emits a marker only after the complete named assertions pass, exits nonzero on any mismatch, and leaves root deletion to the owner runner.
+
+### 28.5 Owner Windows package
 
 Codex creates:
 
 ```text
-tools/test/owner/run_m04e1_owner_verification.ps1
+tools/test/owner/run_m04e2a_owner_verification.ps1
 ```
 
 Expected invocation:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass `
-    -File .\tools\test\owner\run_m04e1_owner_verification.ps1 `
+    -File .\tools\test\owner\run_m04e2a_owner_verification.ps1 `
     -CommitSha "<PR_HEAD_SHA>"
 ```
 
-The script preserves the final M04D3 sequence:
+The package preserves the final sequence:
 
 ```text
 Godot 4.7 version validation
 full GUT before
-focused M04E1 unit + integration
+focused M04E2A unit + integration
 explicit import
 isolated real-file trace
-exact 15-marker verification
+exact 14-marker verification
 finally cleanup
 cleanup absence proof
 prior-log-tolerant artifact audit
@@ -2154,24 +2220,23 @@ Expected summary:
 ```text
 Automated result: PASS
 Failed step count: 0
-Pending interactive checks: None for M04E1
+Pending interactive checks: None for M04E2A
 Cleanup result: PASS
 Log path: <generated path>
 ```
 
 No interactive checklist is required.
 
-### 27.6 M04E1 merge evidence
+### 28.6 M04E2A merge evidence
 
-M04E1 cannot merge until:
+M04E2A cannot merge until:
 
-- accepted `DEC-0040` remains authoritative;
-- Linux/Codex fresh-cache full GUT, focused unit+integration GUT, explicit import, fifteen-marker trace, negative-root trace, final full GUT, `git diff --check`, and clean status evidence are recorded;
-- the owner reruns `tools/test/owner/run_m04e1_owner_verification.ps1` against the exact final PR #16 head and obtains the complete PASS summary;
-- M04D3 remains Merged/Passed;
-- focused/import/trace/full Linux checks pass;
+- proposed `DEC-0041` or an owner-approved replacement is Accepted;
+- M04E1 remains Merged/Passed;
+- schema v4, sequential migration, retention, cursor-idempotency, snapshot, and no-claim contracts pass;
+- Linux/Codex focused/import/trace/full checks pass;
 - owner Windows verification passes against the exact PR head;
-- all clone-detachment, canonical-equivalence, mode-equivalence, fixture, failure, persistence-exclusion, and source-ownership groups pass;
-- schema remains version 3 and content revision remains `prototype-content-r2`;
-- no report authority, migration, hypothetical command framework, UI, clock sampling, trusted time, concurrency, Hall, tutorial, progression, or platform work enters the diff;
+- all fourteen markers are earned and verified;
+- current content remains `prototype-content-r2`;
+- no atomic coordinator/final harness, UI, report presentation, claim action, tutorial, progression, Hall, support, trusted time, platform, concurrency, or arbitrary event-payload framework enters the diff;
 - actual scope remains within the approved assessment.

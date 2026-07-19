@@ -3,7 +3,7 @@
 **Document role:** Canonical prototype data, runtime-state, ID, and serialization contracts  
 **Repository path:** `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`  
 **Document status:** Approved architecture contract  
-**Revision:** 20  
+**Revision:** 21  
 **Last updated:** 2026-07-19
 
 ## 1. Purpose
@@ -2657,26 +2657,11 @@ The realized derived contracts preserve:
 
 Schema version 3 and content revision `prototype-content-r2` remain current.
 
-## Approved M04E1 simulation-run and forecast contracts
+## Realized M04E1 simulation-run and forecast contracts
 
-These contracts are authoritative under accepted `DEC-0040` and approved M04E1 prompt v0.2.
+M04E1 merged through PR #16 from final head `738e89c606dd9f1f9f0396334ea9d8587ff389f3` at merge commit `03f05a3d78609a993cecab8b0077e5f7d7d55900`.
 
-### SimulationRunMode
-
-The non-persisted mode token is one of:
-
-```text
-FOREGROUND_SUPPLIED
-OFFLINE_FIXTURE
-DEBUG
-FORECAST
-```
-
-The token records caller intent and evidence origin. It never changes gameplay arithmetic, normalized content, event ordering, or result amounts.
-
-### SimulationRunResult
-
-A bounded result contains:
+The realized non-persisted result contains:
 
 ```text
 success: bool
@@ -2692,132 +2677,291 @@ projected_state: GameState or null
 
 Rules:
 
-- successful committed modes mutate the supplied state only through `SimulationEngine` and return `projected_state = null`;
-- successful `FORECAST` returns a detached projected `GameState` and leaves the supplied baseline unchanged;
-- a failed run returns no projected state and preserves the supplied baseline exactly;
-- `baseline_simulation_time_msec` is the supplied state's simulation cursor before the attempted run;
-- `result_simulation_time_msec` is the committed state's cursor on committed success, the projection cursor on forecast success, and the baseline cursor on failure;
-- `simulation_result` is the exact engine result rather than a second reimplementation of deltas or events, and is `null` only for wrapper validation failures before engine invocation;
-- mode metadata is not inserted into `SimulationResult`, domain events, or authoritative state;
-- no run result is serialized.
+- committed foreground-supplied, offline-fixture, and debug modes use the exact shared engine and return no projection;
+- successful forecast returns a detached projection and leaves the baseline and source save bytes unchanged;
+- wrapper failures before engine invocation have `simulation_result = null`;
+- engine failures retain the exact engine result and return no projection;
+- generic core streams and initialized eligible engine-supported channel state/deltas pass through without a forecast whitelist;
+- no run, projection, comparison, segment, event, or mode value serializes.
 
-### Detached projection
+Final Windows evidence passed `153/153` full tests and `2,522` assertions before and after the trace, `9/9` focused tests and `295` assertions, all fifteen markers, import, cleanup, cleanup proof, and artifact audit.
 
-A projected state must share no mutable nested authoritative object with its baseline, including:
+## Proposed M04E2A report-state and schema-v4 contracts
+
+These contracts become authoritative only after owner approval of proposed `DEC-0041` and the M04E2A prompt.
+
+### ReportState
+
+`GameState` gains:
 
 ```text
-inventory entries and reservation dictionaries
-Form state
-Threshold and acquisition state
-Reaping state and residual dictionaries
-progression state and unlock arrays
+report_state: ReportState
 ```
 
-Mutating the projection after a successful forecast cannot change the baseline, and later mutation of the baseline cannot change the projection.
+`ReportState` contains:
 
-Canonical equality is measured through the current schema-v3 mapper or an equivalent complete canonical gameplay-state comparison, not selected totals only.
+| Field | Runtime type | Rule |
+|---|---|---|
+| `ingested_through_simulation_msec` | `int` | Last simulation cursor completely represented by report ingestion; `0..GameState.simulation_time_msec` |
+| `next_report_sequence` | `int` | Positive checked monotonic sequence; starts at `1` |
+| `next_event_sequence` | `int` | Positive checked monotonic report-event sequence; starts at `1` |
+| `dropped_history_count` | `int` | Number of oldest records pruned by retention; non-negative |
+| `live` | `ReportAccumulatorState` | Current unsnapshotted report window |
+| `history` | `Array[ReportRecord]` | Ascending sequence order; maximum `20` |
 
-### Generic stream and channel projection coverage
+All nested report runtime types are explicit `RefCounted` value/state classes with `deep_clone()` methods. They contain no Nodes, Resources, Callables, floats, clock samples, or presentation references.
 
-The forecast contract is not a fixed list of current outputs. `SimulationRunResult` preserves the exact `SimulationEngine.SimulationResult`, while `projected_state` contains the complete post-run state. Together they expose:
+### ReportAccumulatorState
 
 ```text
-core summary/segments:
-  Returned Souls and backlog
-  Essence
-  Mastery
-  cycle and lifecycle changes
-
-generic Threshold channel state/results:
-  threshold_id
-  channel_id
-  output_item_id
-  progress_subunits before/after
-  rate_carry_units before/after
-  total_banked_units before/after
-  banked_units_delta
+window_started_simulation_msec: int
+window_ended_simulation_msec: int
+ingested_run_count: int
+essence_gained: int
+mastery_gained_subunits_by_form: Dictionary[StringName, int]
+threshold_summaries: Array[ReportThresholdSummary]
+channel_summaries: Array[ReportChannelSummary]
+event_type_counts: Dictionary[StringName, int]
+recent_events: Array[ReportEventRecord]
+omitted_event_count: int
 ```
 
-Every initialized, eligible channel supported by `SimulationEngine` participates regardless of whether its item is a resource, Store, Calling Soul, Form Soul, or a later supported output kind. Channel maps and delta arrays are keyed and ordered by stable IDs; `SimulationRunService` contains no current-channel whitelist or output-kind switch.
+Rules:
 
-An initialized channel with no whole-unit completion remains present in the projected state's acquisition map with its exact progress and carry. A locked or uninitialized channel produces nothing under the existing Access contract.
+- `window_started_simulation_msec <= window_ended_simulation_msec`;
+- `window_ended_simulation_msec == ReportState.ingested_through_simulation_msec`;
+- the report cursor may trail `GameState.simulation_time_msec` until M04E2B coordinates a pending run;
+- all aggregate counts are non-negative checked signed-64-bit integers;
+- threshold summaries sort by `threshold_id`;
+- channel summaries sort by `(threshold_id, channel_id)`;
+- recent events sort by `event_sequence` and contain at most `64` records;
+- `has_reportable_content` is derived from nonzero gains, changed channel summaries, or retained/countable reportable events; window duration and run count alone do not force an empty archive record.
 
-A future channel kind may require new normalized content/state and arithmetic in `SimulationEngine`, but must not require a new forecast formula, result family, or adapter branch. Unsupported channel kinds return the engine's typed failure rather than disappearing from the forecast silently.
-
-### Exact copied fixtures
-
-The controlled Gloamwood fixture uses:
+### ReportThresholdSummary
 
 ```text
-lifecycle = OVERDUE
-remaining backlog large enough to avoid Settlement in the duration fixture
-active Form = FORM_MAN_AT_ARMS
-Writ = WRIT_STANDARD
-Soldier and Scribe sources initialized at zero
+threshold_id: StringName
+returned_souls_delta: int
+backlog_reduced: int
+completed_cycles_delta: int
+lifecycle_state_start: StringName
+lifecycle_state_end: StringName
+```
+
+`backlog_reduced` is stored as a positive magnitude even though `SimulationResult.change_summary.backlog_delta` is negative while backlog decreases.
+
+Repeated runs in one live window checked-add the numeric fields. The first observed lifecycle becomes `lifecycle_state_start`; the latest becomes `lifecycle_state_end`.
+
+### ReportChannelSummary
+
+```text
+threshold_id: StringName
+channel_id: StringName
+output_item_id: StringName
+banked_units_delta: int
+progress_subunits_start: int
+progress_subunits_end: int
+rate_carry_units_start: int
+rate_carry_units_end: int
+total_banked_units_start: int
+total_banked_units_end: int
+```
+
+For the first changed delta in a live window, start values come from the result's `..._before` fields. Later deltas for the same Threshold/channel retain those starts, checked-add whole banking, and replace end values with the newest `..._after` values.
+
+The service validates stable Threshold/channel/output-item relationships against the ready `ContentRegistry`. It contains no current-channel whitelist and remains compatible with future engine-supported channel kinds through the same generic delta contract.
+
+### ReportEventRecord
+
+```text
+event_sequence: int
+event_type: StringName
+occurred_simulation_msec: int
+priority: int
+subject_id: StringName
+source_id: StringName
+```
+
+Only events with `reportable == true` are ingested. Event identity/order fields are copied exactly from the committed engine result, then assigned the next report-event sequence. The M04E2A schema deliberately does not copy arbitrary raw event payload dictionaries. Current quantities required for reports are retained in typed threshold/channel aggregates, avoiding an unbounded generic-payload save grammar.
+
+`event_type_counts` checked-counts every reportable event even after detail compaction. `recent_events` retains the newest `64`; each removed oldest detail increments `omitted_event_count`.
+
+### ReportRecord
+
+An immutable history record contains:
+
+```text
+report_sequence: int
+snapshot_simulation_msec: int
+summary: ReportAccumulatorState
+```
+
+The summary is a deep copy of the non-empty live accumulator immediately before reset. A record never shares mutable nested arrays, dictionaries, or summary objects with live state or another record.
+
+### ReportService results
+
+Public commands use bounded result classes or equivalently strict records containing:
+
+```text
+success
+error_code
+developer_details
+changed
+save_checkpoint_requested
+duplicate
+report_sequence
+```
+
+Stable error categories include:
+
+```text
+REPORT_STATE_INVALID
+REPORT_RUN_INVALID
+REPORT_FORECAST_NOT_INGESTIBLE
+REPORT_INTERVAL_GAP
+REPORT_INTERVAL_OVERLAP
+REPORT_CURSOR_MISMATCH
+REPORT_SEQUENCE_STALE
+REPORT_OVERFLOW
+REPORT_CONTENT_INVALID
+```
+
+Failures leave complete report and gameplay state unchanged.
+
+### Ingest committed run
+
+`ingest_committed_run(state, run_result)` accepts only a successful committed M04E1 mode:
+
+```text
+FOREGROUND_SUPPLIED
+OFFLINE_FIXTURE
+DEBUG
+```
+
+Common preconditions, evaluated before interval relation:
+
+```text
+run_result.success == true
+run_result.projected_state == null
+run_result.simulation_result != null
+run_result.simulation_result.success == true
+0 <= baseline <= result
+run_result.requested_elapsed_msec == result - baseline
+run_result.simulation_result.committed_elapsed_msec == result - baseline
+report_state.ingested_through_simulation_msec <= state.simulation_time_msec
+```
+
+For a newly ingestible interval only, `state.simulation_time_msec` must equal `result_simulation_time_msec`. A wholly covered duplicate may be delivered after later committed intervals and therefore does not require the current state cursor to equal that historical result end.
+
+Cursor behavior:
+
+| Interval relationship | Result |
+|---|---|
+| `baseline == result` | Successful no-op |
+| `result <= ingested_through` | Successful duplicate no-op |
+| `baseline < ingested_through < result` | `REPORT_INTERVAL_OVERLAP`, no mutation |
+| `baseline > ingested_through` | `REPORT_INTERVAL_GAP`, no mutation |
+| `baseline == ingested_through < result` | Aggregate exactly once and advance cursor |
+
+Forecast mode is rejected before duplicate handling. A report cursor is never moved backward. A positive newly ingested interval sets `save_checkpoint_requested = true`, including an interval with zero gains, because the idempotency cursor itself changed.
+
+### Snapshot live report
+
+`snapshot_live(state, expected_next_report_sequence)`:
+
+- requires `ReportState.ingested_through_simulation_msec == GameState.simulation_time_msec`; an unreported gap returns `REPORT_CURSOR_MISMATCH`;
+- validates the exact positive expected sequence;
+- returns an idempotent unchanged success when live has no reportable content;
+- otherwise deep-copies live into `ReportRecord` at the current simulation cursor;
+- appends the record, increments the sequence once, and resets live with both window cursors equal to `ingested_through_simulation_msec`;
+- prunes oldest records until history count is at most `20` and checked-increments `dropped_history_count`;
+- requests one save checkpoint;
+- never changes gameplay state.
+
+No standalone destructive live-clear or history-delete command exists in M04E2A.
+
+### Schema version 4 primitive shape
+
+M04E2A advances:
+
+```text
+SaveEnvelope.CURRENT_SCHEMA_VERSION = 4
+codec_id = JSON_V1
 content revision = prototype-content-r2
 ```
 
-Expected one-hour result:
+`game_state` gains one required key:
 
-```text
-elapsed = 3,600,000 ms
-returned Souls = 4,140
-Essence = 360
-Mastery delta = 60,000,000 subunits
-completed cycles = 60
-Soldier Souls banked = 12
-Scribe Form-Soul progress = 125,000 subunits
+```json
+{
+  "reports": {
+    "ingested_through_simulation_msec": "0",
+    "next_report_sequence": "1",
+    "next_event_sequence": "1",
+    "dropped_history_count": "0",
+    "live": {
+      "window_started_simulation_msec": "0",
+      "window_ended_simulation_msec": "0",
+      "ingested_run_count": "0",
+      "essence_gained": "0",
+      "mastery_gained_subunits_by_form": {},
+      "threshold_summaries": [],
+      "channel_summaries": [],
+      "event_type_counts": {},
+      "recent_events": [],
+      "omitted_event_count": "0"
+    },
+    "history": []
+  }
+}
 ```
 
-Expected eight-hour complete result:
+All authoritative integers use canonical base-10 strings in the primitive snapshot and JSON.
+
+### Sequential v3-to-v4 migration
+
+The pure migration:
+
+1. validates the source with the frozen version-3 validator;
+2. deep-copies the complete primitive snapshot;
+3. changes only `schema_version` to `"4"` plus the new report key;
+4. initializes `ingested_through_simulation_msec`, `live.window_started_simulation_msec`, and `live.window_ended_simulation_msec` to the source `game_state.simulation_time_msec` string;
+5. initializes both next sequences to `"1"` and all counts/maps/arrays to canonical empty values;
+6. fabricates no historical report and does not inspect current gameplay gains;
+7. preserves codec, save revision, content revision, metadata, offline-resolution ID, time authority, and every existing gameplay field exactly;
+8. validates complete version 4 before exposure or persisted upgrade.
+
+The production path remains sequential:
 
 ```text
-elapsed = 28,800,000 ms
-returned Souls = 33,120
-Essence = 2,880
-Mastery delta = 480,000,000 subunits
-completed cycles = 480
-Soldier Souls banked = 96
-Scribe Form Souls banked = 1
-Scribe progress remainder = 0
+v1 -> v2 -> v3 -> v4
 ```
 
-A separate Broken Watch/resource-channel fixture proves that a non-Soul `RESOURCE` channel and a Whole-Soul channel flow through the same generic forecast/commit contract without a type-specific branch in `SimulationRunService`.
+Already-current v4 saves load without rewrite. Failed migration, mapping, validation, sequence increment, or upgrade persistence exposes no migrated runtime and preserves the source bytes.
 
-A separate copied low-backlog fixture proves exact Overdue-to-Settled segmentation and forecast/commit equality across the boundary.
-
-### Save and report exclusion
-
-M04E1 adds no report fields to `GameState` and no schema keys.
-
-The following remain non-authoritative and absent from snapshots:
+### Retention constants
 
 ```text
-SimulationRunMode
-SimulationRunResult
-forecast projected state
-engine result/segments/events
-forecast comparison data
-report accumulator or report history
+REPORT_HISTORY_LIMIT = 20
+REPORT_RECENT_EVENT_LIMIT = 64
 ```
 
-A forecast may originate from a state loaded through production persistence, but it does not receive `SaveService`, `SaveStorage`, `GameStatePersistenceCoordinator`, or a filesystem path.
+Both constants are centralized in the report-state owner. Increasing them later is ordinary capacity tuning if field meaning remains unchanged; changing retention semantics or removing history requires a reviewed contract change.
 
-## Deferred M04E2 report-state contract gate
+## Proposed M04E2B atomic reported-run boundary
 
-M04E2 must not be prompted until `GATE-REPORT-SCHEMA` approves:
-
-- the exact `ReportAccumulatorState` and `ReportHistoryEntry` fields;
-- a sequential schema-version migration from version 3;
-- canonical ordering and bounded history retention;
-- an idempotency/ingestion identity for committed simulation results;
-- atomicity between committed gameplay deltas and report ingestion;
-- snapshot/clear semantics;
-- exclusion of forecast results from authoritative report state.
-
-The protected invariant remains:
+M04E2B adds no schema fields. It will introduce a narrow `SimulationReportCoordinator` that performs one candidate transaction:
 
 ```text
-inventory and gameplay gains are committed before report inspection
-report snapshot or clear changes no gameplay authority
+clone live state
+  -> committed SimulationRunService call on candidate
+  -> ReportService ingestion on candidate
+  -> complete candidate validation
+  -> one live copy_from commit
 ```
+
+The coordinator's result contains the exact `SimulationRunResult`, report-ingestion result, and checkpoint request. It never accepts forecast mode. Any failure leaves both gameplay and report state unchanged.
+
+The final M04 harness will compare a M04E1 forecast with an equivalent atomic reported commit, snapshot report sequence 1, prove gameplay gains preexist report inspection, and round-trip the record through schema version 4.
+
+M04E2B receives no implementation prompt until M04E2A is Merged and Passed.
