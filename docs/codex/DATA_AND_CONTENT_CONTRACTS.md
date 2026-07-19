@@ -2695,7 +2695,9 @@ Rules:
 - successful committed modes mutate the supplied state only through `SimulationEngine` and return `projected_state = null`;
 - successful `FORECAST` returns a detached projected `GameState` and leaves the supplied baseline unchanged;
 - a failed run returns no projected state and preserves the supplied baseline exactly;
-- `simulation_result` is the exact engine result rather than a second reimplementation of deltas or events;
+- `baseline_simulation_time_msec` is the supplied state's simulation cursor before the attempted run;
+- `result_simulation_time_msec` is the committed state's cursor on committed success, the projection cursor on forecast success, and the baseline cursor on failure;
+- `simulation_result` is the exact engine result rather than a second reimplementation of deltas or events, and is `null` only for wrapper validation failures before engine invocation;
 - mode metadata is not inserted into `SimulationResult`, domain events, or authoritative state;
 - no run result is serialized.
 

@@ -35,12 +35,13 @@ func _init(content_registry: ContentRegistry) -> void:
 ## stored in GameState, or allowed to select alternate formulas.
 func run_committed(state: GameState, elapsed_msec: int, mode: StringName) -> SimulationRunResult:
 	if not COMMITTED_MODES.has(mode):
-		return SimulationRunResult.failure(mode, ERR_INVALID_MODE, elapsed_msec, "run_committed requires FOREGROUND_SUPPLIED, OFFLINE_FIXTURE, or DEBUG mode.")
+		return SimulationRunResult.failure(mode, ERR_INVALID_MODE, elapsed_msec, _baseline_time_or_zero(state), "run_committed requires FOREGROUND_SUPPLIED, OFFLINE_FIXTURE, or DEBUG mode.")
 	var validation := _validate_request(state, elapsed_msec)
 	if not validation.ok:
-		return SimulationRunResult.failure(mode, StringName(validation.code), elapsed_msec, validation.details)
-	var engine_result := engine.resolve_elapsed(state, elapsed_msec)
-	return SimulationRunResult.from_engine(mode, engine_result, null)
+		return SimulationRunResult.failure(mode, StringName(validation.code), elapsed_msec, _baseline_time_or_zero(state), validation.details)
+	var baseline_time := state.simulation_time_msec
+	var simulation_result := engine.resolve_elapsed(state, elapsed_msec)
+	return SimulationRunResult.from_engine(mode, baseline_time, state.simulation_time_msec, simulation_result, null)
 
 ## Projects an explicit elapsed duration on a detached clone of the current state.
 ## Forecasts deliberately do not write saves, consume checkpoints, ingest reports,
@@ -50,14 +51,18 @@ func forecast(state: GameState, elapsed_msec: int) -> SimulationRunResult:
 	var mode := MODE_FORECAST
 	var validation := _validate_request(state, elapsed_msec)
 	if not validation.ok:
-		return SimulationRunResult.failure(mode, StringName(validation.code), elapsed_msec, validation.details)
+		return SimulationRunResult.failure(mode, StringName(validation.code), elapsed_msec, _baseline_time_or_zero(state), validation.details)
 	# Clone before resolving so every nested gameplay object in the projection is
 	# caller-owned evidence rather than a mutable alias of the authoritative baseline.
+	var baseline_time := state.simulation_time_msec
 	var projected := state.deep_clone()
-	var engine_result := engine.resolve_elapsed(projected, elapsed_msec)
-	if not engine_result.success:
-		return SimulationRunResult.from_engine(mode, engine_result, null)
-	return SimulationRunResult.from_engine(mode, engine_result, projected)
+	var simulation_result := engine.resolve_elapsed(projected, elapsed_msec)
+	if not simulation_result.success:
+		return SimulationRunResult.from_engine(mode, baseline_time, baseline_time, simulation_result, null)
+	return SimulationRunResult.from_engine(mode, baseline_time, projected.simulation_time_msec, simulation_result, projected)
+
+func _baseline_time_or_zero(state: GameState) -> int:
+	return 0 if state == null else state.simulation_time_msec
 
 func _validate_request(state: GameState, elapsed_msec: int) -> Dictionary:
 	if elapsed_msec < 0:
@@ -69,7 +74,7 @@ func _validate_request(state: GameState, elapsed_msec: int) -> Dictionary:
 
 class SimulationRunResult:
 	extends RefCounted
-	## Non-authoritative run wrapper. `engine_result` is the exact SimulationEngine
+	## Non-authoritative run wrapper. `simulation_result` is the exact SimulationEngine
 	## result; `projected_state` exists only for successful forecasts and is never
 	## serialized by the persistence layer.
 	var success: bool = false
@@ -77,17 +82,21 @@ class SimulationRunResult:
 	var error_code: StringName = &""
 	var developer_details: String = ""
 	var requested_elapsed_msec: int = 0
-	var engine_result: SimulationEngine.SimulationResult = null
+	var baseline_simulation_time_msec: int = 0
+	var result_simulation_time_msec: int = 0
+	var simulation_result: SimulationEngine.SimulationResult = null
 	var projected_state: GameState = null
-	func _init(success_value := false, mode_value: StringName = &"", error_value: StringName = &"", details := "", requested := 0, engine_value: SimulationEngine.SimulationResult = null, projection: GameState = null) -> void:
+	func _init(success_value := false, mode_value: StringName = &"", error_value: StringName = &"", details := "", requested := 0, baseline_time := 0, result_time := 0, simulation_value: SimulationEngine.SimulationResult = null, projection: GameState = null) -> void:
 		success = success_value
 		mode = mode_value
 		error_code = error_value
 		developer_details = details
 		requested_elapsed_msec = requested
-		engine_result = engine_value
+		baseline_simulation_time_msec = baseline_time
+		result_simulation_time_msec = result_time
+		simulation_result = simulation_value
 		projected_state = projection
-	static func failure(mode: StringName, code: StringName, requested: int, details: String) -> SimulationRunResult:
-		return SimulationRunResult.new(false, mode, code, details, requested, null, null)
-	static func from_engine(mode: StringName, result: SimulationEngine.SimulationResult, projection: GameState) -> SimulationRunResult:
-		return SimulationRunResult.new(result.success, mode, result.error_code, result.developer_details, result.requested_elapsed_msec, result, projection)
+	static func failure(mode: StringName, code: StringName, requested: int, baseline_time: int, details: String) -> SimulationRunResult:
+		return SimulationRunResult.new(false, mode, code, details, requested, baseline_time, baseline_time, null, null)
+	static func from_engine(mode: StringName, baseline_time: int, result_time: int, result: SimulationEngine.SimulationResult, projection: GameState) -> SimulationRunResult:
+		return SimulationRunResult.new(result.success, mode, result.error_code, result.developer_details, result.requested_elapsed_msec, baseline_time, result_time, result, projection)

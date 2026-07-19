@@ -16,6 +16,6 @@ func _init(content_registry: ContentRegistry) -> void:
 ## Advances the supplied state by an explicit millisecond amount through the shared run service.
 func advance_msec(state: GameState, elapsed_msec: int) -> SimulationEngine.SimulationResult:
 	var run_result := run_service.run_committed(state, elapsed_msec, SimulationRunService.MODE_DEBUG)
-	if run_result.engine_result != null:
-		return run_result.engine_result
+	if run_result.simulation_result != null:
+		return run_result.simulation_result
 	return SimulationEngine.SimulationResult.failure(run_result.error_code, elapsed_msec, run_result.developer_details)

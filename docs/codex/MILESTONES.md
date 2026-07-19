@@ -160,7 +160,7 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 | M04D2 | Discrete channel accumulation and long-horizon banking | Implementation slice | Approved | Approved | Merged | Passed |
 | M04D3 | Compatible rate-context changes and acquisition queries | Implementation slice | Approved | Approved | Merged | Passed |
 | M04E | Forecast and report foundations | Conceptual sub-epic | Approved | Not applicable | Not directly executable | — |
-| M04E1 | Forecast clone and supplied-resolution adapters | Implementation slice | Approved | Approved | Not started | — |
+| M04E1 | Forecast clone and supplied-resolution adapters | Implementation slice | Approved | Approved | Pull request open | Partial |
 | M04E2 | Report accumulator, history, persistence, and final M04 harness | Implementation slice | Approved | Not drafted | Not started | — |
 | M05 | Persistent application shell, navigation, and debug access | Conceptual epic | Approved | Not applicable | Not directly executable | — |
 | M06 | Steam trusted-time adapter and transactional offline resolution | Conceptual epic | Approved | Not applicable | Not directly executable | — |
@@ -1384,9 +1384,10 @@ M04E is complete only when M04E1 and M04E2 are both Merged and Passed. The forme
 **Parent epic:** M04 / M04E  
 **Definition status:** Approved  
 **Prompt status:** Approved  
-**Implementation status:** Not started  
-**Verification status:** —  
+**Implementation status:** Pull request open (PR #16)
+**Verification status:** Partial; Linux/Codex automated checks pass, corrected Windows owner package pending owner rerun.
 **Recommended Codex task size:** Small-medium; one projection/adapter pull request.  
+**Actual scope:** PR #16 adds one run-service source file, one debug-adapter update, focused unit and integration tests, one fifteen-marker trace, one M04D3-derived owner runner, and documentation synchronization; schema remains v3 and content remains `prototype-content-r2`.
 **Planned prompt file:** `docs/codex/milestone-prompts/M04E1-forecast-clone-resolution-adapters.md`
 
 #### Purpose

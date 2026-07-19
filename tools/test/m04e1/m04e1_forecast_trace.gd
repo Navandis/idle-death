@@ -35,18 +35,20 @@ func _run_trace() -> Dictionary:
 	var baseline_before := _canonical(state)
 	var one_hour := _service.forecast(state, HOUR)
 	if not one_hour.success: return _fail(10, one_hour.developer_details)
-	if not _one_hour_values_match(one_hour.projected_state): return _fail(11, "one-hour fixture mismatch")
+	if not _run_result_times(one_hour, SimulationRunService.MODE_FORECAST, HOUR, 0, HOUR, true): return _fail(11, "one-hour result fields")
+	if not _one_hour_values_match(one_hour.projected_state): return _fail(12, "one-hour fixture mismatch")
 	_trace("forecast_1h_returns=4140_essence=360_mastery=60000000_cycles=60_soldier=12_scribe_progress=125000")
 
 	var eight_hour := _service.forecast(state, 8 * HOUR)
-	if not eight_hour.success: return _fail(12, eight_hour.developer_details)
-	if not _eight_hour_values_match(eight_hour.projected_state): return _fail(13, "eight-hour fixture mismatch")
+	if not eight_hour.success: return _fail(13, eight_hour.developer_details)
+	if not _run_result_times(eight_hour, SimulationRunService.MODE_FORECAST, 8 * HOUR, 0, 8 * HOUR, true): return _fail(14, "eight-hour result fields")
+	if not _eight_hour_values_match(eight_hour.projected_state): return _fail(15, "eight-hour fixture mismatch")
 	_trace("forecast_8h_returns=33120_essence=2880_mastery=480000000_cycles=480_soldier=96_scribe_banked=1")
 
 	var watch := _state(&"THR_BROKEN_WATCH", 250000)
 	_unlock_and_init(watch, [&"RES_PROVISIONS", &"SOUL_FORM_MAN_AT_ARMS"])
 	var watch_forecast := _service.forecast(watch, 24 * HOUR)
-	if not (watch_forecast.success and watch_forecast.engine_result.change_summary.channel_deltas.size() == 2): return _fail(14, "generic channel passthrough")
+	if not (watch_forecast.success and watch_forecast.simulation_result.change_summary.channel_deltas.size() == 2): return _fail(14, "generic channel passthrough")
 	if not (watch_forecast.projected_state.inventory.entries[&"RES_PROVISIONS"].total == 2880 and watch_forecast.projected_state.inventory.entries[&"SOUL_FORM_MAN_AT_ARMS"].total == 1): return _fail(15, "Broken Watch outputs")
 	_trace("generic_channel_passthrough=PASS")
 
@@ -64,13 +66,13 @@ func _run_trace() -> Dictionary:
 	eight_hour = _service.forecast(state, 8 * HOUR)
 	var committed := state.deep_clone()
 	var committed_result := _service.run_committed(committed, 8 * HOUR, SimulationRunService.MODE_FOREGROUND_SUPPLIED)
-	if not (committed_result.success and eight_hour.success and _canonical(eight_hour.projected_state) == _canonical(committed)): return _fail(19, "forecast/commit equality")
+	if not (committed_result.success and eight_hour.success and _run_result_times(committed_result, SimulationRunService.MODE_FOREGROUND_SUPPLIED, 8 * HOUR, 0, 8 * HOUR, false) and _canonical(eight_hour.projected_state) == _canonical(committed)): return _fail(19, "forecast/commit equality")
 	_trace("forecast_equals_committed_clone=PASS")
 
 	var low_forecast := _service.forecast(_prepared_state(&"THR_GLOAMWOOD", 1, [&"SOUL_CALLING_SOLDIER"]), 10000)
 	var low_commit := _prepared_state(&"THR_GLOAMWOOD", 1, [&"SOUL_CALLING_SOLDIER"])
 	var low_commit_result := _service.run_committed(low_commit, 10000, SimulationRunService.MODE_FOREGROUND_SUPPLIED)
-	if not (low_forecast.success and low_commit_result.success and _canonical(low_forecast.projected_state) == _canonical(low_commit) and low_forecast.engine_result.events.size() > 0 and low_forecast.engine_result.events[0].event_type == SimulationEngine.EVENT_THRESHOLD_SETTLED): return _fail(20, "settlement equivalence")
+	if not (low_forecast.success and low_commit_result.success and _canonical(low_forecast.projected_state) == _canonical(low_commit) and low_forecast.simulation_result.events.size() > 0 and low_forecast.simulation_result.events[0].event_type == SimulationEngine.EVENT_THRESHOLD_SETTLED): return _fail(20, "settlement equivalence")
 	_trace("settlement_boundary_equivalence=PASS")
 
 	var foreground := _prepared_state(&"THR_GLOAMWOOD", 1000000, [&"SOUL_CALLING_SOLDIER"])
@@ -104,7 +106,7 @@ func _run_trace() -> Dictionary:
 	zero_failure.reapings[&"THR_GLOAMWOOD"].flow_carry_units[&"UNKNOWN"] = 1
 	var invalid_before := _canonical(zero_failure)
 	var invalid := _service.forecast(zero_failure, 1000)
-	if not (zero.success and _canonical(zero.projected_state) == zero_before and not negative.success and negative.projected_state == null and not invalid.success and invalid.projected_state == null and _canonical(zero_failure) == invalid_before): return _fail(31, "zero/failure no mutation")
+	if not (zero.success and _run_result_times(zero, SimulationRunService.MODE_FORECAST, 0, 0, 0, true) and _canonical(zero.projected_state) == zero_before and not negative.success and negative.simulation_result == null and negative.projected_state == null and not invalid.success and invalid.simulation_result != null and invalid.projected_state == null and _canonical(zero_failure) == invalid_before): return _fail(31, "zero/failure no mutation")
 	_trace("zero_and_failure_no_mutation=PASS")
 
 	if not _event_and_delta_match(): return _fail(32, "events/deltas")
@@ -119,6 +121,14 @@ func _run_trace() -> Dictionary:
 	_trace("no_clock_scene_platform_or_duplicate_rules=PASS")
 	if _markers.size() != 15: return _fail(37, "expected 15 trace markers")
 	return {"ok": true}
+
+func _run_result_times(result: SimulationRunService.SimulationRunResult, mode: StringName, requested: int, baseline_time: int, result_time: int, expect_projection: bool) -> bool:
+	return result.mode == mode \
+		and result.requested_elapsed_msec == requested \
+		and result.baseline_simulation_time_msec == baseline_time \
+		and result.result_simulation_time_msec == result_time \
+		and result.simulation_result != null \
+		and ((result.projected_state != null) == expect_projection)
 
 func _one_hour_values_match(projected: GameState) -> bool:
 	return projected.thresholds[&"THR_GLOAMWOOD"].persistent_returns_total == 4140 \
@@ -142,12 +152,12 @@ func _event_and_delta_match() -> bool:
 	var forecast := _service.forecast(forecast_state, 10000)
 	var commit := _service.run_committed(commit_state, 10000, SimulationRunService.MODE_FOREGROUND_SUPPLIED)
 	if not (forecast.success and commit.success): return false
-	if forecast.engine_result.segments.size() != commit.engine_result.segments.size(): return false
-	if forecast.engine_result.change_summary != commit.engine_result.change_summary: return false
-	if forecast.engine_result.events.size() != commit.engine_result.events.size(): return false
-	for i in range(forecast.engine_result.events.size()):
-		var a: SimulationEngine.SimulationEvent = forecast.engine_result.events[i]
-		var b: SimulationEngine.SimulationEvent = commit.engine_result.events[i]
+	if forecast.simulation_result.segments.size() != commit.simulation_result.segments.size(): return false
+	if forecast.simulation_result.change_summary != commit.simulation_result.change_summary: return false
+	if forecast.simulation_result.events.size() != commit.simulation_result.events.size(): return false
+	for i in range(forecast.simulation_result.events.size()):
+		var a: SimulationEngine.SimulationEvent = forecast.simulation_result.events[i]
+		var b: SimulationEngine.SimulationEvent = commit.simulation_result.events[i]
 		if a.event_type != b.event_type or a.occurred_simulation_msec != b.occurred_simulation_msec or a.subject_id != b.subject_id or a.source_id != b.source_id or a.payload != b.payload: return false
 	return true
 
@@ -176,7 +186,7 @@ func _save_bytes_unchanged(_snapshot: Dictionary, state: GameState) -> bool:
 func _no_side_effect_artifacts(state: GameState) -> bool:
 	var snapshot := _canonical(state)
 	var text := JSON.stringify(snapshot)
-	for needle in ["report", "tutorial", "checkpoint", "forecast", "projection", "run_mode", "engine_result"]:
+	for needle in ["report", "tutorial", "checkpoint", "forecast", "projection", "run_mode", "simulation_result"]:
 		if text.find(needle) != -1: return false
 	return true
 
