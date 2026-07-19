@@ -49,3 +49,16 @@ func test_schema_v4_rejects_malformed_event_details_before_runtime_mapping() -> 
 	var runtime := SaveSchemaMapper.snapshot_to_runtime(snapshot)
 	assert_false(runtime.ok)
 	assert_eq(runtime.code, SaveSchemaValidator.ERR_KEY_SET)
+
+func test_schema_v4_rejects_malformed_slice_maps_and_channel_summaries() -> void:
+	var state := _state()
+	var run := SimulationRunService.new(_registry()).run_committed(state, 60000, SimulationRunService.MODE_FOREGROUND_SUPPLIED); assert_true(run.success)
+	assert_true(ReportService.new().ingest_committed_run(state, run).success)
+	var snapshot := SaveSchemaMapper.runtime_to_snapshot(state, TimeAuthorityState.new(), 11, ContentRegistry.CURRENT_REVISION)
+	var slice_key = snapshot.game_state.report_state.live.slices.keys()[0]
+	snapshot.game_state.report_state.live.slices[slice_key].inventory_gains.RES_ESSENCE = 7
+	assert_false(SaveSchemaValidator.validate_current(snapshot).ok)
+	snapshot = SaveSchemaMapper.runtime_to_snapshot(state, TimeAuthorityState.new(), 11, ContentRegistry.CURRENT_REVISION)
+	slice_key = snapshot.game_state.report_state.live.slices.keys()[0]
+	snapshot.game_state.report_state.live.slices[slice_key].channel_summaries.CHANNEL_GLOAMWOOD_SOLDIER_SOULS.erase("output_item_id")
+	assert_eq(SaveSchemaValidator.validate_current(snapshot).code, SaveSchemaValidator.ERR_KEY_SET)

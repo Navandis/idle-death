@@ -242,7 +242,15 @@ static func _validate_report_window(w, path: String) -> Dictionary:
 			var si := SaveInt64.parse(sd.get(ik, ""), true, "%s.slices.%s.%s" % [path, sk, ik]); if not si.ok: return si
 		for map_key in ["inventory_gains", "mastery_gains"]:
 			if typeof(sd.get(map_key, null)) != TYPE_DICTIONARY: return _err(ERR_TYPE, "%s.slices.%s.%s" % [path, sk, map_key])
+			for gain_id in sd[map_key].keys():
+				var gain := SaveInt64.parse(sd[map_key][gain_id], true, "%s.slices.%s.%s.%s" % [path, sk, map_key, gain_id]); if not gain.ok: return gain
 		if typeof(sd.get("channel_summaries", null)) != TYPE_DICTIONARY: return _err(ERR_TYPE, "%s.slices.%s.channel_summaries" % [path, sk])
+		for channel_id in sd.channel_summaries.keys():
+			var channel = sd.channel_summaries[channel_id]; if typeof(channel) != TYPE_DICTIONARY: return _err(ERR_TYPE, "%s.slices.%s.channel_summaries.%s" % [path, sk, channel_id])
+			var ck := _require_keys(channel, ["banked_units_delta", "channel_id", "first_progress_subunits_before", "first_rate_carry_units_before", "first_total_banked_units_before", "latest_progress_subunits_after", "latest_rate_carry_units_after", "latest_total_banked_units_after", "output_item_id"], "%s.slices.%s.channel_summaries.%s" % [path, sk, channel_id]); if not ck.ok: return ck
+			if typeof(channel.channel_id) != TYPE_STRING or String(channel.channel_id).is_empty() or typeof(channel.output_item_id) != TYPE_STRING or String(channel.output_item_id).is_empty(): return _err(ERR_TYPE, "%s.slices.%s.channel_summaries.%s" % [path, sk, channel_id])
+			for ikey in ["banked_units_delta", "first_progress_subunits_before", "latest_progress_subunits_after", "first_rate_carry_units_before", "latest_rate_carry_units_after", "first_total_banked_units_before", "latest_total_banked_units_after"]:
+				var ci := SaveInt64.parse(channel[ikey], true, "%s.slices.%s.channel_summaries.%s.%s" % [path, sk, channel_id, ikey]); if not ci.ok: return ci
 	for i in range(w.event_details.size()):
 		var ed = w.event_details[i]; if typeof(ed) != TYPE_DICTIONARY: return _err(ERR_TYPE, "%s.event_details.%d" % [path, i])
 		var event_path := "%s.event_details.%d" % [path, i]
