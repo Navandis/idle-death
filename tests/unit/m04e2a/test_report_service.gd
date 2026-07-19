@@ -164,3 +164,20 @@ func test_assignment_boundary_event_excludes_next_slice_start() -> void:
 
 	assert_true(ReportService.new().peek_live_assignment(state, &"THR_GLOAMWOOD", 1).meaningful_event)
 	assert_false(ReportService.new().peek_live_assignment(state, &"THR_GLOAMWOOD", 2).meaningful_event)
+
+
+func test_ingest_uses_run_time_attribution_after_same_timestamp_recall() -> void:
+	var service := ReportService.new()
+	var state := _state(&"THR_GLOAMWOOD", 1000000)
+	_unlock(state, [&"SOUL_CALLING_SOLDIER"])
+	var run := SimulationRunService.new(_registry()).run_committed(state, 60000, SimulationRunService.MODE_DEBUG)
+	assert_true(run.success, run.developer_details)
+	assert_true(ReapingAssignmentService.new(_registry()).recall(state, &"THR_GLOAMWOOD", 1).success)
+	assert_eq(state.simulation_time_msec, run.result_simulation_time_msec)
+	assert_eq(state.reapings[&"THR_GLOAMWOOD"].assignment_revision, 2)
+
+	var ingest := service.ingest_committed_run(state, run)
+	assert_true(ingest.success, ingest.developer_details)
+	assert_eq(service.peek_live_assignment(state, &"THR_GLOAMWOOD", 1).slices.size(), 1)
+	assert_eq(service.peek_live_assignment(state, &"THR_GLOAMWOOD", 2).slices.size(), 0)
+	assert_eq(service.peek_live_global(state).slices[0].form_id, "FORM_MAN_AT_ARMS")

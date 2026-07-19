@@ -263,7 +263,7 @@ static func _validate_report_window(w, path: String) -> Dictionary:
 			var ck := _require_keys(channel, ["banked_units_delta", "channel_id", "first_progress_subunits_before", "first_rate_carry_units_before", "first_total_banked_units_before", "latest_progress_subunits_after", "latest_rate_carry_units_after", "latest_total_banked_units_after", "output_item_id"], "%s.slices.%s.channel_summaries.%s" % [path, sk, channel_id]); if not ck.ok: return ck
 			if typeof(channel.channel_id) != TYPE_STRING or String(channel.channel_id).is_empty() or typeof(channel.output_item_id) != TYPE_STRING or String(channel.output_item_id).is_empty(): return _err(ERR_TYPE, "%s.slices.%s.channel_summaries.%s" % [path, sk, channel_id])
 			for ikey in ["banked_units_delta", "first_progress_subunits_before", "latest_progress_subunits_after", "first_rate_carry_units_before", "latest_rate_carry_units_after", "first_total_banked_units_before", "latest_total_banked_units_after"]:
-				var ci := SaveInt64.parse(channel[ikey], true, "%s.slices.%s.channel_summaries.%s.%s" % [path, sk, channel_id, ikey]); if not ci.ok: return ci
+				var ci := SaveInt64.parse(channel[ikey], false, "%s.slices.%s.channel_summaries.%s.%s" % [path, sk, channel_id, ikey]); if not ci.ok: return ci
 	for i in range(w.event_details.size()):
 		var ed = w.event_details[i]; if typeof(ed) != TYPE_DICTIONARY: return _err(ERR_TYPE, "%s.event_details.%d" % [path, i])
 		var event_path := "%s.event_details.%d" % [path, i]

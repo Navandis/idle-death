@@ -96,7 +96,7 @@ func resolve_elapsed(state: GameState, elapsed_msec: int) -> SimulationResult:
 		if not applied.ok: return SimulationResult.failure(StringName(applied.code), elapsed_msec, applied.details)
 		cursor = segment_end_msec
 		remaining -= segment_msec
-		result.segments.append({"start_simulation_msec": cursor - segment_msec, "end_simulation_msec": cursor, "elapsed_msec": segment_msec, "lifecycle": applied.lifecycle, "returned_souls_delta": applied.returned_souls_delta, "backlog_delta": applied.backlog_delta, "Essence_delta": applied.Essence_delta, "Mastery_delta_subunits": applied.Mastery_delta_subunits, "completed_cycles_delta": applied.completed_cycles_delta, "channel_deltas": applied.channel_deltas})
+		result.segments.append({"threshold_id": str(active_id), "assignment_revision": reaping.assignment_revision, "form_id": str(reaping.form_id), "writ_id": str(reaping.writ_id), "retinue_ids": _string_names(reaping.retinue_ids), "start_simulation_msec": cursor - segment_msec, "end_simulation_msec": cursor, "elapsed_msec": segment_msec, "lifecycle": applied.lifecycle, "returned_souls_delta": applied.returned_souls_delta, "backlog_delta": applied.backlog_delta, "Essence_delta": applied.Essence_delta, "Mastery_delta_subunits": applied.Mastery_delta_subunits, "completed_cycles_delta": applied.completed_cycles_delta, "channel_deltas": applied.channel_deltas})
 		for event in applied.events:
 			result.events.append(event)
 		if will_settle:
@@ -110,6 +110,12 @@ func resolve_elapsed(state: GameState, elapsed_msec: int) -> SimulationResult:
 	result.change_summary = _summary(state, candidate, active_id)
 	result.events.sort_custom(_event_less)
 	return _commit_if_valid(state, candidate, result)
+
+func _string_names(values: Array[StringName]) -> Array:
+	var out := []
+	for value in values:
+		out.append(str(value))
+	return out
 
 func _apply_segment(state: GameState, reaping: GameState.ReapingState, threshold_id: StringName, elapsed_msec: int, segment_end_msec: int) -> Dictionary:
 	var threshold: GameState.ThresholdState = state.thresholds[threshold_id]

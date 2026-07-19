@@ -37,9 +37,8 @@ func ingest_committed_run(state: GameState, run_result: SimulationRunService.Sim
 	var rs := candidate.report_state
 	_record_run_window(rs.live, run_result)
 	if run_result.simulation_result.change_summary.has("threshold_id"):
-		var reaping: GameState.ReapingState = candidate.reapings[StringName(run_result.simulation_result.change_summary.threshold_id)]
 		for segment in run_result.simulation_result.segments:
-			_upsert_segment(rs.live, reaping, segment)
+			_upsert_segment(rs.live, segment)
 	for event in run_result.simulation_result.events:
 		if event.reportable:
 			_ingest_event(rs, event)
@@ -103,16 +102,19 @@ func _record_run_window(window: ReportState.ReportWindow, run_result: Simulation
 	window.run_count += 1
 	window.mode_counts[str(run_result.mode)] = int(window.mode_counts.get(str(run_result.mode), 0)) + 1
 
-func _upsert_segment(window: ReportState.ReportWindow, reaping: GameState.ReapingState, segment: Dictionary) -> void:
-	var key := "%s|%d|%s" % [reaping.threshold_id, reaping.assignment_revision, segment.lifecycle]
+func _upsert_segment(window: ReportState.ReportWindow, segment: Dictionary) -> void:
+	var threshold_id := StringName(str(segment.threshold_id))
+	var assignment_revision := int(segment.assignment_revision)
+	var form_id := StringName(str(segment.form_id))
+	var key := "%s|%d|%s" % [threshold_id, assignment_revision, segment.lifecycle]
 	var slice: ReportState.AttributionSlice = window.slices.get(key, null)
 	if slice == null:
-		slice = ReportState.AttributionSlice.new(); slice.threshold_id = reaping.threshold_id; slice.assignment_revision = reaping.assignment_revision; slice.lifecycle_state = StringName(segment.lifecycle)
-		slice.form_id = reaping.form_id; slice.writ_id = reaping.writ_id; slice.retinue_ids = reaping.retinue_ids.duplicate(); slice.start_simulation_msec = segment.start_simulation_msec
+		slice = ReportState.AttributionSlice.new(); slice.threshold_id = threshold_id; slice.assignment_revision = assignment_revision; slice.lifecycle_state = StringName(segment.lifecycle)
+		slice.form_id = form_id; slice.writ_id = StringName(str(segment.writ_id)); slice.retinue_ids = _segment_retinues(segment); slice.start_simulation_msec = segment.start_simulation_msec
 		window.slices[key] = slice
 	slice.end_simulation_msec = segment.end_simulation_msec; slice.elapsed_msec += int(segment.elapsed_msec)
 	slice.returned_souls_delta += int(segment.returned_souls_delta); slice.backlog_delta += int(segment.backlog_delta); slice.completed_cycles_delta += int(segment.completed_cycles_delta)
-	_add_map(slice.inventory_gains, &"RES_ESSENCE", int(segment.Essence_delta)); _add_map(slice.mastery_gains, reaping.form_id, int(segment.Mastery_delta_subunits))
+	_add_map(slice.inventory_gains, &"RES_ESSENCE", int(segment.Essence_delta)); _add_map(slice.mastery_gains, form_id, int(segment.Mastery_delta_subunits))
 	for delta in segment.channel_deltas:
 		var cid := StringName(delta.channel_id); var summary: ReportState.ChannelSummary = slice.channel_summaries.get(cid, null)
 		if summary == null:
@@ -120,6 +122,12 @@ func _upsert_segment(window: ReportState.ReportWindow, reaping: GameState.Reapin
 			summary.first_progress_subunits_before = int(delta.progress_subunits_before); summary.first_rate_carry_units_before = int(delta.rate_carry_units_before); summary.first_total_banked_units_before = int(delta.total_banked_units_before); slice.channel_summaries[cid] = summary
 		summary.banked_units_delta += int(delta.banked_units_delta); summary.latest_progress_subunits_after = int(delta.progress_subunits_after); summary.latest_rate_carry_units_after = int(delta.rate_carry_units_after); summary.latest_total_banked_units_after = int(delta.total_banked_units_after)
 		_add_map(slice.inventory_gains, summary.output_item_id, int(delta.banked_units_delta))
+
+func _segment_retinues(segment: Dictionary) -> Array[StringName]:
+	var out: Array[StringName] = []
+	for id in segment.get("retinue_ids", []):
+		out.append(StringName(str(id)))
+	return out
 
 func _ingest_event(rs: ReportState, event: SimulationEngine.SimulationEvent) -> void:
 	rs.live.events_by_type[str(event.event_type)] = int(rs.live.events_by_type.get(str(event.event_type), 0)) + 1
