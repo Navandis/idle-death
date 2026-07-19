@@ -57,6 +57,7 @@ func test_inactive_query_has_no_eta() -> void:
 	assert_true(query.ok)
 	assert_false(query.is_active)
 	assert_eq(query.eta_msec, -1)
+	assert_null(query.eta_display)
 
 func test_output_channel_rate_modifier_rejects_deferred_supported_conditions() -> void:
 	var service := ReapingRateContextService.new(_registry())
@@ -226,6 +227,7 @@ func test_query_state_matrix_and_percentage_cap() -> void:
 	assert_eq(inactive.access_state, "INITIALIZED")
 	assert_eq(inactive.disclosure_state, "IDENTIFIED")
 	assert_false(inactive.eta_available)
+	assert_null(inactive.eta_display)
 	assert_eq(inactive.progress_tenths_percent, 999)
 	var locked_state := _state(false)
 	locked_state.progression.unlocked_output_item_ids = []
@@ -234,12 +236,14 @@ func test_query_state_matrix_and_percentage_cap() -> void:
 	assert_true(locked.success)
 	assert_eq(locked.access_state, "LOCKED")
 	assert_false(locked.eta_available)
+	assert_null(locked.eta_display)
 	var unavailable_state := _state(false)
 	unavailable_state.thresholds[&"THR_GLOAMWOOD"].availability_state = &"LOCKED"
 	unavailable_state.thresholds[&"THR_GLOAMWOOD"].channel_acquisition.clear()
 	var unavailable := service.query_acquisition(unavailable_state, &"THR_GLOAMWOOD", &"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS")
 	assert_true(unavailable.success)
 	assert_eq(unavailable.access_state, "UNAVAILABLE")
+	assert_null(unavailable.eta_display)
 	assert_false(service.query_acquisition(_state(true), &"THR_GLOAMWOOD", &"CHANNEL_GLOAMWOOD_ESSENCE").success)
 	assert_false(service.query_acquisition(_state(true), &"THR_GLOAMWOOD", &"CHANNEL_BROKEN_WATCH_PROVISIONS").success)
 	assert_false(service.query_acquisition(_state(true), &"THR_GLOAMWOOD", &"NOPE").success)

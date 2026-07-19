@@ -145,6 +145,20 @@ func test_redispatch_preserves_unknown_zero_and_known_nonzero_residuals() -> voi
 	assert_eq(known_state.reapings[&"THR_GLOAMWOOD"].flow_carry_units[CoreFlowKeys.RETURNS_CARRY], 42)
 	assert_eq(known_state.reapings[&"THR_GLOAMWOOD"].cycle_phase_msec, 7)
 
+func test_redispatch_applies_validated_empty_retinues_before_activation() -> void:
+	var state := _base_state()
+	assert_true(_dispatch_active(state).success)
+	assert_true(_service().recall(state, &"THR_GLOAMWOOD", 1).success)
+	var historical_retinues: Array[StringName] = [&"RET_SOLDIER_COMPANY"]
+	state.reapings[&"THR_GLOAMWOOD"].retinue_ids = historical_retinues
+	assert_true(GameStateValidator.validate(state, _registry(), true).ok)
+	var result := _service().redispatch(state, &"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD", 2)
+	assert_true(result.success, result.developer_details)
+	assert_true(state.reapings[&"THR_GLOAMWOOD"].retinue_ids.is_empty())
+	var resolved := SimulationEngine.new(_registry()).resolve_elapsed(state, 1)
+	assert_true(resolved.success, resolved.developer_details)
+	assert_ne(resolved.error_code, SimulationEngine.ERR_UNSUPPORTED_RETINUE)
+
 func test_changed_redispatch_preserves_residuals_when_denominators_match() -> void:
 	var state := _base_state()
 	assert_true(_dispatch_active(state).success)

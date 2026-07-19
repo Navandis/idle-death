@@ -140,6 +140,7 @@ func redispatch(state: GameState, threshold_id: StringName, form_id: StringName,
 	updated.is_active = true
 	updated.form_id = form_id
 	updated.writ_id = writ_id
+	updated.retinue_ids = []
 	updated.assignment_revision += 1
 	updated.last_configuration_change_simulation_msec = state.simulation_time_msec
 	var committed := _validate_candidate(candidate)
