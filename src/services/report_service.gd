@@ -135,7 +135,8 @@ func _view_for_window(window: ReportState.ReportWindow, threshold_id: StringName
 		if threshold_id != &"" and s.threshold_id != threshold_id: continue
 		if assignment_revision > 0 and s.assignment_revision != assignment_revision: continue
 		var d := _slice_dict(s); out.slices.append(d); _rollup(out.totals, s)
-	out["is_empty"] = out.slices.is_empty(); out["whole_gain"] = int(out.totals.returned_souls_delta) > 0 or not out.totals.inventory_gains.is_empty(); out["progress_change"] = int(out.totals.backlog_delta) != 0 or not out.totals.mastery_gains.is_empty(); out["meaningful_event"] = not window.events_by_type.is_empty()
+	var is_global_view := threshold_id == &"" and assignment_revision == 0
+	out["is_empty"] = window.is_empty() if is_global_view else out.slices.is_empty(); out["whole_gain"] = int(out.totals.returned_souls_delta) > 0 or not out.totals.inventory_gains.is_empty(); out["progress_change"] = int(out.totals.backlog_delta) != 0 or not out.totals.mastery_gains.is_empty(); out["meaningful_event"] = not window.events_by_type.is_empty()
 	return out
 
 func _slice_dict(s: ReportState.AttributionSlice) -> Dictionary:

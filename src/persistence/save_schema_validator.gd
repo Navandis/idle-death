@@ -122,6 +122,9 @@ static func validate_v4(snapshot: Variant) -> Dictionary:
 	var k := _require_keys(rs, ["dropped_history_record_count", "history", "live", "next_event_sequence", "next_report_sequence", "report_cursor_msec"], "game_state.report_state"); if not k.ok: return k
 	for ik in ["report_cursor_msec", "next_report_sequence", "next_event_sequence", "dropped_history_record_count"]:
 		var pi := SaveInt64.parse(rs[ik], false, "game_state.report_state.%s" % ik); if not pi.ok: return pi
+	var report_cursor := SaveInt64.parse(rs.report_cursor_msec, false, "game_state.report_state.report_cursor_msec")
+	if not report_cursor.ok: return report_cursor
+	if report_cursor.value > base.simulation_time_msec: return _err(ERR_CROSS_FIELD, "game_state.report_state.report_cursor_msec")
 	if typeof(rs.history) != TYPE_ARRAY: return _err(ERR_TYPE, "game_state.report_state.history")
 	var lw := _validate_report_window(rs.live, "game_state.report_state.live"); if not lw.ok: return lw
 	for i in range(rs.history.size()):

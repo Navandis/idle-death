@@ -71,3 +71,13 @@ func test_stale_committed_run_rejects_when_gameplay_advanced_past_result() -> vo
 	assert_eq(result.error_code, ReportService.ERR_INVALID_RESULT)
 	assert_eq(state.simulation_time_msec, 2000)
 	assert_eq(state.report_state.report_cursor_msec, before_cursor)
+
+func test_global_peek_marks_no_slice_run_window_as_pending() -> void:
+	var state := GameState.new(0)
+	var run := SimulationRunService.new(_registry()).run_committed(state, 1000, SimulationRunService.MODE_DEBUG)
+	assert_true(run.success, run.developer_details)
+	assert_true(ReportService.new().ingest_committed_run(state, run).success)
+	var live := ReportService.new().peek_live_global(state)
+	assert_false(live.is_empty)
+	assert_eq(live.run_count, 1)
+	assert_eq(live.slices.size(), 0)
