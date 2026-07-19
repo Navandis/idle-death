@@ -136,3 +136,31 @@ func test_snapshot_sequence_overflow_rejects_without_mutation() -> void:
 	assert_eq(state.report_state.next_report_sequence, before.report_state.next_report_sequence)
 	assert_eq(state.report_state.history.size(), before.report_state.history.size())
 	assert_eq(state.report_state.live.run_count, before.report_state.live.run_count)
+
+
+func test_assignment_boundary_event_excludes_next_slice_start() -> void:
+	var state := GameState.new(0)
+	var first := ReportState.AttributionSlice.new()
+	first.threshold_id = &"THR_GLOAMWOOD"
+	first.assignment_revision = 1
+	first.lifecycle_state = &"OVERDUE"
+	first.start_simulation_msec = 0
+	first.end_simulation_msec = 1000
+	state.report_state.live.slices["first"] = first
+	var second := ReportState.AttributionSlice.new()
+	second.threshold_id = &"THR_GLOAMWOOD"
+	second.assignment_revision = 2
+	second.lifecycle_state = &"OVERDUE"
+	second.start_simulation_msec = 1000
+	second.end_simulation_msec = 2000
+	state.report_state.live.slices["second"] = second
+	var event := ReportState.ReportEventDetail.new()
+	event.event_sequence = 1
+	event.event_type = &"THRESHOLD_SETTLED"
+	event.subject_id = &"THR_GLOAMWOOD"
+	event.occurred_simulation_msec = 1000
+	state.report_state.live.event_details.append(event)
+	state.report_state.live.events_by_type["THRESHOLD_SETTLED"] = 1
+
+	assert_true(ReportService.new().peek_live_assignment(state, &"THR_GLOAMWOOD", 1).meaningful_event)
+	assert_false(ReportService.new().peek_live_assignment(state, &"THR_GLOAMWOOD", 2).meaningful_event)

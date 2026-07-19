@@ -62,6 +62,10 @@ func test_schema_v4_rejects_malformed_slice_maps_and_channel_summaries() -> void
 	slice_key = snapshot.game_state.report_state.live.slices.keys()[0]
 	snapshot.game_state.report_state.live.slices[slice_key].channel_summaries.CHANNEL_GLOAMWOOD_SOLDIER_SOULS.erase("output_item_id")
 	assert_eq(SaveSchemaValidator.validate_current(snapshot).code, SaveSchemaValidator.ERR_KEY_SET)
+	snapshot = SaveSchemaMapper.runtime_to_snapshot(state, TimeAuthorityState.new(), 11, ContentRegistry.CURRENT_REVISION)
+	slice_key = snapshot.game_state.report_state.live.slices.keys()[0]
+	snapshot.game_state.report_state.live.slices[slice_key].retinue_ids.append(7)
+	assert_eq(SaveSchemaValidator.validate_current(snapshot).code, SaveSchemaValidator.ERR_TYPE)
 
 func test_schema_v4_rejects_report_cursor_after_simulation_time() -> void:
 	var state := _state()

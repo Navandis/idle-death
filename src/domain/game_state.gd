@@ -31,6 +31,7 @@ func _init(initial_simulation_time_msec: int = 0) -> void:
 		push_error("GameState requires a non-negative initial simulation_time_msec.")
 		initial_simulation_time_msec = 0
 	simulation_time_msec = initial_simulation_time_msec
+	report_state = ReportState.new(initial_simulation_time_msec)
 
 func advance_simulation_time(elapsed_msec: int) -> Dictionary:
 	if elapsed_msec < 0:

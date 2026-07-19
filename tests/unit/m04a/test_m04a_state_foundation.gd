@@ -45,6 +45,13 @@ func test_representative_state_validates_and_clone_is_deep() -> void:
 	assert_eq(state.reapings[&"THR_GLOAMWOOD"].flow_carry_units[&"FLOW_TEST"], 4)
 	assert_eq(state.progression.command_tether_capacity, 1)
 
+func test_nonzero_constructor_initializes_report_cursor_to_game_cursor() -> void:
+	var state := GameState.new(12345)
+	assert_eq(state.simulation_time_msec, 12345)
+	assert_eq(state.report_state.report_cursor_msec, 12345)
+	assert_eq(state.report_state.live.start_simulation_msec, 12345)
+	assert_eq(state.report_state.live.end_simulation_msec, 12345)
+
 func test_inventory_validation_matrix() -> void:
 	_assert_invalid(func(s): s.inventory.entries[&"RES_ESSENCE"].total = -1, GameStateValidator.ERR_RANGE)
 	_assert_invalid(func(s): s.inventory.entries[&"RES_ESSENCE"].reservations[&"REC_WEAVE_REMEMBERED"] = -1, GameStateValidator.ERR_RANGE)

@@ -241,6 +241,8 @@ static func _validate_report_window(w, path: String) -> Dictionary:
 			if typeof(sd.get(needed, null)) != TYPE_STRING: return _err(ERR_TYPE, "%s.slices.%s.%s" % [path, sk, needed])
 		for needed in ["retinue_ids"]:
 			if typeof(sd.get(needed, null)) != TYPE_ARRAY: return _err(ERR_TYPE, "%s.slices.%s.%s" % [path, sk, needed])
+			for rid in sd[needed]:
+				if typeof(rid) != TYPE_STRING: return _err(ERR_TYPE, "%s.slices.%s.%s" % [path, sk, needed])
 		for ik in ["assignment_revision", "start_simulation_msec", "end_simulation_msec", "elapsed_msec", "returned_souls_delta", "backlog_delta", "completed_cycles_delta"]:
 			var si := SaveInt64.parse(sd.get(ik, ""), true, "%s.slices.%s.%s" % [path, sk, ik]); if not si.ok: return si
 		for map_key in ["inventory_gains", "mastery_gains"]:

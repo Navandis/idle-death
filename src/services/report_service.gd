@@ -158,7 +158,7 @@ func _has_meaningful_event(window: ReportState.ReportWindow, threshold_id: Strin
 				continue
 			var start_msec := int(slice.get("start_simulation_msec", 0))
 			var end_msec := int(slice.get("end_simulation_msec", 0))
-			if event.occurred_simulation_msec >= start_msec and event.occurred_simulation_msec <= end_msec:
+			if event.occurred_simulation_msec > start_msec and event.occurred_simulation_msec <= end_msec:
 				return true
 	return false
 
