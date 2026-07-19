@@ -3,8 +3,8 @@
 **Document role:** Durable record of approved and proposed design and architecture decisions  
 **Repository path:** `docs/codex/DECISIONS.md`  
 **Document status:** Approved architecture and active decision record  
-**Revision:** 22  
-**Last updated:** 2026-07-18
+**Revision:** 23  
+**Last updated:** 2026-07-19
 
 ## 1. How to use this file
 
@@ -69,6 +69,7 @@ Rules:
 | `DEC-0037` | Output access is global and prospective; schema version 3 persists unlocks and available-source initialization | Accepted | 2026-07-17 |
 | `DEC-0038` | Discrete non-Essence channels resolve only initialized sources; whole banking is immediate and Settlement is channel-specific | Accepted | 2026-07-18 |
 | `DEC-0039` | Valid loadouts remain distinct and swappable; rate-context changes preserve residuals and ETAs are baseline-derived views | Accepted | 2026-07-18 |
+| `DEC-0040` | Forecasts clone current state through the shared resolver; authoritative report history is a separate slice | Proposed | 2026-07-19 |
 
 ---
 
@@ -2443,15 +2444,132 @@ Loadout-validation results, derived loadout keys, denominator signatures, contin
 
 ---
 
+## `DEC-0040` — Forecasts clone current state through the shared resolver; authoritative report history is a separate slice
+
+**Status:** Proposed  
+**Date:** 2026-07-19  
+**Decision type:** Projection ownership, supplied-duration adapters, report-state boundary, and milestone decomposition  
+**Refines:** `DEC-0010`, `DEC-0012`, `DEC-0016`, `DEC-0033`, `DEC-0039`
+
+### Context
+
+The approved M04E definition combined five independently reviewable concerns:
+
+- clone-based projection;
+- foreground/offline-fixture/debug execution adapters;
+- authoritative report accumulation;
+- report-history persistence and migration;
+- the final M04 developer harness.
+
+The merged repository now has a mature transactional `SimulationEngine`, deep-cloneable schema-v3 `GameState`, M04D3 rate-context/query seams, and no report fields in authoritative state. Forecasting can therefore be added without a migration, while implementing save-safe report accumulation necessarily introduces a new authoritative aggregate, migration, idempotency contract, and retention policy.
+
+M04D3 also demonstrated that a nominally cohesive task can become difficult to review when multiple boundary contracts are changed together. `DEC-0033` requires a fresh rolling-wave split review before drafting the next prompt.
+
+### Proposed decision
+
+#### Decompose M04E
+
+M04E becomes a conceptual sub-epic with two implementation slices:
+
+```text
+M04E1 — Forecast clone and supplied-resolution adapters
+M04E2 — Report accumulator, history, persistence, and final M04 harness
+```
+
+No direct `M04E-forecast-report-simulation-harness.md` implementation prompt is valid.
+
+#### One gameplay formula path
+
+`SimulationEngine` remains the sole gameplay formula and mutation owner.
+
+M04E1 adds one `SimulationRunService` whose modes are caller metadata only:
+
+```text
+FOREGROUND_SUPPLIED
+OFFLINE_FIXTURE
+DEBUG
+FORECAST
+```
+
+Committed modes invoke `SimulationEngine.resolve_elapsed()` on the supplied state. Forecast mode deep-clones the baseline and invokes the same method on the clone.
+
+No mode may:
+
+- change a rate or balance rule;
+- process a different channel set;
+- reorder boundaries or events;
+- call a different simulation formula;
+- sample elapsed time internally.
+
+#### Forecast is detached projection
+
+A forecast validates the current baseline, deep-clones it, resolves an explicit non-negative duration on the clone, and returns the detached projected state plus the exact engine result.
+
+Forecasting never:
+
+- mutates the baseline;
+- writes a save or requests a checkpoint;
+- appends report state;
+- completes tutorial/progression presentation;
+- reads clocks, scenes, files, Steam, or another platform API;
+- creates authoritative history.
+
+M04E1 implements current-state forecasts only. A later consumer may apply a separately approved hypothetical command to a clone before invoking the same seam; M04E1 does not add a generic command-replay framework.
+
+#### Committed mode labels are not authority
+
+Foreground-supplied, offline-fixture, and debug calls are mathematically identical for the same state and elapsed duration. Their mode label supports diagnostics and tests but is not persisted and does not enter domain events.
+
+M05 may later supply monotonic foreground duration. M06 may later supply trusted closed-session duration. Neither replaces the simulation path.
+
+#### Report state is separate
+
+M04E2 owns report accumulation and history under `DEC-0016`:
+
+- simulation gains are already applied before reporting;
+- reports ingest committed deltas/events only;
+- forecasts never enter report authority;
+- snapshotting or clearing reports never changes inventory, backlog, Mastery, acquisition progress, or time.
+
+M04E2 cannot be prompted until `GATE-REPORT-SCHEMA` approves the exact report-state schema, sequential migration, retention bound, ordering, and idempotent ingestion identity.
+
+### Consequences
+
+- M04E1 remains a single-owner, no-migration projection slice.
+- Forecast and committed outcomes are directly comparable through complete canonical state.
+- The current one-active-Reaping engine limitation remains explicit until M12.
+- M05 and M06 gain one stable supplied-duration seam without importing clocks into simulation.
+- Report persistence cannot silently extend schema version 3.
+- M04 closes only after both M04E1 and M04E2 are Merged and Passed.
+- The final M04 harness moves to M04E2, where it can demonstrate both forecast and report behavior without forcing report authority into M04E1.
+
+### Alternatives considered
+
+- **Keep M04E as one pull request:** rejected because projection, new report authority, migration, idempotency, and harness behavior exceed the normal review surface.
+- **Put report state inside forecast results:** rejected because forecasts are non-authoritative and report history records committed gains.
+- **Add a second forecast formula:** rejected because online, offline, debug, and forecast modes must share the same resolver.
+- **Pass a mode into `SimulationEngine` and branch formulas:** rejected; mode-specific differences belong outside gameplay arithmetic.
+- **Persist forecast projections:** rejected because projections are rebuildable and may become stale immediately.
+- **Implement hypothetical command replay now:** rejected because current-state clone equivalence is sufficient for M04E1 and a generic replay framework would broaden scope.
+- **Add report fields without a migration:** rejected by the sequential schema policy established in M04A.
+- **Delay all report architecture until UI:** rejected because later report UI needs an authoritative, non-claim-gated foundation first.
+
+### Affected documents
+
+- `docs/codex/ARCHITECTURE.md`
+- `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`
+- `docs/codex/MILESTONES.md`
+- `docs/codex/TESTING_AND_VALIDATION.md`
+- `docs/codex/milestone-prompts/M04E1-forecast-clone-resolution-adapters.md`
+
+---
+
 ## 3. Current approval state
 
 - `DEC-0001` through `DEC-0039` are Accepted.
-- M03 prompt approval accepted `DEC-0029` through `DEC-0032`, including explicit revision compatibility, stable channel IDs, editable player-facing language, centralized terminology, and Essence as the single resource identity.
-- M01 prompt approval accepted `DEC-0026`; long-horizon source ownership is recorded in `DEC-0027`; prospective, non-compounding rate-change semantics are recorded in `DEC-0028`.
-- The post-M03 implementation workflow uses conceptual epics, lettered slices, rolling-wave planning, and review-surface guardrails under `DEC-0033`.
-- `DEC-0034` through `DEC-0038` are implemented and verified by M04A through M04D2.
-- M04D2 merged through PR #14 at merge commit `24228a078199d9728eb57e4e26c27447aa6911a3`.
-- `DEC-0039` and M04D3 prompt v0.2 are owner-approved with loadout-validity, equal-output identity, denominator-normalization, and player-facing ETA refinements.
-- M04D3 implementation has not started.
-- M04E remains undrafted.
+- `DEC-0040` is Proposed and awaits owner approval with the M04E decomposition and M04E1 prompt.
+- M04A through M04D3 are implemented, verified, and merged.
+- M04D3 merged through PR #15 from final head `5a5cafc6b640001fba86c7ea9531ae9daf43fcc3` at merge commit `9fd8f98e3787f711f3d03c9de03d3615d531216a`.
+- M04E1 prompt v0.1 is drafted but not approved or started.
+- M04E2 is proposed and blocked on M04E1 plus `GATE-REPORT-SCHEMA`; its prompt is not drafted.
 - Future changes preserve decision IDs for wording clarifications and create a new decision only when semantics, ownership, compatibility, or security posture changes.

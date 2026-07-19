@@ -3,8 +3,8 @@
 **Document role:** Canonical prototype data, runtime-state, ID, and serialization contracts  
 **Repository path:** `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`  
 **Document status:** Approved architecture contract  
-**Revision:** 18  
-**Last updated:** 2026-07-18
+**Revision:** 19  
+**Last updated:** 2026-07-19
 
 ## 1. Purpose
 
@@ -2504,11 +2504,6 @@ THRESHOLD_LIFECYCLE
 
 Multiple operands use deterministic any-match semantics. Relevant malformed or unsupported operation/scope/condition data returns a typed failure. Non-`OUTPUT_CHANNEL_RATE` modifiers are irrelevant and ignored.
 
-Canonical M04D3 operand tokens are:
-
-- `OUTPUT_KIND`: `RESOURCE`, `STORE`, or `WHOLE_SOUL`. `WHOLE_SOUL` means channels whose `output_kind` is `WHOLE_ITEM` and whose output item is a Calling Soul or Form Soul; it is not equivalent to generic `WHOLE_ITEM`.
-- `THRESHOLD_LIFECYCLE`: `OVERDUE` or `SETTLED`. Legacy authored `STANDING` is accepted only as an import-time compatibility alias and normalizes to `OVERDUE` before runtime evaluation.
-
 ### Modifier-source boundary
 
 M04D3 executes active Form Trait modifiers only.
@@ -2646,4 +2641,148 @@ ETA
 
 Selected component IDs already persisted in `ReapingState` remain authoritative. After supported redispatch and subsequent production, existing Reaping, Threshold acquisition, inventory, assignment revision, and simulation fields round-trip through schema v3 exactly.
 
-M04D3 implementation note (PR #15 final correction): canonical derived dictionaries expose `success`, `ok`, `error_code`, and `developer_details` plus bounded loadout identity, residual signature, continuity, output rate-plan, modifier trace, acquisition query, and ETA-display payloads. These derived artifacts remain absent from schema-v3 snapshots; selected components, assignment revision, Threshold acquisition, inventory, and time state remain authoritative. Windows final-head owner verification is pending.
+## Realized M04D3 evidence
+
+M04D3 merged through PR #15 from final head `5a5cafc6b640001fba86c7ea9531ae9daf43fcc3` at merge commit `9fd8f98e3787f711f3d03c9de03d3615d531216a`.
+
+The realized derived contracts preserve:
+
+- component-based loadout identity inside every public output-channel rate plan;
+- canonical authored modifier operands and legacy lifecycle normalization;
+- initialized-source disclosure of at least `IDENTIFIED`;
+- null ETA display when no active ETA exists;
+- exact-millisecond ETA template selection;
+- the canonical `non_essence_channel_period_msec_by_id` residual-signature field;
+- no serialization of validation, identity-key, rate, modifier-trace, percentage, or ETA artifacts.
+
+Schema version 3 and content revision `prototype-content-r2` remain current.
+
+## Proposed M04E1 simulation-run and forecast contracts
+
+These contracts become authoritative only after owner approval of proposed `DEC-0040` and the M04E1 prompt.
+
+### SimulationRunMode
+
+The non-persisted mode token is one of:
+
+```text
+FOREGROUND_SUPPLIED
+OFFLINE_FIXTURE
+DEBUG
+FORECAST
+```
+
+The token records caller intent and evidence origin. It never changes gameplay arithmetic, normalized content, event ordering, or result amounts.
+
+### SimulationRunResult
+
+A bounded result contains:
+
+```text
+success: bool
+error_code: StringName
+developer_details: String
+mode: StringName
+requested_elapsed_msec: int
+baseline_simulation_time_msec: int
+result_simulation_time_msec: int
+simulation_result: SimulationEngine.SimulationResult or null
+projected_state: GameState or null
+```
+
+Rules:
+
+- successful committed modes mutate the supplied state only through `SimulationEngine` and return `projected_state = null`;
+- successful `FORECAST` returns a detached projected `GameState` and leaves the supplied baseline unchanged;
+- a failed run returns no projected state and preserves the supplied baseline exactly;
+- `simulation_result` is the exact engine result rather than a second reimplementation of deltas or events;
+- mode metadata is not inserted into `SimulationResult`, domain events, or authoritative state;
+- no run result is serialized.
+
+### Detached projection
+
+A projected state must share no mutable nested authoritative object with its baseline, including:
+
+```text
+inventory entries and reservation dictionaries
+Form state
+Threshold and acquisition state
+Reaping state and residual dictionaries
+progression state and unlock arrays
+```
+
+Mutating the projection after a successful forecast cannot change the baseline, and later mutation of the baseline cannot change the projection.
+
+Canonical equality is measured through the current schema-v3 mapper or an equivalent complete canonical gameplay-state comparison, not selected totals only.
+
+### Exact copied fixtures
+
+The controlled Gloamwood fixture uses:
+
+```text
+lifecycle = OVERDUE
+remaining backlog large enough to avoid Settlement in the duration fixture
+active Form = FORM_MAN_AT_ARMS
+Writ = WRIT_STANDARD
+Soldier and Scribe sources initialized at zero
+content revision = prototype-content-r2
+```
+
+Expected one-hour result:
+
+```text
+elapsed = 3,600,000 ms
+returned Souls = 4,140
+Essence = 360
+Mastery delta = 60,000,000 subunits
+completed cycles = 60
+Soldier Souls banked = 12
+Scribe Form-Soul progress = 125,000 subunits
+```
+
+Expected eight-hour channel result:
+
+```text
+elapsed = 28,800,000 ms
+Soldier Souls banked = 96
+Scribe Form Souls banked = 1
+Scribe progress remainder = 0
+```
+
+A separate copied low-backlog fixture proves exact Overdue-to-Settled segmentation and forecast/commit equality across the boundary.
+
+### Save and report exclusion
+
+M04E1 adds no report fields to `GameState` and no schema keys.
+
+The following remain non-authoritative and absent from snapshots:
+
+```text
+SimulationRunMode
+SimulationRunResult
+forecast projected state
+engine result/segments/events
+forecast comparison data
+report accumulator or report history
+```
+
+A forecast may originate from a state loaded through production persistence, but it does not receive `SaveService`, `SaveStorage`, `GameStatePersistenceCoordinator`, or a filesystem path.
+
+## Deferred M04E2 report-state contract gate
+
+M04E2 must not be prompted until `GATE-REPORT-SCHEMA` approves:
+
+- the exact `ReportAccumulatorState` and `ReportHistoryEntry` fields;
+- a sequential schema-version migration from version 3;
+- canonical ordering and bounded history retention;
+- an idempotency/ingestion identity for committed simulation results;
+- atomicity between committed gameplay deltas and report ingestion;
+- snapshot/clear semantics;
+- exclusion of forecast results from authoritative report state.
+
+The protected invariant remains:
+
+```text
+inventory and gameplay gains are committed before report inspection
+report snapshot or clear changes no gameplay authority
+```

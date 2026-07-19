@@ -3,8 +3,8 @@
 **Document role:** Maintained implementation architecture for the 0-90 minute prototype  
 **Repository path:** `docs/codex/ARCHITECTURE.md`  
 **Document status:** Approved architecture  
-**Architecture revision:** 16  
-**Last updated:** 2026-07-18  
+**Architecture revision:** 17  
+**Last updated:** 2026-07-19  
 **Engine target:** Godot 4.7, GDScript only  
 **Primary design context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md) and [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md)
 
@@ -1703,8 +1703,142 @@ Loadout-validation results, derived loadout keys, denominator signatures, contin
 
 Schema version 3 and content revision 2 remain current.
 
-### M04E and later systems
+### Realized M04D3 implementation
 
-M04E consumes the same results for forecast clones and report accumulation. M13 adds richer discovery/insight and presentation without changing Access or retroactively generating output. Progression slices invoke M04D1 access/reconciliation commands rather than writing unlock arrays or acquisition maps directly.
+M04D3 is implemented and verified. PR #15 merged from final head `5a5cafc6b640001fba86c7ea9531ae9daf43fcc3` at merge commit `9fd8f98e3787f711f3d03c9de03d3615d531216a`.
 
-M04D3 implementation note (PR #15 final correction): `src/domain/reaping_rate_context_service.gd` is the realized bounded rate-context owner. `ReapingAssignmentService` consumes it for strict candidate identity and residual continuity checks; `SimulationEngine` consumes its shared output-channel rate plan; acquisition query/ETA-display callers consume the same pure derived contracts. The owner verification package remains `tools/test/owner/run_m04d3_owner_verification.ps1`; Windows final-head execution is pending.
+The realized boundary includes:
+
+- one `ReapingRateContextService` shared by assignment, simulation, and acquisition-query consumers;
+- assembly-time and commit-time loadout validation;
+- component-based loadout identity, including distinct identities for numerically equal plans;
+- supported residual-preserving Form/Writ redispatch and normalization-required guards for unsupported denominator changes;
+- baseline-derived active-Form output-channel modifiers with canonical authored operands;
+- exact carry-aware current-context ETA plus the approved three-component display payload;
+- strict initialized-source disclosure, unknown-nonzero-flow activation guards, and validated empty-Retinue redispatch activation;
+- schema-v3 persistence without derived rate, identity, trace, percentage, or ETA authority;
+- a sixteen-marker real-file trace and final-pattern owner package.
+
+Final Windows evidence passed `144/144` full tests with `2,222` assertions before and after the trace, `18/18` focused M04D3 tests with `254` assertions, all sixteen markers, import, cleanup, cleanup proof, and artifact audit with zero failed steps.
+
+## Proposed M04E decomposition
+
+M04E originally combined clone forecasting, mode adapters, authoritative report state, report persistence, and the final M04 developer harness. Under `DEC-0033`, those concerns now cross too many independent review domains for one implementation pull request.
+
+Proposed `DEC-0040` decomposes M04E into:
+
+```text
+M04E1 — Forecast clone and supplied-resolution adapters
+M04E2 — Report accumulator, history, persistence, and final M04 harness
+```
+
+M04E becomes a conceptual sub-epic and receives no direct implementation prompt.
+
+## Proposed M04E1 forecast and supplied-resolution boundary
+
+This boundary is proposed under `DEC-0040` and becomes authoritative only after owner approval of the decision and M04E1 prompt.
+
+### One adapter owner, one formula owner
+
+Add one scene-independent `SimulationRunService` as the adapter owner for explicit-duration execution modes.
+
+`SimulationEngine` remains the sole owner of production formulas, lifecycle segmentation, fixed-point accumulation, inventory banking, and event ordering. `SimulationRunService` does not reproduce formulas, inspect channel definitions independently, or add mode-specific balance branches.
+
+The run modes are non-persisted metadata:
+
+```text
+FOREGROUND_SUPPLIED
+OFFLINE_FIXTURE
+DEBUG
+FORECAST
+```
+
+The first three commit through the same `SimulationEngine.resolve_elapsed()` path. `FORECAST` deep-clones the supplied baseline and invokes that same method on the clone.
+
+### Forecast contract
+
+For a current-state forecast:
+
+```text
+validate baseline
+    -> deep-clone baseline
+    -> resolve explicit elapsed on clone through SimulationEngine
+    -> return detached projected state plus the exact SimulationResult
+```
+
+A forecast:
+
+- never mutates the baseline or shares mutable nested state with it;
+- never writes a save or requests a checkpoint;
+- never appends report state;
+- never changes tutorial, presentation, or trusted-time state;
+- never reads a clock, scene tree, file timestamp, platform API, or user input;
+- preserves the same content, access, rate-plan, lifecycle, and event semantics as a committed run;
+- returns no projected state on failure.
+
+M04E1 forecasts the current authoritative configuration only. Applying a hypothetical player command to a clone is a later consumer of the same seam and is not implemented in this slice.
+
+### Run result
+
+A bounded `SimulationRunResult` contains at least:
+
+```text
+success
+error_code
+developer_details
+mode
+requested_elapsed_msec
+baseline_simulation_time_msec
+result_simulation_time_msec
+simulation_result
+projected_state        # FORECAST only; null for committed modes
+```
+
+The projected state is mutable only as a detached caller-owned clone. It is never authoritative until a separate approved command explicitly commits equivalent state; M04E1 adds no such command.
+
+### Mode equivalence
+
+For the same canonical baseline and elapsed duration:
+
+```text
+FOREGROUND_SUPPLIED committed result
+OFFLINE_FIXTURE committed result
+DEBUG committed result
+FORECAST projected result
+```
+
+must produce canonically equal resulting gameplay state and equal engine deltas/events, apart from wrapper mode metadata and whether the result was committed to the supplied object.
+
+The existing `M04CDebugAdvance` delegates through `SimulationRunService` while preserving its narrow developer API. M05 and M06 may later call the same committed seam after their own monotonic or trusted-time owners derive an elapsed duration.
+
+### Persistence boundary
+
+M04E1 adds no authoritative state and no migration:
+
+```text
+save schema = 3
+content revision = prototype-content-r2
+```
+
+Forecast results, modes, projected states, engine results, segments, events, rate plans, and comparison data are not serialized. A real-file trace may load a schema-v3 fixture and prove that forecasting leaves the source save bytes unchanged, but the forecast service itself never receives a storage dependency.
+
+## Proposed M04E2 report boundary
+
+M04E2 is deliberately not prompted in this planning cycle.
+
+It will own:
+
+- a `ReportService` and authoritative live report accumulator;
+- bounded report-history snapshots;
+- ingestion of already-committed simulation deltas/events only;
+- snapshot/clear behavior that changes no gameplay gains;
+- exactly-once or idempotent ingestion across save/load and retries;
+- the final non-UI M04 demonstration harness.
+
+Because current `GameState` and schema version 3 contain no report authority, M04E2 requires a separate `GATE-REPORT-SCHEMA` decision covering schema versioning, migration, retention bounds, ordering, and ingestion identity before its prompt may be drafted.
+
+Forecast results are never ingested into report state. Reports observe committed gains; they never claim, delay, grant, or reverse inventory.
+
+## Later systems
+
+M05 supplies application lifetime and debug access. M06 supplies trusted closed-session elapsed time. M10 and M16 consume report and forecast foundations for player-facing flows. M12 replaces the current one-active-Reaping limit through its separately approved concurrency slice. None of those systems changes the M04E1 one-engine rule.

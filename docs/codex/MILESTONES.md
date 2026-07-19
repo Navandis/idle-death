@@ -3,8 +3,8 @@
 **Document role:** Approved implementation sequence and acceptance map for the 0–90 minute prototype  
 **Repository path:** `docs/codex/MILESTONES.md`  
 **Document status:** Approved rolling-wave milestone map  
-**Milestone-map revision:** 25  
-**Last updated:** 2026-07-18  
+**Milestone-map revision:** 26  
+**Last updated:** 2026-07-19  
 **Primary context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md), [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md), [Architecture](ARCHITECTURE.md), [Data contracts](DATA_AND_CONTENT_CONTRACTS.md), [Testing](TESTING_AND_VALIDATION.md), [Owner verification](OWNER_VERIFICATION_WORKFLOW.md), [Milestone recalibration](MILESTONE_RECALIBRATION_PROPOSAL.md), and [Decisions](DECISIONS.md)
 
 ## 1. Purpose and authority
@@ -15,7 +15,7 @@ Use the source hierarchy in `AGENTS.md`. A milestone definition cannot weaken a 
 
 ## 2. Current repository baseline
 
-After M04D2 completion:
+After M04D3 completion:
 
 - Godot 4.7, GDScript, the 1920 × 1080 reference viewport, resizing/stretch settings, and a temporary dry-run main scene exist.
 - `AGENTS.md`, project Codex configuration, the maintained design sources, the architecture documents, the approved `PROMPT_TEMPLATE.md`, and `OWNER_VERIFICATION_WORKFLOW.md` are present in the repository.
@@ -39,7 +39,9 @@ After M04D2 completion:
 - M04D1 merged through PR #13 at final head `1171785562c4107921437339187a1e782fe0143b` and merge commit `4569fbfb968deb73f54ba453834dd7af0b04d545`; Linux/Codex and owner Windows verification passed.
 - M04D2 added strict initialized-source non-Essence channel accumulation, content revision 2, exact whole banking, source history, channel-specific Settlement segmentation, deterministic deltas/events, schema-v3 persistence, a strengthened real-file trace, and the final owner workflow.
 - M04D2 merged through PR #14 at final head `96f4db53b2513a8ab6182c074113efe72d5fd968` and merge commit `24228a078199d9728eb57e4e26c27447aa6911a3`; Linux/Codex and owner Windows verification passed.
-- The repository still has no compatible changed-loadout rate-context service, output-channel Form modifier execution, acquisition ETA query, forecast/report layer, application shell, or player-facing gameplay UI.
+- M04D3 added the shared rate-context service, assembly/commit validation, component-based loadout identity, supported residual-preserving redispatch, baseline-derived Form channel modifiers, exact/readable ETA queries, persistence proof, and the finalized branch-recovery guidance.
+- M04D3 merged through PR #15 from final head `5a5cafc6b640001fba86c7ea9531ae9daf43fcc3` at merge commit `9fd8f98e3787f711f3d03c9de03d3615d531216a`; Linux/Codex and owner Windows verification passed.
+- The repository still has no clone-forecast adapter layer, authoritative report accumulator/history, application shell, trusted offline adapter, concurrent-Reaping resolver, or player-facing gameplay UI.
 - Existing dry-run assets and scene work are preserved unless a scoped milestone explicitly replaces or integrates them.
 
 ## 3. Milestone rules
@@ -121,6 +123,8 @@ A conceptual epic uses `Prompt: Not applicable` and `Implementation: Not directl
 | `GATE-OUTPUT-ACCESS-SCHEMA` | M04D1 prompt approval | Satisfied by accepted `DEC-0037` and approved M04D1 v0.1: access/knowledge/insight separation, schema version 3, global item access, prospective unlocks, available-source initialization, no retroactive production, and no permanent lockout. |
 | `GATE-CHANNEL-ACCUMULATION` | M04D2 prompt approval | Satisfied by M04D1 Merged/Passed, accepted `DEC-0038`, and approved M04D2 v0.1 covering strict initialized-source eligibility, content revision 2, exact whole banking, channel-specific Settlement segmentation, bounded events, persistence, and scope. |
 | `GATE-RATE-CONTEXT-CHANGE` | M04D3 prompt approval | Satisfied by M04D2 Merged/Passed, accepted `DEC-0039`, and approved M04D3 v0.2 covering assembly-time loadout validation, component-based equal-output identity, stable residual denominators, prospective baseline-derived modifiers, non-compounding, exact/current-context ETA queries, readable ETA presentation, persistence boundaries, and scope. |
+| `GATE-FORECAST-CLONE` | M04E1 prompt approval | Requires M04D3 Merged/Passed plus owner approval of proposed `DEC-0040` and M04E1 v0.1 covering detached clone projection, shared supplied-duration modes, canonical equivalence, no persistence/report side effects, and scope. |
+| `GATE-REPORT-SCHEMA` | M04E2 prompt drafting | Requires M04E1 Merged/Passed and a separate owner-approved contract for report-state fields, schema version/migration, retention bounds, canonical ordering, idempotent ingestion, and snapshot/clear semantics. |
 | `GATE-STEAM-TIME` | The applicable M06 slice prompt/implementation | Satisfied for prompt drafting by `DEC-0024`: use pinned GodotSteam 4.20 and development App ID `480`. M06 must still verify license footprint, wrapper API, explicit initialization, and live Windows behavior. |
 | `GATE-PRODUCTION-OFFLINE` | The final applicable M16 slice merge | Fake-provider automation plus the owner-run Windows/GodotSteam connected, unavailable, reconnect, clock-change, and repeated-load checks must pass. |
 | `RELEASE-GATE-STEAM-APP` | Before external Steam Playtest or commercial distribution | Replace development App ID `480` with Death Idle's assigned App ID and validate package ownership, launch-through-Steam behavior, export contents, and absence of development-only App ID aids. |
@@ -134,7 +138,7 @@ A conceptual epic uses `Prompt: Not applicable` and `Implementation: Not directl
 
 `GATE-CONTENT-CATALOG` was satisfied by M03. PR #7 merged on 2026-07-15 at merge commit `5e2b9b23878c9280f75b987cc9ad567d8980030d`; its final head was `971cdaa0fd46f641ec7409148e259d54f953d8c7`. Linux/Codex and owner Windows verification passed the full and focused suites, explicit import, semantic catalog trace, artifact audit, and Godot Inspector checklist.
 
-`GATE-SLICE-SCOPE` is mandatory for every post-M03 prompt. `GATE-GAMEPLAY-SCHEMA` is fully satisfied by M04A. `GATE-REAPING-ASSIGNMENT` is fully satisfied by M04B. `GATE-CORE-RESOLUTION` is fully satisfied by M04C. `GATE-OUTPUT-ACCESS-SCHEMA` is fully satisfied by M04D1. `GATE-CHANNEL-ACCUMULATION` is fully satisfied by M04D2. `GATE-RATE-CONTEXT-CHANGE` and M04D3 `GATE-SLICE-SCOPE` are satisfied by accepted `DEC-0039` and approved M04D3 v0.2.
+`GATE-SLICE-SCOPE` is mandatory for every post-M03 prompt. `GATE-GAMEPLAY-SCHEMA`, `GATE-REAPING-ASSIGNMENT`, `GATE-CORE-RESOLUTION`, `GATE-OUTPUT-ACCESS-SCHEMA`, `GATE-CHANNEL-ACCUMULATION`, and `GATE-RATE-CONTEXT-CHANGE` are satisfied by M04A through M04D3. `GATE-FORECAST-CLONE` is pending owner approval of proposed `DEC-0040` and M04E1 v0.1. `GATE-REPORT-SCHEMA` remains blocked until M04E1 passes.
 
 
 When trusted time is unavailable, the approved behavior is to grant no guessed closed-session progress, retain pending reconciliation, and continue monotonic foreground production. No milestone may introduce a local-device-time fallback.
@@ -151,11 +155,13 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 | M04A | Gameplay state and persistence foundation | Implementation slice | Approved | Approved | Merged | Passed |
 | M04B | Dispatch, recall, and assignment integrity | Implementation slice | Approved | Approved | Merged | Passed |
 | M04C | Single-Reaping core resolver | Implementation slice | Approved | Approved | Merged | Passed |
-| M04D | Output access and discrete-channel progression | Conceptual sub-epic | Approved | Not applicable | Not directly executable | — |
+| M04D | Output access and discrete-channel progression | Conceptual sub-epic | Approved | Not applicable | Not directly executable | Passed |
 | M04D1 | Output access and source-identification foundation | Implementation slice | Approved | Approved | Merged | Passed |
 | M04D2 | Discrete channel accumulation and long-horizon banking | Implementation slice | Approved | Approved | Merged | Passed |
-| M04D3 | Compatible rate-context changes and acquisition queries | Implementation slice | Approved | Approved | Pull request open | Partial |
-| M04E | Forecast clone, report accumulator, and simulation harness | Implementation slice | Approved | Not drafted | Not started | — |
+| M04D3 | Compatible rate-context changes and acquisition queries | Implementation slice | Approved | Approved | Merged | Passed |
+| M04E | Forecast and report foundations | Conceptual sub-epic | Proposed | Not applicable | Not directly executable | — |
+| M04E1 | Forecast clone and supplied-resolution adapters | Implementation slice | Proposed | Drafted | Not started | — |
+| M04E2 | Report accumulator, history, persistence, and final M04 harness | Implementation slice | Proposed | Not drafted | Not started | — |
 | M05 | Persistent application shell, navigation, and debug access | Conceptual epic | Approved | Not applicable | Not directly executable | — |
 | M06 | Steam trusted-time adapter and transactional offline resolution | Conceptual epic | Approved | Not applicable | Not directly executable | — |
 | M07 | Dialogue and save-safe tutorial orchestration framework | Conceptual epic | Approved | Not applicable | Not directly executable | — |
@@ -177,7 +183,7 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 ```text
 M00 → M01 → M02 → M03
                       └─ GATE-GAMEPLAY-SCHEMA
-                          └─ M04A → M04B → M04C → M04D1 → M04D2 → M04D3 → M04E
+                          └─ M04A → M04B → M04C → M04D1 → M04D2 → M04D3 → M04E1 → M04E2
 ```
 
 | Slice | Requires | Unlocks |
@@ -187,13 +193,14 @@ M00 → M01 → M02 → M03
 | M04C | M04B Merged and Passed | M04D1 |
 | M04D1 | M04C Merged and Passed; accepted `DEC-0037` | M04D2 |
 | M04D2 | M04D1 Merged and Passed | M04D3 |
-| M04D3 | M04D2 Merged and Passed | M04E |
-| M04E | M04D3 Merged and Passed | M05 decomposition and prompt drafting |
+| M04D3 | M04D2 Merged and Passed | M04E1 planning |
+| M04E1 | M04D3 Merged and Passed; `GATE-FORECAST-CLONE` satisfied | M04E2 planning |
+| M04E2 | M04E1 Merged and Passed; `GATE-REPORT-SCHEMA` satisfied | M05 decomposition and prompt drafting |
 
-### 7.2 Conceptual dependency sequence after M04E
+### 7.2 Conceptual dependency sequence after M04E2
 
 ```text
-M04E
+M04E2
  └─ M05 implementation slices, defined under rolling-wave review
      ├─ M06 implementation slices  (approved Steam-time dependency required)
      └─ M07 implementation slices
@@ -209,7 +216,7 @@ M04E
                                              └─ M17 implementation slices
 ```
 
-The post-M04E entries above are conceptual dependencies, not approved prompt IDs. Their preliminary decompositions remain subject to repository inspection and owner approval immediately before each epic. M06 remains early enough to retire the trusted-time/platform risk before M16. M07–M15 may use fake trusted-time providers, but the final applicable M16 slice cannot merge until the M06 live Windows gate is complete.
+The post-M04E2 entries above are conceptual dependencies, not approved prompt IDs. Their preliminary decompositions remain subject to repository inspection and owner approval immediately before each epic. M06 remains early enough to retire the trusted-time/platform risk before M16. M07–M15 may use fake trusted-time providers, but the final applicable M16 slice cannot merge until the M06 live Windows gate is complete.
 
 ## 8. Recalibrated planning model
 
@@ -244,7 +251,7 @@ M03 demonstrated that a technically coherent architecture can still become an un
 ### 8.3 Changes from the starting hypothesis
 
 - State/time, persistence, and content were correctly separated into M01–M03.
-- M04 is now split into seven approved implementation slices: M04A, M04B, M04C, M04D1, M04D2, M04D3, and M04E.
+- M04A through M04D3 are complete. Proposed `DEC-0040` replaces the oversized direct M04E implementation slice with M04E1 and M04E2, yielding eight implementation slices in the completed plan.
 - Later first-session outcomes remain conceptually ordered but are decomposed only when their repository state is known.
 - Reports, forecasts, trusted time, and presentation remain incremental rather than becoming catch-all work.
 - M17 remains an acceptance epic and may not absorb unfinished major systems.
@@ -770,7 +777,7 @@ Schema version 1 and its key spelling remain unchanged. New-save calls pass the 
 **Prompt status:** Not applicable — no direct epic prompt  
 **Implementation status:** Not directly executable  
 **Verification status:** —  
-**Decomposition:** M04A → M04B → M04C → M04D1 → M04D2 → M04D3 → M04E
+**Decomposition:** M04A → M04B → M04C → M04D1 → M04D2 → M04D3 → proposed M04E1 → proposed M04E2
 
 #### Purpose
 
@@ -778,11 +785,11 @@ Prove the core idle machinery before narrative and production UI are layered ove
 
 #### Epic outcome
 
-After M04A, M04B, M04C, M04D1, M04D2, M04D3, and M04E pass, one Gloamwood Reaping led by Man-at-Arms can be constructed, dispatched, advanced deterministically, saved, loaded, recalled, redispatched, forecast on a clone, and reported without claim-gating. Output access, backlog, Essence, Mastery, and configured eligible channels use scene-independent authority.
+After M04A, M04B, M04C, M04D1, M04D2, M04D3, M04E1, and M04E2 pass, one Gloamwood Reaping led by Man-at-Arms can be constructed, dispatched, advanced deterministically, saved, loaded, recalled, redispatched, forecast on a clone, and reported without claim-gating. Output access, backlog, Essence, Mastery, and configured eligible channels use scene-independent authority.
 
 #### Epic completion rule
 
-M04 is complete only when M04A, M04B, M04C, M04D1, M04D2, M04D3, and M04E are all Merged and Passed. No `M04-persistent-reaping-simulation.md` or direct `M04D` implementation prompt is valid.
+M04 is complete only when M04A, M04B, M04C, M04D1, M04D2, M04D3, M04E1, and M04E2 are all Merged and Passed. No `M04-persistent-reaping-simulation.md`, direct `M04D` prompt, or direct `M04E-forecast-report-simulation-harness.md` prompt is valid.
 
 ---
 
@@ -1121,16 +1128,16 @@ A developer can provide a duration to one Gloamwood/Man-at-Arms operation and ob
 **Definition status:** Approved  
 **Prompt status:** Not applicable — no direct prompt  
 **Implementation status:** Not directly executable  
-**Verification status:** —  
+**Verification status:** Passed  
 **Decomposition:** M04D1 → M04D2 → M04D3
 
 #### Purpose
 
 Separate output access and source identification from accumulation and from later rate-context changes so each ownership boundary receives an independently reviewable implementation and migration.
 
-#### Completion rule
+#### Completion record
 
-M04D is complete only when M04D1, M04D2, and M04D3 are all Merged and Passed. The superseded `M04D-output-channels-long-horizon-progress.md` prompt must not be executed.
+M04D1, M04D2, and M04D3 are all Merged and Passed. The conceptual sub-epic is complete. The superseded `M04D-output-channels-long-horizon-progress.md` prompt must not be executed.
 
 ---
 
@@ -1303,210 +1310,204 @@ A developer can resolve long active intervals at Gloamwood and Broken Watch, ins
 **Parent epic:** M04 / M04D  
 **Definition status:** Approved  
 **Prompt status:** Approved  
-**Implementation status:** Pull request open
-**Verification status:** Partial
-**PR:** #15 (`codex/implement-milestone-m04d3`); final-head Windows owner verification pending.
-**Realized scope:** one bounded rate-context service with assignment and simulation/query seams; focused coverage in `tests/unit/m04d3` and `tests/integration/m04d3`; trace harness under `tools/test/m04d3`; owner package under `tools/test/owner`.
+**Implementation status:** Merged  
+**Verification status:** Passed  
 **Recommended Codex task size:** Small-medium; one rate-context/reconfiguration/query pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M04D3-compatible-rate-context-and-acquisition-queries.md`
 
 #### Purpose
 
-Permit every currently valid supported changed loadout to redispatch while preserving core/channel residuals, keep structurally different equal-output loadouts distinct, guard unsupported denominator-changing content until exact normalization exists, apply prospective baseline-derived active-Form output-channel modifiers without compounding, and expose exact plus readable acquisition ETA queries.
+Permit currently valid changed loadouts to redispatch without losing or reinterpreting core/channel residuals, preserve component identity when numeric outputs converge, derive prospective output-channel modifiers from baseline without compounding, and expose exact plus readable current-context ETA queries.
 
-#### Player or developer outcome
+#### Implemented scope
 
-A developer can:
+- Added one scene-independent `ReapingRateContextService` used by assignment, simulation, and query paths.
+- Added assembly-time candidate validation with commit-time revalidation.
+- Added complete component-based loadout identity to public rate plans.
+- Preserved known compatible residuals while rejecting unknown nonzero flow keys and unsupported denominator changes before activation.
+- Added active-Form output-channel modifier evaluation with canonical catalog/runtime operands.
+- Added exact carry-aware ETA, one-decimal progress, initialized-source disclosure, and null display when ETA is unavailable.
+- Preserved schema version 3/content revision 2 and excluded all derived contracts from persistence.
+- Added focused tests, production persistence coverage, a sixteen-marker trace, branch-recovery guidance, and the final-pattern Windows owner package.
 
-- validate a loadout while assembling it and revalidate at commit;
-- swap between current Man-at-Arms and Scribe setups even when performance differs;
-- preserve all residuals and operation identity;
-- prove copied denominator-changing content is blocked as a technical normalization guard rather than a rate/power restriction;
-- compare two different loadouts with identical numeric output without either being merged;
-- keep progress at exactly `50.0%` while ETA changes from two hours to one hour forty minutes;
-- expose `03 hours, 52 minutes, 15 seconds` or `02 days, 03 hours, 04 minutes` instead of player-facing milliseconds;
-- repeat and reverse loadouts without compounding;
-- execute a `1 -> 3 -> 2 -> 1` sequence without moving source progress between Threshold operations.
+#### Completion record
 
-#### Dependencies
+- PR #15 merged on 2026-07-19.
+- Final PR head: `5a5cafc6b640001fba86c7ea9531ae9daf43fcc3`.
+- Merge commit: `9fd8f98e3787f711f3d03c9de03d3615d531216a`.
+- Final review surface: 19 changed files, 1,719 additions, and 51 deletions.
+- Linux/Codex focused M04B + M04D3 + integration coverage passed `35/35` tests and `592` assertions.
+- Owner Windows verification passed against the final head:
+  - full suite before and after: `144/144` tests and `2,222` assertions;
+  - focused M04D3: `18/18` tests and `254` assertions;
+  - import, all 16 exact trace markers, cleanup, cleanup proof, and artifact audit passed;
+  - failed step count `0`; no interactive checks required.
+- `DEC-0039`, `GATE-RATE-CONTEXT-CHANGE`, and M04D3 `GATE-SLICE-SCOPE` are satisfied.
+- M04D1, M04D2, and M04D3 are all Merged/Passed; conceptual M04D is complete.
 
-- M04D2 Merged and Passed.
-- Accepted `DEC-0039`.
-- `GATE-RATE-CONTEXT-CHANGE` and M04D3 `GATE-SLICE-SCOPE` satisfied.
-- Existing M04B assignment identity/revisions, M04C core resolver, M04D1 Access, and M04D2 channel accumulation remain authoritative.
+#### Known risks carried forward
 
-#### Included scope
-
-- Add one scene-independent `ReapingRateContextService`.
-- Add a pure current Form/Writ loadout-candidate validation entry point in the assignment domain and reuse it at dispatch/redispatch commit.
-- Define canonical component-based `LoadoutIdentity` values.
-- Preserve different loadout identities when calculated rates, ETAs, or full outputs are equal.
-- Define residual-denominator signatures and canonical normalization-required diagnostics.
-- Resolve-before-change remains an explicit caller sequence; no active in-place reconfiguration.
-- Permit changed redispatch when the selected loadout is valid and residual denominators remain supported.
-- Preserve core flow progress/carry, cycle phase/count, Threshold channel progress/carry/history, inventory, first-start time, and operation identity.
-- Guard unsupported period/cycle changes with `REAPING_RATE_CONTEXT_NORMALIZATION_REQUIRED` and exact no mutation.
-- Use one baseline-derived output-channel rate-plan builder in simulation and queries.
-- Execute active Form Trait `OUTPUT_CHANNEL_RATE / MULTIPLY / OUTPUT_CHANNEL` modifiers with bounded conditions.
-- Apply the channel lifecycle multiplier last and once.
-- Ignore irrelevant Form modifiers and reject relevant malformed/unsupported output-channel modifiers.
-- Prove non-compounding through repeated and reversed redispatch.
-- Add a pure progress/rate/modifier-trace/current-context ETA query.
-- Add carry-aware minimal-millisecond ETA arithmetic without per-millisecond replay.
-- Add a localization-ready three-component ETA display using only days/hours/minutes/seconds.
-- Keep schema version 3, content revision 2, and production content unchanged.
-- Add focused tests, a sixteen-marker real-file trace, Windows owner runner, and canonical documentation updates.
-
-#### Explicit non-goals
-
-- Active in-place loadout mutation.
-- Cross-denominator carry conversion, reset, or progress rebasing.
-- Full Retinue Slot/category assembly, Form Arts, Recollection effects, support policy, or global-efficiency runtime state.
-- Saved loadout presets or persisted loadout history; later systems must retain component identity and must not dedupe by output.
-- Boundary-aware forecast across future Settlement, support depletion, unlocks, or player actions; M04E owns forecast clones.
-- Reports, gameplay UI, progress bars, navigation, Steam, trusted-time acquisition, or concurrent Reapings.
-- Schema version 4, content revision 3, production balance changes, or new content IDs.
-
-#### Acceptance criteria
-
-- One rate-context service is the sole output-channel modifier/query owner.
-- Loadout validity, component identity, and performance are distinct contracts.
-- A pure candidate validator supports assembly-time checks; dispatch/redispatch revalidate the same rules before commit.
-- Ordinary faster/slower numerator changes do not block a valid loadout swap.
-- Different component tuples remain distinct even when rates, ETAs, modifier totals, and complete output vectors are equal.
-- Caller ordering is old-context resolve, recall, validation, continuity check, redispatch, then future resolution.
-- Current Man-at-Arms/Scribe swaps preserve every authoritative residual.
-- Copied returned-period, Mastery-period, and cycle-duration changes return normalization-required errors without mutation.
-- Same-loadout redispatch remains exact and rate-idempotent.
-- Active Form output-channel modifiers derive from baseline in deterministic authored order.
-- Supported conditions and relevant error behavior are exact.
-- Lifecycle multiplier applies after Form modifiers exactly once.
-- A four-hour copied source at `500_000` progress reports `7_200_000` ms at baseline and `6_000_000` ms under `x1.20`, while stored progress remains `500_000`.
-- ETA includes persisted carry and is the exact minimum integer milliseconds under the current unchanged context.
-- Player-facing ETA uses exactly the approved three-unit day/hour/minute or hour/minute/second templates and never displays aggregate milliseconds.
-- Repeated B redispatch stays `x1.20`; returning to A restores baseline rather than compounding.
-- The `1 -> 3 -> 2 -> 1` sequence preserves distinct Threshold operation/source identity.
-- Segmented calls around the rate-change boundary are canonical-equal across equivalent chunking.
-- Schema v3/content r2 round-trip authoritative state; no validation identity, signature, rate, trace, percentage, ETA, or ETA-display artifact persists.
-- Every content/arithmetic/assignment/query failure leaves exact state unchanged.
-- No clock, scene, save, report, forecast, UI, platform, or later modifier-source ownership enters the rate-context service.
-
-#### Automated verification
-
-- Focused candidate-validation and commit-revalidation matrix.
-- Component-identity and equal-output non-deduplication matrix.
-- Residual-denominator signature and normalization-required matrix.
-- Core and channel residual preservation.
-- Form modifier condition/order/error matrix.
-- Lifecycle-order and non-compounding matrix.
-- Exact percentage and carry-aware ETA tests.
-- Readable ETA-format and localization-component tests.
-- Same/different loadout and Threshold identity sequence.
-- Chunk equivalence around the rate-change boundary.
-- Schema-v3 round trip and non-persisted derived artifacts.
-- Real-file sixteen-marker trace and full regression.
-- Source-ownership audit.
-
-#### Manual verification
-
-- Codex creates `tools/test/owner/run_m04d3_owner_verification.ps1`; the owner runs one generated UTF-8 log package against the exact PR head.
-- No editor, visual, gameplay, audio, A/B, or Steam checklist is required.
-
-#### Save/load expectations
-
-Schema version 3 and content revision `prototype-content-r2` remain current. Existing selected component IDs, assignment revision, core residual, acquisition, inventory, and simulation fields round-trip exactly after supported changes. Loadout-validation results, derived identity keys, signatures, rates, traces, percentages, ETAs, and ETA-display values remain absent from snapshots.
-
-#### Known risks
-
-- Treating a rate numerator change as a denominator mismatch would incorrectly reject valid faster/slower loadouts.
-- Omitting a residual denominator could allow mathematically invalid carry reinterpretation.
-- Duplicating modifier logic between simulation and queries could create drift.
-- Applying modifiers to a previous effective rate would compound.
-- Using derived output as identity would merge distinct loadouts.
-- Deferring all validation until dispatch would create poor player feedback.
-- A current-context ETA could be mistaken for a full future forecast.
-- Formatting ETA inside authoritative simulation would mix presentation with state.
-- Broadening into authoritative Retinue/Art/Recollection/support state would cross the slice boundary.
+- Current `SimulationEngine` still supports at most one active Reaping; M12 owns concurrency.
+- Current-context ETA is not a future-boundary forecast.
+- Forecast results must never become report or save authority.
+- Report ingestion needs an explicit exactly-once identity and migration contract.
 
 #### Follow-on dependencies
 
-- M04E.
+- Proposed M04E1.
 
 ---
 
-### M04E — Forecast clone, report accumulator, and simulation harness
+### M04E — Forecast and report foundations
 
-**Work item type:** Implementation slice  
+**Work item type:** Conceptual sub-epic  
 **Parent epic:** M04  
-**Definition status:** Approved  
-**Prompt status:** Not drafted  
-**Implementation status:** Not started  
+**Definition status:** Proposed  
+**Prompt status:** Not applicable — no direct epic prompt  
+**Implementation status:** Not directly executable  
 **Verification status:** —  
-**Recommended Codex task size:** Medium; one projection/report/developer-harness pull request.  
-**Planned prompt file:** `docs/codex/milestone-prompts/M04E-forecast-report-simulation-harness.md`
+**Proposed decomposition:** M04E1 → M04E2
 
 #### Purpose
 
-Complete the non-UI Reaping epic by adding clone-based forecast, already-applied report deltas, and one deterministic developer demonstration without creating another rules path.
+Complete the non-UI Reaping epic with non-authoritative clone projection and authoritative already-applied reporting while keeping projection and save-schema risk in separate reviewable slices.
+
+#### Completion rule
+
+M04E is complete only when M04E1 and M04E2 are both Merged and Passed. The former direct prompt path `docs/codex/milestone-prompts/M04E-forecast-report-simulation-harness.md` is superseded by the proposed decomposition and must not be created or executed.
+
+---
+
+### M04E1 — Forecast clone and supplied-resolution adapters
+
+**Work item type:** Implementation slice  
+**Parent epic:** M04 / M04E  
+**Definition status:** Proposed  
+**Prompt status:** Drafted  
+**Implementation status:** Not started  
+**Verification status:** —  
+**Recommended Codex task size:** Small-medium; one projection/adapter pull request.  
+**Planned prompt file:** `docs/codex/milestone-prompts/M04E1-forecast-clone-resolution-adapters.md`
+
+#### Purpose
+
+Add one non-authoritative forecast seam and one explicit-duration adapter owner while preserving `SimulationEngine` as the only gameplay formula path.
 
 #### Player or developer outcome
 
-A developer can forecast one hour on a deep clone, commit the same supplied interval separately, compare exact results, inspect already-applied report deltas, clear/snapshot the accumulator without changing inventory, and repeat after save/load.
+A developer can load or build one canonical Gloamwood state, forecast one hour or eight hours on a detached clone, commit the same interval on a separate clone, prove complete state/event equality, run foreground/offline-fixture/debug modes through the same engine, cross Settlement correctly, and prove the baseline save and state remain unchanged.
 
 #### Dependencies
 
 - M04D3 Merged and Passed.
-- `GATE-SLICE-SCOPE` satisfied for the M04E prompt.
+- Proposed `DEC-0040` or an owner-approved replacement projection/report-boundary decision.
+- `GATE-FORECAST-CLONE` pending owner approval with M04E1 v0.1.
+- M04E1 `GATE-SLICE-SCOPE` completed in the draft and pending owner approval.
 
 #### Included scope
 
-- Add forecast service on a deep clone using the M04C/M04D2/M04D3 resolver.
-- Provide supplied-duration live, offline-fixture, forecast, and debug adapters with one rule path; no trusted-time acquisition is added.
-- Add report accumulator entries for already-committed deltas and bounded snapshot/clear foundations needed by later UI.
-- Persist report state only if it becomes authoritative in this slice.
-- Add a deterministic developer harness/trace and slice-specific owner script.
+- Add one scene-independent `SimulationRunService`.
+- Add non-persisted mode constants for foreground supplied, offline fixture, debug, and forecast.
+- Commit explicit durations through the current `SimulationEngine` without mode-specific formulas.
+- Deep-clone current authoritative state for forecast and return the detached projected state plus exact engine result.
+- Prove complete canonical forecast/commit equivalence.
+- Prove one-hour, eight-hour, Settlement, chunking, zero-duration, and failure behavior.
+- Route `M04CDebugAdvance` through the shared run service while preserving its narrow API.
+- Prove that forecasting never writes save bytes, report state, tutorial state, or checkpoints.
+- Keep schema version 3, content revision 2, current one-active-Reaping limit, and production content unchanged.
+- Add focused tests, a fourteen-marker real-file trace, and `run_m04e1_owner_verification.ps1`.
 
 #### Explicit non-goals
 
-- Player-facing report or forecast screens, application shell, Steam time, welcome-back UX, tutorial, narrative, milestones, or claim buttons.
+- Report accumulator or report history.
+- Schema version 4 or any migration.
+- Hypothetical command replay or a generic command scripting framework.
+- Player-facing forecast/report UI.
+- Trusted-time acquisition, monotonic-clock sampling, Steam, or application lifecycle.
+- Concurrent Reapings, Halls, milestones, tutorial, support, progression purchases, or new modifier sources.
+- M04E2 implementation.
 
 #### Acceptance criteria
 
-- Forecast never mutates baseline state, saves, reports, tutorial state, or inventory.
-- Forecast and separately committed supplied-duration runs match exactly under unchanged state/content.
-- Live/supplied-duration/offline-fixture/debug modes use the same resolver and normalized content.
-- Gains exist in authoritative inventory before report inspection.
-- Clearing or snapshotting the report accumulator changes no inventory, backlog, Mastery, or channel progress.
-- Report state round trips exactly when serialized.
-- The harness exposes one traceable rules path and no duplicate formula.
+- Forecast baseline remains canonically unchanged and shares no mutable nested state with the projection.
+- Forecast and committed-clone results are canonically equal for the same duration.
+- Foreground-supplied, offline-fixture, and debug modes produce the same committed state and engine result.
+- One-hour exact fixture produces 4,140 returns, 360 Essence, 60,000,000 Mastery subunits, 60 cycles, 12 Soldier Souls, and 125,000 Scribe progress.
+- Eight-hour exact fixture produces 96 Soldier Souls and one Scribe Form Soul.
+- Settlement boundary results, event order, and deltas match between forecast and commit.
+- One-shot and chunked calls are canonically equal.
+- Zero-duration and every failure preserve the supplied baseline.
+- Forecast creates no save, report, tutorial, progression, checkpoint, clock, scene, platform, or file-time side effect.
+- Schema v3/content r2 remain unchanged and no run/projection artifact serializes.
 
 #### Automated verification
 
-- Forecast non-mutation and equivalence.
-- Mode-equivalence and repeatability.
-- Report-versus-inventory integrity, clear/snapshot behavior, and duplicate prevention.
-- Save round trip where applicable, full regression, and final M04 developer trace.
+- Focused forecast/run-service unit matrix.
+- Integration equality and isolated-save-byte tests.
+- Fourteen-marker real-file trace.
+- Negative-root trace behavior, import, full regression, source audit, and artifact audit.
 
 #### Manual verification
 
-- Owner runs one M04E PowerShell package and uploads the log.
-- No player-facing visual checklist is expected; the application shell belongs to M05.
-
-#### Demonstration path
-
-- Load the M04D fixture.
-- Forecast one hour.
-- Commit the same interval on a separate clone.
-- Print exact state equality and report deltas.
-- Clear/snapshot the accumulator and prove inventory is unchanged.
+- Owner runs one generated M04E1 Windows PowerShell package against the exact PR head.
+- No editor, visual, gameplay, audio, A/B, or Steam checklist is required.
 
 #### Save/load expectations
 
-Any report state introduced here follows the M04A-approved schema policy. Forecasts create no save and mutate no baseline state.
+Forecasts do not save. A state loaded from schema version 3 may be forecast, but baseline save bytes remain unchanged. Run modes, projected states, engine results, segments, events, and comparison data never serialize.
 
 #### Follow-on dependencies
 
-- M05 conceptual epic; define and approve its actual slices before prompt drafting.
+- M04E2 planning and `GATE-REPORT-SCHEMA`.
+
+---
+
+### M04E2 — Report accumulator, history, persistence, and final M04 harness
+
+**Work item type:** Implementation slice  
+**Parent epic:** M04 / M04E  
+**Definition status:** Proposed  
+**Prompt status:** Not drafted  
+**Implementation status:** Not started  
+**Verification status:** —  
+**Recommended Codex task size:** Medium; one report-state/migration/harness pull request after a fresh scope review.  
+**Planned prompt file:** `docs/codex/milestone-prompts/M04E2-report-accumulator-history-harness.md`
+
+#### Purpose
+
+Add save-safe already-applied report accumulation and bounded history, then close M04 with one deterministic non-UI forecast/commit/report demonstration.
+
+#### Dependencies
+
+- M04E1 Merged and Passed.
+- `GATE-REPORT-SCHEMA` satisfied by a new owner-approved decision.
+- Fresh `GATE-SLICE-SCOPE` assessment.
+
+#### Preliminary included scope
+
+- Add `ReportService` as the sole accumulator/history owner.
+- Ingest committed simulation deltas/events exactly once; reject forecast ingestion.
+- Snapshot the live accumulator into bounded history and clear only the live presentation accumulator.
+- Add the approved sequential schema migration and persistence fixtures.
+- Prove inventory and gameplay gains exist before report inspection and remain unchanged by snapshot/clear.
+- Add the final M04 developer harness and owner package.
+
+#### Required planning decisions before prompt drafting
+
+- exact report-state field contract;
+- schema version and sequential migration;
+- ingestion/idempotency identity;
+- history retention bound and ordering;
+- atomicity between gameplay commit and report ingestion;
+- behavior for retries, load recovery, and duplicate result delivery.
+
+#### Explicit non-goals
+
+- Report UI, welcome-back presentation, tutorial, narrative, claim buttons, trusted time, Steam, concurrent Reapings, Halls, or milestones.
+
+#### Follow-on dependencies
+
+- M05 conceptual epic and its fresh decomposition.
 
 ---
 
