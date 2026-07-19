@@ -1823,7 +1823,7 @@ FORECAST projected result
 
 must produce canonically equal resulting gameplay state and equal engine deltas/events, apart from wrapper mode metadata and whether the result was committed to the supplied object.
 
-The existing `M04CDebugAdvance` delegates through `SimulationRunService` while preserving its narrow developer API. M05 and M06 may later call the same committed seam after their own monotonic or trusted-time owners derive an elapsed duration.
+The realized M04E1 implementation lives at `src/simulation/simulation_run_service.gd`. The existing `M04CDebugAdvance` delegates through `SimulationRunService.MODE_DEBUG` while preserving its narrow developer API. Current consumers are the focused M04E1 tests, the M04E1 forecast trace, and the debug adapter; M05 and M06 may later call the same committed seam after their own monotonic or trusted-time owners derive an elapsed duration.
 
 ### Persistence boundary
 

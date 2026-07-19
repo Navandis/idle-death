@@ -2012,7 +2012,7 @@ TRACE M04D3 no_clock_or_later_slice_sources=PASS
 
 ## 27. M04E1 approved forecast-clone validation package
 
-The M04E1 package is approved under accepted `DEC-0040`. Every duration is explicit; tests never wait for real time.
+The M04E1 package is approved under accepted `DEC-0040`. Every duration is explicit; tests never wait for real time. PR #16 currently provides `tests/unit/m04e1/test_simulation_run_service.gd`, `tests/integration/m04e1/test_simulation_run_service_persistence.gd`, `tools/test/m04e1/m04e1_forecast_trace.gd`, and a corrected M04D3-derived owner runner. Linux/Codex verification includes a fresh `.godot` cache removal to prove wrapper import/class registration before focused execution.
 
 ### 27.1 Focused Linux/Codex commands
 
@@ -2115,7 +2115,7 @@ TRACE M04E1 no_report_tutorial_or_checkpoint_side_effects=PASS
 TRACE M04E1 no_clock_scene_platform_or_duplicate_rules=PASS
 ```
 
-The trace requires explicit nonblank isolated `--save-root`, rejects `user://`, uses the supplied root only for fixture persistence, leaves deletion to the owner runner, and exits nonzero on any mismatch.
+The trace requires explicit nonblank isolated `--save-root`, rejects `user://`, uses production persistence through `SaveService`, `FileSaveStorage`, `SaveFileSet`, and `GameStatePersistenceCoordinator` inside the supplied root, leaves deletion to the owner runner, asserts the corrected `SimulationRunResult` field names/time values, and exits nonzero on any mismatch.
 
 ### 27.5 Owner Windows package
 
@@ -2166,6 +2166,8 @@ No interactive checklist is required.
 M04E1 cannot merge until:
 
 - accepted `DEC-0040` remains authoritative;
+- Linux/Codex fresh-cache full GUT, focused unit+integration GUT, explicit import, fifteen-marker trace, negative-root trace, final full GUT, `git diff --check`, and clean status evidence are recorded;
+- the owner reruns `tools/test/owner/run_m04e1_owner_verification.ps1` against the exact final PR #16 head and obtains the complete PASS summary;
 - M04D3 remains Merged/Passed;
 - focused/import/trace/full Linux checks pass;
 - owner Windows verification passes against the exact PR head;
