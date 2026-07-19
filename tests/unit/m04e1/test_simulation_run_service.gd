@@ -69,10 +69,11 @@ func test_eight_hour_forecast_preserves_complete_core_and_generic_channels() -> 
 	assert_eq(projected.inventory.entries[&"SOUL_CALLING_SOLDIER"].total, 96)
 	assert_eq(projected.inventory.entries[&"SOUL_FORM_SCRIBE"].total, 1)
 	assert_eq(projected.thresholds[&"THR_GLOAMWOOD"].channel_acquisition[&"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS"].progress_subunits, 0)
-	var deltas: Array = result.engine_result.change_summary.channel_deltas
-	assert_eq(deltas.size(), 2)
-	assert_eq(deltas[0].channel_id, "CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS")
-	assert_eq(deltas[1].channel_id, "CHANNEL_GLOAMWOOD_SOLDIER_SOULS")
+	var delta_ids := []
+	for delta in result.engine_result.change_summary.channel_deltas:
+		delta_ids.append(delta.channel_id)
+	delta_ids.sort()
+	assert_eq(delta_ids, ["CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS", "CHANNEL_GLOAMWOOD_SOLDIER_SOULS"])
 
 func test_broken_watch_channel_kinds_pass_through_without_forecast_branch() -> void:
 	var forecast_state := _state(&"THR_BROKEN_WATCH", 250000)

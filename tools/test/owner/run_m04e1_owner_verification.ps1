@@ -50,7 +50,23 @@ function Run-Step([string]$Name, [string]$CommandDescription, [scriptblock]$Comm
     foreach ($Line in $Output) { Write-LogLine "$Line" }
     $Joined = $Output -join "`n"
     if ($Name -eq "Focused M04E1 GUT" -and (($Joined -match "Passing Tests\s+none") -or ($Joined -notmatch "Passing Tests\s+[1-9]"))) { Write-LogLine "ERROR: no focused passing tests detected."; $StepExitCode = 1 }
-    foreach ($Marker in @("eight_hour_forecast_core_and_channels=PASS", "settlement_forecast_commit_event_order=PASS", "generic_broken_watch_channels=PASS", "baseline_save_bytes_unchanged_by_forecast=PASS", "run_service_source_audit_no_clock_storage_report_or_whitelist=PASS")) {
+    foreach ($Marker in @(
+        "TRACE M04E1 forecast_1h_returns=4140_essence=360_mastery=60000000_cycles=60_soldier=12_scribe_progress=125000",
+        "TRACE M04E1 forecast_8h_returns=33120_essence=2880_mastery=480000000_cycles=480_soldier=96_scribe_banked=1",
+        "TRACE M04E1 generic_channel_passthrough=PASS",
+        "TRACE M04E1 baseline_unchanged_and_projection_detached=PASS",
+        "TRACE M04E1 forecast_equals_committed_clone=PASS",
+        "TRACE M04E1 settlement_boundary_equivalence=PASS",
+        "TRACE M04E1 foreground_offline_fixture_debug_equivalent=PASS",
+        "TRACE M04E1 debug_adapter_uses_shared_runner=PASS",
+        "TRACE M04E1 one_shot_equals_chunks=PASS",
+        "TRACE M04E1 zero_and_failure_no_mutation=PASS",
+        "TRACE M04E1 events_and_deltas_match_engine=PASS",
+        "TRACE M04E1 schema_v3_content_r2_unchanged=PASS",
+        "TRACE M04E1 isolated_save_bytes_unchanged=PASS",
+        "TRACE M04E1 no_report_tutorial_or_checkpoint_side_effects=PASS",
+        "TRACE M04E1 no_clock_scene_platform_or_duplicate_rules=PASS"
+    )) {
         if ($Name -eq "M04E1 Trace" -and ($Joined -notmatch [regex]::Escape($Marker))) { Write-LogLine "ERROR: missing marker $Marker"; $StepExitCode = 1 }
     }
     Write-LogLine "Exit code: $StepExitCode"
@@ -80,5 +96,5 @@ if ($ResolvedGodot -eq "unavailable") { Write-LogLine "Godot executable unavaila
 New-Item -ItemType Directory -Force -Path $TraceRoot | Out-Null
 Run-Step "Godot Version" "$ResolvedGodot --version" { & $ResolvedGodot --version }
 Run-Step "Focused M04E1 GUT" "$ResolvedGodot --headless --path $RepoRoot -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit/m04e1" { & $ResolvedGodot --headless --path $RepoRoot -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit/m04e1 }
-Run-Step "M04E1 Trace" "$ResolvedGodot --headless --path $RepoRoot --script res://tools/test/m04e1/m04e1_forecast_run_trace.gd -- --save-root $TraceRoot" { & $ResolvedGodot --headless --path $RepoRoot --script res://tools/test/m04e1/m04e1_forecast_run_trace.gd -- --save-root $TraceRoot }
+Run-Step "M04E1 Trace" "$ResolvedGodot --headless --path $RepoRoot --script res://tools/test/m04e1/m04e1_forecast_trace.gd -- --save-root $TraceRoot" { & $ResolvedGodot --headless --path $RepoRoot --script res://tools/test/m04e1/m04e1_forecast_trace.gd -- --save-root $TraceRoot }
 Write-SummaryAndExit $ExitCode
