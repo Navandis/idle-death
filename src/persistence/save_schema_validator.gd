@@ -131,6 +131,7 @@ static func validate_v4(snapshot: Variant) -> Dictionary:
 	if not report_cursor.ok: return report_cursor
 	if report_cursor.value > base.simulation_time_msec: return _err(ERR_CROSS_FIELD, "game_state.report_state.report_cursor_msec")
 	if typeof(rs.history) != TYPE_ARRAY: return _err(ERR_TYPE, "game_state.report_state.history")
+	if rs.history.size() > ReportState.MAX_HISTORY_RECORDS: return _err(ERR_RANGE, "game_state.report_state.history")
 	var lw := _validate_report_window(rs.live, "game_state.report_state.live"); if not lw.ok: return lw
 	for i in range(rs.history.size()):
 		if typeof(rs.history[i]) != TYPE_DICTIONARY: return _err(ERR_TYPE, "game_state.report_state.history.%d" % i)
@@ -240,6 +241,7 @@ static func _validate_report_window(w, path: String) -> Dictionary:
 		for mk in w[map_key].keys():
 			var mi := SaveInt64.parse(w[map_key][mk], false, "%s.%s.%s" % [path, map_key, mk]); if not mi.ok: return mi
 	if typeof(w.slices) != TYPE_DICTIONARY or typeof(w.event_details) != TYPE_ARRAY: return _err(ERR_TYPE, path)
+	if w.event_details.size() > ReportState.MAX_EVENT_DETAILS: return _err(ERR_RANGE, "%s.event_details" % path)
 	for sk in w.slices.keys():
 		var sd = w.slices[sk]; if typeof(sd) != TYPE_DICTIONARY: return _err(ERR_TYPE, "%s.slices.%s" % [path, sk])
 		for needed in ["threshold_id", "lifecycle_state", "form_id", "writ_id"]:
@@ -248,8 +250,9 @@ static func _validate_report_window(w, path: String) -> Dictionary:
 			if typeof(sd.get(needed, null)) != TYPE_ARRAY: return _err(ERR_TYPE, "%s.slices.%s.%s" % [path, sk, needed])
 			for rid in sd[needed]:
 				if typeof(rid) != TYPE_STRING: return _err(ERR_TYPE, "%s.slices.%s.%s" % [path, sk, needed])
-		for ik in ["assignment_revision", "start_simulation_msec", "end_simulation_msec", "elapsed_msec", "returned_souls_delta", "backlog_delta", "completed_cycles_delta"]:
-			var si := SaveInt64.parse(sd.get(ik, ""), true, "%s.slices.%s.%s" % [path, sk, ik]); if not si.ok: return si
+		for ik in ["assignment_revision", "start_simulation_msec", "end_simulation_msec", "elapsed_msec", "returned_souls_delta", "completed_cycles_delta"]:
+			var si := SaveInt64.parse(sd.get(ik, ""), false, "%s.slices.%s.%s" % [path, sk, ik]); if not si.ok: return si
+		var backlog_delta := SaveInt64.parse(sd.get("backlog_delta", ""), true, "%s.slices.%s.backlog_delta" % [path, sk]); if not backlog_delta.ok: return backlog_delta
 		for map_key in ["inventory_gains", "mastery_gains"]:
 			if typeof(sd.get(map_key, null)) != TYPE_DICTIONARY: return _err(ERR_TYPE, "%s.slices.%s.%s" % [path, sk, map_key])
 			for gain_id in sd[map_key].keys():

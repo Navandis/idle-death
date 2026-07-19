@@ -6,8 +6,8 @@ func _init() -> void:
 	for i in range(args.size()): if args[i] == "--save-root" and i + 1 < args.size(): root = args[i + 1]
 	if root == "" or root.begins_with("user://"):
 		quit(2); return
-	_run(); quit(1 if _failed else 0)
-func _run() -> void:
+	_run(root); quit(1 if _failed else 0)
+func _run(root: String) -> void:
 	var reg := ContentRegistry.build(load("res://content/prototype_content_catalog.tres")); var service := ReportService.new()
 	var state := _state(reg); _unlock(reg, state, [&"SOUL_CALLING_SOLDIER", &"SOUL_FORM_SCRIBE"])
 	var v3: Dictionary = SaveMigrationRegistry.new().migrate(_read_json("res://tests/fixtures/saves/schema_v2_m04a_representative.json"), 2, 3).snapshot; v3.game_state.simulation_time_msec = "12345"
@@ -34,10 +34,24 @@ func _run() -> void:
 	_mark("event_compaction_bounded_counted=PASS", state.report_state.live.event_details.size() <= 64)
 	var snap4 := SaveSchemaMapper.runtime_to_snapshot(state, TimeAuthorityState.new(), 1, ContentRegistry.CURRENT_REVISION); var loaded := SaveSchemaMapper.snapshot_to_runtime(snap4)
 	_mark("schema_v4_report_round_trip=PASS", loaded.ok and loaded.game_state.report_state.history.size() == state.report_state.history.size())
-	_mark("v1_v2_v3_v4_upgrade_and_v4_no_rewrite=PASS", SaveMigrationRegistry.new().migrate(_read_json("res://tests/fixtures/saves/valid_schema_v1_unanchored.json"), 1, 4).ok and SaveSchemaValidator.validate_current(snap4).ok)
+	_mark("v1_v2_v3_v4_upgrade_and_v4_no_rewrite=PASS", SaveMigrationRegistry.new().migrate(_read_json("res://tests/fixtures/saves/valid_schema_v1_unanchored.json"), 1, 4).ok and SaveSchemaValidator.validate_current(snap4).ok and _save_root_round_trip(reg, state, root))
 	_mark("failures_preserve_report_and_gameplay=PASS", true)
 	_mark("no_claim_gate_or_raw_result_authority=PASS", not JSON.stringify(snap4).contains("projected_state"))
 	_mark("no_ui_clock_platform_codex_analytics_or_m04e2b_sources=PASS", true)
+func _save_root_round_trip(reg: ContentRegistry, state: GameState, root: String) -> bool:
+	var files := SaveFileSet.new(root, "m04e2a_trace")
+	var coordinator := GameStatePersistenceCoordinator.new(SaveService.new(FileSaveStorage.new(), files), reg)
+	if not coordinator.save_runtime(state, TimeAuthorityState.new(), 1001).ok:
+		return false
+	var primary_before := FileAccess.get_file_as_bytes(files.primary_path)
+	if primary_before.is_empty():
+		return false
+	var loaded := coordinator.load_runtime()
+	if not loaded.ok or loaded.migration_persisted:
+		return false
+	var primary_after := FileAccess.get_file_as_bytes(files.primary_path)
+	return primary_before == primary_after and loaded.game_state.report_state.history.size() == state.report_state.history.size()
+
 func _multi_threshold_rollup(reg: ContentRegistry) -> bool:
 	var state := _state(reg); _unlock(reg, state, [&"SOUL_CALLING_SOLDIER"]); var service := ReportService.new()
 	var r1 := SimulationRunService.new(reg).run_committed(state, 60000, SimulationRunService.MODE_DEBUG); if not (r1.success and service.ingest_committed_run(state, r1).success): return false

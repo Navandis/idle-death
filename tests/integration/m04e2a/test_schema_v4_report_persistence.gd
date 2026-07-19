@@ -92,3 +92,39 @@ func test_schema_v4_rejects_zero_report_sequences() -> void:
 		var runtime := SaveSchemaMapper.snapshot_to_runtime(snapshot)
 		assert_false(runtime.ok, sequence_key)
 		assert_eq(runtime.code, SaveSchemaValidator.ERR_RANGE, sequence_key)
+
+
+func test_schema_v4_rejects_negative_non_signed_slice_counters() -> void:
+	var state := _state()
+	var run := SimulationRunService.new(_registry()).run_committed(state, 60000, SimulationRunService.MODE_FOREGROUND_SUPPLIED)
+	assert_true(run.success)
+	assert_true(ReportService.new().ingest_committed_run(state, run).success)
+	for counter_key in ["assignment_revision", "start_simulation_msec", "end_simulation_msec", "elapsed_msec", "returned_souls_delta", "completed_cycles_delta"]:
+		var snapshot := SaveSchemaMapper.runtime_to_snapshot(state, TimeAuthorityState.new(), 14, ContentRegistry.CURRENT_REVISION)
+		var slice_key = snapshot.game_state.report_state.live.slices.keys()[0]
+		snapshot.game_state.report_state.live.slices[slice_key][counter_key] = "-1"
+		var validation := SaveSchemaValidator.validate_current(snapshot)
+		assert_false(validation.ok, counter_key)
+		assert_eq(validation.field_path, "game_state.report_state.live.slices.%s.%s" % [slice_key, counter_key], counter_key)
+	var valid_signed_backlog := SaveSchemaMapper.runtime_to_snapshot(state, TimeAuthorityState.new(), 14, ContentRegistry.CURRENT_REVISION)
+	assert_true(SaveSchemaValidator.validate_current(valid_signed_backlog).ok)
+
+
+func test_schema_v4_rejects_oversized_report_history_and_event_details() -> void:
+	var state := _state()
+	var run := SimulationRunService.new(_registry()).run_committed(state, 60000, SimulationRunService.MODE_FOREGROUND_SUPPLIED)
+	assert_true(run.success)
+	assert_true(ReportService.new().ingest_committed_run(state, run).success)
+	assert_true(ReportService.new().snapshot_live(state, 1, ReportState.REASON_MANUAL_REVIEW).success)
+	var snapshot := SaveSchemaMapper.runtime_to_snapshot(state, TimeAuthorityState.new(), 15, ContentRegistry.CURRENT_REVISION)
+	while snapshot.game_state.report_state.history.size() <= ReportState.MAX_HISTORY_RECORDS:
+		snapshot.game_state.report_state.history.append(snapshot.game_state.report_state.history[0].duplicate(true))
+	var history_validation := SaveSchemaValidator.validate_current(snapshot)
+	assert_false(history_validation.ok)
+	assert_eq(history_validation.field_path, "game_state.report_state.history")
+	snapshot = SaveSchemaMapper.runtime_to_snapshot(_state(), TimeAuthorityState.new(), 15, ContentRegistry.CURRENT_REVISION)
+	for i in range(ReportState.MAX_EVENT_DETAILS + 1):
+		snapshot.game_state.report_state.live.event_details.append({"event_sequence": SaveInt64.format(i + 1), "event_type": "TEST_EVENT", "occurred_simulation_msec": "0", "priority": "0", "source_id": "TEST_SOURCE", "subject_id": "THR_GLOAMWOOD"})
+	var event_validation := SaveSchemaValidator.validate_current(snapshot)
+	assert_false(event_validation.ok)
+	assert_eq(event_validation.field_path, "game_state.report_state.live.event_details")
