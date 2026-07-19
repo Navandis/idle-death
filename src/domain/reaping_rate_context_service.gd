@@ -77,8 +77,8 @@ func compare_residual_signatures(state: GameState, threshold_id: StringName, old
 	if not new_sig.ok: return new_sig
 	var mismatches := _signature_mismatches(old_sig.signature, new_sig.signature)
 	if mismatches.is_empty():
-		return {"ok": true, "success": true, "compatible": true, "code": OK, "error_code": OK, "developer_details": "", "mismatched_fields": [], "old_signature": old_sig.signature, "new_signature": new_sig.signature}
-	return {"ok": false, "success": false, "compatible": false, "code": REAPING_RATE_CONTEXT_NORMALIZATION_REQUIRED, "error_code": REAPING_RATE_CONTEXT_NORMALIZATION_REQUIRED, "developer_details": "Rate-context normalization required for: %s" % ", ".join(mismatches), "mismatched_fields": mismatches, "old_signature": old_sig.signature, "new_signature": new_sig.signature}
+		return {"ok": true, "success": true, "compatible": true, "code": OK, "error_code": OK, "developer_details": "", "mismatched_fields": [], "normalization_required_fields": [], "old_signature": old_sig.signature, "new_signature": new_sig.signature}
+	return {"ok": false, "success": false, "compatible": false, "code": REAPING_RATE_CONTEXT_NORMALIZATION_REQUIRED, "error_code": REAPING_RATE_CONTEXT_NORMALIZATION_REQUIRED, "developer_details": "Rate-context normalization required for: %s" % ", ".join(mismatches), "mismatched_fields": mismatches, "normalization_required_fields": mismatches.duplicate(), "old_signature": old_sig.signature, "new_signature": new_sig.signature}
 
 func output_channel_rate_plan(threshold_id: StringName, form_id: StringName, channel_id: StringName, lifecycle_state: String, writ_id: StringName = &"WRIT_STANDARD", retinue_ids: Array[StringName] = []) -> Dictionary:
 	if registry == null or not registry.ready:
