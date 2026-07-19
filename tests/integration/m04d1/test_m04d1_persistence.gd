@@ -27,11 +27,11 @@ func test_v2_to_v3_migration_preserves_legacy_acquisition_and_derives_access() -
 
 func test_schema_v3_fixture_round_trips_without_rewrite() -> void:
 	var decoded: Dictionary = JsonSaveCodec.new().decode(FileAccess.get_file_as_bytes(V3_FIXTURE))
-	assert_true(SaveSchemaValidator.validate_v3(decoded.snapshot).ok)
+	assert_true(SaveSchemaValidator.validate_current(decoded.snapshot).ok)
 	var runtime := SaveSchemaMapper.snapshot_to_runtime(decoded.snapshot)
 	assert_true(runtime.ok)
 	assert_true(GameStateValidator.validate(runtime.game_state, ContentRegistry.build(load("res://content/prototype_content_catalog.tres"))).ok)
-	assert_eq(SaveSchemaMapper.runtime_to_snapshot(runtime.game_state, runtime.time_authority_state, runtime.save_revision, runtime.content_revision).schema_version, "3")
+	assert_eq(SaveSchemaMapper.runtime_to_snapshot(runtime.game_state, runtime.time_authority_state, runtime.save_revision, runtime.content_revision).schema_version, "4")
 
 
 const V1_FIXTURE := "res://tests/fixtures/saves/schema_v1_foundation.json"
@@ -53,7 +53,7 @@ func test_pure_migration_deep_copy_and_sequential_upgrade() -> void:
 	assert_eq(migrated_v1.snapshot.schema_version, "3")
 	assert_eq(migrated_v1.snapshot.game_state.progression.unlocked_output_item_ids, [])
 
-func test_current_v3_no_rewrite_and_new_save_round_trip() -> void:
+func test_schema_v3_fixture_migrates_to_current_and_new_save_round_trip() -> void:
 	var storage := MemorySaveStorage.new()
 	var files := SaveFileSet.new("user://m04d1-current")
 	var v3_bytes := FileAccess.get_file_as_bytes(V3_FIXTURE)
@@ -61,9 +61,9 @@ func test_current_v3_no_rewrite_and_new_save_round_trip() -> void:
 	var coordinator := GameStatePersistenceCoordinator.new(SaveService.new(storage, files), ContentRegistry.build(load("res://content/prototype_content_catalog.tres")))
 	var loaded := coordinator.load_runtime()
 	assert_true(loaded.ok)
-	assert_false(loaded.migration_persisted)
-	assert_eq(storage.files[files.primary_path], v3_bytes)
-	assert_false(storage.files.has(files.backup_path))
+	assert_true(loaded.migration_persisted)
+	assert_ne(storage.files[files.primary_path], v3_bytes)
+	assert_true(storage.files.has(files.backup_path))
 	var new_files := SaveFileSet.new("user://m04d1-new")
 	var state := GameState.new(12345)
 	var threshold := GameState.ThresholdState.new()
@@ -72,7 +72,7 @@ func test_current_v3_no_rewrite_and_new_save_round_trip() -> void:
 	var save := SaveService.new(storage, new_files).save_runtime(state, TimeAuthorityState.new(), 7, ContentRegistry.CURRENT_REVISION)
 	assert_true(save.ok)
 	var decoded: Dictionary = JsonSaveCodec.new().decode(storage.files[new_files.primary_path]).snapshot
-	assert_eq(decoded.schema_version, "3")
+	assert_eq(decoded.schema_version, "4")
 	assert_eq(decoded.content_revision, ContentRegistry.CURRENT_REVISION)
 
 func test_upgrade_failure_preserves_source_and_exposes_no_runtime() -> void:

@@ -101,3 +101,38 @@ func test_scoped_meaningful_event_filters_by_assignment_window() -> void:
 	assert_true(service.peek_live_threshold(state, &"THR_GLOAMWOOD").meaningful_event)
 	assert_true(service.peek_live_assignment(state, &"THR_GLOAMWOOD", 1).meaningful_event)
 	assert_false(service.peek_live_assignment(state, &"THR_GLOAMWOOD", 2).meaningful_event)
+
+
+func test_duplicate_retry_after_later_advancement_is_unchanged_success() -> void:
+	var service := ReportService.new()
+	var state := _state(&"THR_GLOAMWOOD", 1000000)
+	var run_one := SimulationRunService.new(_registry()).run_committed(state, 1000, SimulationRunService.MODE_DEBUG)
+	assert_true(run_one.success, run_one.developer_details)
+	assert_true(service.ingest_committed_run(state, run_one).success)
+	var run_two := SimulationRunService.new(_registry()).run_committed(state, 1000, SimulationRunService.MODE_DEBUG)
+	assert_true(run_two.success, run_two.developer_details)
+	assert_true(service.ingest_committed_run(state, run_two).success)
+
+	var retry := service.ingest_committed_run(state, run_one)
+	assert_true(retry.success, retry.developer_details)
+	assert_true(retry.duplicate)
+	assert_false(retry.changed)
+	assert_eq(state.simulation_time_msec, 2000)
+	assert_eq(state.report_state.report_cursor_msec, 2000)
+
+
+func test_snapshot_sequence_overflow_rejects_without_mutation() -> void:
+	var service := ReportService.new()
+	var state := _state(&"THR_GLOAMWOOD", 1000000)
+	var run := SimulationRunService.new(_registry()).run_committed(state, 1000, SimulationRunService.MODE_DEBUG)
+	assert_true(run.success, run.developer_details)
+	assert_true(service.ingest_committed_run(state, run).success)
+	state.report_state.next_report_sequence = FixedPoint.INT64_MAX
+	var before := state.deep_clone()
+
+	var result := service.snapshot_live(state, FixedPoint.INT64_MAX, ReportState.REASON_SYSTEM_BOUNDARY)
+	assert_false(result.success)
+	assert_eq(result.error_code, ReportService.ERR_SEQUENCE_OVERFLOW)
+	assert_eq(state.report_state.next_report_sequence, before.report_state.next_report_sequence)
+	assert_eq(state.report_state.history.size(), before.report_state.history.size())
+	assert_eq(state.report_state.live.run_count, before.report_state.live.run_count)

@@ -101,7 +101,7 @@ func test_persisted_snapshot_excludes_result_artifacts_and_preserves_schema_cont
 	assert_true(coordinator.save_runtime(state, TimeAuthorityState.new(), 9).ok)
 	var snapshot: Dictionary = JsonSaveCodec.new().decode(storage.files[files.primary_path]).snapshot
 	assert_eq(snapshot.codec_id, SaveEnvelope.CODEC_JSON_V1)
-	assert_eq(snapshot.schema_version, "3")
+	assert_eq(snapshot.schema_version, "4")
 	assert_eq(snapshot.content_revision, ContentRegistry.CURRENT_REVISION)
 	assert_false(snapshot.game_state.has("events"))
 	assert_false(snapshot.game_state.has("segments"))

@@ -19,6 +19,7 @@ const ERR_BAD_REASON := &"REPORT_BAD_REASON"
 const ERR_OFFLINE_PURITY := &"REPORT_OFFLINE_PURITY"
 const ERR_INCOMPLETE_CURSOR := &"REPORT_INCOMPLETE_CURSOR"
 const ERR_STATE_INVALID := &"REPORT_STATE_INVALID"
+const ERR_SEQUENCE_OVERFLOW := &"REPORT_SEQUENCE_OVERFLOW"
 
 func ingest_committed_run(state: GameState, run_result: SimulationRunService.SimulationRunResult) -> ReportResult:
 	var pre := _validate_ingest_request(state, run_result)
@@ -70,6 +71,7 @@ func snapshot_live(state: GameState, expected_next_report_sequence: int, snapsho
 	if state.report_state.next_report_sequence != expected_next_report_sequence: return ReportResult.err_result(ERR_STALE_SEQUENCE, "stale sequence", state.report_state.report_cursor_msec)
 	if state.report_state.report_cursor_msec != state.simulation_time_msec: return ReportResult.err_result(ERR_INCOMPLETE_CURSOR, "report cursor trails simulation", state.report_state.report_cursor_msec)
 	if state.report_state.live.is_empty(): return ReportResult.ok_result(false, false, false, state.report_state.report_cursor_msec, "empty")
+	if state.report_state.next_report_sequence == FixedPoint.INT64_MAX: return ReportResult.err_result(ERR_SEQUENCE_OVERFLOW, "next report sequence overflow", state.report_state.report_cursor_msec)
 	if snapshot_reason == ReportState.REASON_OFFLINE_RETURN and not _offline_only(state.report_state.live): return ReportResult.err_result(ERR_OFFLINE_PURITY, "offline return requires offline-only window", state.report_state.report_cursor_msec)
 	var candidate := state.deep_clone()
 	var record := ReportState.ReportRecord.new()
@@ -90,7 +92,7 @@ func _validate_ingest_request(state: GameState, run_result: SimulationRunService
 	if not SimulationRunService.COMMITTED_MODES.has(run_result.mode): return {"ok": false, "code": ERR_INVALID_RESULT}
 	if not run_result.success or run_result.projected_state != null or run_result.simulation_result == null or not run_result.simulation_result.success: return {"ok": false, "code": ERR_INVALID_RESULT}
 	if run_result.requested_elapsed_msec != run_result.result_simulation_time_msec - run_result.baseline_simulation_time_msec: return {"ok": false, "code": ERR_INVALID_RESULT}
-	if state.simulation_time_msec != run_result.result_simulation_time_msec: return {"ok": false, "code": ERR_INVALID_RESULT}
+	if run_result.result_simulation_time_msec > state.report_state.report_cursor_msec and state.simulation_time_msec != run_result.result_simulation_time_msec: return {"ok": false, "code": ERR_INVALID_RESULT}
 	if run_result.simulation_result.committed_elapsed_msec != run_result.requested_elapsed_msec: return {"ok": false, "code": ERR_INVALID_RESULT}
 	if run_result.simulation_result.change_summary.has("threshold_id") and not state.reapings.has(StringName(run_result.simulation_result.change_summary.threshold_id)): return {"ok": false, "code": ERR_INVALID_RESULT}
 	return {"ok": true}
