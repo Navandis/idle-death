@@ -3,7 +3,7 @@
 **Document role:** Maintained implementation architecture for the 0-90 minute prototype  
 **Repository path:** `docs/codex/ARCHITECTURE.md`  
 **Document status:** Approved architecture  
-**Architecture revision:** 19  
+**Architecture revision:** 20  
 **Last updated:** 2026-07-19  
 **Engine target:** Godot 4.7, GDScript only  
 **Primary design context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md) and [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md)
@@ -1739,14 +1739,14 @@ The realized implementation lives at `src/simulation/simulation_run_service.gd` 
 
 Final owner Windows evidence passed `153/153` full tests and `2,522` assertions before and after the trace, `9/9` focused M04E1 tests and `295` assertions, explicit import, all fifteen markers, cleanup, cleanup proof, and artifact audit with zero failed steps.
 
-## Proposed M04E2 recalibration
+## Approved M04E2 recalibration
 
 The fresh post-M04E1 review finds that the currently approved direct M04E2 slice still combines two independently risky transitions:
 
 1. a new authoritative report aggregate, schema version 4, sequential migration, retention, ordering, and idempotent ingestion;
 2. an atomic committed-run/report coordinator plus the final M04 forecast/commit/report harness.
 
-Implementing both in one pull request is likely to cross the normal post-M03 review surface. Proposed `DEC-0041` therefore recalibrates M04E2 into:
+Implementing both in one pull request is likely to cross the normal post-M03 review surface. Accepted `DEC-0041` therefore recalibrates M04E2 into:
 
 ```text
 M04E2A — Report state, schema-v4 migration, attributed ingestion, read-only peeks, snapshot, and bounded recent history
@@ -1755,9 +1755,9 @@ M04E2B — Atomic reported-run coordinator and final M04 harness
 
 M04E2 becomes a conceptual sub-epic and receives no direct implementation prompt. M04E closes only after M04E1, M04E2A, and M04E2B are all Merged and Passed.
 
-This recalibration is proposed, not authoritative, until the owner approves `DEC-0041` and the M04E2A prompt.
+This recalibration is authoritative under accepted `DEC-0041`. M04E2A prompt v0.2 is approved; M04E2B remains unprompted until M04E2A is Merged/Passed and a fresh scope review is approved.
 
-## Proposed M04E2A report-state boundary
+## Approved M04E2A report-state boundary
 
 ### One report owner
 
@@ -1985,7 +1985,7 @@ This prevents pre-migration output from being reported a second time.
 
 Snapshotting requires equality. M04E2B will make application-level committed runs atomic with report ingestion.
 
-## Proposed M04E2B atomic coordinator boundary
+## Approved high-level M04E2B atomic coordinator boundary
 
 M04E2B will add one narrow `SimulationReportCoordinator`. It is an orchestration boundary, not a second gameplay or report formula owner.
 

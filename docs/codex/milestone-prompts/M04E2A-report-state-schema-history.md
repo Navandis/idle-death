@@ -2,41 +2,37 @@
 
 **Prompt version:** v0.2  
 **Prompt date:** 2026-07-19  
-**Prompt status:** Draft for final owner review  
+**Prompt status:** Approved  
 **Work item type:** Implementation slice  
-**Parent conceptual epic:** `M04 — Persistent Reaping simulation vertical slice` / M04E / proposed M04E2 sub-epic  
+**Parent conceptual epic:** `M04 — Persistent Reaping simulation vertical slice` / M04E / approved M04E2 sub-epic  
 **Milestone definition:** `docs/codex/MILESTONES.md`  
 **Expected base branch or ref:** current `main` after M04E1 merge commit `03f05a3d78609a993cecab8b0077e5f7d7d55900`  
 **Planned prompt path:** `docs/codex/milestone-prompts/M04E2A-report-state-schema-history.md`
 
 > This prompt authorizes typed report state, schema version 4, sequential v3-to-v4 migration, one `ReportService`, cursor-idempotent ingestion of already-applied committed simulation results, Threshold/assignment/lifecycle/channel attribution, generic gain rollups, pure live/history read models, offline-window classification support, bounded event/recent-history retention, global snapshotting, persistence proof, and the M04E2A verification package. It does not authorize atomic simulation-plus-report live commit, the final M04 harness, report UI, claim buttons, trusted-time acquisition, clocks, tutorial, progression, Halls, support, concurrency, long-term Codex analytics, arbitrary event-payload persistence, or M04E2B implementation.
 
-## Approval gate
+## Approval record
 
-Do not execute this prompt until the project owner:
-
-1. accepts revised proposed `DEC-0041` or approves a replacement contract;
-2. approves the M04E2 recalibration into M04E2A and M04E2B;
-3. approves M04E2A prompt v0.2;
-4. confirms M04E1 is Merged/Passed at merge commit `03f05a3d78609a993cecab8b0077e5f7d7d55900`.
-
-Until then:
+The project owner approved this implementation package on 2026-07-19:
 
 ```text
-DEC-0041: Proposed
-M04E2A prompt: Draft v0.2
+DEC-0041: Accepted
+M04E2 recalibration: Approved
+M04E2A definition: Approved
+M04E2A prompt: Approved v0.2
 M04E2A implementation: Not started
-GATE-REPORT-SCHEMA: Pending
+GATE-REPORT-SCHEMA: Satisfied
+GATE-SLICE-SCOPE: Satisfied
 ```
 
-Do not draft or implement M04E2B in this task.
+M04E1 is Merged/Passed at merge commit `03f05a3d78609a993cecab8b0077e5f7d7d55900`. This prompt is approved for execution against current `main` after confirming that baseline. Do not draft or implement M04E2B in this task.
 
 ## Required reading and pre-edit report
 
 Before editing:
 
 1. Read `AGENTS.md` and follow the source hierarchy.
-2. Read `docs/codex/MILESTONES.md`, revised proposed `DEC-0041`, `ARCHITECTURE.md`, `DATA_AND_CONTENT_CONTRACTS.md`, `IMPLEMENTATION_RULES.md`, `TESTING_AND_VALIDATION.md`, and `OWNER_VERIFICATION_WORKFLOW.md`.
+2. Read `docs/codex/MILESTONES.md`, accepted `DEC-0041`, `ARCHITECTURE.md`, `DATA_AND_CONTENT_CONTRACTS.md`, `IMPLEMENTATION_RULES.md`, `TESTING_AND_VALIDATION.md`, and `OWNER_VERIFICATION_WORKFLOW.md`.
 3. Read accepted `DEC-0011`, `DEC-0012`, `DEC-0016`, `DEC-0033`, `DEC-0034`, `DEC-0035`, `DEC-0039`, and `DEC-0040`.
 4. Inspect current `main`, `git status --short`, merged M04E1 implementation/tests/docs, and the final M04E1 owner package.
 5. Inspect `GameState`, `GameStateValidator`, `SaveEnvelope`, `SaveSchemaMapper`, every version-specific schema validator, `SaveMigrationRegistry`, `GameStatePersistenceCoordinator`, `SimulationEngine`, `SimulationRunService`, final M04E1 tests/trace/runner, and immutable v1/v2/v3 fixtures.

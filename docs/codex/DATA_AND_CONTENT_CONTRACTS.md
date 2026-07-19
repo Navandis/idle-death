@@ -3,7 +3,7 @@
 **Document role:** Canonical prototype data, runtime-state, ID, and serialization contracts  
 **Repository path:** `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`  
 **Document status:** Approved architecture contract  
-**Revision:** 21  
+**Revision:** 22  
 **Last updated:** 2026-07-19
 
 ## 1. Purpose
@@ -2686,9 +2686,9 @@ Rules:
 
 Final Windows evidence passed `153/153` full tests and `2,522` assertions before and after the trace, `9/9` focused tests and `295` assertions, all fifteen markers, import, cleanup, cleanup proof, and artifact audit.
 
-## Proposed M04E2A report-state and schema-v4 contracts
+## Approved M04E2A report-state and schema-v4 contracts
 
-These contracts become authoritative only after owner approval of proposed `DEC-0041` and M04E2A prompt v0.2.
+These contracts are authoritative under accepted `DEC-0041` and approved M04E2A prompt v0.2.
 
 ### Schema version 4
 
@@ -3012,7 +3012,7 @@ Do not serialize:
 - a report coordinator;
 - Codex analytics state.
 
-## Proposed M04E2B atomic reported-run boundary
+## Approved high-level M04E2B atomic reported-run boundary
 
 M04E2B adds no schema fields. It will introduce a narrow `SimulationReportCoordinator` that performs one candidate transaction:
 

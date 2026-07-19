@@ -2,8 +2,8 @@
 
 **Document role:** Canonical test strategy, commands, fixture rules, and manual validation flows
 **Repository path:** `docs/codex/TESTING_AND_VALIDATION.md`
-**Document status:** Approved validation plan through M04E1 with revised M04E2A v0.2 draft
-**Validation revision:** 25
+**Document status:** Approved validation plan through M04E2A v0.2
+**Validation revision:** 26
 **Last updated:** 2026-07-19
 **Engine target:** Godot 4.7 standard build, GDScript only
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)  
@@ -46,7 +46,7 @@ M04D2 merged through PR #14 at merge commit `24228a078199d9728eb57e4e26c27447aa6
 
 M04D3 merged through PR #15 at merge commit `9fd8f98e3787f711f3d03c9de03d3615d531216a` from final head `5a5cafc6b640001fba86c7ea9531ae9daf43fcc3`. Linux/Codex focused coverage passed `35/35` tests and `592` assertions. Owner Windows verification passed the full suite before and after (`144/144`, `2,222` assertions), focused M04D3 (`18/18`, `254` assertions), import, all sixteen markers, cleanup, cleanup proof, and artifact audit with zero failed steps. Accepted `DEC-0040` decomposes M04E into approved forecast-only M04E1 and report-state M04E2.
 
-M04E1 merged through PR #16 at merge commit `03f05a3d78609a993cecab8b0077e5f7d7d55900` from final head `738e89c606dd9f1f9f0396334ea9d8587ff389f3`. Owner Windows verification passed the full suite before and after (`153/153`, `2,522` assertions), focused M04E1 (`9/9`, `295` assertions), explicit import, all fifteen markers, cleanup, cleanup proof, and artifact audit with zero failed steps. Proposed `DEC-0041` recalibrates report work into M04E2A state/migration/service and M04E2B atomic integration/harness.
+M04E1 merged through PR #16 at merge commit `03f05a3d78609a993cecab8b0077e5f7d7d55900` from final head `738e89c606dd9f1f9f0396334ea9d8587ff389f3`. Owner Windows verification passed the full suite before and after (`153/153`, `2,522` assertions), focused M04E1 (`9/9`, `295` assertions), explicit import, all fifteen markers, cleanup, cleanup proof, and artifact audit with zero failed steps. Accepted `DEC-0041` recalibrates report work into approved M04E2A state/migration/service and later M04E2B atomic integration/harness.
 
 ## 2. Pinned test and platform dependencies
 
@@ -2077,9 +2077,9 @@ TRACE M04E1 no_clock_scene_platform_or_duplicate_rules=PASS
 
 `DEC-0040`, `GATE-FORECAST-CLONE`, and M04E1 `GATE-SLICE-SCOPE` are satisfied.
 
-## 28. M04E2A revised draft report-state/attribution/schema/history validation package
+## 28. M04E2A approved report-state/attribution/schema/history validation package
 
-This package is proposed under revised `DEC-0041`. It is not executable until the owner approves the decision, recalibration, and M04E2A prompt v0.2.
+This package is approved under accepted `DEC-0041` and approved M04E2A prompt v0.2. It is executable against current `main` after confirming the M04E1 merged baseline.
 
 ### 28.1 Focused Linux/Codex commands
 

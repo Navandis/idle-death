@@ -3,7 +3,7 @@
 **Document role:** Durable record of approved and proposed design and architecture decisions  
 **Repository path:** `docs/codex/DECISIONS.md`  
 **Document status:** Approved architecture and active decision record  
-**Revision:** 25  
+**Revision:** 26  
 **Last updated:** 2026-07-19
 
 ## 1. How to use this file
@@ -70,7 +70,7 @@ Rules:
 | `DEC-0038` | Discrete non-Essence channels resolve only initialized sources; whole banking is immediate and Settlement is channel-specific | Accepted | 2026-07-18 |
 | `DEC-0039` | Valid loadouts remain distinct and swappable; rate-context changes preserve residuals and ETAs are baseline-derived views | Accepted | 2026-07-18 |
 | `DEC-0040` | Forecasts clone current state through the shared resolver; authoritative report history is a separate slice | Accepted | 2026-07-19 |
-| `DEC-0041` | Reports use schema-v4 attributed, cursor-idempotent state with read-only live views and bounded recent history | Proposed | 2026-07-19 |
+| `DEC-0041` | Reports use schema-v4 attributed, cursor-idempotent state with read-only live views and bounded recent history | Accepted | 2026-07-19 |
 
 ---
 
@@ -2546,7 +2546,7 @@ M04E2 owns report accumulation and history under `DEC-0016`:
 - forecasts never enter report authority;
 - snapshotting or clearing reports never changes inventory, backlog, Mastery, acquisition progress, or time.
 
-M04E2 cannot be prompted until `GATE-REPORT-SCHEMA` approves the exact report-state schema, sequential migration, retention bound, ordering, and idempotent ingestion identity.
+Direct M04E2 work remained blocked until `GATE-REPORT-SCHEMA` approved the exact report-state schema, sequential migration, retention bound, ordering, attribution, and idempotent ingestion identity. Accepted `DEC-0041` and approved M04E2A prompt v0.2 now satisfy that gate for M04E2A; M04E2B still requires a later prompt and scope review.
 
 ### Consequences
 
@@ -2583,7 +2583,7 @@ M04E2 cannot be prompted until `GATE-REPORT-SCHEMA` approves the exact report-st
 
 ## `DEC-0041` — Reports use schema-v4 attributed, cursor-idempotent state with read-only live views and bounded recent history
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-07-19  
 **Decision type:** Report authority, attribution, save compatibility, idempotent ingestion, read-versus-archive behavior, retention, atomic orchestration, and milestone recalibration  
 **Refines:** `DEC-0011`, `DEC-0012`, `DEC-0016`, `DEC-0033`, `DEC-0034`, `DEC-0035`, `DEC-0039`, `DEC-0040`
@@ -2619,7 +2619,7 @@ A report remains explanatory rather than claim-gated. The system must avoid:
 
 Version-3 saves contain already-applied gameplay but no report cursor or historical event record. Migration cannot safely invent past reports.
 
-### Proposed decision
+### Decision
 
 #### Recalibrate M04E2
 
@@ -2900,13 +2900,12 @@ Any failure preserves both gameplay and report state. M04E2B also owns the final
 
 ## 3. Current approval state
 
-- `DEC-0001` through `DEC-0040` are Accepted.
-- `DEC-0041` is Proposed in revised final-review form and awaits owner approval with M04E2A prompt v0.2.
+- `DEC-0001` through `DEC-0041` are Accepted.
 - M04A through M04D3 are implemented, verified, and merged.
 - M04D3 merged through PR #15 from final head `5a5cafc6b640001fba86c7ea9531ae9daf43fcc3` at merge commit `9fd8f98e3787f711f3d03c9de03d3615d531216a`.
 - M04E1 merged through PR #16 from final head `738e89c606dd9f1f9f0396334ea9d8587ff389f3` at merge commit `03f05a3d78609a993cecab8b0077e5f7d7d55900`; Linux/Codex and owner Windows verification passed.
-- The approved M04E1/M04E2 decomposition remains authoritative until proposed `DEC-0041` is accepted.
-- Proposed `DEC-0041` recalibrates direct M04E2 into M04E2A and M04E2B.
-- M04E2A prompt v0.2 is drafted for final review but not approved; implementation has not started.
-- M04E2B is defined at a high level only and has no prompt.
+- Accepted `DEC-0041` authoritatively recalibrates direct M04E2 into M04E2A and M04E2B.
+- M04E2A definition and prompt v0.2 are Approved; implementation has not started.
+- `GATE-REPORT-SCHEMA` and M04E2A `GATE-SLICE-SCOPE` are satisfied.
+- M04E2B has an approved high-level boundary only; its prompt is not drafted and remains blocked on M04E2A Merged/Passed plus a fresh scope review.
 - Future changes preserve decision IDs for wording clarifications and create a new decision only when semantics, ownership, compatibility, or security posture changes.
