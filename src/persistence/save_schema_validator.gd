@@ -138,6 +138,7 @@ static func validate_v4(snapshot: Variant) -> Dictionary:
 		var rk := _require_keys(rs.history[i], ["report_sequence", "snapshot_reason", "window"], "game_state.report_state.history.%d" % i); if not rk.ok: return rk
 		var seq := SaveInt64.parse(rs.history[i].report_sequence, false, "game_state.report_state.history.%d.report_sequence" % i); if not seq.ok: return seq
 		if typeof(rs.history[i].snapshot_reason) != TYPE_STRING: return _err(ERR_TYPE, "game_state.report_state.history.%d.snapshot_reason" % i)
+		if not ReportState.VALID_REASONS.has(StringName(rs.history[i].snapshot_reason)): return _err(ERR_RANGE, "game_state.report_state.history.%d.snapshot_reason" % i)
 		var hw := _validate_report_window(rs.history[i].window, "game_state.report_state.history.%d.window" % i); if not hw.ok: return hw
 	return base
 

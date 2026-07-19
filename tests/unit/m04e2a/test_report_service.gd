@@ -21,6 +21,9 @@ func test_one_hour_ingestion_views_and_duplicate() -> void:
 	assert_true(result.success); assert_true(result.changed); assert_eq(result.cursor_msec, HOUR)
 	var view := ReportService.new().peek_live_global(state)
 	assert_eq(view.totals.returned_souls_delta, 4140); assert_eq(view.totals.inventory_gains.RES_ESSENCE, 360); assert_eq(view.totals.inventory_gains.SOUL_CALLING_SOLDIER, 12); assert_eq(view.totals.mastery_gains.FORM_MAN_AT_ARMS, 60000000)
+	var scribe_channel: Dictionary = view.slices[0].channel_summaries.CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS
+	assert_true(scribe_channel.has("first_rate_carry_units_before"))
+	assert_true(scribe_channel.has("latest_rate_carry_units_after"))
 	assert_eq(ReportService.new().peek_live_threshold(state, &"THR_GLOAMWOOD").slices.size(), 1)
 	assert_true(ReportService.new().ingest_committed_run(state, run).duplicate)
 
@@ -102,6 +105,36 @@ func test_scoped_meaningful_event_filters_by_assignment_window() -> void:
 	assert_true(service.peek_live_assignment(state, &"THR_GLOAMWOOD", 1).meaningful_event)
 	assert_false(service.peek_live_assignment(state, &"THR_GLOAMWOOD", 2).meaningful_event)
 
+
+
+func test_public_views_expose_event_details_and_counts() -> void:
+	var service := ReportService.new()
+	var state := _state(&"THR_GLOAMWOOD", 1)
+	_unlock(state, [&"SOUL_CALLING_SOLDIER"])
+
+	var run := SimulationRunService.new(_registry()).run_committed(state, 10000, SimulationRunService.MODE_DEBUG)
+	assert_true(run.success, run.developer_details)
+	assert_true(service.ingest_committed_run(state, run).success)
+
+	var global := service.peek_live_global(state)
+	assert_true(global.events_by_type.has("THRESHOLD_SETTLED"))
+	assert_gt(global.event_details.size(), 0)
+	assert_eq(global.omitted_oldest_event_detail_count, 0)
+	assert_eq(global.event_details[0].event_type, "THRESHOLD_SETTLED")
+	assert_eq(global.event_details[0].subject_id, "THR_GLOAMWOOD")
+
+	var threshold := service.peek_live_threshold(state, &"THR_GLOAMWOOD")
+	assert_true(threshold.events_by_type.has("THRESHOLD_SETTLED"))
+	assert_eq(threshold.event_details.size(), global.event_details.size())
+
+	var other_threshold := service.peek_live_threshold(state, &"THR_BROKEN_WATCH")
+	assert_true(other_threshold.events_by_type.is_empty())
+	assert_eq(other_threshold.event_details.size(), 0)
+
+	assert_true(service.snapshot_live(state, 1, ReportState.REASON_MANUAL_REVIEW).success)
+	var record := service.get_report_record(state, 1)
+	assert_true(record.events_by_type.has("THRESHOLD_SETTLED"))
+	assert_eq(record.event_details[0].event_sequence, global.event_details[0].event_sequence)
 
 func test_duplicate_retry_after_later_advancement_is_unchanged_success() -> void:
 	var service := ReportService.new()

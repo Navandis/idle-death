@@ -146,35 +146,50 @@ func _view_for_window(window: ReportState.ReportWindow, threshold_id: StringName
 		if assignment_revision > 0 and s.assignment_revision != assignment_revision: continue
 		var d := _slice_dict(s); out.slices.append(d); _rollup(out.totals, s)
 	var is_global_view := threshold_id == &"" and assignment_revision == 0
-	out["is_empty"] = window.is_empty() if is_global_view else out.slices.is_empty(); out["whole_gain"] = int(out.totals.returned_souls_delta) > 0 or not out.totals.inventory_gains.is_empty(); out["progress_change"] = int(out.totals.backlog_delta) != 0 or not out.totals.mastery_gains.is_empty(); out["meaningful_event"] = _has_meaningful_event(window, threshold_id, assignment_revision, out.slices)
+	var event_details := _event_details_for_view(window, threshold_id, assignment_revision, out.slices)
+	out["events_by_type"] = window.events_by_type.duplicate(true) if is_global_view else _event_counts_from_details(event_details)
+	out["event_details"] = event_details
+	out["omitted_oldest_event_detail_count"] = window.omitted_oldest_event_detail_count
+	out["is_empty"] = window.is_empty() if is_global_view else out.slices.is_empty(); out["whole_gain"] = int(out.totals.returned_souls_delta) > 0 or not out.totals.inventory_gains.is_empty(); out["progress_change"] = int(out.totals.backlog_delta) != 0 or not out.totals.mastery_gains.is_empty(); out["meaningful_event"] = not out.events_by_type.is_empty()
 	return out
 
-func _has_meaningful_event(window: ReportState.ReportWindow, threshold_id: StringName, assignment_revision: int, matching_slices: Array) -> bool:
-	if threshold_id == &"" and assignment_revision == 0:
-		return not window.events_by_type.is_empty()
-	if window.event_details.is_empty() or matching_slices.is_empty():
-		return false
+func _event_details_for_view(window: ReportState.ReportWindow, threshold_id: StringName, assignment_revision: int, matching_slices: Array) -> Array:
+	var out := []
 	for event in window.event_details:
 		if threshold_id != &"" and event.subject_id != threshold_id:
 			continue
-		if assignment_revision <= 0:
+		if assignment_revision > 0 and not _event_matches_assignment_slice(event, assignment_revision, matching_slices):
+			continue
+		out.append(_event_detail_dict(event))
+	return out
+
+func _event_matches_assignment_slice(event: ReportState.ReportEventDetail, assignment_revision: int, matching_slices: Array) -> bool:
+	for slice in matching_slices:
+		if int(slice.get("assignment_revision", 0)) != assignment_revision:
+			continue
+		if StringName(str(slice.get("threshold_id", ""))) != event.subject_id:
+			continue
+		var start_msec := int(slice.get("start_simulation_msec", 0))
+		var end_msec := int(slice.get("end_simulation_msec", 0))
+		if event.occurred_simulation_msec > start_msec and event.occurred_simulation_msec <= end_msec:
 			return true
-		for slice in matching_slices:
-			if int(slice.get("assignment_revision", 0)) != assignment_revision:
-				continue
-			if StringName(str(slice.get("threshold_id", ""))) != event.subject_id:
-				continue
-			var start_msec := int(slice.get("start_simulation_msec", 0))
-			var end_msec := int(slice.get("end_simulation_msec", 0))
-			if event.occurred_simulation_msec > start_msec and event.occurred_simulation_msec <= end_msec:
-				return true
 	return false
+
+func _event_detail_dict(event: ReportState.ReportEventDetail) -> Dictionary:
+	return {"event_sequence": event.event_sequence, "event_type": str(event.event_type), "occurred_simulation_msec": event.occurred_simulation_msec, "priority": event.priority, "subject_id": str(event.subject_id), "source_id": str(event.source_id)}
+
+func _event_counts_from_details(event_details: Array) -> Dictionary:
+	var out := {}
+	for event in event_details:
+		var event_type := str(event.event_type)
+		out[event_type] = int(out.get(event_type, 0)) + 1
+	return out
 
 func _slice_dict(s: ReportState.AttributionSlice) -> Dictionary:
 	var channels := {}
 	for cid in s.channel_summaries.keys():
 		var c: ReportState.ChannelSummary = s.channel_summaries[cid]
-		channels[str(cid)] = {"output_item_id": str(c.output_item_id), "banked_units_delta": c.banked_units_delta, "first_progress_subunits_before": c.first_progress_subunits_before, "latest_progress_subunits_after": c.latest_progress_subunits_after, "first_total_banked_units_before": c.first_total_banked_units_before, "latest_total_banked_units_after": c.latest_total_banked_units_after}
+		channels[str(cid)] = {"output_item_id": str(c.output_item_id), "banked_units_delta": c.banked_units_delta, "first_progress_subunits_before": c.first_progress_subunits_before, "latest_progress_subunits_after": c.latest_progress_subunits_after, "first_rate_carry_units_before": c.first_rate_carry_units_before, "latest_rate_carry_units_after": c.latest_rate_carry_units_after, "first_total_banked_units_before": c.first_total_banked_units_before, "latest_total_banked_units_after": c.latest_total_banked_units_after}
 	return {"threshold_id": str(s.threshold_id), "assignment_revision": s.assignment_revision, "lifecycle_state": str(s.lifecycle_state), "form_id": str(s.form_id), "writ_id": str(s.writ_id), "retinue_ids": _strings(s.retinue_ids), "loadout_key": s.loadout_key(), "start_simulation_msec": s.start_simulation_msec, "end_simulation_msec": s.end_simulation_msec, "elapsed_msec": s.elapsed_msec, "returned_souls_delta": s.returned_souls_delta, "backlog_delta": s.backlog_delta, "completed_cycles_delta": s.completed_cycles_delta, "inventory_gains": _string_keyed(s.inventory_gains), "mastery_gains": _string_keyed(s.mastery_gains), "channel_summaries": channels}
 
 func _rollup(totals: Dictionary, s: ReportState.AttributionSlice) -> void:

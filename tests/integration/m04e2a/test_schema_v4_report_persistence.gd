@@ -151,3 +151,19 @@ func test_save_runtime_rejects_malformed_runtime_report_state_before_mapping() -
 	var nested := SaveSchemaMapper.runtime_to_snapshot(state, TimeAuthorityState.new(), 17, ContentRegistry.CURRENT_REVISION)
 	assert_false(nested.ok)
 	assert_eq(nested.field_path, "game_state.report_state.live")
+
+func test_schema_v4_rejects_unknown_snapshot_reason() -> void:
+	var state := _state()
+	var run := SimulationRunService.new(_registry()).run_committed(state, 60000, SimulationRunService.MODE_FOREGROUND_SUPPLIED)
+	assert_true(run.success)
+	assert_true(ReportService.new().ingest_committed_run(state, run).success)
+	assert_true(ReportService.new().snapshot_live(state, 1, ReportState.REASON_MANUAL_REVIEW).success)
+	var snapshot := SaveSchemaMapper.runtime_to_snapshot(state, TimeAuthorityState.new(), 18, ContentRegistry.CURRENT_REVISION)
+	snapshot.game_state.report_state.history[0].snapshot_reason = "STALE_UNKNOWN_REASON"
+	var validation := SaveSchemaValidator.validate_current(snapshot)
+	assert_false(validation.ok)
+	assert_eq(validation.code, SaveSchemaValidator.ERR_RANGE)
+	assert_eq(validation.field_path, "game_state.report_state.history.0.snapshot_reason")
+	var runtime := SaveSchemaMapper.snapshot_to_runtime(snapshot)
+	assert_false(runtime.ok)
+	assert_eq(runtime.code, SaveSchemaValidator.ERR_RANGE)
