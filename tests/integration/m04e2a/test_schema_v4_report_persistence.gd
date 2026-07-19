@@ -132,3 +132,22 @@ func test_schema_v4_rejects_oversized_report_history_and_event_details() -> void
 	var event_validation := SaveSchemaValidator.validate_current(snapshot)
 	assert_false(event_validation.ok)
 	assert_eq(event_validation.field_path, "game_state.report_state.live.event_details")
+
+func test_save_runtime_rejects_malformed_runtime_report_state_before_mapping() -> void:
+	var storage := MemorySaveStorage.new()
+	var files := SaveFileSet.new("memory://m04e2a_invalid_runtime", "save")
+	var state := _state()
+	state.report_state = null
+	var direct := SaveSchemaMapper.runtime_to_snapshot(state, TimeAuthorityState.new(), 16, ContentRegistry.CURRENT_REVISION)
+	assert_false(direct.ok)
+	assert_eq(direct.code, SaveSchemaMapper.ERR_REPORT_RUNTIME)
+	assert_eq(direct.field_path, "game_state.report_state")
+	var saved := SaveService.new(storage, files).save_runtime(state, TimeAuthorityState.new(), 16, ContentRegistry.CURRENT_REVISION)
+	assert_false(saved.ok)
+	assert_eq(saved.code, SaveSchemaMapper.ERR_REPORT_RUNTIME)
+	assert_false(storage.exists(files.primary_path))
+	state = _state()
+	state.report_state.live = null
+	var nested := SaveSchemaMapper.runtime_to_snapshot(state, TimeAuthorityState.new(), 17, ContentRegistry.CURRENT_REVISION)
+	assert_false(nested.ok)
+	assert_eq(nested.field_path, "game_state.report_state.live")

@@ -26,6 +26,8 @@ func save_runtime(game_state: GameState, time_state: TimeAuthorityState, save_re
 	if content_revision.strip_edges() == "":
 		return {"ok": false, "code": "SAVE_CONTENT_REVISION_REQUIRED"}
 	var snapshot := SaveSchemaMapper.runtime_to_snapshot(game_state, time_state, save_revision, content_revision)
+	if snapshot.has("ok") and not snapshot.ok:
+		return snapshot
 	return save_snapshot(snapshot)
 
 func save_snapshot(snapshot: Dictionary) -> Dictionary:
