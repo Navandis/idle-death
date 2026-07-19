@@ -67,7 +67,7 @@ func residual_signature(state: GameState, threshold_id: StringName, form_id: Str
 			channel_periods[str(channel_id)] = int(relationship.channel.rate.period_msec)
 	if int(form.base_returned_souls_rate.period_msec) <= 0 or int(form.active_mastery_rate.period_msec) <= 0 or int(form.cycle_duration_msec) <= 0 or int(essence.channel.rate.period_msec) <= 0:
 		return _failure(ERR_CONTENT, "non-positive residual denominator")
-	var signature := {"returned_soul_period_msec": int(form.base_returned_souls_rate.period_msec), "returned_period_msec": int(form.base_returned_souls_rate.period_msec), "mastery_period_msec": int(form.active_mastery_rate.period_msec), "cycle_duration_msec": int(form.cycle_duration_msec), "essence_period_msec": int(essence.channel.rate.period_msec), "initialized_non_essence_channel_period_msec_by_channel_id": channel_periods, "channel_periods_msec": channel_periods}
+	var signature := {"returned_soul_period_msec": int(form.base_returned_souls_rate.period_msec), "returned_period_msec": int(form.base_returned_souls_rate.period_msec), "mastery_period_msec": int(form.active_mastery_rate.period_msec), "cycle_duration_msec": int(form.cycle_duration_msec), "essence_period_msec": int(essence.channel.rate.period_msec), "non_essence_channel_period_msec_by_id": channel_periods, "initialized_non_essence_channel_period_msec_by_channel_id": channel_periods, "channel_periods_msec": channel_periods}
 	return {"ok": true, "success": true, "signature": signature}
 
 func compare_residual_signatures(state: GameState, threshold_id: StringName, old_form_id: StringName, new_form_id: StringName) -> Dictionary:
@@ -183,7 +183,7 @@ func eta_display(eta_msec: int) -> Dictionary:
 	if eta_msec > 0 and eta_msec % 1000 != 0:
 		total_seconds += 1
 	var units: Array = []
-	if total_seconds >= 86400:
+	if eta_msec >= 86400000:
 		units = [["DAY", total_seconds / 86400], ["HOUR", (total_seconds / 3600) % 24], ["MINUTE", (total_seconds / 60) % 60]]
 	else:
 		units = [["HOUR", total_seconds / 3600], ["MINUTE", (total_seconds / 60) % 60], ["SECOND", total_seconds % 60]]
@@ -274,8 +274,8 @@ func _signature_mismatches(old_signature: Dictionary, new_signature: Dictionary)
 	for field in ["returned_soul_period_msec", "mastery_period_msec", "cycle_duration_msec", "essence_period_msec"]:
 		if int(old_signature.get(field, -1)) != int(new_signature.get(field, -1)):
 			mismatches.append(field)
-	var old_channels: Dictionary = old_signature.get("initialized_non_essence_channel_period_msec_by_channel_id", {})
-	var new_channels: Dictionary = new_signature.get("initialized_non_essence_channel_period_msec_by_channel_id", {})
+	var old_channels: Dictionary = old_signature.get("non_essence_channel_period_msec_by_id", old_signature.get("initialized_non_essence_channel_period_msec_by_channel_id", {}))
+	var new_channels: Dictionary = new_signature.get("non_essence_channel_period_msec_by_id", new_signature.get("initialized_non_essence_channel_period_msec_by_channel_id", {}))
 	var ids := {}
 	for id in old_channels.keys(): ids[id] = true
 	for id in new_channels.keys(): ids[id] = true

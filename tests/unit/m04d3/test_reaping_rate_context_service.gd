@@ -72,6 +72,9 @@ func test_output_channel_rate_modifier_rejects_deferred_supported_conditions() -
 func test_public_contract_fields_and_eta_display_edges() -> void:
 	var service := ReapingRateContextService.new(_registry())
 	var state := _state(true)
+	var signature := service.residual_signature(state, &"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS")
+	assert_true(signature.signature.has("non_essence_channel_period_msec_by_id"))
+	assert_eq(signature.signature.non_essence_channel_period_msec_by_id, signature.signature.initialized_non_essence_channel_period_msec_by_channel_id)
 	var query := service.query_acquisition(state, &"THR_GLOAMWOOD", &"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS")
 	assert_true(query.success)
 	for key in ["threshold_id", "channel_id", "output_item_id", "loadout_identity", "access_state", "disclosure_state", "is_active", "lifecycle_state", "progress_subunits", "progress_tenths_percent", "rate_plan", "eta_available", "current_context_eta_msec", "eta_basis", "eta_display"]:
@@ -84,6 +87,9 @@ func test_public_contract_fields_and_eta_display_edges() -> void:
 	assert_eq(service.eta_display(0).fallback_text, "00 hours, 00 minutes, 00 seconds")
 	assert_eq(service.eta_display(0).exact_eta_msec, 0)
 	assert_eq(service.eta_display(1).english_text, "00 hours, 00 minutes, 01 second")
+	var almost_day := service.eta_display(86399999)
+	assert_eq(almost_day.english_text, "24 hours, 00 minutes, 00 seconds")
+	assert_eq([almost_day.components[0].unit, almost_day.components[1].unit, almost_day.components[2].unit], ["HOUR", "MINUTE", "SECOND"])
 	assert_eq(service.eta_display(86400000).english_text, "01 day, 00 hours, 00 minutes")
 	assert_eq(service.eta_display(100 * 86400000).english_text, "100 days, 00 hours, 00 minutes")
 	assert_eq(service.eta_display(3600000).components.size(), 3)
