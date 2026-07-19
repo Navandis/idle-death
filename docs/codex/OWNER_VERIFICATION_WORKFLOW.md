@@ -1,11 +1,11 @@
 # Death Idle Owner Verification Workflow
 
-**Document role:** Canonical packaging and evidence rules for checks that must run on the project owner's Windows Godot machine  
-**Repository path:** `docs/codex/OWNER_VERIFICATION_WORKFLOW.md`  
-**Document status:** Approved workflow  
-**Workflow revision:** 1  
-**Last updated:** 2026-07-14  
-**Companion documents:** [Testing and validation](TESTING_AND_VALIDATION.md), [Prompt template](PROMPT_TEMPLATE.md), [Milestones](MILESTONES.md), and [Decisions](DECISIONS.md)
+**Document role:** Canonical packaging and evidence rules for checks that must run on the project owner's Windows Godot machine
+**Repository path:** `docs/codex/OWNER_VERIFICATION_WORKFLOW.md`
+**Document status:** Approved workflow
+**Workflow revision:** 2
+**Last updated:** 2026-07-18
+**Companion documents:** [Testing and validation](TESTING_AND_VALIDATION.md), [Prompt template](PROMPT_TEMPLATE.md), [Milestones](MILESTONES.md), [Decisions](DECISIONS.md), and [Codex PR branch recovery](CODEX_PR_BRANCH_RECOVERY.md)
 
 ## 1. Purpose
 
@@ -209,6 +209,12 @@ Owner-verification scripts are development tools. They must not:
 
 A log is evidence of commands and observed results, not a security boundary or proof against a compromised client machine.
 
-## 9. M00 completion note
+## 9. Codex-managed PR branch recovery
+
+When an active Codex-managed pull-request branch receives an unintended owner-side edit, generated `.uid` companion, or accidental commit, use [Codex PR branch recovery](CODEX_PR_BRANCH_RECOVERY.md) before rerunning owner verification. The recovery guide explains why a revert preserves the unwanted edit in branch history, how to prepare a rollback in GitHub Desktop, why the owner must not pull after local rollback, and how to verify a clean-tree, correct-branch, safety-branch, explicit `--force-with-lease` recovery when the remote PR head must be corrected.
+
+Owner-verification logs remain generated local evidence during recovery. Do not commit recovery logs, temporary trace roots, or generated editor artifacts while preparing the corrected PR head.
+
+## 10. M00 completion note
 
 M00 predates this standardized package. Its Windows evidence was supplied through explicit PowerShell execution logs covering the full suite, focused run, outside-root invocation, editor smoke, passive Steam configuration, intentional failing-test exit code, cleanup, and successful recovery. No retroactive M00 owner script is required.

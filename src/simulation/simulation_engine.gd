@@ -38,9 +38,11 @@ const FLOW_CORE_MASTERY_RATE_CARRY_UNITS := CoreFlowKeys.MASTERY_CARRY
 const CORE_FLOW_KEYS := CoreFlowKeys.ORDERED_KEYS
 
 var registry: ContentRegistry
+var rate_context: ReapingRateContextService
 
 func _init(content_registry: ContentRegistry) -> void:
 	registry = content_registry
+	rate_context = ReapingRateContextService.new(content_registry)
 
 ## Resolves explicit elapsed milliseconds and commits only a fully validated candidate.
 func resolve_elapsed(state: GameState, elapsed_msec: int) -> SimulationResult:
@@ -153,12 +155,12 @@ func _apply_segment(state: GameState, reaping: GameState.ReapingState, threshold
 	if reaping.completed_cycle_count > FixedPoint.INT64_MAX - completed: return _fail(ERR_OVERFLOW, "completed_cycle_count")
 	reaping.completed_cycle_count += completed
 	reaping.cycle_phase_msec = phase_total % int(form_record.cycle_duration_msec)
-	var channel_result := _apply_output_channels(state, threshold_id, elapsed_msec, segment_end_msec, str(threshold.lifecycle_state))
+	var channel_result := _apply_output_channels(state, threshold_id, reaping.form_id, reaping.writ_id, reaping.retinue_ids, elapsed_msec, segment_end_msec, str(threshold.lifecycle_state))
 	if not channel_result.ok: return channel_result
 	return {"ok": true, "lifecycle": str(threshold.lifecycle_state), "returned_souls_delta": threshold.persistent_returns_total - before_returns, "backlog_delta": threshold.remaining_backlog - before_backlog, "Essence_delta": state.inventory.entries.get(&"RES_ESSENCE", GameState.InventoryEntryState.new()).total - before_essence, "Mastery_delta_subunits": form.mastery_subunits - before_mastery, "completed_cycles_delta": reaping.completed_cycle_count - before_cycles, "channel_deltas": channel_result.channel_deltas, "events": channel_result.events}
 
 
-func _apply_output_channels(state: GameState, threshold_id: StringName, elapsed_msec: int, segment_end_msec: int, lifecycle_state: String) -> Dictionary:
+func _apply_output_channels(state: GameState, threshold_id: StringName, form_id: StringName, writ_id: StringName, retinue_ids: Array[StringName], elapsed_msec: int, segment_end_msec: int, lifecycle_state: String) -> Dictionary:
 	var channels := _eligible_output_channels(state, threshold_id)
 	if not channels.ok: return channels
 	var deltas: Array = []
@@ -168,9 +170,9 @@ func _apply_output_channels(state: GameState, threshold_id: StringName, elapsed_
 		var before_progress := acq.progress_subunits
 		var before_carry := acq.rate_carry_units
 		var before_banked := acq.total_banked_units
-		var rate := _channel_rate(channel, lifecycle_state)
-		if not rate.ok: return rate
-		var acc := FixedPoint.accumulate_for_elapsed_msec(int(rate.rate), int(channel.rate.period_msec), elapsed_msec, acq.rate_carry_units)
+		var rate := rate_context.output_channel_rate_plan(threshold_id, form_id, StringName(channel.id), lifecycle_state, writ_id, retinue_ids)
+		if not rate.ok: return _fail(StringName(rate.code), rate.get("details", "channel rate"))
+		var acc := FixedPoint.accumulate_for_elapsed_msec(int(rate.rate_subunits_per_period), int(rate.period_msec), elapsed_msec, acq.rate_carry_units)
 		if not acc.ok: return _fail(ERR_OVERFLOW, "channel accumulation %s" % channel.id)
 		var added := FixedPoint.add_subunits(acq.progress_subunits, int(acc.produced_subunits))
 		if not added.ok: return _fail(ERR_OVERFLOW, "channel progress %s" % channel.id)

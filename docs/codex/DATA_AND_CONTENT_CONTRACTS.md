@@ -2504,6 +2504,11 @@ THRESHOLD_LIFECYCLE
 
 Multiple operands use deterministic any-match semantics. Relevant malformed or unsupported operation/scope/condition data returns a typed failure. Non-`OUTPUT_CHANNEL_RATE` modifiers are irrelevant and ignored.
 
+Canonical M04D3 operand tokens are:
+
+- `OUTPUT_KIND`: `RESOURCE`, `STORE`, or `WHOLE_SOUL`. `WHOLE_SOUL` means channels whose `output_kind` is `WHOLE_ITEM` and whose output item is a Calling Soul or Form Soul; it is not equivalent to generic `WHOLE_ITEM`.
+- `THRESHOLD_LIFECYCLE`: `OVERDUE` or `SETTLED`. Legacy authored `STANDING` is accepted only as an import-time compatibility alias and normalizes to `OVERDUE` before runtime evaluation.
+
 ### Modifier-source boundary
 
 M04D3 executes active Form Trait modifiers only.
@@ -2640,3 +2645,5 @@ ETA
 ```
 
 Selected component IDs already persisted in `ReapingState` remain authoritative. After supported redispatch and subsequent production, existing Reaping, Threshold acquisition, inventory, assignment revision, and simulation fields round-trip through schema v3 exactly.
+
+M04D3 implementation note (PR #15 final correction): canonical derived dictionaries expose `success`, `ok`, `error_code`, and `developer_details` plus bounded loadout identity, residual signature, continuity, output rate-plan, modifier trace, acquisition query, and ETA-display payloads. These derived artifacts remain absent from schema-v3 snapshots; selected components, assignment revision, Threshold acquisition, inventory, and time state remain authoritative. Windows final-head owner verification is pending.

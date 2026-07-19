@@ -154,7 +154,7 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 | M04D | Output access and discrete-channel progression | Conceptual sub-epic | Approved | Not applicable | Not directly executable | — |
 | M04D1 | Output access and source-identification foundation | Implementation slice | Approved | Approved | Merged | Passed |
 | M04D2 | Discrete channel accumulation and long-horizon banking | Implementation slice | Approved | Approved | Merged | Passed |
-| M04D3 | Compatible rate-context changes and acquisition queries | Implementation slice | Approved | Approved | Not started | — |
+| M04D3 | Compatible rate-context changes and acquisition queries | Implementation slice | Approved | Approved | Pull request open | Partial |
 | M04E | Forecast clone, report accumulator, and simulation harness | Implementation slice | Approved | Not drafted | Not started | — |
 | M05 | Persistent application shell, navigation, and debug access | Conceptual epic | Approved | Not applicable | Not directly executable | — |
 | M06 | Steam trusted-time adapter and transactional offline resolution | Conceptual epic | Approved | Not applicable | Not directly executable | — |
@@ -1303,8 +1303,10 @@ A developer can resolve long active intervals at Gloamwood and Broken Watch, ins
 **Parent epic:** M04 / M04D  
 **Definition status:** Approved  
 **Prompt status:** Approved  
-**Implementation status:** Not started  
-**Verification status:** —  
+**Implementation status:** Pull request open
+**Verification status:** Partial
+**PR:** #15 (`codex/implement-milestone-m04d3`); final-head Windows owner verification pending.
+**Realized scope:** one bounded rate-context service with assignment and simulation/query seams; focused coverage in `tests/unit/m04d3` and `tests/integration/m04d3`; trace harness under `tools/test/m04d3`; owner package under `tools/test/owner`.
 **Recommended Codex task size:** Small-medium; one rate-context/reconfiguration/query pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M04D3-compatible-rate-context-and-acquisition-queries.md`
 
