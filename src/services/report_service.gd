@@ -136,8 +136,29 @@ func _view_for_window(window: ReportState.ReportWindow, threshold_id: StringName
 		if assignment_revision > 0 and s.assignment_revision != assignment_revision: continue
 		var d := _slice_dict(s); out.slices.append(d); _rollup(out.totals, s)
 	var is_global_view := threshold_id == &"" and assignment_revision == 0
-	out["is_empty"] = window.is_empty() if is_global_view else out.slices.is_empty(); out["whole_gain"] = int(out.totals.returned_souls_delta) > 0 or not out.totals.inventory_gains.is_empty(); out["progress_change"] = int(out.totals.backlog_delta) != 0 or not out.totals.mastery_gains.is_empty(); out["meaningful_event"] = not window.events_by_type.is_empty()
+	out["is_empty"] = window.is_empty() if is_global_view else out.slices.is_empty(); out["whole_gain"] = int(out.totals.returned_souls_delta) > 0 or not out.totals.inventory_gains.is_empty(); out["progress_change"] = int(out.totals.backlog_delta) != 0 or not out.totals.mastery_gains.is_empty(); out["meaningful_event"] = _has_meaningful_event(window, threshold_id, assignment_revision, out.slices)
 	return out
+
+func _has_meaningful_event(window: ReportState.ReportWindow, threshold_id: StringName, assignment_revision: int, matching_slices: Array) -> bool:
+	if threshold_id == &"" and assignment_revision == 0:
+		return not window.events_by_type.is_empty()
+	if window.event_details.is_empty() or matching_slices.is_empty():
+		return false
+	for event in window.event_details:
+		if threshold_id != &"" and event.subject_id != threshold_id:
+			continue
+		if assignment_revision <= 0:
+			return true
+		for slice in matching_slices:
+			if int(slice.get("assignment_revision", 0)) != assignment_revision:
+				continue
+			if StringName(str(slice.get("threshold_id", ""))) != event.subject_id:
+				continue
+			var start_msec := int(slice.get("start_simulation_msec", 0))
+			var end_msec := int(slice.get("end_simulation_msec", 0))
+			if event.occurred_simulation_msec >= start_msec and event.occurred_simulation_msec <= end_msec:
+				return true
+	return false
 
 func _slice_dict(s: ReportState.AttributionSlice) -> Dictionary:
 	var channels := {}

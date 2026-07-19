@@ -81,3 +81,23 @@ func test_global_peek_marks_no_slice_run_window_as_pending() -> void:
 	assert_false(live.is_empty)
 	assert_eq(live.run_count, 1)
 	assert_eq(live.slices.size(), 0)
+
+
+func test_scoped_meaningful_event_filters_by_assignment_window() -> void:
+	var service := ReportService.new()
+	var state := _state(&"THR_GLOAMWOOD", 1)
+	_unlock(state, [&"SOUL_CALLING_SOLDIER"])
+
+	var first_result := SimulationRunService.new(_registry()).run_committed(state, 10000, SimulationRunService.MODE_DEBUG)
+	assert_true(first_result.success, first_result.developer_details)
+	assert_true(service.ingest_committed_run(state, first_result).success)
+
+	state.reapings[&"THR_GLOAMWOOD"].assignment_revision = 2
+	var second_result := SimulationRunService.new(_registry()).run_committed(state, 1000, SimulationRunService.MODE_DEBUG)
+	assert_true(second_result.success, second_result.developer_details)
+	assert_true(service.ingest_committed_run(state, second_result).success)
+
+	assert_true(service.peek_live_global(state).meaningful_event)
+	assert_true(service.peek_live_threshold(state, &"THR_GLOAMWOOD").meaningful_event)
+	assert_true(service.peek_live_assignment(state, &"THR_GLOAMWOOD", 1).meaningful_event)
+	assert_false(service.peek_live_assignment(state, &"THR_GLOAMWOOD", 2).meaningful_event)
