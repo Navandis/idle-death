@@ -245,6 +245,12 @@ static func _validate_report_window(w, path: String) -> Dictionary:
 		if typeof(sd.get("channel_summaries", null)) != TYPE_DICTIONARY: return _err(ERR_TYPE, "%s.slices.%s.channel_summaries" % [path, sk])
 	for i in range(w.event_details.size()):
 		var ed = w.event_details[i]; if typeof(ed) != TYPE_DICTIONARY: return _err(ERR_TYPE, "%s.event_details.%d" % [path, i])
+		var event_path := "%s.event_details.%d" % [path, i]
+		var event_keys := _require_keys(ed, ["event_sequence", "event_type", "occurred_simulation_msec", "priority", "source_id", "subject_id"], event_path); if not event_keys.ok: return event_keys
+		for ik in ["event_sequence", "occurred_simulation_msec", "priority"]:
+			var ei := SaveInt64.parse(ed[ik], false, "%s.%s" % [event_path, ik]); if not ei.ok: return ei
+		for skey in ["event_type", "subject_id", "source_id"]:
+			if typeof(ed[skey]) != TYPE_STRING or String(ed[skey]).is_empty(): return _err(ERR_TYPE, "%s.%s" % [event_path, skey])
 	return {"ok": true}
 
 static func _validate_v2_nested(g: Dictionary) -> Dictionary:

@@ -58,3 +58,16 @@ func test_positive_no_reaping_interval_advances_report_cursor_and_snapshots() ->
 	assert_eq(live.slices.size(), 0)
 	assert_eq(live.totals.returned_souls_delta, 0)
 	assert_true(service.snapshot_live(state, 1, ReportState.REASON_SYSTEM_BOUNDARY).success)
+
+func test_stale_committed_run_rejects_when_gameplay_advanced_past_result() -> void:
+	var state := GameState.new(0)
+	var run_one := SimulationRunService.new(_registry()).run_committed(state, 1000, SimulationRunService.MODE_DEBUG)
+	assert_true(run_one.success, run_one.developer_details)
+	var run_two := SimulationRunService.new(_registry()).run_committed(state, 1000, SimulationRunService.MODE_DEBUG)
+	assert_true(run_two.success, run_two.developer_details)
+	var before_cursor := state.report_state.report_cursor_msec
+	var result := ReportService.new().ingest_committed_run(state, run_one)
+	assert_false(result.success)
+	assert_eq(result.error_code, ReportService.ERR_INVALID_RESULT)
+	assert_eq(state.simulation_time_msec, 2000)
+	assert_eq(state.report_state.report_cursor_msec, before_cursor)

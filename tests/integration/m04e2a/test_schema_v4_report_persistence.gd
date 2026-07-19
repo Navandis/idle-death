@@ -38,3 +38,14 @@ func test_schema_v4_preserves_unlocked_output_ids_on_load() -> void:
 	assert_true(loaded.ok)
 	assert_eq(loaded.game_state.progression.unlocked_output_item_ids, [&"SOUL_CALLING_SOLDIER"])
 	assert_true(GameStateValidator.validate(loaded.game_state, _registry()).ok)
+
+func test_schema_v4_rejects_malformed_event_details_before_runtime_mapping() -> void:
+	var state := _state()
+	var snapshot := SaveSchemaMapper.runtime_to_snapshot(state, TimeAuthorityState.new(), 10, ContentRegistry.CURRENT_REVISION)
+	snapshot.game_state.report_state.live.event_details.append({"event_type": "THRESHOLD_SETTLED"})
+	var validation := SaveSchemaValidator.validate_current(snapshot)
+	assert_false(validation.ok)
+	assert_eq(validation.code, SaveSchemaValidator.ERR_KEY_SET)
+	var runtime := SaveSchemaMapper.snapshot_to_runtime(snapshot)
+	assert_false(runtime.ok)
+	assert_eq(runtime.code, SaveSchemaValidator.ERR_KEY_SET)

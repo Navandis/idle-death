@@ -90,6 +90,7 @@ func _validate_ingest_request(state: GameState, run_result: SimulationRunService
 	if not SimulationRunService.COMMITTED_MODES.has(run_result.mode): return {"ok": false, "code": ERR_INVALID_RESULT}
 	if not run_result.success or run_result.projected_state != null or run_result.simulation_result == null or not run_result.simulation_result.success: return {"ok": false, "code": ERR_INVALID_RESULT}
 	if run_result.requested_elapsed_msec != run_result.result_simulation_time_msec - run_result.baseline_simulation_time_msec: return {"ok": false, "code": ERR_INVALID_RESULT}
+	if state.simulation_time_msec != run_result.result_simulation_time_msec: return {"ok": false, "code": ERR_INVALID_RESULT}
 	if run_result.simulation_result.committed_elapsed_msec != run_result.requested_elapsed_msec: return {"ok": false, "code": ERR_INVALID_RESULT}
 	if run_result.simulation_result.change_summary.has("threshold_id") and not state.reapings.has(StringName(run_result.simulation_result.change_summary.threshold_id)): return {"ok": false, "code": ERR_INVALID_RESULT}
 	return {"ok": true}
