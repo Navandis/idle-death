@@ -99,6 +99,7 @@ func _two_threshold_state() -> GameState:
 	var state := _state(false)
 	state.progression.command_tether_capacity = 2
 	state.progression.unlocked_output_item_ids = [&"RES_PROVISIONS", &"SOUL_FORM_SCRIBE"]
+	state.progression.unlocked_output_item_ids.sort()
 	var watch := GameState.ThresholdState.new()
 	watch.knowledge_state = &"CHARTED"
 	watch.availability_state = &"AVAILABLE"

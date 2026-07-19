@@ -125,6 +125,9 @@ func redispatch(state: GameState, threshold_id: StringName, form_id: StringName,
 	var preconditions := validate_loadout_candidate(state, threshold_id, form_id, writ_id, [], threshold_id)
 	if not preconditions.success:
 		return preconditions
+	var unknown_nonzero_flow_keys := _unknown_nonzero_flow_keys(current)
+	if not unknown_nonzero_flow_keys.is_empty():
+		return AssignmentResult.failure(REAPING_RESOLUTION_REQUIRED, {"threshold_id": str(threshold_id), "unknown_nonzero_flow_keys": unknown_nonzero_flow_keys})
 	if _loadout_changed(current, form_id, writ_id):
 		var continuity := rate_context.compare_residual_signatures(state, threshold_id, current.form_id, form_id)
 		if not continuity.ok:
@@ -193,15 +196,13 @@ func _validate_candidate(candidate: GameState) -> AssignmentResult:
 func _loadout_changed(reaping: GameState.ReapingState, form_id: StringName, writ_id: StringName) -> bool:
 	return reaping.form_id != form_id or reaping.writ_id != writ_id
 
-func _has_unresolved_rate_dependent_state(reaping: GameState.ReapingState) -> bool:
-	# M04B has no resolver. Nonzero phase/carry under a changed rate context must
-	# wait for M04C/M04D, which will resolve old output to the command boundary.
-	if reaping.cycle_phase_msec != 0:
-		return true
-	for amount in reaping.flow_carry_units.values():
-		if int(amount) != 0:
-			return true
-	return false
+func _unknown_nonzero_flow_keys(reaping: GameState.ReapingState) -> Array[String]:
+	var keys: Array[String] = []
+	for key in reaping.flow_carry_units.keys():
+		if not CoreFlowKeys.is_known(StringName(key)) and int(reaping.flow_carry_units[key]) != 0:
+			keys.append(str(key))
+	keys.sort()
+	return keys
 
 func _success(event_type: StringName, state: GameState, reaping: GameState.ReapingState) -> AssignmentResult:
 	var activation_revision := reaping.assignment_revision if event_type != EVENT_RECALLED else 0
