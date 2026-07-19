@@ -70,7 +70,7 @@ Rules:
 | `DEC-0038` | Discrete non-Essence channels resolve only initialized sources; whole banking is immediate and Settlement is channel-specific | Accepted | 2026-07-18 |
 | `DEC-0039` | Valid loadouts remain distinct and swappable; rate-context changes preserve residuals and ETAs are baseline-derived views | Accepted | 2026-07-18 |
 | `DEC-0040` | Forecasts clone current state through the shared resolver; authoritative report history is a separate slice | Accepted | 2026-07-19 |
-| `DEC-0041` | Reports use schema-v4 cursor-idempotent state; atomic reported runs close M04 in a separate slice | Proposed | 2026-07-19 |
+| `DEC-0041` | Reports use schema-v4 attributed, cursor-idempotent state with read-only live views and bounded recent history | Proposed | 2026-07-19 |
 
 ---
 
@@ -2581,12 +2581,12 @@ M04E2 cannot be prompted until `GATE-REPORT-SCHEMA` approves the exact report-st
 
 ---
 
-## `DEC-0041` — Reports use schema-v4 cursor-idempotent state; atomic reported runs close M04 in a separate slice
+## `DEC-0041` — Reports use schema-v4 attributed, cursor-idempotent state with read-only live views and bounded recent history
 
 **Status:** Proposed  
 **Date:** 2026-07-19  
-**Decision type:** Report authority, save compatibility, idempotent ingestion, retention, atomic orchestration, and milestone recalibration  
-**Refines:** `DEC-0011`, `DEC-0012`, `DEC-0016`, `DEC-0033`, `DEC-0034`, `DEC-0040`
+**Decision type:** Report authority, attribution, save compatibility, idempotent ingestion, read-versus-archive behavior, retention, atomic orchestration, and milestone recalibration  
+**Refines:** `DEC-0011`, `DEC-0012`, `DEC-0016`, `DEC-0033`, `DEC-0034`, `DEC-0035`, `DEC-0039`, `DEC-0040`
 
 ### Context
 
@@ -2594,19 +2594,28 @@ M04E1 now provides a verified explicit-duration `SimulationRunService`, detached
 
 The remaining direct M04E2 definition combines:
 
-- a new authoritative `ReportState` aggregate;
+- a new authoritative report aggregate;
 - schema version 4 and sequential `v3 -> v4` migration;
-- report aggregation and bounded history;
+- report attribution, live read models, bounded history, and event compaction;
 - exact duplicate/gap/overlap handling;
 - atomic coordination with committed simulation;
 - the final M04 forecast/commit/report harness.
 
-Those concerns span a new state family, a migration, retry/idempotency semantics, and a cross-owner transaction. The post-M04E1 scope assessment therefore triggers the rolling-wave split review established by `DEC-0033`.
+Those concerns span a new state family, a migration, retry/idempotency semantics, presentation-facing attribution contracts, and a cross-owner transaction. The post-M04E1 scope assessment therefore triggers the rolling-wave split review established by `DEC-0033`.
 
-A report must remain explanatory rather than claim-gated. The system must also avoid two opposite failure modes:
+The report foundation must also support three later presentation surfaces without becoming UI itself:
 
-1. gameplay commits while report ingestion fails, leaving a silent reporting gap;
-2. a committed result is delivered twice and report totals double while gameplay remains correct.
+1. an offline-return report with overall totals plus Threshold/Reaping, loadout-episode, lifecycle, and channel breakdowns;
+2. recent immutable report history that can support basic Codex Mortis records;
+3. a live active-Reaping view that can be inspected repeatedly without fragmenting history or treating the last click as authoritative state.
+
+A report remains explanatory rather than claim-gated. The system must avoid:
+
+1. gameplay committing while report ingestion fails, leaving a silent reporting gap;
+2. a committed result being delivered twice and report totals doubling;
+3. different loadouts or later returns to the same loadout being merged because their numeric output is equal;
+4. a live Threshold inspection accidentally archiving or clearing the accumulator;
+5. foreground and trusted-offline gains being mislabeled as one offline-only report.
 
 Version-3 saves contain already-applied gameplay but no report cursor or historical event record. Migration cannot safely invent past reports.
 
@@ -2617,84 +2626,200 @@ Version-3 saves contain already-applied gameplay but no report cursor or histori
 Replace the direct implementation slice with:
 
 ```text
-M04E2A — Report state, schema-v4 migration, ingestion, snapshot, and bounded history
+M04E2A — Report state, schema-v4 migration, attributed ingestion, read-only peeks, snapshot, and bounded recent history
 M04E2B — Atomic reported-run coordinator and final M04 harness
 ```
 
 M04E2 becomes a conceptual sub-epic and receives no direct prompt. M04E completes only when M04E1, M04E2A, and M04E2B are Merged and Passed.
 
-#### Report state is authoritative but never reward authority
+#### Report state is authoritative explanation, never reward authority
 
 Add `GameState.report_state` in schema version 4.
 
 The report aggregate stores already-applied explanatory facts only. It cannot:
 
 - grant or remove inventory;
-- change backlog, Mastery, channel acquisition, lifecycle, assignments, or time;
+- change backlog, Mastery, channel acquisition, lifecycle, assignments, or simulation time;
 - require a claim action;
 - ingest forecast projections;
-- execute tutorial, progression, Hall, support, or platform behavior.
+- execute tutorial, progression, Hall, support, service, or platform behavior.
 
-Opening/snapshotting a report archives the live explanation and clears only the live accumulator. Gameplay remains unchanged.
+Archiving a report clears only the live explanation window. Gameplay remains unchanged.
+
+#### Stable attribution hierarchy
+
+The current Reaping operation identity is the stable Threshold ID. A report therefore attributes production through this hierarchy:
+
+```text
+Threshold-scoped Reaping operation
+  -> assignment revision / loadout episode
+    -> lifecycle slice
+      -> output channel
+```
+
+The persisted atomic attribution unit is a typed `ReportAttributionSlice` identified by:
+
+```text
+threshold_id
+assignment_revision
+lifecycle_state
+```
+
+Every slice stores:
+
+```text
+canonical loadout_identity
+window_started_simulation_msec
+window_ended_simulation_msec
+elapsed_msec
+returned_souls_delta
+backlog_reduced
+completed_cycles_delta
+inventory_gains_by_item_id
+mastery_gains_subunits_by_form_id
+channel_summaries_by_channel_id
+```
+
+The loadout identity contains the canonical selected component tuple, including Form, Writ, and ordered Retinue IDs. Display names, calculated rates, ETAs, and output vectors are never identity.
+
+Consequences:
+
+- two different loadouts with equal numeric output remain separate;
+- A -> B -> A creates three assignment-episode summaries because the assignment revisions differ;
+- Overdue and Settled work remain separately attributable even within one committed run;
+- the same item produced by different Threshold/channel sources remains distinguishable;
+- later multiple-Reaping-per-Threshold support still requires a first-class Reaping-instance ID and migration; M04E2A does not invent a redundant ID now.
+
+#### Generic gains and channel detail
+
+Report aggregation is ID-driven rather than hard-coded to current prototype outputs.
+
+`inventory_gains_by_item_id` covers Essence, Souls, resources, Stores, and future engine-supported whole outputs. `mastery_gains_subunits_by_form_id` remains separate because Mastery is not inventory. Channel summaries preserve:
+
+```text
+threshold_id
+channel_id
+output_item_id
+elapsed_msec
+banked_units_delta
+progress_subunits_start/end
+rate_carry_units_start/end
+total_banked_units_start/end
+```
+
+Adding a future engine-supported channel or item must not require a report-service formula branch or current-ID whitelist. Unsupported engine behavior still fails in the engine rather than being approximated by reporting.
+
+#### Overall, Threshold, assignment, and history views are derived
+
+The persisted report state stores canonical attribution slices and bounded event facts. `ReportService` exposes detached, pure read models that derive:
+
+- overall totals;
+- Threshold/Reaping-operation totals;
+- assignment/loadout-episode totals;
+- lifecycle and channel breakdowns;
+- generic inventory gains by item ID;
+- Mastery gains by Form ID;
+- `is_empty`, `has_whole_gain`, `has_progress_change`, and `has_meaningful_event` flags.
+
+Required pure queries are equivalent to:
+
+```text
+peek_live_global(state)
+peek_live_threshold(state, threshold_id)
+peek_live_assignment(state, threshold_id, assignment_revision)
+get_report_record(state, report_sequence)
+```
+
+They deep-copy or derive their result, mutate nothing, request no checkpoint, and perform no file I/O.
+
+A live active-Reaping panel uses the current assignment revision and the portion of that episode contained in the current live window. Its effective start is therefore the later of the live-window boundary and the first ingested interval for that assignment revision. The backend never persists “last clicked” state and never snapshots merely because the player inspects a Reaping.
+
+Zero-row suppression, compact-versus-modal presentation, animations, labels, and minimum-duration presentation thresholds remain UI policy. The backend preserves exact facts.
+
+#### Snapshot reasons and offline isolation
+
+Every archived `ReportRecord` stores one canonical snapshot reason:
+
+```text
+MANUAL_REVIEW
+OFFLINE_RETURN
+SYSTEM_BOUNDARY
+```
+
+The live accumulator also records committed run-mode counts. `OFFLINE_RETURN` may be assigned only when the complete non-empty live window contains the approved offline committed mode and no foreground/debug run. Under current M04E1 tokens, that mode is `OFFLINE_FIXTURE`.
+
+A future trusted-offline flow therefore uses this sequence:
+
+```text
+archive any pre-existing foreground live window if non-empty
+  -> resolve and ingest the trusted offline interval
+  -> archive that isolated window as OFFLINE_RETURN
+```
+
+M04E2A implements and tests the representational and validation support for this sequence. M06 owns trusted-time acquisition and application orchestration.
+
+Snapshotting is global. M04E2A does not add a partial per-Threshold clear, because partial clearing would make global cursor and totals ambiguous. A later UI may filter one global record to a Threshold without changing the archived data.
 
 #### Cursor-idempotent simulation ingestion
 
-Committed simulation ingestion is identified by its explicit simulation interval:
+Committed simulation ingestion is identified by its explicit half-open interval:
 
 ```text
-[baseline_simulation_time_msec, result_simulation_time_msec]
+[baseline_simulation_time_msec, result_simulation_time_msec)
 ```
 
 `ReportState.ingested_through_simulation_msec` is the contiguous cursor already represented by report state.
 
-- A new interval must begin exactly at that cursor and the current state cursor must equal the new result end.
-- A wholly covered interval is an idempotent duplicate no-op even when the current state has advanced beyond the historical result end.
-- A forward gap or partial overlap is rejected.
+- A new interval begins exactly at the report cursor and the current candidate-state cursor equals the result end.
+- A wholly covered interval is an idempotent duplicate no-op even when current state has advanced beyond the historical end.
+- A partial overlap or forward gap rejects.
 - Zero duration is an unchanged success.
-- Forecast mode, failed runs, projections, malformed elapsed values, and state/result cursor mismatches are rejected.
-- Positive cursor advancement is persisted even when the interval has no reportable gain, preventing a later replay.
+- Forecast mode, failed runs, projected results, malformed elapsed values, and cursor inconsistencies reject without mutation.
+- Positive cursor advancement is persisted even when the interval contains no reportable gain.
 
-This cursor is intentionally scoped to simulation intervals. Later command, progression, Hall, support, service, or other report sources require their own explicit stable ingestion identity.
+This cursor identity is scoped to committed simulation intervals. Later command, progression, Hall, support, service, or other report sources require their own explicit stable ingestion identity rather than overloading this cursor.
 
 #### Typed aggregates, not a second formula
 
-`ReportService` consumes the exact committed `SimulationResult` and current candidate state. It does not calculate rates or production.
+`ReportService` consumes the exact committed `SimulationResult`, its segments, channel deltas, ordered events, and the validated candidate assignment state. It does not calculate rates or production.
 
-It accumulates:
+Only events with `reportable == true` enter report state. Raw arbitrary event payload dictionaries are not persisted. Current quantities are represented by typed attribution/channel summaries. Recent detail keeps stable event sequence, type, simulation time, priority, subject, and source.
 
-- Returned Souls and backlog reduction by Threshold;
-- Essence;
-- Mastery by Form;
-- completed cycles and lifecycle transitions by Threshold;
-- whole banking plus progress/carry/history endpoints by Threshold/channel;
-- exact reportable-event counts;
-- bounded recent event identity/order detail.
-
-Raw arbitrary event payload dictionaries are not persisted in M04E2A. Current quantities are represented by typed summaries. This avoids introducing an unbounded generic-payload schema while retaining stable explanatory event type, time, priority, subject, and source.
-
-#### Bounded retention
+#### Bounded recent report history
 
 Use centralized prototype bounds:
 
 ```text
-report history records = 20
-recent detailed report events = 64
+REPORT_HISTORY_LIMIT = 20
+REPORT_RECENT_EVENT_LIMIT = 64
 ```
 
-Pruning removes the oldest detail only. `dropped_history_count` and `omitted_event_count` record compaction, while aggregate event-type counts remain exact. Ordinary report volume never blocks gameplay.
+When recent event detail exceeds 64, remove the oldest detail and increment `omitted_event_count`, while exact event-type counts remain. When history exceeds 20, remove the oldest record and increment `dropped_history_count`.
+
+This history is the recent player-readable report archive. It is not the sole long-term Codex Mortis analytics database. Later graphs, long-term time buckets, and cumulative statistics require a separately owned analytics contract and retention policy. M04E2A must not add that system, but its structured records remain suitable inputs for later analytics.
+
+Ordinary report volume must never block gameplay production.
 
 #### Snapshot semantics
 
-A successful non-empty snapshot first requires the report cursor to equal the current gameplay simulation cursor; an unreported gap cannot be archived as complete history. It then:
+The only operation that clears the live accumulator is equivalent to:
 
-1. checks the expected next report sequence;
-2. deep-copies live state into an immutable ordered record;
-3. appends it to bounded history;
-4. increments the report sequence once;
-5. resets live at the current report cursor;
-6. requests one save checkpoint.
+```text
+snapshot_live(state, expected_next_report_sequence, snapshot_reason)
+```
 
-An empty snapshot is an idempotent no-op. M04E2A adds no destructive clear or history-delete command.
+A successful non-empty snapshot first requires the report cursor to equal the current gameplay simulation cursor. It then:
+
+1. validates the expected sequence and snapshot reason;
+2. validates offline-window purity when reason is `OFFLINE_RETURN`;
+3. deep-copies the live accumulator into an immutable ordered `ReportRecord`;
+4. appends it to bounded recent history;
+5. increments the report sequence once;
+6. resets live at the current report cursor;
+7. prunes oldest history over the bound;
+8. requests one save checkpoint.
+
+An empty snapshot is an idempotent no-op. Inspecting live or archived data is read-only. M04E2A adds no destructive clear, history-delete, or partial-Threshold-clear command.
 
 #### Schema version 4
 
@@ -2712,7 +2837,7 @@ Version-3 fixtures remain immutable supported inputs. Already-current v4 saves d
 
 #### Atomic orchestration is M04E2B
 
-M04E2A implements state, migration, `ReportService`, ingestion, snapshot, and persistence.
+M04E2A implements report state, migration, `ReportService`, ingestion, pure peeks, snapshotting, recent history, and persistence.
 
 M04E2B adds a narrow `SimulationReportCoordinator` that:
 
@@ -2724,36 +2849,46 @@ clones live state
   -> replaces live state once
 ```
 
-Any failure preserves both gameplay and report state. The low-level M04E1 committed seam remains available for tests and future composition, but the application-level authoritative path after M04E2B must use the coordinator.
-
-M04E2B also owns the final M04 harness and receives no prompt until M04E2A is Merged/Passed.
+Any failure preserves both gameplay and report state. M04E2B also owns the final M04 harness and receives no prompt until M04E2A is Merged/Passed.
 
 ### Consequences
 
+- Offline-return presentation can show overall gains and expand by Threshold, assignment/loadout episode, lifecycle, and channel.
+- Live Reaping inspection is repeatable and read-only rather than a five-second report-clearing action.
+- Recent report history can support basic records without pretending to be complete long-term analytics.
+- Equal-output loadouts and later returns to the same loadout remain separately attributable.
 - Reports survive save/load without becoming claim gates.
 - Version-3 saves begin report tracking prospectively at their existing simulation cursor.
 - Duplicate result delivery cannot double report totals.
 - Gaps and partial overlaps fail visibly instead of producing misleading history.
+- Foreground and offline-only report windows cannot be mislabeled silently.
 - Report history remains bounded and diagnosably compacted.
 - Forecast projections never enter report authority.
 - M04E2A can be reviewed as one state/migration/service slice.
 - M04E2B can be reviewed as one atomic-integration/harness slice.
-- M05 and M06 receive one explicit application-level reported-run seam after M04E2B.
 
 ### Alternatives considered
 
-- **Keep M04E2 as one direct pull request:** rejected by the fresh scope assessment; schema, report service, atomic coordinator, and final harness would likely cross the normal review surface.
-- **Store reports outside GameState:** rejected because pending live report state and bounded history must reconstruct with the authoritative save.
-- **Reconstruct reports from inventory on load:** rejected because inventory lacks interval, lifecycle, progress, event, and source detail and cannot separate already-viewed history.
-- **Use only a random ingestion UUID:** rejected for simulation intervals because contiguous authoritative simulation cursors already provide deterministic duplicate/gap/overlap identity without another generator.
-- **Treat duplicate delivery as an error:** rejected because retry-safe idempotent delivery is required.
-- **Accept partial overlaps and ingest the uncovered suffix:** rejected because result summaries are aggregate interval facts and cannot be safely sliced after the fact.
-- **Persist every event forever:** rejected because report state must remain bounded.
-- **Drop events without counters:** rejected because compaction must remain diagnosable.
-- **Persist arbitrary event payloads generically now:** rejected because it would add an unbounded variant-schema/codec problem; typed report summaries cover current quantities.
-- **Clear live reports without archiving:** rejected because it creates avoidable information loss and complicates crash recovery.
-- **Let ReportService call SimulationEngine or SaveService:** rejected because report aggregation, gameplay formulas, and byte persistence remain separate owners.
-- **Enforce report-cursor equality inside GameStateValidator:** rejected because low-level M04E1 committed equivalence tests and working candidates may temporarily have an unreported gap; the coordinator owns application-level completeness.
+- **Keep M04E2 as one direct pull request:** rejected by the fresh scope assessment.
+- **Use Threshold ID alone as the complete attribution key:** rejected because loadout changes inside one Threshold window would be merged.
+- **Use loadout identity alone:** rejected because the same loadout can operate different Thresholds and can return later as a new episode.
+- **Merge equal-output loadouts:** rejected by component-based identity.
+- **Persist last-click timestamps:** rejected because inspection frequency is presentation state, not report authority.
+- **Snapshot whenever a Threshold panel opens:** rejected because it fragments history and encourages trivial five-second reports.
+- **Allow partial per-Threshold clearing:** rejected because the simulation report cursor is global and partial clears make overall totals ambiguous.
+- **Treat all live accumulation as an offline-return report:** rejected because foreground and closed-session intervals must remain separable.
+- **Store only overall totals:** rejected because players need Threshold/loadout/channel performance attribution.
+- **Store only detailed slices and no derived query seam:** rejected because later UI should not recreate grouping and consistency rules.
+- **Use report history as permanent Codex analytics:** rejected because bounded, irregular report windows are not a complete long-term statistical ledger.
+- **Store reports outside GameState:** rejected because pending live state and recent history must reconstruct with the save.
+- **Reconstruct reports from inventory on load:** rejected because inventory lacks interval, lifecycle, loadout, progress, event, and source detail.
+- **Reconstruct version-3 report history:** rejected because no exact source facts exist.
+- **Use a set of every ingested interval ID:** rejected as unbounded when a contiguous cursor plus explicit rejection rules suffice.
+- **Silently slice partial-overlap results:** rejected because the service cannot safely recompute or subdivide an already-aggregated result.
+- **Persist raw event payload dictionaries:** rejected as an unbounded compatibility grammar.
+- **Make every event detail permanent:** rejected because ordinary volume must remain bounded.
+- **Clear the accumulator without archiving:** rejected because it destroys player-readable explanation.
+- **Put atomic simulation/report coordination in M04E2A:** rejected to preserve one principal transition and reviewable migration scope.
 
 ### Affected documents
 
@@ -2763,17 +2898,15 @@ M04E2B also owns the final M04 harness and receives no prompt until M04E2A is Me
 - `docs/codex/TESTING_AND_VALIDATION.md`
 - `docs/codex/milestone-prompts/M04E2A-report-state-schema-history.md`
 
----
-
 ## 3. Current approval state
 
 - `DEC-0001` through `DEC-0040` are Accepted.
-- `DEC-0041` is Proposed and awaits owner review with the M04E2 recalibration and M04E2A prompt.
+- `DEC-0041` is Proposed in revised final-review form and awaits owner approval with M04E2A prompt v0.2.
 - M04A through M04D3 are implemented, verified, and merged.
 - M04D3 merged through PR #15 from final head `5a5cafc6b640001fba86c7ea9531ae9daf43fcc3` at merge commit `9fd8f98e3787f711f3d03c9de03d3615d531216a`.
 - M04E1 merged through PR #16 from final head `738e89c606dd9f1f9f0396334ea9d8587ff389f3` at merge commit `03f05a3d78609a993cecab8b0077e5f7d7d55900`; Linux/Codex and owner Windows verification passed.
 - The approved M04E1/M04E2 decomposition remains authoritative until proposed `DEC-0041` is accepted.
 - Proposed `DEC-0041` recalibrates direct M04E2 into M04E2A and M04E2B.
-- M04E2A prompt v0.1 is drafted but not approved; implementation has not started.
+- M04E2A prompt v0.2 is drafted for final review but not approved; implementation has not started.
 - M04E2B is defined at a high level only and has no prompt.
 - Future changes preserve decision IDs for wording clarifications and create a new decision only when semantics, ownership, compatibility, or security posture changes.

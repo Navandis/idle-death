@@ -2688,39 +2688,48 @@ Final Windows evidence passed `153/153` full tests and `2,522` assertions before
 
 ## Proposed M04E2A report-state and schema-v4 contracts
 
-These contracts become authoritative only after owner approval of proposed `DEC-0041` and the M04E2A prompt.
+These contracts become authoritative only after owner approval of proposed `DEC-0041` and M04E2A prompt v0.2.
 
-### ReportState
+### Schema version 4
 
-`GameState` gains:
+Schema version 4 extends `game_state` with:
 
 ```text
-report_state: ReportState
+report_state
 ```
 
-`ReportState` contains:
+Codec remains `JSON_V1`. Content revision remains `prototype-content-r2`.
 
-| Field | Runtime type | Rule |
-|---|---|---|
-| `ingested_through_simulation_msec` | `int` | Last simulation cursor completely represented by report ingestion; `0..GameState.simulation_time_msec` |
-| `next_report_sequence` | `int` | Positive checked monotonic sequence; starts at `1` |
-| `next_event_sequence` | `int` | Positive checked monotonic report-event sequence; starts at `1` |
-| `dropped_history_count` | `int` | Number of oldest records pruned by retention; non-negative |
-| `live` | `ReportAccumulatorState` | Current unsnapshotted report window |
-| `history` | `Array[ReportRecord]` | Ascending sequence order; maximum `20` |
+Every authoritative integer continues to serialize as a canonical base-10 string. Arrays and maps serialize in canonical order. Runtime report objects use typed `RefCounted` classes and explicit mapping; they are not saved through Resources, Nodes, generic object serialization, or JSON cloning.
 
-All nested report runtime types are explicit `RefCounted` value/state classes with `deep_clone()` methods. They contain no Nodes, Resources, Callables, floats, clock samples, or presentation references.
+### `ReportState`
 
-### ReportAccumulatorState
+```text
+ingested_through_simulation_msec: int
+next_report_sequence: int
+next_event_sequence: int
+dropped_history_count: int
+live: ReportAccumulatorState
+history: Array[ReportRecord]
+```
+
+Rules:
+
+- `0 <= ingested_through_simulation_msec <= GameState.simulation_time_msec`;
+- next sequences are positive;
+- counters are non-negative;
+- retained history sequences are strictly increasing and unique;
+- history length is at most `REPORT_HISTORY_LIMIT`;
+- no runtime object aliases another live/history/query object.
+
+### `ReportAccumulatorState`
 
 ```text
 window_started_simulation_msec: int
 window_ended_simulation_msec: int
 ingested_run_count: int
-essence_gained: int
-mastery_gained_subunits_by_form: Dictionary[StringName, int]
-threshold_summaries: Array[ReportThresholdSummary]
-channel_summaries: Array[ReportChannelSummary]
+committed_mode_counts: Dictionary[StringName, int]
+attribution_slices: Array[ReportAttributionSlice]
 event_type_counts: Dictionary[StringName, int]
 recent_events: Array[ReportEventRecord]
 omitted_event_count: int
@@ -2728,36 +2737,86 @@ omitted_event_count: int
 
 Rules:
 
-- `window_started_simulation_msec <= window_ended_simulation_msec`;
-- `window_ended_simulation_msec == ReportState.ingested_through_simulation_msec`;
-- the report cursor may trail `GameState.simulation_time_msec` until M04E2B coordinates a pending run;
-- all aggregate counts are non-negative checked signed-64-bit integers;
-- threshold summaries sort by `threshold_id`;
-- channel summaries sort by `(threshold_id, channel_id)`;
-- recent events sort by `event_sequence` and contain at most `64` records;
-- `has_reportable_content` is derived from nonzero gains, changed channel summaries, or retained/countable reportable events; window duration and run count alone do not force an empty archive record.
+- start and end are non-negative and ordered;
+- an empty accumulator has start=end=report cursor, zero runs, empty slices/maps/events, and zero omitted count;
+- a positive no-gain run advances end and run count even when slices/events remain empty;
+- mode-count totals equal `ingested_run_count`;
+- slices are ordered by `(threshold_id, assignment_revision, lifecycle_order)`;
+- recent events are ordered by persistent event sequence;
+- recent events never exceed `REPORT_RECENT_EVENT_LIMIT`.
 
-### ReportThresholdSummary
+### `ReportRecord`
+
+An archived report deep-copies the complete live accumulator and adds:
+
+```text
+report_sequence: int
+snapshot_reason: StringName
+snapshot_simulation_msec: int
+```
+
+Allowed reasons:
+
+```text
+MANUAL_REVIEW
+OFFLINE_RETURN
+SYSTEM_BOUNDARY
+```
+
+`OFFLINE_RETURN` requires a non-empty window whose committed mode counts contain only the approved offline committed mode. Under M04E1 this is `OFFLINE_FIXTURE`.
+
+A record is immutable after insertion. Viewing it does not change state.
+
+### `ReportAttributionSlice`
+
+The persisted reporting unit is:
 
 ```text
 threshold_id: StringName
+assignment_revision: int
+lifecycle_state: StringName
+loadout_identity: ReportLoadoutIdentity
+window_started_simulation_msec: int
+window_ended_simulation_msec: int
+elapsed_msec: int
 returned_souls_delta: int
 backlog_reduced: int
 completed_cycles_delta: int
-lifecycle_state_start: StringName
-lifecycle_state_end: StringName
+inventory_gains_by_item_id: Dictionary[StringName, int]
+mastery_gains_subunits_by_form_id: Dictionary[StringName, int]
+channel_summaries_by_channel_id: Dictionary[StringName, ReportChannelSummary]
 ```
 
-`backlog_reduced` is stored as a positive magnitude even though `SimulationResult.change_summary.backlog_delta` is negative while backlog decreases.
+Identity and ordering rules:
 
-Repeated runs in one live window checked-add the numeric fields. The first observed lifecycle becomes `lifecycle_state_start`; the latest becomes `lifecycle_state_end`.
+- `threshold_id` is the current Threshold-scoped Reaping operation identity;
+- `assignment_revision` is positive and identifies one loadout/activation episode;
+- `lifecycle_state` is one of the engine-supported canonical lifecycle tokens;
+- the unique key is `(threshold_id, assignment_revision, lifecycle_state)`;
+- equal loadout or equal numeric output does not merge different revisions;
+- returning to an earlier component tuple produces a new revision and a separate slice;
+- `elapsed_msec` equals the sum of exact engine segment durations aggregated into the slice;
+- start is the earliest included segment start and end is the latest included segment end;
+- all maps are stable-ID keyed and canonically ordered;
+- every numeric aggregation uses checked signed-64-bit arithmetic.
 
-### ReportChannelSummary
+### `ReportLoadoutIdentity`
+
+```text
+form_id: StringName
+writ_id: StringName
+ordered_retinue_ids: Array[StringName]
+```
+
+This is component identity only. Display names, rates, ETA, modifier totals, and output vectors are not identity.
+
+### `ReportChannelSummary`
 
 ```text
 threshold_id: StringName
 channel_id: StringName
 output_item_id: StringName
+elapsed_msec: int
 banked_units_delta: int
 progress_subunits_start: int
 progress_subunits_end: int
@@ -2767,11 +2826,15 @@ total_banked_units_start: int
 total_banked_units_end: int
 ```
 
-For the first changed delta in a live window, start values come from the result's `..._before` fields. Later deltas for the same Threshold/channel retain those starts, checked-add whole banking, and replace end values with the newest `..._after` values.
+Rules:
 
-The service validates stable Threshold/channel/output-item relationships against the ready `ContentRegistry`. It contains no current-channel whitelist and remains compatible with future engine-supported channel kinds through the same generic delta contract.
+- IDs exist in the validated registry and ownership relationship;
+- progress/carry/history endpoints exactly match the first and last included engine deltas;
+- banked delta and elapsed values checked-add across contiguous segments/runs;
+- generic item/channel IDs pass through without a current prototype whitelist;
+- no fractional inventory is created.
 
-### ReportEventRecord
+### `ReportEventRecord`
 
 ```text
 event_sequence: int
@@ -2782,171 +2845,172 @@ subject_id: StringName
 source_id: StringName
 ```
 
-Only events with `reportable == true` are ingested. Event identity/order fields are copied exactly from the committed engine result, then assigned the next report-event sequence. The M04E2A schema deliberately does not copy arbitrary raw event payload dictionaries. Current quantities required for reports are retained in typed threshold/channel aggregates, avoiding an unbounded generic-payload save grammar.
+Only events with `reportable == true` are retained. Raw arbitrary event payload dictionaries are not persisted. Typed attribution/channel summaries retain report quantities.
 
-`event_type_counts` checked-counts every reportable event even after detail compaction. `recent_events` retains the newest `64`; each removed oldest detail increments `omitted_event_count`.
+### Derived report read model
 
-### ReportRecord
-
-An immutable history record contains:
+Read models are detached and non-authoritative. A global or filtered view may expose:
 
 ```text
-report_sequence: int
-snapshot_simulation_msec: int
-summary: ReportAccumulatorState
+window start/end and elapsed
+overall returned Souls/backlog reduction/cycles
+overall inventory_gains_by_item_id
+overall mastery_gains_subunits_by_form_id
+Threshold operation groups
+assignment/loadout episode groups
+lifecycle groups
+channel groups
+event counts/recent detail
+is_empty
+has_whole_gain
+has_progress_change
+has_meaningful_event
 ```
 
-The summary is a deep copy of the non-empty live accumulator immediately before reset. A record never shares mutable nested arrays, dictionaries, or summary objects with live state or another record.
+Required pure queries are equivalent to:
 
-### ReportService results
+```text
+peek_live_global(state)
+peek_live_threshold(state, threshold_id)
+peek_live_assignment(state, threshold_id, assignment_revision)
+get_report_record(state, report_sequence)
+```
 
-Public commands use bounded result classes or equivalently strict records containing:
+Queries:
+
+- never mutate report or gameplay state;
+- never increment sequences;
+- never request checkpoints;
+- never write files;
+- return detached data;
+- use the current live-window boundary rather than a persisted last-click timestamp;
+- retain zero-valued facts internally even when later presentation chooses to hide them.
+
+### Committed simulation ingestion result
+
+Public service results contain at least:
 
 ```text
 success
 error_code
 developer_details
 changed
-save_checkpoint_requested
 duplicate
-report_sequence
+checkpoint_requested
+report_cursor_before
+report_cursor_after
 ```
 
-Stable error categories include:
+Ingestion accepts only successful committed M04E1 modes with `projected_state == null` and an exact successful `simulation_result`.
+
+Interval rules:
 
 ```text
-REPORT_STATE_INVALID
-REPORT_RUN_INVALID
-REPORT_FORECAST_NOT_INGESTIBLE
-REPORT_INTERVAL_GAP
-REPORT_INTERVAL_OVERLAP
-REPORT_CURSOR_MISMATCH
-REPORT_SEQUENCE_STALE
-REPORT_OVERFLOW
-REPORT_CONTENT_INVALID
+zero duration:
+  unchanged success
+
+result end <= report cursor:
+  duplicate unchanged success
+
+result baseline < report cursor < result end:
+  REPORT_INTERVAL_OVERLAP
+
+result baseline > report cursor:
+  REPORT_INTERVAL_GAP
+
+result baseline == report cursor and candidate cursor == result end:
+  aggregate exactly once
 ```
 
-Failures leave complete report and gameplay state unchanged.
+Requested elapsed and engine committed elapsed must equal `result end - baseline`. Failed, forecast, projected, malformed, and cursor-inconsistent inputs reject without mutation.
 
-### Ingest committed run
-
-`ingest_committed_run(state, run_result)` accepts only a successful committed M04E1 mode:
+For an accepted interval, each exact engine segment is mapped to the slice selected by:
 
 ```text
-FOREGROUND_SUPPLIED
-OFFLINE_FIXTURE
-DEBUG
+current threshold_id
+current assignment_revision
+segment lifecycle_state
 ```
 
-Common preconditions, evaluated before interval relation:
+The candidate Reaping supplies canonical loadout identity. The engine segment supplies duration and core/channel facts. The service does not recompute production.
+
+### Offline report isolation
+
+`committed_mode_counts` is persisted in live and archived state.
+
+To archive `OFFLINE_RETURN`:
+
+- live must be non-empty;
+- every ingested run in the window must use the approved offline committed mode;
+- a mixed foreground/debug/offline window rejects with a typed error;
+- callers archive any pre-existing foreground live window before ingesting the offline interval.
+
+M04E2A provides the state and validation contract. M06 later owns trusted-time orchestration.
+
+### Snapshot result
+
+Expected API:
 
 ```text
-run_result.success == true
-run_result.projected_state == null
-run_result.simulation_result != null
-run_result.simulation_result.success == true
-0 <= baseline <= result
-run_result.requested_elapsed_msec == result - baseline
-run_result.simulation_result.committed_elapsed_msec == result - baseline
-report_state.ingested_through_simulation_msec <= state.simulation_time_msec
+snapshot_live(state, expected_next_report_sequence, snapshot_reason)
 ```
 
-For a newly ingestible interval only, `state.simulation_time_msec` must equal `result_simulation_time_msec`. A wholly covered duplicate may be delivered after later committed intervals and therefore does not require the current state cursor to equal that historical result end.
+A non-empty snapshot requires:
 
-Cursor behavior:
+- report cursor equals gameplay simulation cursor;
+- expected sequence equals `next_report_sequence`;
+- snapshot reason is valid;
+- offline purity holds for `OFFLINE_RETURN`;
+- complete candidate validation succeeds.
 
-| Interval relationship | Result |
-|---|---|
-| `baseline == result` | Successful no-op |
-| `result <= ingested_through` | Successful duplicate no-op |
-| `baseline < ingested_through < result` | `REPORT_INTERVAL_OVERLAP`, no mutation |
-| `baseline > ingested_through` | `REPORT_INTERVAL_GAP`, no mutation |
-| `baseline == ingested_through < result` | Aggregate exactly once and advance cursor |
+Success deep-copies live into one record, appends in sequence order, increments sequence, resets live at the cursor, prunes oldest history beyond 20, increments `dropped_history_count` for each pruned record, and requests one checkpoint.
 
-Forecast mode is rejected before duplicate handling. A report cursor is never moved backward. A positive newly ingested interval sets `save_checkpoint_requested = true`, including an interval with zero gains, because the idempotency cursor itself changed.
+An empty live accumulator is an unchanged success. No destructive clear, history delete, or partial per-Threshold clear exists in M04E2A.
 
-### Snapshot live report
-
-`snapshot_live(state, expected_next_report_sequence)`:
-
-- requires `ReportState.ingested_through_simulation_msec == GameState.simulation_time_msec`; an unreported gap returns `REPORT_CURSOR_MISMATCH`;
-- validates the exact positive expected sequence;
-- returns an idempotent unchanged success when live has no reportable content;
-- otherwise deep-copies live into `ReportRecord` at the current simulation cursor;
-- appends the record, increments the sequence once, and resets live with both window cursors equal to `ingested_through_simulation_msec`;
-- prunes oldest records until history count is at most `20` and checked-increments `dropped_history_count`;
-- requests one save checkpoint;
-- never changes gameplay state.
-
-No standalone destructive live-clear or history-delete command exists in M04E2A.
-
-### Schema version 4 primitive shape
-
-M04E2A advances:
-
-```text
-SaveEnvelope.CURRENT_SCHEMA_VERSION = 4
-codec_id = JSON_V1
-content revision = prototype-content-r2
-```
-
-`game_state` gains one required key:
-
-```json
-{
-  "reports": {
-    "ingested_through_simulation_msec": "0",
-    "next_report_sequence": "1",
-    "next_event_sequence": "1",
-    "dropped_history_count": "0",
-    "live": {
-      "window_started_simulation_msec": "0",
-      "window_ended_simulation_msec": "0",
-      "ingested_run_count": "0",
-      "essence_gained": "0",
-      "mastery_gained_subunits_by_form": {},
-      "threshold_summaries": [],
-      "channel_summaries": [],
-      "event_type_counts": {},
-      "recent_events": [],
-      "omitted_event_count": "0"
-    },
-    "history": []
-  }
-}
-```
-
-All authoritative integers use canonical base-10 strings in the primitive snapshot and JSON.
-
-### Sequential v3-to-v4 migration
-
-The pure migration:
-
-1. validates the source with the frozen version-3 validator;
-2. deep-copies the complete primitive snapshot;
-3. changes only `schema_version` to `"4"` plus the new report key;
-4. initializes `ingested_through_simulation_msec`, `live.window_started_simulation_msec`, and `live.window_ended_simulation_msec` to the source `game_state.simulation_time_msec` string;
-5. initializes both next sequences to `"1"` and all counts/maps/arrays to canonical empty values;
-6. fabricates no historical report and does not inspect current gameplay gains;
-7. preserves codec, save revision, content revision, metadata, offline-resolution ID, time authority, and every existing gameplay field exactly;
-8. validates complete version 4 before exposure or persisted upgrade.
-
-The production path remains sequential:
-
-```text
-v1 -> v2 -> v3 -> v4
-```
-
-Already-current v4 saves load without rewrite. Failed migration, mapping, validation, sequence increment, or upgrade persistence exposes no migrated runtime and preserves the source bytes.
-
-### Retention constants
+### Retention and Codex Mortis boundary
 
 ```text
 REPORT_HISTORY_LIMIT = 20
 REPORT_RECENT_EVENT_LIMIT = 64
 ```
 
-Both constants are centralized in the report-state owner. Increasing them later is ordinary capacity tuning if field meaning remains unchanged; changing retention semantics or removing history requires a reviewed contract change.
+History is recent player-readable report history. It is not a permanent statistical ledger. Later Codex Mortis graphs, cumulative statistics, and time buckets require a separate authoritative analytics contract and retention policy. M04E2A adds no analytics state, but its stable report records can be consumed prospectively by that later owner.
+
+### Schema migration
+
+The production migration chain becomes:
+
+```text
+v1 -> v2 -> v3 -> v4
+```
+
+The pure `v3 -> v4` step:
+
+- validates the complete frozen v3 source;
+- deep-copies the source;
+- sets schema version to `4`;
+- adds canonical empty `report_state`;
+- initializes report/live cursors to the source simulation cursor;
+- initializes report/event sequences to `1`;
+- creates no history;
+- fabricates no previous report;
+- preserves save revision, content revision, codec, metadata, time authority, offline identity, and all gameplay exactly.
+
+Persisted upgrade increments save revision once through the existing coordinator. Current v4 loads without rewrite. Future versions reject without overwrite.
+
+### Persistence exclusions
+
+Do not serialize:
+
+- `SimulationRunResult`;
+- `SimulationResult` objects;
+- forecast projections;
+- ReportService result objects;
+- derived report read models;
+- UI formatting or last-click state;
+- raw arbitrary event payloads;
+- a report coordinator;
+- Codex analytics state.
 
 ## Proposed M04E2B atomic reported-run boundary
 

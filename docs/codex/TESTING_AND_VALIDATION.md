@@ -2,7 +2,7 @@
 
 **Document role:** Canonical test strategy, commands, fixture rules, and manual validation flows
 **Repository path:** `docs/codex/TESTING_AND_VALIDATION.md`
-**Document status:** Approved validation plan through M04E1 with M04E2A draft
+**Document status:** Approved validation plan through M04E1 with revised M04E2A v0.2 draft
 **Validation revision:** 25
 **Last updated:** 2026-07-19
 **Engine target:** Godot 4.7 standard build, GDScript only
@@ -2077,9 +2077,9 @@ TRACE M04E1 no_clock_scene_platform_or_duplicate_rules=PASS
 
 `DEC-0040`, `GATE-FORECAST-CLONE`, and M04E1 `GATE-SLICE-SCOPE` are satisfied.
 
-## 28. M04E2A draft report-state/schema/history validation package
+## 28. M04E2A revised draft report-state/attribution/schema/history validation package
 
-This package is proposed under `DEC-0041`. It is not executable until the owner approves the decision, recalibration, and prompt.
+This package is proposed under revised `DEC-0041`. It is not executable until the owner approves the decision, recalibration, and M04E2A prompt v0.2.
 
 ### 28.1 Focused Linux/Codex commands
 
@@ -2122,52 +2122,97 @@ git status --short
 9. current-v4 load no rewrite/rotation;
 10. migration/mapping/validation/write-failure preservation;
 11. successful positive contiguous committed-run ingestion;
-12. exact one-hour Threshold/Essence/Mastery/cycle/channel aggregate fixture;
-13. progress-only channel summary without whole banking;
-14. multiple contiguous runs merge first-start/latest-end values correctly;
-15. zero-duration no-op;
-16. wholly covered duplicate delivery idempotency, including delivery after later state advancement;
-17. partial overlap rejection;
-18. forward-gap rejection;
-19. forecast, projected, failed, malformed, and state/result mismatch rejection;
-20. checked overflow and sequence-overflow no-mutation matrix;
-21. reportable versus non-reportable event handling;
-22. canonical event sequencing, event-type counting, and 64-detail compaction;
-23. non-empty snapshot, complete-cursor requirement, expected-sequence guard, live reset, and checkpoint result;
-24. empty snapshot idempotency;
-25. twenty-record retention, oldest pruning, and dropped-history count;
-26. complete gameplay authority equality before/after ingestion, duplicate, snapshot, and failure;
-27. production save/load round trip with live and history state;
-28. absence of raw engine result, forecast, service result, projection, arbitrary payload, UI, or coordinator artifacts from snapshots;
-29. no formula, clock, scene, file, platform, tutorial, progression, Hall, support, or M04E2B ownership in `ReportService`;
-30. actual scope remains within the approved slice assessment.
+12. exact one-hour attributed fixture;
+13. generic inventory-gain and Mastery maps;
+14. progress-only channel summary without whole banking;
+15. two-Threshold operation breakdown plus exact global rollup;
+16. same Threshold A -> B assignment-revision separation;
+17. numerically equal A/B loadouts remain distinct;
+18. A -> B -> A remains three assignment episodes;
+19. Overdue/Settled lifecycle slices within one run;
+20. generic copied item/channel passthrough without current-ID whitelist;
+21. multiple contiguous runs merge only the same Threshold/revision/lifecycle key;
+22. zero-duration no-op;
+23. wholly covered duplicate delivery idempotency, including delivery after later state advancement;
+24. partial-overlap rejection;
+25. forward-gap rejection;
+26. forecast, projected, failed, malformed, and state/result mismatch rejection;
+27. positive no-gain cursor/run-window advancement;
+28. checked overflow and sequence-overflow no-mutation matrix;
+29. reportable versus non-reportable event handling;
+30. canonical event sequencing, event-type counting, and 64-detail compaction;
+31. pure live-global, live-Threshold, live-assignment, and archived-record read models;
+32. repeated peeks cause no mutation, snapshot, sequence, checkpoint, or save request;
+33. live current-assignment window begins at the later of report boundary and first included revision interval;
+34. foreground snapshot followed by isolated `OFFLINE_RETURN` record;
+35. mixed foreground/offline live window rejects `OFFLINE_RETURN` labeling;
+36. non-empty snapshot, complete-cursor requirement, reason/sequence guards, live reset, and checkpoint result;
+37. empty snapshot idempotency;
+38. twenty-record retention, oldest pruning, and dropped-history count;
+39. complete gameplay authority equality before/after ingestion, query, duplicate, snapshot, and failure;
+40. production save/load round trip with live and history state;
+41. absence of raw engine result, forecast, derived read model, projection, arbitrary payload, UI, last-click, Codex analytics, or coordinator artifacts from snapshots;
+42. no formula, clock, scene, file, platform, tutorial, progression, Hall, support, analytics, or M04E2B ownership in `ReportService`;
+43. actual scope remains within the approved slice assessment.
 
-### 28.3 Exact one-hour report fixture
+### 28.3 Exact one-hour attribution fixture
 
-Starting from canonical report cursor/window `0`, commit the approved M04E1 Gloamwood one-hour result on a candidate and ingest it:
+Starting from report cursor/window `0`, commit the approved M04E1 Gloamwood one-hour result and ingest it:
 
 ```text
 report cursor = 3,600,000
 live window = 0 -> 3,600,000
 ingested run count = 1
-THR_GLOAMWOOD returned Souls = 4,140
-THR_GLOAMWOOD backlog reduced = 4,140
-Essence gained = 360
-FORM_MAN_AT_ARMS Mastery gained = 60,000,000 subunits
-THR_GLOAMWOOD completed cycles = 60
-Soldier Souls banked = 12
-Scribe progress start = 0
-Scribe progress end = 125,000
+mode count FOREGROUND_SUPPLIED = 1
+
+attribution key:
+  threshold_id = THR_GLOAMWOOD
+  assignment_revision = 1
+  lifecycle_state = OVERDUE
+  loadout = FORM_MAN_AT_ARMS / WRIT_STANDARD / []
+  elapsed_msec = 3,600,000
+
+returned Souls = 4,140
+backlog reduced = 4,140
+completed cycles = 60
+inventory gains:
+  RES_ESSENCE = 360
+  SOUL_CALLING_SOLDIER = 12
+Mastery gains:
+  FORM_MAN_AT_ARMS = 60,000,000 subunits
+Scribe channel progress: 0 -> 125,000
 ```
 
-Inventory, Threshold, Form, Reaping, progression, and simulation values already exist in the candidate before report ingestion and remain byte/canonical equal afterward.
+Overall and Threshold/assignment views must derive the same values from the canonical slice. Gameplay values already exist in the candidate before report ingestion and remain canonically equal afterward.
 
-### 28.4 Required trace markers
+### 28.4 Attribution and presentation-facing fixtures
+
+Required additional fixtures:
+
+- Gloamwood then Broken Watch contiguous runs produce exact global totals plus two Threshold operation groups.
+- Gloamwood A -> B produces two revision groups.
+- Copied equal-output A/B loadouts remain separately identified.
+- A -> B -> A produces three revision groups even though the first and last loadout identities are equal.
+- A low-backlog run creates separate `OVERDUE` and `SETTLED` lifecycle slices.
+- A copied valid future item/channel ID passes through generic maps and channel summaries.
+- Repeated live peeks are byte/canonically read-only.
+- A foreground live window is archived before an offline-mode run; the second record is `OFFLINE_RETURN` and contains only offline gains.
+- Attempting `OFFLINE_RETURN` on a mixed-mode live window rejects without mutation.
+
+### 28.5 Required trace markers
 
 ```text
 TRACE M04E2A schema_v4_migration_cursor_initialized=PASS
 TRACE M04E2A report_1h_returns=4140_essence=360_mastery=60000000_cycles=60_soldier=12_scribe_progress=125000
+TRACE M04E2A multi_threshold_global_rollup=PASS
+TRACE M04E2A assignment_revision_loadout_attribution=PASS
+TRACE M04E2A equal_output_loadouts_remain_separate=PASS
+TRACE M04E2A return_to_prior_loadout_new_episode=PASS
+TRACE M04E2A overdue_settled_lifecycle_attribution=PASS
+TRACE M04E2A generic_channel_item_passthrough=PASS
 TRACE M04E2A progress_only_channel_summary=PASS
+TRACE M04E2A live_peeks_read_only=PASS
+TRACE M04E2A offline_return_window_isolated=PASS
 TRACE M04E2A duplicate_interval_ingestion_idempotent=PASS
 TRACE M04E2A gap_overlap_and_forecast_rejected=PASS
 TRACE M04E2A snapshot_sequence=1_live_cleared_history=1
@@ -2178,12 +2223,12 @@ TRACE M04E2A schema_v4_report_round_trip=PASS
 TRACE M04E2A v1_v2_v3_v4_upgrade_and_v4_no_rewrite=PASS
 TRACE M04E2A failures_preserve_report_and_gameplay=PASS
 TRACE M04E2A no_claim_gate_or_raw_result_authority=PASS
-TRACE M04E2A no_ui_clock_platform_or_m04e2b_sources=PASS
+TRACE M04E2A no_ui_clock_platform_codex_analytics_or_m04e2b_sources=PASS
 ```
 
-The trace requires explicit nonblank isolated `--save-root`, rejects `user://`, uses production persistence for migration/round-trip/no-rewrite evidence, checks every service result before reading it, emits a marker only after the complete named assertions pass, exits nonzero on any mismatch, and leaves root deletion to the owner runner.
+The trace requires explicit nonblank isolated `--save-root`, rejects `user://`, uses production persistence for migration/round-trip/no-rewrite evidence, checks every service/query result before reading it, emits a marker only after the complete named assertions pass, exits nonzero on any mismatch, and leaves root deletion to the owner runner.
 
-### 28.5 Owner Windows package
+### 28.6 Owner Windows package
 
 Codex creates:
 
@@ -2207,7 +2252,7 @@ full GUT before
 focused M04E2A unit + integration
 explicit import
 isolated real-file trace
-exact 14-marker verification
+exact 22-marker verification
 finally cleanup
 cleanup absence proof
 prior-log-tolerant artifact audit
@@ -2227,16 +2272,16 @@ Log path: <generated path>
 
 No interactive checklist is required.
 
-### 28.6 M04E2A merge evidence
+### 28.7 M04E2A merge evidence
 
 M04E2A cannot merge until:
 
-- proposed `DEC-0041` or an owner-approved replacement is Accepted;
+- revised `DEC-0041` or an owner-approved replacement is Accepted;
 - M04E1 remains Merged/Passed;
-- schema v4, sequential migration, retention, cursor-idempotency, snapshot, and no-claim contracts pass;
+- schema v4, sequential migration, attributed ingestion, pure queries, offline isolation, retention, cursor idempotency, snapshot, and no-claim contracts pass;
 - Linux/Codex focused/import/trace/full checks pass;
 - owner Windows verification passes against the exact PR head;
-- all fourteen markers are earned and verified;
+- all twenty-two markers are earned and verified;
 - current content remains `prototype-content-r2`;
-- no atomic coordinator/final harness, UI, report presentation, claim action, tutorial, progression, Hall, support, trusted time, platform, concurrency, or arbitrary event-payload framework enters the diff;
+- no atomic coordinator/final harness, UI, report presentation, last-click state, partial clearing, Codex analytics, claim action, tutorial, progression, Hall, support, trusted time, platform, concurrency, or arbitrary event-payload framework enters the diff;
 - actual scope remains within the approved assessment.
