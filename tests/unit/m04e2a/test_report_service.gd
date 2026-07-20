@@ -521,3 +521,30 @@ func test_stage2_channel_event_count_and_sequence_overflows_reject_without_mutat
 	before = _state_digest(state)
 	assert_eq(service.ingest_committed_run(state, run).error_code, ReportService.ERR_SEQUENCE_OVERFLOW)
 	_assert_state_unchanged(before, state)
+
+func test_stage2_dropped_active_segments_cannot_be_reclassified_as_no_reaping() -> void:
+	var service := ReportService.new()
+	var pair := _make_active_run(1000000, 1000)
+	var state: GameState = pair[0]
+	var run: SimulationRunService.SimulationRunResult = pair[1]
+	var before := _state_digest(state)
+	run.simulation_result.segments.clear()
+	run.simulation_result.change_summary.clear()
+	var result := service.ingest_committed_run(state, run)
+	assert_false(result.success)
+	assert_eq(result.error_code, ReportService.ERR_INVALID_RESULT)
+	_assert_state_unchanged(before, state)
+
+func test_stage2_reordered_committed_events_reject_before_sequence_assignment() -> void:
+	var service := ReportService.new()
+	var pair := _make_active_run(1, 10000)
+	var state: GameState = pair[0]
+	var run: SimulationRunService.SimulationRunResult = pair[1]
+	var before := _state_digest(state)
+	var earlier_priority := SimulationEngine.SimulationEvent.threshold_settled(run.simulation_result.events[0].occurred_simulation_msec, &"THR_GLOAMWOOD", 0)
+	earlier_priority.priority = SimulationEngine.EVENT_PRIORITY_CHANNEL_GAIN
+	run.simulation_result.events.append(earlier_priority)
+	var result := service.ingest_committed_run(state, run)
+	assert_false(result.success)
+	assert_eq(result.error_code, ReportService.ERR_INVALID_RESULT)
+	_assert_state_unchanged(before, state)

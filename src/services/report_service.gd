@@ -152,7 +152,9 @@ func _validate_segments_for_run(run_result: SimulationRunService.SimulationRunRe
 	var requested: int = run_result.requested_elapsed_msec
 	var active_summary: bool = run_result.simulation_result.change_summary.has("threshold_id")
 	if segments.is_empty():
-		return {"ok": true} if not active_summary else _failure(ERR_INVALID_RESULT, "active interval requires segments")
+		if active_summary:
+			return _failure(ERR_INVALID_RESULT, "active interval requires segments")
+		return _validate_positive_no_segment_result(run_result)
 	var expected_start: int = baseline
 	var elapsed_sum: int = 0
 	var base_threshold := &""
@@ -201,6 +203,18 @@ func _validate_segments_for_run(run_result: SimulationRunService.SimulationRunRe
 		return _failure(ERR_INVALID_RESULT, "segment coverage mismatch")
 	return {"ok": true}
 
+func _validate_positive_no_segment_result(run_result: SimulationRunService.SimulationRunResult) -> Dictionary:
+	if run_result.requested_elapsed_msec == 0:
+		return {"ok": true}
+	var summary: Dictionary = run_result.simulation_result.change_summary
+	if summary.size() != 1 or not summary.has("simulation_time_delta_msec"):
+		return _failure(ERR_INVALID_RESULT, "positive no-segment result must be timeline-only")
+	if typeof(summary.simulation_time_delta_msec) != TYPE_INT or int(summary.simulation_time_delta_msec) != run_result.requested_elapsed_msec:
+		return _failure(ERR_INVALID_RESULT, "timeline-only result elapsed mismatch")
+	if not run_result.simulation_result.events.is_empty():
+		return _failure(ERR_INVALID_RESULT, "timeline-only result cannot contain events")
+	return {"ok": true}
+
 func _validate_segment_ints(segment: Dictionary) -> Dictionary:
 	for key in ["assignment_revision", "start_simulation_msec", "end_simulation_msec", "elapsed_msec", "returned_souls_delta", "backlog_delta", "Essence_delta", "Mastery_delta_subunits", "completed_cycles_delta"]:
 		if typeof(segment[key]) != TYPE_INT:
@@ -229,9 +243,13 @@ func _validate_channel_deltas(channel_deltas) -> Dictionary:
 func _validate_events_for_run(run_result: SimulationRunService.SimulationRunResult) -> Dictionary:
 	var baseline: int = run_result.baseline_simulation_time_msec
 	var result_end: int = run_result.result_simulation_time_msec
+	var previous_event: SimulationEngine.SimulationEvent = null
 	for event in run_result.simulation_result.events:
 		if event == null or not (event is SimulationEngine.SimulationEvent):
 			return _failure(ERR_INVALID_RESULT, "event must be SimulationEvent")
+		if previous_event != null and not _event_ordered_at_or_before(previous_event, event):
+			return _failure(ERR_INVALID_RESULT, "events are not in engine order")
+		previous_event = event
 		if event.occurred_simulation_msec < 0 or event.occurred_simulation_msec > result_end:
 			return _failure(ERR_INVALID_RESULT, "event outside result cursor")
 		if event.reportable:
@@ -242,6 +260,15 @@ func _validate_events_for_run(run_result: SimulationRunService.SimulationRunResu
 			if not _event_owned_by_one_segment(event, run_result.simulation_result.segments):
 				return _failure(ERR_INVALID_RESULT, "reportable event has no owning segment")
 	return {"ok": true}
+
+func _event_ordered_at_or_before(left: SimulationEngine.SimulationEvent, right: SimulationEngine.SimulationEvent) -> bool:
+	if left.occurred_simulation_msec != right.occurred_simulation_msec:
+		return left.occurred_simulation_msec < right.occurred_simulation_msec
+	if left.priority != right.priority:
+		return left.priority < right.priority
+	if str(left.subject_id) != str(right.subject_id):
+		return str(left.subject_id) < str(right.subject_id)
+	return str(left.source_id) <= str(right.source_id)
 
 func _event_owned_by_one_segment(event: SimulationEngine.SimulationEvent, segments: Array) -> bool:
 	var matches := 0
