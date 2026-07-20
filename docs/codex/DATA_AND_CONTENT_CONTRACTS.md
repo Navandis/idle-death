@@ -2927,12 +2927,12 @@ Requested elapsed and engine committed elapsed must equal `result end - baseline
 For an accepted interval, each exact engine segment is mapped to the slice selected by:
 
 ```text
-current threshold_id
-current assignment_revision
+segment threshold_id
+segment assignment_revision
 segment lifecycle_state
 ```
 
-The candidate Reaping supplies canonical loadout identity. The engine segment supplies duration and core/channel facts. The service does not recompute production.
+The exact committed engine segment supplies canonical historical loadout identity (`form_id`, `writ_id`, and ordered `retinue_ids`) plus duration and core/channel facts. The service does not reconstruct past attribution from the mutable current Reaping record and does not recompute production.
 
 ### Offline report isolation
 

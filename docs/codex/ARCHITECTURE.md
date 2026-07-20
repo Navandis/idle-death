@@ -1919,7 +1919,7 @@ Rules:
 
 ### Assignment and lifecycle boundaries
 
-One committed run cannot change assignment revision, but it may cross lifecycle boundaries. `ReportService` reads the validated candidate Reaping to capture assignment revision and canonical loadout identity, then uses exact engine segments to split Overdue and Settled work into separate attribution slices.
+One committed run cannot change assignment revision, but it may cross lifecycle boundaries. `ReportService` uses the immutable assignment revision and loadout identity already captured on each exact engine segment, rather than reconstructing past attribution from the mutable current Reaping record, and splits Overdue and Settled work into separate attribution slices.
 
 Several contiguous runs can therefore produce:
 

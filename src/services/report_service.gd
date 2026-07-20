@@ -20,33 +20,54 @@ const ERR_OFFLINE_PURITY := &"REPORT_OFFLINE_PURITY"
 const ERR_INCOMPLETE_CURSOR := &"REPORT_INCOMPLETE_CURSOR"
 const ERR_STATE_INVALID := &"REPORT_STATE_INVALID"
 const ERR_SEQUENCE_OVERFLOW := &"REPORT_SEQUENCE_OVERFLOW"
+const ERR_AGGREGATION_OVERFLOW := &"REPORT_AGGREGATION_OVERFLOW"
+
+const SEGMENT_REQUIRED_KEYS := ["threshold_id", "assignment_revision", "form_id", "writ_id", "retinue_ids", "start_simulation_msec", "end_simulation_msec", "elapsed_msec", "lifecycle", "returned_souls_delta", "backlog_delta", "Essence_delta", "Mastery_delta_subunits", "completed_cycles_delta", "channel_deltas"]
+const CHANNEL_DELTA_REQUIRED_KEYS := ["channel_id", "output_item_id", "banked_units_delta", "progress_subunits_before", "progress_subunits_after", "rate_carry_units_before", "rate_carry_units_after", "total_banked_units_before", "total_banked_units_after"]
+const VALID_LIFECYCLES := [&"OVERDUE", &"SETTLED"]
 
 func ingest_committed_run(state: GameState, run_result: SimulationRunService.SimulationRunResult) -> ReportResult:
 	var pre := _validate_ingest_request(state, run_result)
-	if not pre.ok: return ReportResult.err_result(StringName(pre.code), pre.get("details", ""), state.report_state.report_cursor_msec if state and state.report_state else 0)
-	var cursor := state.report_state.report_cursor_msec
-	if run_result.result_simulation_time_msec <= cursor:
-		return ReportResult.ok_result(false, true, false, cursor, "covered")
-	if run_result.baseline_simulation_time_msec < cursor:
-		return ReportResult.err_result(ERR_OVERLAP, "partial overlap", cursor)
-	if run_result.baseline_simulation_time_msec > cursor:
-		return ReportResult.err_result(ERR_GAP, "forward gap", cursor)
-	if run_result.requested_elapsed_msec == 0 or run_result.result_simulation_time_msec == run_result.baseline_simulation_time_msec:
+	var cursor := state.report_state.report_cursor_msec if state and state.report_state else 0
+	if not pre.ok:
+		return ReportResult.err_result(StringName(pre.code), pre.get("details", ""), cursor)
+	var facts := _validate_committed_result_facts(run_result)
+	if not facts.ok:
+		return ReportResult.err_result(StringName(facts.code), facts.get("details", ""), cursor)
+
+	var baseline := run_result.baseline_simulation_time_msec
+	var result_end := run_result.result_simulation_time_msec
+	if run_result.requested_elapsed_msec == 0 and baseline == cursor and result_end == cursor and state.simulation_time_msec == result_end:
 		return ReportResult.ok_result(false, false, false, cursor, "zero")
+	if result_end <= cursor:
+		return ReportResult.ok_result(false, true, false, cursor, "covered")
+	if baseline < cursor:
+		return ReportResult.err_result(ERR_OVERLAP, "partial overlap", cursor)
+	if baseline > cursor:
+		return ReportResult.err_result(ERR_GAP, "forward gap", cursor)
+	if state.simulation_time_msec != result_end:
+		return ReportResult.err_result(ERR_INVALID_RESULT, "gameplay cursor does not match unrepresented interval", cursor)
+
 	var candidate := state.deep_clone()
 	var rs := candidate.report_state
-	_record_run_window(rs.live, run_result)
-	if run_result.simulation_result.change_summary.has("threshold_id"):
-		for segment in run_result.simulation_result.segments:
-			_upsert_segment(rs.live, segment)
+	var aggregate := _record_run_window(rs.live, run_result)
+	if not aggregate.ok:
+		return ReportResult.err_result(StringName(aggregate.code), aggregate.get("details", ""), cursor)
+	for segment in run_result.simulation_result.segments:
+		aggregate = _upsert_segment(rs.live, segment)
+		if not aggregate.ok:
+			return ReportResult.err_result(StringName(aggregate.code), aggregate.get("details", ""), cursor)
 	for event in run_result.simulation_result.events:
 		if event.reportable:
-			_ingest_event(rs, event)
-	rs.report_cursor_msec = run_result.result_simulation_time_msec
-	if _validate_report_state(rs, candidate.simulation_time_msec).ok:
+			aggregate = _ingest_event(rs, event)
+			if not aggregate.ok:
+				return ReportResult.err_result(StringName(aggregate.code), aggregate.get("details", ""), cursor)
+	rs.report_cursor_msec = result_end
+	var validation := GameStateValidator.validate_report_state(candidate)
+	if validation.ok:
 		state.copy_from(candidate)
 		return ReportResult.ok_result(true, false, true, state.report_state.report_cursor_msec, "ingested")
-	return ReportResult.err_result(ERR_STATE_INVALID, "candidate failed validation", cursor)
+	return ReportResult.err_result(ERR_STATE_INVALID, "candidate failed validation: %s" % validation.get("field_path", "report_state"), cursor)
 
 func peek_live_global(state: GameState) -> Dictionary:
 	return _view_for_window(state.report_state.live, &"", 0)
@@ -90,42 +111,216 @@ func snapshot_live(state: GameState, expected_next_report_sequence: int, snapsho
 	return ReportResult.ok_result(true, false, true, state.report_state.report_cursor_msec, "snapshotted")
 
 func _validate_ingest_request(state: GameState, run_result: SimulationRunService.SimulationRunResult) -> Dictionary:
-	if state == null or state.report_state == null: return {"ok": false, "code": ERR_STATE_INVALID}
-	if run_result == null or run_result.mode == SimulationRunService.MODE_FORECAST: return {"ok": false, "code": ERR_FORECAST}
-	if not SimulationRunService.COMMITTED_MODES.has(run_result.mode): return {"ok": false, "code": ERR_INVALID_RESULT}
-	if not run_result.success or run_result.projected_state != null or run_result.simulation_result == null or not run_result.simulation_result.success: return {"ok": false, "code": ERR_INVALID_RESULT}
-	if run_result.requested_elapsed_msec != run_result.result_simulation_time_msec - run_result.baseline_simulation_time_msec: return {"ok": false, "code": ERR_INVALID_RESULT}
-	if run_result.result_simulation_time_msec > state.report_state.report_cursor_msec and state.simulation_time_msec != run_result.result_simulation_time_msec: return {"ok": false, "code": ERR_INVALID_RESULT}
-	if run_result.simulation_result.committed_elapsed_msec != run_result.requested_elapsed_msec: return {"ok": false, "code": ERR_INVALID_RESULT}
-	if run_result.simulation_result.change_summary.has("threshold_id") and not state.reapings.has(StringName(run_result.simulation_result.change_summary.threshold_id)): return {"ok": false, "code": ERR_INVALID_RESULT}
+	if state == null or state.report_state == null:
+		return _failure(ERR_STATE_INVALID, "missing report state")
+	var state_validation := GameStateValidator.validate_report_state(state)
+	if not state_validation.ok:
+		return _failure(ERR_STATE_INVALID, "invalid report state")
+	if run_result == null:
+		return _failure(ERR_INVALID_RESULT, "missing run result")
+	if run_result.mode == SimulationRunService.MODE_FORECAST:
+		return _failure(ERR_FORECAST, "forecasts are not committed report input")
+	if not SimulationRunService.COMMITTED_MODES.has(run_result.mode):
+		return _failure(ERR_INVALID_RESULT, "unapproved committed mode")
+	if not run_result.success or run_result.projected_state != null or run_result.simulation_result == null or not run_result.simulation_result.success:
+		return _failure(ERR_INVALID_RESULT, "unsuccessful or projected result")
+	if run_result.requested_elapsed_msec < 0 or run_result.baseline_simulation_time_msec < 0 or run_result.result_simulation_time_msec < 0:
+		return _failure(ERR_INVALID_RESULT, "negative run cursor")
+	if run_result.result_simulation_time_msec < run_result.baseline_simulation_time_msec:
+		return _failure(ERR_INVALID_RESULT, "result cursor before baseline")
+	if run_result.requested_elapsed_msec != run_result.result_simulation_time_msec - run_result.baseline_simulation_time_msec:
+		return _failure(ERR_INVALID_RESULT, "wrapper elapsed mismatch")
+	if run_result.simulation_result.requested_elapsed_msec != run_result.requested_elapsed_msec:
+		return _failure(ERR_INVALID_RESULT, "engine requested elapsed mismatch")
+	if run_result.simulation_result.committed_elapsed_msec != run_result.requested_elapsed_msec:
+		return _failure(ERR_INVALID_RESULT, "engine committed elapsed mismatch")
 	return {"ok": true}
 
-func _record_run_window(window: ReportState.ReportWindow, run_result: SimulationRunService.SimulationRunResult) -> void:
+func _validate_committed_result_facts(run_result: SimulationRunService.SimulationRunResult) -> Dictionary:
+	var result := run_result.simulation_result
+	if not (result.segments is Array) or not (result.events is Array):
+		return _failure(ERR_INVALID_RESULT, "segments/events must be arrays")
+	var segment_check := _validate_segments_for_run(run_result)
+	if not segment_check.ok:
+		return segment_check
+	return _validate_events_for_run(run_result)
+
+func _validate_segments_for_run(run_result: SimulationRunService.SimulationRunResult) -> Dictionary:
+	var segments: Array = run_result.simulation_result.segments
+	var baseline: int = run_result.baseline_simulation_time_msec
+	var result_end: int = run_result.result_simulation_time_msec
+	var requested: int = run_result.requested_elapsed_msec
+	var active_summary: bool = run_result.simulation_result.change_summary.has("threshold_id")
+	if segments.is_empty():
+		return {"ok": true} if not active_summary else _failure(ERR_INVALID_RESULT, "active interval requires segments")
+	var expected_start: int = baseline
+	var elapsed_sum: int = 0
+	var base_threshold := &""
+	var base_revision := 0
+	var base_form := &""
+	var base_writ := &""
+	var base_retinues: Array[StringName] = []
+	for i in range(segments.size()):
+		var segment_value: Variant = segments[i]
+		if not (segment_value is Dictionary):
+			return _failure(ERR_INVALID_RESULT, "segment must be dictionary")
+		var segment: Dictionary = segment_value
+		var keys := _has_required_keys(segment, SEGMENT_REQUIRED_KEYS)
+		if not keys.ok:
+			return _failure(ERR_INVALID_RESULT, "segment missing %s" % keys.key)
+		var ints := _validate_segment_ints(segment)
+		if not ints.ok:
+			return ints
+		var threshold_id := StringName(str(segment.threshold_id))
+		var form_id := StringName(str(segment.form_id))
+		var writ_id := StringName(str(segment.writ_id))
+		var lifecycle := StringName(str(segment.lifecycle))
+		var retinues = _validated_retinues(segment.retinue_ids)
+		if threshold_id == &"" or form_id == &"" or writ_id == &"" or not VALID_LIFECYCLES.has(lifecycle) or retinues == null:
+			return _failure(ERR_INVALID_RESULT, "invalid segment identity")
+		if int(segment.assignment_revision) <= 0:
+			return _failure(ERR_INVALID_RESULT, "invalid assignment revision")
+		var start_msec := int(segment.start_simulation_msec)
+		var end_msec := int(segment.end_simulation_msec)
+		var elapsed_msec := int(segment.elapsed_msec)
+		if start_msec != expected_start or start_msec < baseline or end_msec > result_end or start_msec >= end_msec or elapsed_msec != end_msec - start_msec:
+			return _failure(ERR_INVALID_RESULT, "segment interval mismatch")
+		var sum := _checked_add(elapsed_sum, elapsed_msec, ERR_INVALID_RESULT)
+		if not sum.ok:
+			return sum
+		elapsed_sum = int(sum.value)
+		expected_start = end_msec
+		if i == 0:
+			base_threshold = threshold_id; base_revision = int(segment.assignment_revision); base_form = form_id; base_writ = writ_id; base_retinues = retinues
+		elif threshold_id != base_threshold or int(segment.assignment_revision) != base_revision or form_id != base_form or writ_id != base_writ or retinues != base_retinues:
+			return _failure(ERR_INVALID_RESULT, "segment loadout changed inside committed run")
+		var channel_check := _validate_channel_deltas(segment.channel_deltas)
+		if not channel_check.ok:
+			return channel_check
+	if expected_start != result_end or elapsed_sum != requested:
+		return _failure(ERR_INVALID_RESULT, "segment coverage mismatch")
+	return {"ok": true}
+
+func _validate_segment_ints(segment: Dictionary) -> Dictionary:
+	for key in ["assignment_revision", "start_simulation_msec", "end_simulation_msec", "elapsed_msec", "returned_souls_delta", "backlog_delta", "Essence_delta", "Mastery_delta_subunits", "completed_cycles_delta"]:
+		if typeof(segment[key]) != TYPE_INT:
+			return _failure(ERR_INVALID_RESULT, "segment %s must be int" % key)
+	for key in ["start_simulation_msec", "end_simulation_msec", "elapsed_msec", "returned_souls_delta", "Essence_delta", "Mastery_delta_subunits", "completed_cycles_delta"]:
+		if int(segment[key]) < 0:
+			return _failure(ERR_INVALID_RESULT, "segment %s must be non-negative" % key)
+	return {"ok": true}
+
+func _validate_channel_deltas(channel_deltas) -> Dictionary:
+	if not (channel_deltas is Array):
+		return _failure(ERR_INVALID_RESULT, "channel_deltas must be an array")
+	for delta in channel_deltas:
+		if not (delta is Dictionary):
+			return _failure(ERR_INVALID_RESULT, "channel delta must be dictionary")
+		var keys := _has_required_keys(delta, CHANNEL_DELTA_REQUIRED_KEYS)
+		if not keys.ok:
+			return _failure(ERR_INVALID_RESULT, "channel delta missing %s" % keys.key)
+		if str(delta.channel_id).is_empty() or str(delta.output_item_id).is_empty():
+			return _failure(ERR_INVALID_RESULT, "channel delta empty id")
+		for key in ["banked_units_delta", "progress_subunits_before", "progress_subunits_after", "rate_carry_units_before", "rate_carry_units_after", "total_banked_units_before", "total_banked_units_after"]:
+			if typeof(delta[key]) != TYPE_INT or int(delta[key]) < 0:
+				return _failure(ERR_INVALID_RESULT, "channel delta %s invalid" % key)
+	return {"ok": true}
+
+func _validate_events_for_run(run_result: SimulationRunService.SimulationRunResult) -> Dictionary:
+	var baseline: int = run_result.baseline_simulation_time_msec
+	var result_end: int = run_result.result_simulation_time_msec
+	for event in run_result.simulation_result.events:
+		if event == null or not (event is SimulationEngine.SimulationEvent):
+			return _failure(ERR_INVALID_RESULT, "event must be SimulationEvent")
+		if event.occurred_simulation_msec < 0 or event.occurred_simulation_msec > result_end:
+			return _failure(ERR_INVALID_RESULT, "event outside result cursor")
+		if event.reportable:
+			if event.event_type == &"" or event.subject_id == &"" or event.source_id == &"" or event.priority < 0:
+				return _failure(ERR_INVALID_RESULT, "malformed reportable event")
+			if event.occurred_simulation_msec <= baseline:
+				return _failure(ERR_INVALID_RESULT, "event at or before window start")
+			if not _event_owned_by_one_segment(event, run_result.simulation_result.segments):
+				return _failure(ERR_INVALID_RESULT, "reportable event has no owning segment")
+	return {"ok": true}
+
+func _event_owned_by_one_segment(event: SimulationEngine.SimulationEvent, segments: Array) -> bool:
+	var matches := 0
+	for segment in segments:
+		if not (segment is Dictionary):
+			continue
+		if StringName(str(segment.threshold_id)) != event.subject_id:
+			continue
+		if event.occurred_simulation_msec > int(segment.start_simulation_msec) and event.occurred_simulation_msec <= int(segment.end_simulation_msec):
+			matches += 1
+	return matches == 1
+
+func _record_run_window(window: ReportState.ReportWindow, run_result: SimulationRunService.SimulationRunResult) -> Dictionary:
 	window.start_simulation_msec = min(window.start_simulation_msec, run_result.baseline_simulation_time_msec) if window.run_count > 0 else run_result.baseline_simulation_time_msec
 	window.end_simulation_msec = run_result.result_simulation_time_msec
-	window.run_count += 1
-	window.mode_counts[str(run_result.mode)] = int(window.mode_counts.get(str(run_result.mode), 0)) + 1
+	var run_count := _checked_add(window.run_count, 1, ERR_AGGREGATION_OVERFLOW)
+	if not run_count.ok:
+		return run_count
+	window.run_count = int(run_count.value)
+	var mode_key := str(run_result.mode)
+	var mode_count := _checked_add(int(window.mode_counts.get(mode_key, 0)), 1, ERR_AGGREGATION_OVERFLOW)
+	if not mode_count.ok:
+		return mode_count
+	window.mode_counts[mode_key] = int(mode_count.value)
+	return {"ok": true}
 
-func _upsert_segment(window: ReportState.ReportWindow, segment: Dictionary) -> void:
+func _upsert_segment(window: ReportState.ReportWindow, segment: Dictionary) -> Dictionary:
 	var threshold_id := StringName(str(segment.threshold_id))
 	var assignment_revision := int(segment.assignment_revision)
 	var form_id := StringName(str(segment.form_id))
 	var key := canonical_slice_key(threshold_id, assignment_revision, StringName(str(segment.lifecycle)))
 	var slice: ReportState.AttributionSlice = window.slices.get(key, null)
 	if slice == null:
-		slice = ReportState.AttributionSlice.new(); slice.threshold_id = threshold_id; slice.assignment_revision = assignment_revision; slice.lifecycle_state = StringName(segment.lifecycle)
-		slice.form_id = form_id; slice.writ_id = StringName(str(segment.writ_id)); slice.retinue_ids = _segment_retinues(segment); slice.start_simulation_msec = segment.start_simulation_msec
+		slice = ReportState.AttributionSlice.new()
+		slice.threshold_id = threshold_id
+		slice.assignment_revision = assignment_revision
+		slice.lifecycle_state = StringName(segment.lifecycle)
+		slice.form_id = form_id
+		slice.writ_id = StringName(str(segment.writ_id))
+		slice.retinue_ids = _segment_retinues(segment)
+		slice.start_simulation_msec = segment.start_simulation_msec
 		window.slices[key] = slice
-	slice.end_simulation_msec = segment.end_simulation_msec; slice.elapsed_msec += int(segment.elapsed_msec)
-	slice.returned_souls_delta += int(segment.returned_souls_delta); slice.backlog_delta += int(segment.backlog_delta); slice.completed_cycles_delta += int(segment.completed_cycles_delta)
-	_add_map(slice.inventory_gains, &"RES_ESSENCE", int(segment.Essence_delta)); _add_map(slice.mastery_gains, form_id, int(segment.Mastery_delta_subunits))
+	slice.end_simulation_msec = segment.end_simulation_msec
+	var added := _checked_add(slice.elapsed_msec, int(segment.elapsed_msec), ERR_AGGREGATION_OVERFLOW)
+	if not added.ok: return added
+	slice.elapsed_msec = int(added.value)
+	added = _checked_add(slice.returned_souls_delta, int(segment.returned_souls_delta), ERR_AGGREGATION_OVERFLOW)
+	if not added.ok: return added
+	slice.returned_souls_delta = int(added.value)
+	added = _checked_add(slice.backlog_delta, int(segment.backlog_delta), ERR_AGGREGATION_OVERFLOW)
+	if not added.ok: return added
+	slice.backlog_delta = int(added.value)
+	added = _checked_add(slice.completed_cycles_delta, int(segment.completed_cycles_delta), ERR_AGGREGATION_OVERFLOW)
+	if not added.ok: return added
+	slice.completed_cycles_delta = int(added.value)
+	added = _add_map_checked(slice.inventory_gains, &"RES_ESSENCE", int(segment.Essence_delta))
+	if not added.ok: return added
+	added = _add_map_checked(slice.mastery_gains, form_id, int(segment.Mastery_delta_subunits))
+	if not added.ok: return added
 	for delta in segment.channel_deltas:
-		var cid := StringName(delta.channel_id); var summary: ReportState.ChannelSummary = slice.channel_summaries.get(cid, null)
+		var cid := StringName(delta.channel_id)
+		var summary: ReportState.ChannelSummary = slice.channel_summaries.get(cid, null)
 		if summary == null:
-			summary = ReportState.ChannelSummary.new(); summary.channel_id = cid; summary.output_item_id = StringName(delta.output_item_id)
-			summary.first_progress_subunits_before = int(delta.progress_subunits_before); summary.first_rate_carry_units_before = int(delta.rate_carry_units_before); summary.first_total_banked_units_before = int(delta.total_banked_units_before); slice.channel_summaries[cid] = summary
-		summary.banked_units_delta += int(delta.banked_units_delta); summary.latest_progress_subunits_after = int(delta.progress_subunits_after); summary.latest_rate_carry_units_after = int(delta.rate_carry_units_after); summary.latest_total_banked_units_after = int(delta.total_banked_units_after)
-		_add_map(slice.inventory_gains, summary.output_item_id, int(delta.banked_units_delta))
+			summary = ReportState.ChannelSummary.new()
+			summary.channel_id = cid
+			summary.output_item_id = StringName(delta.output_item_id)
+			summary.first_progress_subunits_before = int(delta.progress_subunits_before)
+			summary.first_rate_carry_units_before = int(delta.rate_carry_units_before)
+			summary.first_total_banked_units_before = int(delta.total_banked_units_before)
+			slice.channel_summaries[cid] = summary
+		added = _checked_add(summary.banked_units_delta, int(delta.banked_units_delta), ERR_AGGREGATION_OVERFLOW)
+		if not added.ok: return added
+		summary.banked_units_delta = int(added.value)
+		summary.latest_progress_subunits_after = int(delta.progress_subunits_after)
+		summary.latest_rate_carry_units_after = int(delta.rate_carry_units_after)
+		summary.latest_total_banked_units_after = int(delta.total_banked_units_after)
+		added = _add_map_checked(slice.inventory_gains, summary.output_item_id, int(delta.banked_units_delta))
+		if not added.ok: return added
+	return {"ok": true}
 
 func _segment_retinues(segment: Dictionary) -> Array[StringName]:
 	var out: Array[StringName] = []
@@ -133,13 +328,30 @@ func _segment_retinues(segment: Dictionary) -> Array[StringName]:
 		out.append(StringName(str(id)))
 	return out
 
-func _ingest_event(rs: ReportState, event: SimulationEngine.SimulationEvent) -> void:
-	rs.live.events_by_type[str(event.event_type)] = int(rs.live.events_by_type.get(str(event.event_type), 0)) + 1
-	var detail := ReportState.ReportEventDetail.new(); detail.event_sequence = rs.next_event_sequence; rs.next_event_sequence += 1
-	detail.event_type = event.event_type; detail.occurred_simulation_msec = event.occurred_simulation_msec; detail.priority = event.priority; detail.subject_id = event.subject_id; detail.source_id = event.source_id
+func _ingest_event(rs: ReportState, event: SimulationEngine.SimulationEvent) -> Dictionary:
+	var event_type := str(event.event_type)
+	var added := _checked_add(int(rs.live.events_by_type.get(event_type, 0)), 1, ERR_AGGREGATION_OVERFLOW)
+	if not added.ok:
+		return added
+	if rs.next_event_sequence == FixedPoint.INT64_MAX:
+		return _failure(ERR_SEQUENCE_OVERFLOW, "next event sequence overflow")
+	rs.live.events_by_type[event_type] = int(added.value)
+	var detail := ReportState.ReportEventDetail.new()
+	detail.event_sequence = rs.next_event_sequence
+	rs.next_event_sequence += 1
+	detail.event_type = event.event_type
+	detail.occurred_simulation_msec = event.occurred_simulation_msec
+	detail.priority = event.priority
+	detail.subject_id = event.subject_id
+	detail.source_id = event.source_id
 	rs.live.event_details.append(detail)
 	while rs.live.event_details.size() > ReportState.MAX_EVENT_DETAILS:
-		rs.live.event_details.pop_front(); rs.live.omitted_oldest_event_detail_count += 1
+		var omitted := _checked_add(rs.live.omitted_oldest_event_detail_count, 1, ERR_AGGREGATION_OVERFLOW)
+		if not omitted.ok:
+			return omitted
+		rs.live.event_details.pop_front()
+		rs.live.omitted_oldest_event_detail_count = int(omitted.value)
+	return {"ok": true}
 
 func _view_for_window(window: ReportState.ReportWindow, threshold_id: StringName, assignment_revision: int) -> Dictionary:
 	var out := {"ok": true, "start_simulation_msec": window.start_simulation_msec, "end_simulation_msec": window.end_simulation_msec, "run_count": window.run_count, "mode_counts": window.mode_counts.duplicate(true), "slices": [], "totals": {"returned_souls_delta": 0, "backlog_delta": 0, "completed_cycles_delta": 0, "inventory_gains": {}, "mastery_gains": {}, "channel_summaries": {}}}
@@ -216,6 +428,43 @@ static func canonical_slice_key(threshold_id: StringName, assignment_revision: i
 
 func _add_map(map: Dictionary, key: StringName, amount: int) -> void:
 	if amount != 0: map[key] = int(map.get(key, 0)) + amount
+
+func _add_map_checked(map: Dictionary, key: StringName, amount: int) -> Dictionary:
+	if amount == 0:
+		return {"ok": true}
+	var added := _checked_add(int(map.get(key, 0)), amount, ERR_AGGREGATION_OVERFLOW)
+	if not added.ok:
+		return added
+	map[key] = int(added.value)
+	return {"ok": true}
+
+func _checked_add(left: int, right: int, error_code: StringName) -> Dictionary:
+	if right > 0 and left > FixedPoint.INT64_MAX - right:
+		return _failure(error_code, "int64 positive overflow")
+	if right < 0 and left < FixedPoint.INT64_MIN - right:
+		return _failure(error_code, "int64 negative overflow")
+	return {"ok": true, "value": left + right}
+
+func _failure(code: StringName, details: String) -> Dictionary:
+	return {"ok": false, "code": code, "details": details}
+
+func _has_required_keys(value: Dictionary, keys: Array) -> Dictionary:
+	for key in keys:
+		if not value.has(key):
+			return {"ok": false, "key": key}
+	return {"ok": true}
+
+func _validated_retinues(value):
+	if not (value is Array):
+		return null
+	var out: Array[StringName] = []
+	for id in value:
+		if str(id).is_empty():
+			return null
+		out.append(StringName(str(id)))
+	var sorted := out.duplicate()
+	sorted.sort()
+	return out if out == sorted else null
 func _strings(values: Array[StringName]) -> Array:
 	var out := []
 	for v in values:

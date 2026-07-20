@@ -235,3 +235,289 @@ func test_ingest_uses_run_time_attribution_after_same_timestamp_recall() -> void
 	assert_eq(service.peek_live_assignment(state, &"THR_GLOAMWOOD", 1).slices.size(), 1)
 	assert_eq(service.peek_live_assignment(state, &"THR_GLOAMWOOD", 2).slices.size(), 0)
 	assert_eq(service.peek_live_global(state).slices[0].form_id, "FORM_MAN_AT_ARMS")
+
+func _state_digest(state: GameState) -> String:
+	var snapshot := SaveSchemaMapper.runtime_to_snapshot(state, TimeAuthorityState.new(), 1, ContentRegistry.CURRENT_REVISION)
+	assert_true(snapshot.ok if snapshot.has("ok") else true)
+	return JSON.stringify(snapshot)
+
+func _assert_state_unchanged(before: String, state: GameState) -> void:
+	assert_eq(_state_digest(state), before)
+
+func _make_active_run(backlog := 1000000, elapsed := 1000) -> Array:
+	var state := _state(&"THR_GLOAMWOOD", backlog)
+	_unlock(state, [&"SOUL_CALLING_SOLDIER"])
+	var run := SimulationRunService.new(_registry()).run_committed(state, elapsed, SimulationRunService.MODE_DEBUG)
+	assert_true(run.success, run.developer_details)
+	return [state, run]
+
+func _make_slice_from_segment(segment: Dictionary) -> ReportState.AttributionSlice:
+	var slice := ReportState.AttributionSlice.new()
+	slice.threshold_id = StringName(str(segment.threshold_id))
+	slice.assignment_revision = int(segment.assignment_revision)
+	slice.lifecycle_state = StringName(str(segment.lifecycle))
+	slice.form_id = StringName(str(segment.form_id))
+	slice.writ_id = StringName(str(segment.writ_id))
+	slice.retinue_ids = []
+	slice.start_simulation_msec = 0
+	slice.end_simulation_msec = 0
+	return slice
+
+func _install_live_slice_at_cursor(state: GameState, segment: Dictionary, slice: ReportState.AttributionSlice) -> void:
+	state.report_state.live.start_simulation_msec = state.report_state.report_cursor_msec
+	state.report_state.live.end_simulation_msec = state.report_state.report_cursor_msec
+	state.report_state.live.run_count = 1
+	state.report_state.live.mode_counts[str(SimulationRunService.MODE_DEBUG)] = 1
+	state.report_state.live.slices[ReportService.canonical_slice_key(slice.threshold_id, slice.assignment_revision, slice.lifecycle_state)] = slice
+
+func test_stage2_interval_decision_table_rejects_and_duplicates_before_mutation() -> void:
+	var service := ReportService.new()
+
+	var zero_state := GameState.new(0)
+	var zero := SimulationRunService.new(_registry()).run_committed(zero_state, 0, SimulationRunService.MODE_DEBUG)
+	var zero_result := service.ingest_committed_run(zero_state, zero)
+	assert_true(zero_result.success)
+	assert_false(zero_result.changed)
+	assert_false(zero_result.duplicate)
+	assert_eq(zero_state.report_state.report_cursor_msec, 0)
+
+	var represented := GameState.new(0)
+	var run_one := SimulationRunService.new(_registry()).run_committed(represented, 1000, SimulationRunService.MODE_DEBUG)
+	assert_true(service.ingest_committed_run(represented, run_one).success)
+	var covered_zero := SimulationRunService.SimulationRunResult.new(true, SimulationRunService.MODE_DEBUG, &"", "", 0, 0, 0, SimulationEngine.SimulationResult.success_empty(0), null)
+	assert_true(service.ingest_committed_run(represented, covered_zero).duplicate)
+
+	var run_two := SimulationRunService.new(_registry()).run_committed(represented, 1000, SimulationRunService.MODE_DEBUG)
+	assert_true(service.ingest_committed_run(represented, run_two).success)
+	var covered := service.ingest_committed_run(represented, run_one)
+	assert_true(covered.success)
+	assert_true(covered.duplicate)
+	assert_false(covered.changed)
+
+	var forecast_state := GameState.new(0)
+	var forecast := SimulationRunService.new(_registry()).forecast(forecast_state, 1000)
+	var committed := SimulationRunService.new(_registry()).run_committed(forecast_state, 1000, SimulationRunService.MODE_DEBUG)
+	assert_true(service.ingest_committed_run(forecast_state, committed).success)
+	assert_eq(service.ingest_committed_run(forecast_state, forecast).error_code, ReportService.ERR_FORECAST)
+	committed.simulation_result.committed_elapsed_msec = 999
+	assert_eq(service.ingest_committed_run(forecast_state, committed).error_code, ReportService.ERR_INVALID_RESULT)
+
+	var overlap_source := GameState.new(0)
+	var overlap_run := SimulationRunService.new(_registry()).run_committed(overlap_source, 2000, SimulationRunService.MODE_DEBUG)
+	var overlap_target := GameState.new(0)
+	var first := SimulationRunService.new(_registry()).run_committed(overlap_target, 1000, SimulationRunService.MODE_DEBUG)
+	assert_true(service.ingest_committed_run(overlap_target, first).success)
+	assert_eq(service.ingest_committed_run(overlap_target, overlap_run).error_code, ReportService.ERR_OVERLAP)
+
+	var gap_source := GameState.new(1000)
+	var gap_run := SimulationRunService.new(_registry()).run_committed(gap_source, 1000, SimulationRunService.MODE_DEBUG)
+	assert_eq(service.ingest_committed_run(GameState.new(0), gap_run).error_code, ReportService.ERR_GAP)
+
+	var stale_late := GameState.new(0)
+	var stale_one := SimulationRunService.new(_registry()).run_committed(stale_late, 1000, SimulationRunService.MODE_DEBUG)
+	assert_true(SimulationRunService.new(_registry()).run_committed(stale_late, 1000, SimulationRunService.MODE_DEBUG).success)
+	assert_eq(service.ingest_committed_run(stale_late, stale_one).error_code, ReportService.ERR_INVALID_RESULT)
+
+	var run_owner := GameState.new(0)
+	var future_run := SimulationRunService.new(_registry()).run_committed(run_owner, 1000, SimulationRunService.MODE_DEBUG)
+	assert_eq(service.ingest_committed_run(GameState.new(0), future_run).error_code, ReportService.ERR_INVALID_RESULT)
+
+	var nonzero := GameState.new(5000)
+	var nz_run := SimulationRunService.new(_registry()).run_committed(nonzero, 1000, SimulationRunService.MODE_DEBUG)
+	assert_true(service.ingest_committed_run(nonzero, nz_run).success)
+	assert_eq(nonzero.report_state.report_cursor_msec, 6000)
+
+func test_stage2_same_timestamp_redispatch_and_revision_episodes_use_run_segments() -> void:
+	var service := ReportService.new()
+	var state := _state(&"THR_GLOAMWOOD", 1000000)
+	_unlock(state, [&"SOUL_CALLING_SOLDIER"])
+	var assignment := ReapingAssignmentService.new(_registry())
+	var run_a := SimulationRunService.new(_registry()).run_committed(state, 60000, SimulationRunService.MODE_DEBUG)
+	assert_true(run_a.success, run_a.developer_details)
+	assert_true(assignment.recall(state, &"THR_GLOAMWOOD", 1).success)
+	assert_true(assignment.redispatch(state, &"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD", 2).success)
+	assert_true(service.ingest_committed_run(state, run_a).success)
+	assert_eq(service.peek_live_assignment(state, &"THR_GLOAMWOOD", 1).slices.size(), 1)
+	assert_eq(service.peek_live_assignment(state, &"THR_GLOAMWOOD", 3).slices.size(), 0)
+
+	var run_b := SimulationRunService.new(_registry()).run_committed(state, 60000, SimulationRunService.MODE_DEBUG)
+	assert_true(run_b.success, run_b.developer_details)
+	assert_true(assignment.recall(state, &"THR_GLOAMWOOD", 3).success)
+	assert_true(assignment.redispatch(state, &"THR_GLOAMWOOD", &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD", 4).success)
+	assert_true(service.ingest_committed_run(state, run_b).success)
+	var run_c := SimulationRunService.new(_registry()).run_committed(state, 60000, SimulationRunService.MODE_DEBUG)
+	assert_true(run_c.success, run_c.developer_details)
+	assert_true(service.ingest_committed_run(state, run_c).success)
+	var live := service.peek_live_global(state)
+	assert_eq(live.slices.size(), 3)
+	assert_eq(live.slices[0].assignment_revision, 1)
+	assert_eq(live.slices[1].assignment_revision, 3)
+	assert_eq(live.slices[2].assignment_revision, 5)
+
+func test_stage2_malformed_segments_and_event_boundaries_reject_without_mutation() -> void:
+	var service := ReportService.new()
+	var pair := _make_active_run(1000000, 1000)
+	var state: GameState = pair[0]
+	var run: SimulationRunService.SimulationRunResult = pair[1]
+	var before := _state_digest(state)
+	run.simulation_result.segments[0].erase("form_id")
+	assert_eq(service.ingest_committed_run(state, run).error_code, ReportService.ERR_INVALID_RESULT)
+	_assert_state_unchanged(before, state)
+
+	pair = _make_active_run(1000000, 1000)
+	state = pair[0]
+	run = pair[1]
+	before = _state_digest(state)
+	run.simulation_result.segments[0].elapsed_msec = 999
+	assert_eq(service.ingest_committed_run(state, run).error_code, ReportService.ERR_INVALID_RESULT)
+	_assert_state_unchanged(before, state)
+
+	pair = _make_active_run(1000000, 2000)
+	state = pair[0]
+	run = pair[1]
+	before = _state_digest(state)
+	run.simulation_result.segments[0].end_simulation_msec = 1000
+	assert_eq(service.ingest_committed_run(state, run).error_code, ReportService.ERR_INVALID_RESULT)
+	_assert_state_unchanged(before, state)
+
+	pair = _make_active_run(1, 10000)
+	state = pair[0]
+	run = pair[1]
+	before = _state_digest(state)
+	var start_event := SimulationEngine.SimulationEvent.threshold_settled(0, &"THR_GLOAMWOOD", 0)
+	run.simulation_result.events.append(start_event)
+	assert_eq(service.ingest_committed_run(state, run).error_code, ReportService.ERR_INVALID_RESULT)
+	_assert_state_unchanged(before, state)
+
+	pair = _make_active_run(1, 10000)
+	state = pair[0]
+	run = pair[1]
+	before = _state_digest(state)
+	run.simulation_result.events.append(SimulationEngine.SimulationEvent.threshold_settled(run.result_simulation_time_msec + 1, &"THR_GLOAMWOOD", 0))
+	assert_eq(service.ingest_committed_run(state, run).error_code, ReportService.ERR_INVALID_RESULT)
+	_assert_state_unchanged(before, state)
+
+func test_stage2_event_boundaries_accept_interior_end_and_preserve_order() -> void:
+	var service := ReportService.new()
+	var state := _state(&"THR_GLOAMWOOD", 1)
+	_unlock(state, [&"SOUL_CALLING_SOLDIER"])
+	var run := SimulationRunService.new(_registry()).run_committed(state, 10000, SimulationRunService.MODE_DEBUG)
+	assert_true(run.success, run.developer_details)
+	var end_event := SimulationEngine.SimulationEvent.threshold_settled(run.result_simulation_time_msec, &"THR_GLOAMWOOD", 0)
+	end_event.priority = 250
+	run.simulation_result.events.append(end_event)
+	assert_true(service.ingest_committed_run(state, run).success)
+	var details: Array = service.peek_live_global(state).event_details
+	assert_gte(details.size(), 2)
+	assert_eq(details[0].priority, 200)
+	assert_eq(details[1].priority, 250)
+	assert_true(service.peek_live_assignment(state, &"THR_GLOAMWOOD", 1).meaningful_event)
+
+func test_stage2_lifecycle_boundary_event_belongs_to_overdue_slice_only() -> void:
+	var service := ReportService.new()
+	var state := _state(&"THR_GLOAMWOOD", 1)
+	_unlock(state, [&"SOUL_CALLING_SOLDIER"])
+	var run := SimulationRunService.new(_registry()).run_committed(state, 10000, SimulationRunService.MODE_DEBUG)
+	assert_true(run.success, run.developer_details)
+	assert_true(service.ingest_committed_run(state, run).success)
+	var slices: Array = service.peek_live_global(state).slices
+	assert_eq(slices.size(), 2)
+	assert_eq(slices[0].lifecycle_state, "OVERDUE")
+	assert_eq(slices[1].lifecycle_state, "SETTLED")
+	assert_eq(service.peek_live_global(state).event_details[0].occurred_simulation_msec, slices[0].end_simulation_msec)
+	assert_eq(service.peek_live_global(state).event_details[0].occurred_simulation_msec, slices[1].start_simulation_msec)
+
+func test_stage2_ingestion_overflows_reject_without_mutation() -> void:
+	var service := ReportService.new()
+	var no_reaping := GameState.new(0)
+	no_reaping.report_state.live.run_count = FixedPoint.INT64_MAX
+	no_reaping.report_state.live.mode_counts[str(SimulationRunService.MODE_DEBUG)] = FixedPoint.INT64_MAX
+	var no_reaping_run := SimulationRunService.new(_registry()).run_committed(no_reaping, 1, SimulationRunService.MODE_DEBUG)
+	var before := _state_digest(no_reaping)
+	var overflow := service.ingest_committed_run(no_reaping, no_reaping_run)
+	assert_eq(overflow.error_code, ReportService.ERR_AGGREGATION_OVERFLOW)
+	_assert_state_unchanged(before, no_reaping)
+
+	var pair := _make_active_run(1000000, 1000)
+	var state: GameState = pair[0]
+	var run: SimulationRunService.SimulationRunResult = pair[1]
+	var slice := _make_slice_from_segment(run.simulation_result.segments[0])
+	slice.elapsed_msec = FixedPoint.INT64_MAX
+	_install_live_slice_at_cursor(state, run.simulation_result.segments[0], slice)
+	before = _state_digest(state)
+	assert_eq(service.ingest_committed_run(state, run).error_code, ReportService.ERR_AGGREGATION_OVERFLOW)
+	_assert_state_unchanged(before, state)
+
+	pair = _make_active_run(1000000, HOUR)
+	state = pair[0]
+	run = pair[1]
+	slice = _make_slice_from_segment(run.simulation_result.segments[0])
+	slice.returned_souls_delta = FixedPoint.INT64_MAX
+	_install_live_slice_at_cursor(state, run.simulation_result.segments[0], slice)
+	before = _state_digest(state)
+	assert_eq(service.ingest_committed_run(state, run).error_code, ReportService.ERR_AGGREGATION_OVERFLOW)
+	_assert_state_unchanged(before, state)
+
+	pair = _make_active_run(1000000, 1000)
+	state = pair[0]
+	run = pair[1]
+	slice = _make_slice_from_segment(run.simulation_result.segments[0])
+	slice.backlog_delta = FixedPoint.INT64_MIN
+	_install_live_slice_at_cursor(state, run.simulation_result.segments[0], slice)
+	before = _state_digest(state)
+	assert_eq(service.ingest_committed_run(state, run).error_code, ReportService.ERR_AGGREGATION_OVERFLOW)
+	_assert_state_unchanged(before, state)
+
+	pair = _make_active_run(1000000, 1000)
+	state = pair[0]
+	run = pair[1]
+	run.simulation_result.segments[0].backlog_delta = FixedPoint.INT64_MAX
+	slice = _make_slice_from_segment(run.simulation_result.segments[0])
+	slice.backlog_delta = 1
+	_install_live_slice_at_cursor(state, run.simulation_result.segments[0], slice)
+	before = _state_digest(state)
+	assert_eq(service.ingest_committed_run(state, run).error_code, ReportService.ERR_AGGREGATION_OVERFLOW)
+	_assert_state_unchanged(before, state)
+
+	pair = _make_active_run(1000000, HOUR)
+	state = pair[0]
+	run = pair[1]
+	slice = _make_slice_from_segment(run.simulation_result.segments[0])
+	slice.inventory_gains[&"RES_ESSENCE"] = FixedPoint.INT64_MAX
+	_install_live_slice_at_cursor(state, run.simulation_result.segments[0], slice)
+	before = _state_digest(state)
+	assert_eq(service.ingest_committed_run(state, run).error_code, ReportService.ERR_AGGREGATION_OVERFLOW)
+	_assert_state_unchanged(before, state)
+
+func test_stage2_channel_event_count_and_sequence_overflows_reject_without_mutation() -> void:
+	var service := ReportService.new()
+	var pair := _make_active_run(1000000, HOUR)
+	var state: GameState = pair[0]
+	var run: SimulationRunService.SimulationRunResult = pair[1]
+	var slice := _make_slice_from_segment(run.simulation_result.segments[0])
+	var delta: Dictionary = run.simulation_result.segments[0].channel_deltas[0]
+	var summary := ReportState.ChannelSummary.new()
+	summary.channel_id = StringName(delta.channel_id)
+	summary.output_item_id = StringName(delta.output_item_id)
+	summary.banked_units_delta = FixedPoint.INT64_MAX
+	slice.channel_summaries[summary.channel_id] = summary
+	_install_live_slice_at_cursor(state, run.simulation_result.segments[0], slice)
+	var before := _state_digest(state)
+	assert_eq(service.ingest_committed_run(state, run).error_code, ReportService.ERR_AGGREGATION_OVERFLOW)
+	_assert_state_unchanged(before, state)
+
+	pair = _make_active_run(1, 10000)
+	state = pair[0]
+	run = pair[1]
+	state.report_state.live.events_by_type["THRESHOLD_SETTLED"] = FixedPoint.INT64_MAX
+	before = _state_digest(state)
+	assert_eq(service.ingest_committed_run(state, run).error_code, ReportService.ERR_AGGREGATION_OVERFLOW)
+	_assert_state_unchanged(before, state)
+
+	pair = _make_active_run(1, 10000)
+	state = pair[0]
+	run = pair[1]
+	state.report_state.next_event_sequence = FixedPoint.INT64_MAX
+	before = _state_digest(state)
+	assert_eq(service.ingest_committed_run(state, run).error_code, ReportService.ERR_SEQUENCE_OVERFLOW)
+	_assert_state_unchanged(before, state)
