@@ -174,6 +174,24 @@ func test_snapshot_sequence_overflow_rejects_without_mutation() -> void:
 	assert_eq(state.report_state.live.run_count, before.report_state.live.run_count)
 
 
+func test_snapshot_invalid_candidate_rejects_without_clearing_live() -> void:
+	var service := ReportService.new()
+	var state := _state(&"THR_GLOAMWOOD", 1000000)
+	var run := SimulationRunService.new(_registry()).run_committed(state, 1000, SimulationRunService.MODE_DEBUG)
+	assert_true(run.success, run.developer_details)
+	assert_true(service.ingest_committed_run(state, run).success)
+	state.report_state.live.end_simulation_msec = state.report_state.report_cursor_msec - 1
+	var before := state.deep_clone()
+
+	var result := service.snapshot_live(state, 1, ReportState.REASON_SYSTEM_BOUNDARY)
+	assert_false(result.success)
+	assert_eq(result.error_code, ReportService.ERR_STATE_INVALID)
+	assert_eq(state.report_state.live.end_simulation_msec, before.report_state.live.end_simulation_msec)
+	assert_eq(state.report_state.live.run_count, before.report_state.live.run_count)
+	assert_eq(state.report_state.history.size(), before.report_state.history.size())
+	assert_eq(state.report_state.next_report_sequence, before.report_state.next_report_sequence)
+
+
 func test_assignment_boundary_event_excludes_next_slice_start() -> void:
 	var state := GameState.new(0)
 	var first := ReportState.AttributionSlice.new()

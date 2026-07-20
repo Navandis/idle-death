@@ -83,6 +83,9 @@ func snapshot_live(state: GameState, expected_next_report_sequence: int, snapsho
 	while candidate.report_state.history.size() > ReportState.MAX_HISTORY_RECORDS:
 		candidate.report_state.history.pop_front(); candidate.report_state.dropped_history_record_count += 1
 	candidate.report_state.reset_live_at_cursor()
+	var validation := GameStateValidator.validate_report_state(candidate)
+	if not validation.ok:
+		return ReportResult.err_result(ERR_STATE_INVALID, "candidate failed validation: %s" % validation.get("field_path", "report_state"), state.report_state.report_cursor_msec)
 	state.copy_from(candidate)
 	return ReportResult.ok_result(true, false, true, state.report_state.report_cursor_msec, "snapshotted")
 
