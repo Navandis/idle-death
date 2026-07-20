@@ -238,6 +238,10 @@ func _validate_channel_deltas(channel_deltas) -> Dictionary:
 		for key in ["banked_units_delta", "progress_subunits_before", "progress_subunits_after", "rate_carry_units_before", "rate_carry_units_after", "total_banked_units_before", "total_banked_units_after"]:
 			if typeof(delta[key]) != TYPE_INT or int(delta[key]) < 0:
 				return _failure(ERR_INVALID_RESULT, "channel delta %s invalid" % key)
+		var total_before := int(delta.total_banked_units_before)
+		var total_after := int(delta.total_banked_units_after)
+		if total_after < total_before or int(delta.banked_units_delta) != total_after - total_before:
+			return _failure(ERR_INVALID_RESULT, "channel banked delta does not match endpoints")
 	return {"ok": true}
 
 func _validate_events_for_run(run_result: SimulationRunService.SimulationRunResult) -> Dictionary:
@@ -299,6 +303,8 @@ func _upsert_segment(window: ReportState.ReportWindow, segment: Dictionary) -> D
 	var threshold_id := StringName(str(segment.threshold_id))
 	var assignment_revision := int(segment.assignment_revision)
 	var form_id := StringName(str(segment.form_id))
+	var writ_id := StringName(str(segment.writ_id))
+	var retinue_ids := _segment_retinues(segment)
 	var key := canonical_slice_key(threshold_id, assignment_revision, StringName(str(segment.lifecycle)))
 	var slice: ReportState.AttributionSlice = window.slices.get(key, null)
 	if slice == null:
@@ -307,10 +313,12 @@ func _upsert_segment(window: ReportState.ReportWindow, segment: Dictionary) -> D
 		slice.assignment_revision = assignment_revision
 		slice.lifecycle_state = StringName(segment.lifecycle)
 		slice.form_id = form_id
-		slice.writ_id = StringName(str(segment.writ_id))
-		slice.retinue_ids = _segment_retinues(segment)
+		slice.writ_id = writ_id
+		slice.retinue_ids = retinue_ids
 		slice.start_simulation_msec = segment.start_simulation_msec
 		window.slices[key] = slice
+	elif slice.form_id != form_id or slice.writ_id != writ_id or slice.retinue_ids != retinue_ids:
+		return _failure(ERR_INVALID_RESULT, "segment loadout does not match existing slice")
 	slice.end_simulation_msec = segment.end_simulation_msec
 	var added := _checked_add(slice.elapsed_msec, int(segment.elapsed_msec), ERR_AGGREGATION_OVERFLOW)
 	if not added.ok: return added

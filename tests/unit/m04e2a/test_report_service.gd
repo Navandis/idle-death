@@ -548,3 +548,32 @@ func test_stage2_reordered_committed_events_reject_before_sequence_assignment() 
 	assert_false(result.success)
 	assert_eq(result.error_code, ReportService.ERR_INVALID_RESULT)
 	_assert_state_unchanged(before, state)
+
+func test_stage2_inconsistent_channel_endpoint_delta_rejects_without_mutation() -> void:
+	var service := ReportService.new()
+	var pair := _make_active_run(1000000, HOUR)
+	var state: GameState = pair[0]
+	var run: SimulationRunService.SimulationRunResult = pair[1]
+	var before := _state_digest(state)
+	var delta: Dictionary = run.simulation_result.segments[0].channel_deltas[0]
+	delta.banked_units_delta = int(delta.banked_units_delta) + 1
+	var result := service.ingest_committed_run(state, run)
+	assert_false(result.success)
+	assert_eq(result.error_code, ReportService.ERR_INVALID_RESULT)
+	_assert_state_unchanged(before, state)
+
+func test_stage2_existing_slice_loadout_mismatch_rejects_without_mutation() -> void:
+	var service := ReportService.new()
+	var state := _state(&"THR_GLOAMWOOD", 1000000)
+	_unlock(state, [&"SOUL_CALLING_SOLDIER"])
+	var first := SimulationRunService.new(_registry()).run_committed(state, 1000, SimulationRunService.MODE_DEBUG)
+	assert_true(first.success, first.developer_details)
+	assert_true(service.ingest_committed_run(state, first).success)
+	var second := SimulationRunService.new(_registry()).run_committed(state, 1000, SimulationRunService.MODE_DEBUG)
+	assert_true(second.success, second.developer_details)
+	var before := _state_digest(state)
+	second.simulation_result.segments[0].form_id = "FORM_SCRIBE"
+	var result := service.ingest_committed_run(state, second)
+	assert_false(result.success)
+	assert_eq(result.error_code, ReportService.ERR_INVALID_RESULT)
+	_assert_state_unchanged(before, state)
