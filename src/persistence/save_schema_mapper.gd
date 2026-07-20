@@ -106,7 +106,7 @@ static func _report_to_snapshot(rs: ReportState) -> Dictionary:
 static func _report_history_to_snapshot(history: Array) -> Array:
 	var out := []
 	for record in history:
-		out.append({"report_sequence": SaveInt64.format(record.report_sequence), "snapshot_reason": str(record.snapshot_reason), "window": _report_window_to_snapshot(record.window)})
+		out.append({"report_sequence": SaveInt64.format(record.report_sequence), "snapshot_reason": str(record.snapshot_reason), "snapshot_simulation_msec": SaveInt64.format(record.snapshot_simulation_msec), "window": _report_window_to_snapshot(record.window)})
 	return out
 
 static func _report_window_to_snapshot(w: ReportState.ReportWindow) -> Dictionary:
@@ -128,7 +128,7 @@ static func _report_from_snapshot(data: Dictionary) -> ReportState:
 	rs.live = _report_window_from_snapshot(data.live)
 	rs.history.clear()
 	for rec in data.history:
-		var r := ReportState.ReportRecord.new(); r.report_sequence = SaveInt64.parse(rec.report_sequence, false, "").value; r.snapshot_reason = StringName(rec.snapshot_reason); r.window = _report_window_from_snapshot(rec.window); rs.history.append(r)
+		var r := ReportState.ReportRecord.new(); r.report_sequence = SaveInt64.parse(rec.report_sequence, false, "").value; r.snapshot_reason = StringName(rec.snapshot_reason); r.snapshot_simulation_msec = SaveInt64.parse(rec.snapshot_simulation_msec, false, "").value; r.window = _report_window_from_snapshot(rec.window); rs.history.append(r)
 	return rs
 
 static func _report_window_from_snapshot(w: Dictionary) -> ReportState.ReportWindow:

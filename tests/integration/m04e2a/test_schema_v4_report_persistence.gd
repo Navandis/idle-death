@@ -23,13 +23,45 @@ func test_report_live_and_archive_round_trip() -> void:
 	assert_true(ReportService.new().snapshot_live(state, 1, ReportState.REASON_MANUAL_REVIEW).success)
 	var original_report := ReportService.new().get_report_record(state, 1)
 	assert_lt(original_report.totals.backlog_delta, 0)
+	assert_eq(original_report.snapshot_simulation_msec, 60000)
 	var snap := SaveSchemaMapper.runtime_to_snapshot(state, TimeAuthorityState.new(), 7, ContentRegistry.CURRENT_REVISION)
 	assert_eq(snap.schema_version, "4")
+	assert_eq(snap.game_state.report_state.history[0].snapshot_simulation_msec, "60000")
 	var loaded := SaveSchemaMapper.snapshot_to_runtime(snap)
 	var loaded_report := ReportService.new().get_report_record(loaded.game_state, 1)
-	assert_true(loaded.ok); assert_eq(loaded.game_state.report_state.history.size(), 1); assert_eq(loaded_report.totals.returned_souls_delta, 69); assert_eq(loaded_report.totals.backlog_delta, original_report.totals.backlog_delta)
+	assert_true(loaded.ok); assert_eq(loaded.game_state.report_state.history.size(), 1); assert_eq(loaded.game_state.report_state.history[0].snapshot_simulation_msec, 60000); assert_eq(loaded_report.totals.returned_souls_delta, 69); assert_eq(loaded_report.totals.backlog_delta, original_report.totals.backlog_delta)
+	var storage := MemorySaveStorage.new()
+	var files := SaveFileSet.new("memory://m04e2a_snapshot_timestamp", "save")
+	assert_true(SaveService.new(storage, files).save_runtime(state, TimeAuthorityState.new(), 8, ContentRegistry.CURRENT_REVISION).ok)
+	var reloaded := SaveService.new(storage, files).load_runtime()
+	assert_true(reloaded.ok)
+	assert_eq(reloaded.game_state.report_state.history[0].snapshot_simulation_msec, 60000)
 func _read_json(path: String) -> Dictionary:
 	var file := FileAccess.open(path, FileAccess.READ); return JSON.parse_string(file.get_as_text())
+
+func test_schema_v4_live_window_cursor_equality_and_historical_windows() -> void:
+	var empty_snapshot := SaveSchemaMapper.runtime_to_snapshot(_state(), TimeAuthorityState.new(), 20, ContentRegistry.CURRENT_REVISION)
+	assert_true(SaveSchemaValidator.validate_current(empty_snapshot).ok)
+	var state := _state()
+	var service := ReportService.new()
+	var run := SimulationRunService.new(_registry()).run_committed(state, 60000, SimulationRunService.MODE_FOREGROUND_SUPPLIED)
+	assert_true(run.success)
+	assert_true(service.ingest_committed_run(state, run).success)
+	var non_empty := SaveSchemaMapper.runtime_to_snapshot(state, TimeAuthorityState.new(), 21, ContentRegistry.CURRENT_REVISION)
+	assert_true(SaveSchemaValidator.validate_current(non_empty).ok)
+	non_empty.game_state.report_state.live.end_simulation_msec = "59999"
+	var validation := SaveSchemaValidator.validate_current(non_empty)
+	assert_false(validation.ok)
+	assert_eq(validation.field_path, "game_state.report_state.live.end_simulation_msec")
+	assert_false(SaveSchemaMapper.snapshot_to_runtime(non_empty).ok)
+	assert_true(service.snapshot_live(state, 1, ReportState.REASON_MANUAL_REVIEW).success)
+	var later := SimulationRunService.new(_registry()).run_committed(state, 60000, SimulationRunService.MODE_DEBUG)
+	assert_true(later.success)
+	assert_true(service.ingest_committed_run(state, later).success)
+	var archived_before_cursor := SaveSchemaMapper.runtime_to_snapshot(state, TimeAuthorityState.new(), 22, ContentRegistry.CURRENT_REVISION)
+	assert_eq(archived_before_cursor.game_state.report_state.history[0].window.end_simulation_msec, "60000")
+	assert_eq(archived_before_cursor.game_state.report_state.report_cursor_msec, "120000")
+	assert_true(SaveSchemaValidator.validate_current(archived_before_cursor).ok)
 
 func test_schema_v4_preserves_unlocked_output_ids_on_load() -> void:
 	var state := _state()
@@ -168,6 +200,22 @@ func test_schema_v4_rejects_unknown_snapshot_reason() -> void:
 	assert_false(runtime.ok)
 	assert_eq(runtime.code, SaveSchemaValidator.ERR_RANGE)
 
+func test_schema_v4_rejects_malformed_snapshot_simulation_msec() -> void:
+	var cases := [
+		{"name": "missing", "mutate": func(s): s.game_state.report_state.history[0].erase("snapshot_simulation_msec"), "code": SaveSchemaValidator.ERR_KEY_SET},
+		{"name": "wrong_type", "mutate": func(s): s.game_state.report_state.history[0].snapshot_simulation_msec = 60000, "code": SaveInt64.ERR_NOT_STRING},
+		{"name": "negative", "mutate": func(s): s.game_state.report_state.history[0].snapshot_simulation_msec = "-1", "code": SaveInt64.ERR_NEGATIVE_DISALLOWED},
+		{"name": "unequal_window_end", "mutate": func(s): s.game_state.report_state.history[0].snapshot_simulation_msec = "59999", "code": SaveSchemaValidator.ERR_CROSS_FIELD},
+	]
+	for i in range(cases.size()):
+		var snapshot := _populated_v4_snapshot(90 + i)
+		cases[i].mutate.call(snapshot)
+		var validation := SaveSchemaValidator.validate_current(snapshot)
+		assert_false(validation.ok, cases[i].name)
+		assert_eq(validation.code, cases[i].code, cases[i].name)
+		assert_eq(validation.field_path, "game_state.report_state.history.0.snapshot_simulation_msec" if cases[i].name != "missing" else "game_state.report_state.history.0", cases[i].name)
+		assert_false(SaveSchemaMapper.snapshot_to_runtime(snapshot).ok, cases[i].name)
+
 func _populated_v4_snapshot(save_revision := 30) -> Dictionary:
 	var state := _state()
 	var service := ReportService.new()
@@ -262,3 +310,61 @@ func test_schema_v4_rejects_extra_attribution_slice_keys() -> void:
 	assert_eq(validation.code, SaveSchemaValidator.ERR_KEY_SET)
 	assert_eq(validation.field_path, "game_state.report_state.live.slices.%s" % slice_key)
 	assert_false(SaveSchemaMapper.snapshot_to_runtime(snapshot).ok)
+
+func test_schema_v4_rejects_aliased_slice_identity_and_mismatched_keys() -> void:
+	var snapshot := _populated_v4_snapshot(83)
+	var slice_key = snapshot.game_state.report_state.live.slices.keys()[0]
+	snapshot.game_state.report_state.live.slices["THR_GLOAMWOOD|1|OVERDUE_ALIAS"] = snapshot.game_state.report_state.live.slices[slice_key].duplicate(true)
+	var duplicate_validation := SaveSchemaValidator.validate_current(snapshot)
+	assert_false(duplicate_validation.ok)
+	assert_eq(duplicate_validation.field_path, "game_state.report_state.live.slices.THR_GLOAMWOOD|1|OVERDUE_ALIAS")
+	assert_false(SaveSchemaMapper.snapshot_to_runtime(snapshot).ok)
+
+	snapshot = _populated_v4_snapshot(84)
+	slice_key = snapshot.game_state.report_state.live.slices.keys()[0]
+	snapshot.game_state.report_state.live.slices["THR_WRONG|1|OVERDUE"] = snapshot.game_state.report_state.live.slices[slice_key]
+	snapshot.game_state.report_state.live.slices.erase(slice_key)
+	var mismatch_validation := SaveSchemaValidator.validate_current(snapshot)
+	assert_false(mismatch_validation.ok)
+	assert_eq(mismatch_validation.field_path, "game_state.report_state.live.slices.THR_WRONG|1|OVERDUE")
+	assert_false(SaveSchemaMapper.snapshot_to_runtime(snapshot).ok)
+
+func test_schema_v4_accepts_distinct_slice_revisions_and_lifecycles() -> void:
+	var snapshot := _populated_v4_snapshot(85)
+	var slice_key = snapshot.game_state.report_state.live.slices.keys()[0]
+	var revision_two = snapshot.game_state.report_state.live.slices[slice_key].duplicate(true)
+	revision_two.assignment_revision = "2"
+	snapshot.game_state.report_state.live.slices["THR_GLOAMWOOD|2|OVERDUE"] = revision_two
+	var settled = snapshot.game_state.report_state.live.slices[slice_key].duplicate(true)
+	settled.lifecycle_state = "SETTLED"
+	snapshot.game_state.report_state.live.slices["THR_GLOAMWOOD|1|SETTLED"] = settled
+	assert_true(SaveSchemaValidator.validate_current(snapshot).ok)
+	assert_true(SaveSchemaMapper.snapshot_to_runtime(snapshot).ok)
+
+func test_schema_v4_event_details_are_owned_by_window_interval() -> void:
+	var cases := [
+		{"name": "before_start", "offset": -1, "valid": false},
+		{"name": "at_start", "offset": 0, "valid": false},
+		{"name": "inside", "offset": 1, "valid": true},
+		{"name": "at_end", "offset": 60000, "valid": true},
+		{"name": "after_end", "offset": 60001, "valid": false},
+	]
+	for i in range(cases.size()):
+		var snapshot := _populated_v4_snapshot(100 + i)
+		var start: int = SaveInt64.parse(snapshot.game_state.report_state.live.start_simulation_msec, false, "").value
+		snapshot.game_state.report_state.live.event_details.append(_event_detail_snapshot(1, start + int(cases[i].offset)))
+		snapshot.game_state.report_state.next_event_sequence = "2"
+		var validation := SaveSchemaValidator.validate_current(snapshot)
+		assert_eq(validation.ok, cases[i].valid, "live_%s" % cases[i].name)
+		assert_eq(SaveSchemaMapper.snapshot_to_runtime(snapshot).ok, cases[i].valid, "live_%s" % cases[i].name)
+	for i in range(cases.size()):
+		var snapshot := _populated_v4_snapshot(110 + i)
+		var start: int = SaveInt64.parse(snapshot.game_state.report_state.history[0].window.start_simulation_msec, false, "").value
+		snapshot.game_state.report_state.history[0].window.event_details.append(_event_detail_snapshot(1, start + int(cases[i].offset)))
+		snapshot.game_state.report_state.next_event_sequence = "2"
+		var validation := SaveSchemaValidator.validate_current(snapshot)
+		assert_eq(validation.ok, cases[i].valid, "history_%s" % cases[i].name)
+		assert_eq(SaveSchemaMapper.snapshot_to_runtime(snapshot).ok, cases[i].valid, "history_%s" % cases[i].name)
+
+func _event_detail_snapshot(sequence: int, occurred_msec: int) -> Dictionary:
+	return {"event_sequence": SaveInt64.format(sequence), "event_type": "TEST_EVENT", "occurred_simulation_msec": SaveInt64.format(occurred_msec), "priority": "0", "source_id": "TEST_SOURCE", "subject_id": "THR_GLOAMWOOD"}

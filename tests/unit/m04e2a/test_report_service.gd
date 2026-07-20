@@ -133,6 +133,9 @@ func test_public_views_expose_event_details_and_counts() -> void:
 
 	assert_true(service.snapshot_live(state, 1, ReportState.REASON_MANUAL_REVIEW).success)
 	var record := service.get_report_record(state, 1)
+	assert_eq(record.report_sequence, 1)
+	assert_eq(record.snapshot_reason, "MANUAL_REVIEW")
+	assert_eq(record.snapshot_simulation_msec, state.report_state.history[0].window.end_simulation_msec)
 	assert_true(record.events_by_type.has("THRESHOLD_SETTLED"))
 	assert_eq(record.event_details[0].event_sequence, global.event_details[0].event_sequence)
 

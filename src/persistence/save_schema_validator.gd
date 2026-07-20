@@ -136,11 +136,15 @@ static func validate_v4(snapshot: Variant) -> Dictionary:
 	if rs.history.size() > ReportState.MAX_HISTORY_RECORDS: return _err(ERR_RANGE, "game_state.report_state.history")
 	var max_event_sequence := 0
 	var max_report_sequence := 0
+	if typeof(rs.live) == TYPE_DICTIONARY and rs.live.has("end_simulation_msec"):
+		var live_end := SaveInt64.parse(rs.live.end_simulation_msec, false, "game_state.report_state.live.end_simulation_msec")
+		if not live_end.ok: return live_end
+		if live_end.value != report_cursor.value: return _err(ERR_CROSS_FIELD, "game_state.report_state.live.end_simulation_msec")
 	var lw := _validate_report_window(rs.live, "game_state.report_state.live", report_cursor.value); if not lw.ok: return lw
 	max_event_sequence = max(max_event_sequence, int(lw.max_event_sequence))
 	for i in range(rs.history.size()):
 		if typeof(rs.history[i]) != TYPE_DICTIONARY: return _err(ERR_TYPE, "game_state.report_state.history.%d" % i)
-		var rk := _require_keys(rs.history[i], ["report_sequence", "snapshot_reason", "window"], "game_state.report_state.history.%d" % i); if not rk.ok: return rk
+		var rk := _require_keys(rs.history[i], ["report_sequence", "snapshot_reason", "snapshot_simulation_msec", "window"], "game_state.report_state.history.%d" % i); if not rk.ok: return rk
 		var seq := SaveInt64.parse(rs.history[i].report_sequence, false, "game_state.report_state.history.%d.report_sequence" % i); if not seq.ok: return seq
 		if seq.value <= 0: return _err(ERR_RANGE, "game_state.report_state.history.%d.report_sequence" % i)
 		max_report_sequence = max(max_report_sequence, seq.value)
@@ -149,7 +153,10 @@ static func validate_v4(snapshot: Variant) -> Dictionary:
 			if previous_seq.ok and seq.value <= previous_seq.value: return _err(ERR_CROSS_FIELD, "game_state.report_state.history.%d.report_sequence" % i)
 		if typeof(rs.history[i].snapshot_reason) != TYPE_STRING: return _err(ERR_TYPE, "game_state.report_state.history.%d.snapshot_reason" % i)
 		if not ReportState.VALID_REASONS.has(StringName(rs.history[i].snapshot_reason)): return _err(ERR_RANGE, "game_state.report_state.history.%d.snapshot_reason" % i)
+		var snapshot_msec := SaveInt64.parse(rs.history[i].snapshot_simulation_msec, false, "game_state.report_state.history.%d.snapshot_simulation_msec" % i); if not snapshot_msec.ok: return snapshot_msec
+		if snapshot_msec.value > report_cursor.value: return _err(ERR_CROSS_FIELD, "game_state.report_state.history.%d.snapshot_simulation_msec" % i)
 		var hw := _validate_report_window(rs.history[i].window, "game_state.report_state.history.%d.window" % i, report_cursor.value); if not hw.ok: return hw
+		if snapshot_msec.value != int(hw.end_simulation_msec): return _err(ERR_CROSS_FIELD, "game_state.report_state.history.%d.snapshot_simulation_msec" % i)
 		max_event_sequence = max(max_event_sequence, int(hw.max_event_sequence))
 	if next_report_sequence.value <= max_report_sequence: return _err(ERR_CROSS_FIELD, "game_state.report_state.next_report_sequence")
 	if next_event_sequence.value <= max_event_sequence: return _err(ERR_CROSS_FIELD, "game_state.report_state.next_event_sequence")
@@ -264,6 +271,7 @@ static func _validate_report_window(w, path: String, max_end_msec: int) -> Dicti
 	if counted_modes != run_count.value: return _err(ERR_CROSS_FIELD, "%s.mode_counts" % path)
 	if typeof(w.slices) != TYPE_DICTIONARY or typeof(w.event_details) != TYPE_ARRAY: return _err(ERR_TYPE, path)
 	if w.event_details.size() > ReportState.MAX_EVENT_DETAILS: return _err(ERR_RANGE, "%s.event_details" % path)
+	var seen_slice_keys := {}
 	for sk in w.slices.keys():
 		var sd = w.slices[sk]; if typeof(sd) != TYPE_DICTIONARY: return _err(ERR_TYPE, "%s.slices.%s" % [path, sk])
 		var slice_keys := _require_keys(sd, ["assignment_revision", "backlog_delta", "channel_summaries", "completed_cycles_delta", "elapsed_msec", "end_simulation_msec", "form_id", "inventory_gains", "lifecycle_state", "mastery_gains", "returned_souls_delta", "retinue_ids", "start_simulation_msec", "threshold_id", "writ_id"], "%s.slices.%s" % [path, sk]); if not slice_keys.ok: return slice_keys
@@ -278,6 +286,10 @@ static func _validate_report_window(w, path: String, max_end_msec: int) -> Dicti
 			previous_retinue = String(rid)
 		var assignment_revision := SaveInt64.parse(sd.get("assignment_revision", ""), false, "%s.slices.%s.assignment_revision" % [path, sk]); if not assignment_revision.ok: return assignment_revision
 		if assignment_revision.value <= 0: return _err(ERR_RANGE, "%s.slices.%s.assignment_revision" % [path, sk])
+		var canonical_key := _report_slice_key(String(sd.threshold_id), assignment_revision.value, String(sd.lifecycle_state))
+		if String(sk) != canonical_key: return _err(ERR_CROSS_FIELD, "%s.slices.%s" % [path, sk])
+		if seen_slice_keys.has(canonical_key): return _err(ERR_CROSS_FIELD, "%s.slices.%s" % [path, sk])
+		seen_slice_keys[canonical_key] = true
 		var slice_start := SaveInt64.parse(sd.get("start_simulation_msec", ""), false, "%s.slices.%s.start_simulation_msec" % [path, sk]); if not slice_start.ok: return slice_start
 		var slice_end := SaveInt64.parse(sd.get("end_simulation_msec", ""), false, "%s.slices.%s.end_simulation_msec" % [path, sk]); if not slice_end.ok: return slice_end
 		if slice_start.value < start.value or slice_end.value > end.value or slice_start.value > slice_end.value: return _err(ERR_CROSS_FIELD, "%s.slices.%s" % [path, sk])
@@ -310,9 +322,13 @@ static func _validate_report_window(w, path: String, max_end_msec: int) -> Dicti
 			if previous_event_sequence.ok and event_sequence.value <= previous_event_sequence.value: return _err(ERR_CROSS_FIELD, "%s.event_sequence" % event_path)
 		for ik in ["occurred_simulation_msec", "priority"]:
 			var ei := SaveInt64.parse(ed[ik], false, "%s.%s" % [event_path, ik]); if not ei.ok: return ei
+			if ik == "occurred_simulation_msec" and (ei.value <= start.value or ei.value > end.value): return _err(ERR_RANGE, "%s.%s" % [event_path, ik])
 		for skey in ["event_type", "subject_id", "source_id"]:
 			if typeof(ed[skey]) != TYPE_STRING or String(ed[skey]).is_empty(): return _err(ERR_TYPE, "%s.%s" % [event_path, skey])
-	return {"ok": true, "max_event_sequence": max_event_sequence}
+	return {"ok": true, "max_event_sequence": max_event_sequence, "start_simulation_msec": start.value, "end_simulation_msec": end.value}
+
+static func _report_slice_key(threshold_id: String, assignment_revision: int, lifecycle_state: String) -> String:
+	return "%s|%d|%s" % [threshold_id, assignment_revision, lifecycle_state]
 
 static func _validate_v2_nested(g: Dictionary) -> Dictionary:
 	for item_id in g.inventory.entries.keys():

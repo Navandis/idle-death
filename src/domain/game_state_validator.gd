@@ -49,6 +49,8 @@ static func validate_report_state(state: GameState, registry: ContentRegistry = 
 		return _err(ERR_RANGE, "report_state.dropped_history_record_count")
 	if rs.history.size() > ReportState.MAX_HISTORY_RECORDS:
 		return _err(ERR_RANGE, "report_state.history")
+	if rs.live != null and rs.live is ReportState.ReportWindow and rs.live.end_simulation_msec != rs.report_cursor_msec:
+		return _err(ERR_CROSS_FIELD, "report_state.live.end_simulation_msec")
 	var max_event_sequence := 0
 	var live_result := _validate_report_window(rs.live, "report_state.live", rs.report_cursor_msec, registry)
 	if not live_result.ok: return live_result
@@ -67,8 +69,14 @@ static func validate_report_state(state: GameState, registry: ContentRegistry = 
 		max_report_sequence = max(max_report_sequence, record.report_sequence)
 		if not ReportState.VALID_REASONS.has(record.snapshot_reason):
 			return _err(ERR_RANGE, "report_state.history.%d.snapshot_reason" % i)
+		if record.snapshot_simulation_msec < 0:
+			return _err(ERR_RANGE, "report_state.history.%d.snapshot_simulation_msec" % i)
+		if record.snapshot_simulation_msec > rs.report_cursor_msec:
+			return _err(ERR_CROSS_FIELD, "report_state.history.%d.snapshot_simulation_msec" % i)
 		var window_result := _validate_report_window(record.window, "report_state.history.%d.window" % i, rs.report_cursor_msec, registry)
 		if not window_result.ok: return window_result
+		if record.snapshot_simulation_msec != record.window.end_simulation_msec:
+			return _err(ERR_CROSS_FIELD, "report_state.history.%d.snapshot_simulation_msec" % i)
 		max_event_sequence = max(max_event_sequence, int(window_result.max_event_sequence))
 	if rs.next_report_sequence <= max_report_sequence:
 		return _err(ERR_CROSS_FIELD, "report_state.next_report_sequence")
@@ -85,6 +93,7 @@ static func _validate_report_window(window, path: String, max_end_msec: int, reg
 		return _err(ERR_RANGE, path)
 	if window.event_details.size() > ReportState.MAX_EVENT_DETAILS:
 		return _err(ERR_RANGE, "%s.event_details" % path)
+	var seen_slice_keys := {}
 	var counted_modes := 0
 	for key in window.mode_counts.keys():
 		if str(key).is_empty() or not ReportState.VALID_MODES.has(StringName(key)):
@@ -101,6 +110,12 @@ static func _validate_report_window(window, path: String, max_end_msec: int, reg
 		if not [&"OVERDUE", &"SETTLED"].has(slice.lifecycle_state): return _err(ERR_RANGE, "%s.slices.%s.lifecycle_state" % [path, key])
 		if slice.assignment_revision <= 0 or slice.start_simulation_msec < window.start_simulation_msec or slice.end_simulation_msec > window.end_simulation_msec or slice.end_simulation_msec < slice.start_simulation_msec or slice.elapsed_msec < 0 or slice.returned_souls_delta < 0 or slice.completed_cycles_delta < 0:
 			return _err(ERR_RANGE, "%s.slices.%s" % [path, key])
+		var canonical_key := _report_slice_key(slice.threshold_id, slice.assignment_revision, slice.lifecycle_state)
+		if str(key) != canonical_key:
+			return _err(ERR_CROSS_FIELD, "%s.slices.%s" % [path, key])
+		if seen_slice_keys.has(canonical_key):
+			return _err(ERR_CROSS_FIELD, "%s.slices.%s" % [path, key])
+		seen_slice_keys[canonical_key] = true
 		if slice.retinue_ids != _sorted_unique_string_names(slice.retinue_ids): return _err(ERR_CROSS_FIELD, "%s.slices.%s.retinue_ids" % [path, key])
 		for retinue_id in slice.retinue_ids:
 			if str(retinue_id).is_empty(): return _err(ERR_TYPE, "%s.slices.%s.retinue_ids" % [path, key])
@@ -122,11 +137,14 @@ static func _validate_report_window(window, path: String, max_end_msec: int, reg
 	for i in range(window.event_details.size()):
 		var event = window.event_details[i]
 		if event == null or not (event is ReportState.ReportEventDetail): return _err(ERR_TYPE, "%s.event_details.%d" % [path, i])
-		if event.event_sequence <= 0 or event.event_sequence <= previous_event_sequence or event.event_type == &"" or event.occurred_simulation_msec < 0 or event.occurred_simulation_msec > window.end_simulation_msec or event.priority < 0 or event.subject_id == &"" or event.source_id == &"":
+		if event.event_sequence <= 0 or event.event_sequence <= previous_event_sequence or event.event_type == &"" or event.occurred_simulation_msec <= window.start_simulation_msec or event.occurred_simulation_msec > window.end_simulation_msec or event.priority < 0 or event.subject_id == &"" or event.source_id == &"":
 			return _err(ERR_RANGE, "%s.event_details.%d" % [path, i])
 		previous_event_sequence = event.event_sequence
 		max_event_sequence = max(max_event_sequence, event.event_sequence)
 	return {"ok": true, "max_event_sequence": max_event_sequence}
+
+static func _report_slice_key(threshold_id: StringName, assignment_revision: int, lifecycle_state: StringName) -> String:
+	return "%s|%d|%s" % [threshold_id, assignment_revision, lifecycle_state]
 
 static func _validate_inventory(state: GameState, registry: ContentRegistry) -> Dictionary:
 	for item_id in _sorted_keys(state.inventory.entries):

@@ -116,8 +116,8 @@ func test_malformed_runtime_objects_return_typed_errors() -> void:
 	_assert_invalid(func(s): s.reapings[&"THR_GLOAMWOOD"] = {}, GameStateValidator.ERR_TYPE)
 
 func _add_report_fixture(state: GameState) -> void:
-	state.report_state = ReportState.new(state.simulation_time_msec)
-	state.report_state.report_cursor_msec = state.simulation_time_msec
+	state.report_state = ReportState.new(2000)
+	state.report_state.report_cursor_msec = 2000
 	state.report_state.next_report_sequence = 2
 	state.report_state.next_event_sequence = 2
 	var window := ReportState.ReportWindow.new()
@@ -159,6 +159,7 @@ func _add_report_fixture(state: GameState) -> void:
 	var record := ReportState.ReportRecord.new()
 	record.report_sequence = 1
 	record.snapshot_reason = ReportState.REASON_MANUAL_REVIEW
+	record.snapshot_simulation_msec = window.end_simulation_msec
 	record.window = window.deep_clone()
 	state.report_state.history.append(record)
 
@@ -169,8 +170,10 @@ func test_report_state_clone_copy_and_runtime_validation_are_complete() -> void:
 	var clone := state.deep_clone()
 	clone.report_state.live.slices["THR_GLOAMWOOD|1|OVERDUE"].inventory_gains[&"RES_ESSENCE"] = 9
 	clone.report_state.history[0].window.event_details[0].source_id = &"CHANGED"
+	clone.report_state.history[0].snapshot_simulation_msec = 1999
 	assert_eq(state.report_state.live.slices["THR_GLOAMWOOD|1|OVERDUE"].inventory_gains[&"RES_ESSENCE"], 1)
 	assert_eq(state.report_state.history[0].window.event_details[0].source_id, &"SIMULATION_ENGINE")
+	assert_eq(state.report_state.history[0].snapshot_simulation_msec, 2000)
 	var target := GameState.new(0)
 	target.copy_from(state)
 	target.report_state.live.mode_counts.DEBUG = 2
@@ -182,12 +185,32 @@ func test_report_runtime_validation_matrix() -> void:
 	_assert_invalid(func(s): s.report_state.report_cursor_msec = s.simulation_time_msec + 1, GameStateValidator.ERR_RANGE)
 	_assert_invalid(func(s): s.report_state.next_report_sequence = 0, GameStateValidator.ERR_RANGE)
 	_assert_invalid(func(s): s.report_state.live.run_count = 1; s.report_state.live.mode_counts.BAD_MODE = 1, GameStateValidator.ERR_RANGE)
+	_assert_invalid(func(s): _add_report_fixture(s); s.report_state.live.end_simulation_msec = s.report_state.report_cursor_msec - 1, GameStateValidator.ERR_CROSS_FIELD)
 	_assert_invalid(func(s): _add_report_fixture(s); s.report_state.live.slices["THR_GLOAMWOOD|1|OVERDUE"].inventory_gains[&"RES_ESSENCE"] = -1, GameStateValidator.ERR_RANGE)
 	_assert_invalid(func(s): _add_report_fixture(s); s.report_state.live.slices["THR_GLOAMWOOD|1|OVERDUE"].lifecycle_state = &"BAD", GameStateValidator.ERR_RANGE)
+	_assert_invalid(func(s): _add_report_fixture(s); s.report_state.live.slices["THR_GLOAMWOOD|2|OVERDUE"] = s.report_state.live.slices["THR_GLOAMWOOD|1|OVERDUE"].deep_clone(), GameStateValidator.ERR_CROSS_FIELD)
+	_assert_invalid(func(s): _add_report_fixture(s); s.report_state.live.slices["THR_WRONG|1|OVERDUE"] = s.report_state.live.slices["THR_GLOAMWOOD|1|OVERDUE"]; s.report_state.live.slices.erase("THR_GLOAMWOOD|1|OVERDUE"), GameStateValidator.ERR_CROSS_FIELD)
 	_assert_invalid(func(s): _add_report_fixture(s); s.report_state.live.slices["THR_GLOAMWOOD|1|OVERDUE"].channel_summaries[&"CHANNEL_GLOAMWOOD_SOLDIER_SOULS"].channel_id = &"CHANNEL_OTHER", GameStateValidator.ERR_CROSS_FIELD)
 	_assert_invalid(func(s): _add_report_fixture(s); s.report_state.live.slices["THR_GLOAMWOOD|1|OVERDUE"].channel_summaries.erase(&"CHANNEL_GLOAMWOOD_SOLDIER_SOULS"); var channel := ReportState.ChannelSummary.new(); channel.channel_id = &"CHANNEL_UNKNOWN"; channel.output_item_id = &"SOUL_CALLING_SOLDIER"; s.report_state.live.slices["THR_GLOAMWOOD|1|OVERDUE"].channel_summaries[&"CHANNEL_UNKNOWN"] = channel, GameStateValidator.ERR_CONTENT)
 	_assert_invalid(func(s): _add_report_fixture(s); s.report_state.live.slices["THR_GLOAMWOOD|1|OVERDUE"].channel_summaries[&"CHANNEL_GLOAMWOOD_SOLDIER_SOULS"].output_item_id = &"RES_ESSENCE", GameStateValidator.ERR_CONTENT)
 	_assert_invalid(func(s): _add_report_fixture(s); s.report_state.next_report_sequence = 1, GameStateValidator.ERR_CROSS_FIELD)
 	_assert_invalid(func(s): _add_report_fixture(s); s.report_state.next_event_sequence = 1, GameStateValidator.ERR_CROSS_FIELD)
+	_assert_invalid(func(s): _add_report_fixture(s); s.report_state.history[0].snapshot_simulation_msec = 1999, GameStateValidator.ERR_CROSS_FIELD)
+	_assert_invalid(func(s): _add_report_fixture(s); s.report_state.history[0].snapshot_simulation_msec = -1, GameStateValidator.ERR_RANGE)
 	_assert_invalid(func(s): _add_report_fixture(s); s.report_state.history[0].snapshot_reason = &"UNKNOWN_REASON", GameStateValidator.ERR_RANGE)
 	_assert_invalid(func(s): _add_report_fixture(s); s.report_state.live.event_details[0].source_id = &"", GameStateValidator.ERR_RANGE)
+	_assert_invalid(func(s): _add_report_fixture(s); s.report_state.live.event_details[0].occurred_simulation_msec = s.report_state.live.start_simulation_msec, GameStateValidator.ERR_RANGE)
+
+func test_report_runtime_accepts_distinct_slice_identity_subdivisions_and_event_bounds() -> void:
+	var state := _representative_state()
+	_add_report_fixture(state)
+	var revision_two: ReportState.AttributionSlice = state.report_state.live.slices["THR_GLOAMWOOD|1|OVERDUE"].deep_clone()
+	revision_two.assignment_revision = 2
+	state.report_state.live.slices["THR_GLOAMWOOD|2|OVERDUE"] = revision_two
+	var settled: ReportState.AttributionSlice = state.report_state.live.slices["THR_GLOAMWOOD|1|OVERDUE"].deep_clone()
+	settled.lifecycle_state = &"SETTLED"
+	state.report_state.live.slices["THR_GLOAMWOOD|1|SETTLED"] = settled
+	state.report_state.live.event_details[0].occurred_simulation_msec = state.report_state.live.end_simulation_msec
+	assert_true(GameStateValidator.validate(state, _registry()).ok)
+	state.report_state.live.event_details[0].occurred_simulation_msec = state.report_state.live.start_simulation_msec + 1
+	assert_true(GameStateValidator.validate(state, _registry()).ok)

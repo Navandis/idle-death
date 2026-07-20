@@ -61,7 +61,7 @@ func get_report_record(state: GameState, report_sequence: int) -> Dictionary:
 	for record in state.report_state.history:
 		if record.report_sequence == report_sequence:
 			var view := _view_for_window(record.window, &"", 0)
-			view["report_sequence"] = report_sequence; view["snapshot_reason"] = str(record.snapshot_reason)
+			view["report_sequence"] = report_sequence; view["snapshot_reason"] = str(record.snapshot_reason); view["snapshot_simulation_msec"] = record.snapshot_simulation_msec
 			return view
 	return {"ok": false, "code": "REPORT_RECORD_NOT_FOUND"}
 
@@ -76,6 +76,7 @@ func snapshot_live(state: GameState, expected_next_report_sequence: int, snapsho
 	var record := ReportState.ReportRecord.new()
 	record.report_sequence = candidate.report_state.next_report_sequence
 	record.snapshot_reason = snapshot_reason
+	record.snapshot_simulation_msec = candidate.report_state.report_cursor_msec
 	record.window = candidate.report_state.live.deep_clone()
 	candidate.report_state.history.append(record)
 	candidate.report_state.next_report_sequence += 1
@@ -106,7 +107,7 @@ func _upsert_segment(window: ReportState.ReportWindow, segment: Dictionary) -> v
 	var threshold_id := StringName(str(segment.threshold_id))
 	var assignment_revision := int(segment.assignment_revision)
 	var form_id := StringName(str(segment.form_id))
-	var key := "%s|%d|%s" % [threshold_id, assignment_revision, segment.lifecycle]
+	var key := canonical_slice_key(threshold_id, assignment_revision, StringName(str(segment.lifecycle)))
 	var slice: ReportState.AttributionSlice = window.slices.get(key, null)
 	if slice == null:
 		slice = ReportState.AttributionSlice.new(); slice.threshold_id = threshold_id; slice.assignment_revision = assignment_revision; slice.lifecycle_state = StringName(segment.lifecycle)
@@ -204,7 +205,11 @@ func _offline_only(window: ReportState.ReportWindow) -> bool:
 func _validate_report_state(rs: ReportState, simulation_time_msec: int) -> Dictionary:
 	if rs.report_cursor_msec < 0 or rs.report_cursor_msec > simulation_time_msec: return {"ok": false}
 	if rs.next_report_sequence <= 0 or rs.next_event_sequence <= 0 or rs.history.size() > ReportState.MAX_HISTORY_RECORDS or rs.live.event_details.size() > ReportState.MAX_EVENT_DETAILS: return {"ok": false}
+	if rs.live.end_simulation_msec != rs.report_cursor_msec: return {"ok": false}
 	return {"ok": true}
+
+static func canonical_slice_key(threshold_id: StringName, assignment_revision: int, lifecycle_state: StringName) -> String:
+	return "%s|%d|%s" % [threshold_id, assignment_revision, lifecycle_state]
 
 func _add_map(map: Dictionary, key: StringName, amount: int) -> void:
 	if amount != 0: map[key] = int(map.get(key, 0)) + amount

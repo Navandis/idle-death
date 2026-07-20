@@ -139,8 +139,9 @@ class ReportRecord:
 	extends RefCounted
 	var report_sequence: int = 0
 	var snapshot_reason: StringName = &""
+	var snapshot_simulation_msec: int = 0
 	var window: ReportWindow = ReportWindow.new()
 	func deep_clone() -> ReportRecord:
 		var clone := ReportRecord.new()
-		clone.report_sequence = report_sequence; clone.snapshot_reason = snapshot_reason; clone.window = window.deep_clone()
+		clone.report_sequence = report_sequence; clone.snapshot_reason = snapshot_reason; clone.snapshot_simulation_msec = snapshot_simulation_msec; clone.window = window.deep_clone()
 		return clone
