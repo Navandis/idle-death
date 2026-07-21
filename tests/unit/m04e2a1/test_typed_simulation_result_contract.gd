@@ -32,7 +32,8 @@ func test_local_record_rejection_matrix() -> void:
 	assert_false(SimulationEngine.SimulationChannelDeltaResult.new(&"CHANNEL_GLOAMWOOD_SOLDIER_SOULS", &"SOUL_CALLING_SOLDIER", 1, 0, 0, 0, 0, 10, 10).validate(900000).ok)
 	assert_false(SimulationEngine.SimulationSegmentResult.new(&"THR_GLOAMWOOD", 0, &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD", [], &"OVERDUE", 0, 1, 1, 0, 0, 0, 0, 0, []).validate({}).ok)
 	assert_false(SimulationEngine.SimulationSegmentResult.new(&"THR_GLOAMWOOD", 1, &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD", [], &"BAD", 0, 1, 1, 0, 0, 0, 0, 0, []).validate({}).ok)
-	assert_false(SimulationEngine.SimulationSegmentResult.new(&"THR_GLOAMWOOD", 1, &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD", [&"RET_B", &"RET_A"], &"OVERDUE", 0, 1, 1, 0, 0, 0, 0, 0, []).validate({}).ok)
+	assert_true(SimulationEngine.SimulationSegmentResult.new(&"THR_GLOAMWOOD", 1, &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD", [&"RET_B", &"RET_A"], &"OVERDUE", 0, 1, 1, 0, 0, 0, 0, 0, []).validate({}).ok)
+	assert_false(SimulationEngine.SimulationSegmentResult.new(&"THR_GLOAMWOOD", 1, &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD", [], &"OVERDUE", 0, 1, 1, 0, 0, 0, 0, 0, [_delta()]).validate({&"CHANNEL_GLOAMWOOD_SOLDIER_SOULS": {"period_msec": 900000}}).ok)
 
 func test_complete_result_shapes_and_event_boundaries() -> void:
 	var result := SimulationEngine.SimulationResult.new(true, SimulationEngine.OK, "", 1000)

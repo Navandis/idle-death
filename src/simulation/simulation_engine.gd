@@ -33,6 +33,34 @@ const EVENT_THRESHOLD_SETTLED := &"THRESHOLD_SETTLED"
 const EVENT_OUTPUT_CHANNEL_BANKED := &"OUTPUT_CHANNEL_BANKED"
 const EVENT_PRIORITY_CHANNEL_GAIN := 100
 const EVENT_PRIORITY_LIFECYCLE := 200
+const SIMULATION_ENGINE_SOURCE_ID := &"SIMULATION_ENGINE"
+
+const ACTIVE_CHANGE_SUMMARY_KEYS := [
+	"Essence_delta",
+	"Mastery_delta_subunits",
+	"backlog_delta",
+	"channel_deltas",
+	"completed_cycles_delta",
+	"lifecycle_after",
+	"lifecycle_before",
+	"operation_id",
+	"returned_souls_delta",
+	"simulation_time_delta_msec",
+	"threshold_id",
+]
+const TIMELINE_CHANGE_SUMMARY_KEYS := ["simulation_time_delta_msec"]
+const OUTPUT_CHANNEL_EVENT_PAYLOAD_KEYS := [
+	"lifecycle_state",
+	"output_item_id",
+	"progress_subunits_after",
+	"quantity",
+	"total_banked_units",
+]
+const THRESHOLD_SETTLED_EVENT_PAYLOAD_KEYS := [
+	"lifecycle_state",
+	"persistent_returns_total",
+	"remaining_backlog",
+]
 
 const FLOW_CORE_RETURNS_PROGRESS_SUBUNITS := CoreFlowKeys.RETURNS_PROGRESS
 const FLOW_CORE_RETURNS_RATE_CARRY_UNITS := CoreFlowKeys.RETURNS_CARRY
@@ -110,6 +138,9 @@ func resolve_elapsed(state: GameState, elapsed_msec: int) -> SimulationResult:
 			result.events.append(SimulationEvent.threshold_settled(cursor, active_id, threshold.persistent_returns_total))
 	var timeline2 := candidate.advance_simulation_time(elapsed_msec)
 	if not timeline2.ok: return SimulationResult.failure(ERR_OVERFLOW, elapsed_msec, str(timeline2))
+	for event in result.events:
+		if event.event_type == EVENT_THRESHOLD_SETTLED:
+			event.payload["persistent_returns_total"] = candidate.thresholds[active_id].persistent_returns_total
 	result.committed_elapsed_msec = elapsed_msec
 	result.change_summary = _summary(state, candidate, active_id)
 	result.events.sort_custom(_event_less)
@@ -337,6 +368,8 @@ func _validate_core_flows(reaping: GameState.ReapingState) -> Dictionary:
 func _commit_if_valid(live: GameState, candidate: GameState, result: SimulationResult) -> SimulationResult:
 	var result_validation: Dictionary = validate_result(result, live.simulation_time_msec, candidate.simulation_time_msec, result.requested_elapsed_msec, not _active_reaping_ids(candidate).is_empty())
 	if not result_validation["ok"]: return SimulationResult.failure(ERR_RESULT_INVALID, result.requested_elapsed_msec, result_validation["details"])
+	var coherence: Dictionary = _validate_result_transition_coherence(live, candidate, result)
+	if not coherence["ok"]: return SimulationResult.failure(ERR_RESULT_INVALID, result.requested_elapsed_msec, coherence["details"])
 	var validation := GameStateValidator.validate(candidate, registry, true)
 	if not validation.ok: return SimulationResult.failure(ERR_STATE_INVALID, result.requested_elapsed_msec, str(validation))
 	live.copy_from(candidate)
@@ -388,98 +421,208 @@ func _fail(code: StringName, details: String) -> Dictionary:
 
 func validate_result(result: SimulationResult, baseline_simulation_time_msec: int, result_simulation_time_msec: int, requested_elapsed_msec: int, active_candidate_resolved: bool = false) -> Dictionary:
 	if result == null: return _fail(ERR_RESULT_INVALID, "SimulationResult is null.")
+	if result.requested_elapsed_msec != requested_elapsed_msec:
+		return _fail(ERR_RESULT_INVALID, "SimulationResult requested_elapsed_msec must match the validator request.")
 	if not result.success:
-		if result.segments.is_empty() and result.events.is_empty() and result.committed_elapsed_msec == 0: return {"ok": true}
-		return _fail(ERR_RESULT_INVALID, "Failed result cannot carry committed authority.")
+		return _validate_failed_result_shape(result)
+	if result.error_code != OK:
+		return _fail(ERR_RESULT_INVALID, "Successful results must carry the OK error code.")
+	if requested_elapsed_msec < 0:
+		return _fail(ERR_RESULT_INVALID, "Successful results cannot carry negative requested elapsed.")
 	if requested_elapsed_msec == 0:
-		if result.committed_elapsed_msec == 0 and result.segments.is_empty() and result.events.is_empty(): return {"ok": true}
-		return _fail(ERR_RESULT_INVALID, "Zero-duration result must be empty.")
-	if result.committed_elapsed_msec != requested_elapsed_msec: return _fail(ERR_RESULT_INVALID, "Committed elapsed must equal requested elapsed.")
-	if result_simulation_time_msec - baseline_simulation_time_msec != requested_elapsed_msec: return _fail(ERR_RESULT_INVALID, "Result cursor does not match requested elapsed.")
+		return _validate_zero_duration_result_shape(result, baseline_simulation_time_msec, result_simulation_time_msec)
+	if result.committed_elapsed_msec != requested_elapsed_msec:
+		return _fail(ERR_RESULT_INVALID, "Committed elapsed must equal requested elapsed.")
+	var cursor_delta := _checked_non_negative_difference(result_simulation_time_msec, baseline_simulation_time_msec, "result cursor delta")
+	if not cursor_delta["ok"]: return cursor_delta
+	if int(cursor_delta.value) != requested_elapsed_msec:
+		return _fail(ERR_RESULT_INVALID, "Result cursor does not match requested elapsed.")
 	if result.segments.is_empty():
-		if active_candidate_resolved: return _fail(ERR_RESULT_INVALID, "Active committed result must include typed segments.")
+		if active_candidate_resolved:
+			return _fail(ERR_RESULT_INVALID, "Active committed results must include typed segments.")
 		return _validate_timeline_only_result(result, requested_elapsed_msec)
-	var sum := 0
-	var expected_start := baseline_simulation_time_msec
-	var first: SimulationSegmentResult = result.segments[0]
-	for i in range(result.segments.size()):
-		var segment: SimulationSegmentResult = result.segments[i]
-		var identity_check := _validate_segment_content_identity(segment)
-		if not identity_check["ok"]: return identity_check
-		var local: Dictionary = segment.validate(_channel_contracts_for_segment(segment))
-		if not local["ok"]: return local
-		if segment.start_simulation_msec != expected_start: return _fail(ERR_RESULT_INVALID, "Segments must be ordered and contiguous.")
-		if segment.threshold_id != first.threshold_id or segment.assignment_revision != first.assignment_revision or segment.form_id != first.form_id or segment.writ_id != first.writ_id or segment.ordered_retinue_ids != first.ordered_retinue_ids:
-			return _fail(ERR_RESULT_INVALID, "Assignment identity changed inside one run.")
-		if i > 0 and result.segments[i - 1].lifecycle_state == LIFECYCLE_SETTLED and segment.lifecycle_state != LIFECYCLE_SETTLED:
-			return _fail(ERR_RESULT_INVALID, "Lifecycle may only move from OVERDUE to SETTLED.")
-		sum += segment.elapsed_msec
-		expected_start = segment.end_simulation_msec
-	if expected_start != result_simulation_time_msec: return _fail(ERR_RESULT_INVALID, "Final segment end must equal result cursor.")
-	if sum != requested_elapsed_msec: return _fail(ERR_RESULT_INVALID, "Segment elapsed sum must equal committed elapsed.")
+	if not active_candidate_resolved:
+		return _fail(ERR_RESULT_INVALID, "Positive segment-bearing results require an active candidate operation.")
+	var segment_check := _validate_active_segment_grammar(result.segments, baseline_simulation_time_msec, result_simulation_time_msec, requested_elapsed_msec)
+	if not segment_check["ok"]: return segment_check
 	var events_check := _validate_events_for_segments(result.segments, result.events)
 	if not events_check["ok"]: return events_check
-	var summary_check := _validate_active_change_summary(result, requested_elapsed_msec)
-	if not summary_check["ok"]: return summary_check
-	return {"ok": true}
+	return _validate_active_change_summary(result, requested_elapsed_msec)
 
 func _validate_timeline_only_result(result: SimulationResult, requested_elapsed_msec: int) -> Dictionary:
-	if not result.events.is_empty(): return _fail(ERR_RESULT_INVALID, "Timeline-only result cannot carry events.")
-	if result.change_summary.size() != 1 or not result.change_summary.has("simulation_time_delta_msec") or int(result.change_summary.simulation_time_delta_msec) != requested_elapsed_msec:
-		return _fail(ERR_RESULT_INVALID, "Timeline-only summary must contain only the exact simulation-time delta.")
+	if result.committed_elapsed_msec != requested_elapsed_msec:
+		return _fail(ERR_RESULT_INVALID, "Timeline-only committed elapsed must equal requested elapsed.")
+	if not result.events.is_empty():
+		return _fail(ERR_RESULT_INVALID, "Timeline-only results cannot carry events.")
+	if not _dictionary_has_exact_keys(result.change_summary, TIMELINE_CHANGE_SUMMARY_KEYS):
+		return _fail(ERR_RESULT_INVALID, "Timeline-only summary must contain exactly simulation_time_delta_msec.")
+	if typeof(result.change_summary.simulation_time_delta_msec) != TYPE_INT:
+		return _fail(ERR_RESULT_INVALID, "Timeline-only simulation_time_delta_msec must be an int.")
+	if int(result.change_summary.simulation_time_delta_msec) != requested_elapsed_msec:
+		return _fail(ERR_RESULT_INVALID, "Timeline-only summary must contain the exact simulation-time delta.")
+	return {"ok": true}
+
+func _validate_failed_result_shape(result: SimulationResult) -> Dictionary:
+	if result.error_code == OK or str(result.error_code).is_empty():
+		return _fail(ERR_RESULT_INVALID, "Failed results must carry a non-empty non-OK error code.")
+	if result.developer_details.strip_edges().is_empty():
+		return _fail(ERR_RESULT_INVALID, "Failed results must carry stable developer_details.")
+	if result.committed_elapsed_msec != 0:
+		return _fail(ERR_RESULT_INVALID, "Failed results cannot carry committed elapsed authority.")
+	if not result.segments.is_empty() or not result.events.is_empty():
+		return _fail(ERR_RESULT_INVALID, "Failed results cannot carry committed segment or event authority.")
+	if not result.change_summary.is_empty():
+		return _fail(ERR_RESULT_INVALID, "Failed results cannot carry diagnostic summary authority.")
+	return {"ok": true}
+
+func _validate_zero_duration_result_shape(result: SimulationResult, baseline_simulation_time_msec: int, result_simulation_time_msec: int) -> Dictionary:
+	if result.committed_elapsed_msec != 0:
+		return _fail(ERR_RESULT_INVALID, "Zero-duration success must commit zero elapsed.")
+	if baseline_simulation_time_msec != result_simulation_time_msec:
+		return _fail(ERR_RESULT_INVALID, "Zero-duration success cannot advance the simulation cursor.")
+	if not result.segments.is_empty() or not result.events.is_empty():
+		return _fail(ERR_RESULT_INVALID, "Zero-duration success cannot carry segment or event authority.")
+	if not result.change_summary.is_empty():
+		return _fail(ERR_RESULT_INVALID, "Zero-duration success cannot carry change_summary authority.")
+	return {"ok": true}
+
+func _validate_active_segment_grammar(segments: Array[SimulationSegmentResult], baseline_simulation_time_msec: int, result_simulation_time_msec: int, requested_elapsed_msec: int) -> Dictionary:
+	if segments.size() > 2:
+		return _fail(ERR_RESULT_INVALID, "Active results may contain at most two segments under the current one-Reaping engine.")
+	var first: SimulationSegmentResult = segments[0]
+	if first == null:
+		return _fail(ERR_RESULT_INVALID, "Segments cannot contain null entries.")
+	var sum := 0
+	var expected_start := baseline_simulation_time_msec
+	for i in range(segments.size()):
+		var segment: SimulationSegmentResult = segments[i]
+		if segment == null:
+			return _fail(ERR_RESULT_INVALID, "Segments cannot contain null entries.")
+		var identity_check := _validate_segment_content_identity(segment)
+		if not identity_check["ok"]: return identity_check
+		var contract_check := _channel_contracts_for_segment(segment)
+		if not contract_check["ok"]: return contract_check
+		var local: Dictionary = segment.validate(contract_check.contracts)
+		if not local["ok"]: return local
+		if segment.start_simulation_msec != expected_start:
+			return _fail(ERR_RESULT_INVALID, "Segments must be ordered and contiguous from the baseline cursor.")
+		if segment.threshold_id != first.threshold_id or segment.assignment_revision != first.assignment_revision or segment.form_id != first.form_id or segment.writ_id != first.writ_id or segment.ordered_retinue_ids != first.ordered_retinue_ids:
+			return _fail(ERR_RESULT_INVALID, "Assignment identity changed inside one committed run.")
+		if i == 1 and (segments[0].lifecycle_state != LIFECYCLE_OVERDUE or segment.lifecycle_state != LIFECYCLE_SETTLED):
+			return _fail(ERR_RESULT_INVALID, "Two-segment active results must be OVERDUE followed by SETTLED.")
+		var elapsed_sum := _checked_add_non_negative(sum, segment.elapsed_msec, "segment elapsed sum")
+		if not elapsed_sum["ok"]: return elapsed_sum
+		sum = int(elapsed_sum.value)
+		expected_start = segment.end_simulation_msec
+		if i > 0:
+			var continuity := _validate_cross_segment_channel_continuity(segments[i - 1], segment)
+			if not continuity["ok"]: return continuity
+	if segments.size() == 1 and segments[0].lifecycle_state != LIFECYCLE_OVERDUE and segments[0].lifecycle_state != LIFECYCLE_SETTLED:
+		return _fail(ERR_RESULT_INVALID, "Single-segment active results must be OVERDUE or SETTLED.")
+	if expected_start != result_simulation_time_msec:
+		return _fail(ERR_RESULT_INVALID, "Final segment end must equal the committed result cursor.")
+	if sum != requested_elapsed_msec:
+		return _fail(ERR_RESULT_INVALID, "Segment elapsed sum must equal the committed elapsed duration.")
 	return {"ok": true}
 
 func _validate_segment_content_identity(segment: SimulationSegmentResult) -> Dictionary:
-	var threshold_record := registry.get_record(str(segment.threshold_id))
-	if not threshold_record.ok: return _fail(ERR_RESULT_INVALID, "Segment Threshold must resolve in content.")
-	if not str(segment.threshold_id).begins_with("THR_"): return _fail(ERR_RESULT_INVALID, "Segment Threshold ID must use THR_ content identity.")
-	var form_record := registry.get_record(str(segment.form_id))
-	if not form_record.ok or not str(segment.form_id).begins_with("FORM_"):
-		return _fail(ERR_RESULT_INVALID, "Segment Form must resolve in content.")
-	var writ_record := registry.get_record(str(segment.writ_id))
-	if not writ_record.ok or not str(segment.writ_id).begins_with("WRIT_"):
-		return _fail(ERR_RESULT_INVALID, "Segment Writ must resolve in content.")
+	var threshold_record := _get_enabled_content_record(segment.threshold_id, "threshold", "segment Threshold")
+	if not threshold_record["ok"]: return threshold_record
+	var form_record := _get_enabled_content_record(segment.form_id, "form", "segment Form")
+	if not form_record["ok"]: return form_record
+	var writ_record := _get_enabled_content_record(segment.writ_id, "writ", "segment Writ")
+	if not writ_record["ok"]: return writ_record
+	for retinue_id in segment.ordered_retinue_ids:
+		var retinue_record := _get_enabled_content_record(retinue_id, "retinue", "segment Retinue")
+		if not retinue_record["ok"]: return retinue_record
 	var threshold_channels: Array = threshold_record.record.channel_ids
 	for delta in segment.channel_deltas:
+		if delta == null:
+			return _fail(ERR_RESULT_INVALID, "Segment channel deltas cannot contain null entries.")
 		if not threshold_channels.has(str(delta.channel_id)):
 			return _fail(ERR_RESULT_INVALID, "Segment channel must be authored on the owning Threshold.")
-		var channel_record := registry.get_record(str(delta.channel_id))
-		if not channel_record.ok: return _fail(ERR_RESULT_INVALID, "Segment channel must resolve in content.")
+		var channel_record := _get_enabled_content_record(delta.channel_id, "channel", "segment channel")
+		if not channel_record["ok"]: return channel_record
 		if str(channel_record.record.source_threshold_id) != str(segment.threshold_id):
 			return _fail(ERR_RESULT_INVALID, "Segment channel source Threshold must match the segment Threshold.")
+		var output_item_record := _get_enabled_content_record(delta.output_item_id, "item", "segment channel output item")
+		if not output_item_record["ok"]: return output_item_record
+		if StringName(channel_record.record.output_item_id) != delta.output_item_id:
+			return _fail(ERR_RESULT_INVALID, "Segment channel output item must match the authored channel output.")
 	return {"ok": true}
 
 func _validate_events_for_segments(segments: Array[SimulationSegmentResult], events: Array[SimulationEvent]) -> Dictionary:
 	var previous: SimulationEvent = null
+	var bank_event_counts := {}
+	var settlement_segment_index := -1
+	var settlement_count := 0
 	for event in events:
+		if event == null:
+			return _fail(ERR_RESULT_INVALID, "Simulation events cannot contain null entries.")
 		var event_check: Dictionary = event.validate()
 		if not event_check["ok"]: return event_check
 		if previous != null and _event_less(event, previous):
 			return _fail(ERR_RESULT_INVALID, "Events must be in stable simulation-time, priority, subject, source order.")
 		previous = event
-		if not event.reportable:
-			continue
-		var owning := _owning_segment(segments, event)
-		if owning == null:
+		var owning_index := _owning_segment_index(segments, event)
+		if event.reportable and owning_index < 0:
 			return _fail(ERR_RESULT_INVALID, "Event marked reportable must belong to exactly one segment.")
+		if not event.reportable:
+			var diagnostic_shape := _validate_known_event_shape(event)
+			if not diagnostic_shape["ok"]: return diagnostic_shape
+			continue
+		var owning: SimulationSegmentResult = segments[owning_index]
 		var coherence := _validate_event_matches_segment(owning, event)
 		if not coherence["ok"]: return coherence
+		match event.event_type:
+			EVENT_OUTPUT_CHANNEL_BANKED:
+				var bank_key := _segment_event_key(owning_index, event.source_id)
+				bank_event_counts[bank_key] = int(bank_event_counts.get(bank_key, 0)) + 1
+				if int(bank_event_counts[bank_key]) > 1:
+					return _fail(ERR_RESULT_INVALID, "Positive channel banking may emit only one bank event per segment/channel delta.")
+			EVENT_THRESHOLD_SETTLED:
+				settlement_count += 1
+				if settlement_count > 1:
+					return _fail(ERR_RESULT_INVALID, "A committed result may emit at most one Settlement event.")
+				settlement_segment_index = owning_index
+	for segment_index in range(segments.size()):
+		var segment: SimulationSegmentResult = segments[segment_index]
+		for delta in segment.channel_deltas:
+			var bank_count := int(bank_event_counts.get(_segment_event_key(segment_index, delta.channel_id), 0))
+			if delta.banked_units_delta > 0 and bank_count != 1:
+				return _fail(ERR_RESULT_INVALID, "Every positive-banking channel delta must emit exactly one OUTPUT_CHANNEL_BANKED event.")
+			if delta.banked_units_delta == 0 and bank_count != 0:
+				return _fail(ERR_RESULT_INVALID, "Progress-only channel deltas cannot emit bank events.")
+	if segments.size() == 2:
+		if settlement_count != 1 or settlement_segment_index != 0:
+			return _fail(ERR_RESULT_INVALID, "Two-segment OVERDUE->SETTLED runs require exactly one Settlement event at the Overdue segment end.")
+	elif segments[0].lifecycle_state == LIFECYCLE_SETTLED and settlement_count != 0:
+		return _fail(ERR_RESULT_INVALID, "Already-settled single-segment runs cannot emit Settlement events.")
 	return {"ok": true}
 
-func _owning_segment(segments: Array[SimulationSegmentResult], event: SimulationEvent) -> SimulationSegmentResult:
-	var owned_by: SimulationSegmentResult = null
-	for segment in segments:
+func _owning_segment_index(segments: Array[SimulationSegmentResult], event: SimulationEvent) -> int:
+	var owned_index := -1
+	for i in range(segments.size()):
+		var segment: SimulationSegmentResult = segments[i]
 		if segment.start_simulation_msec < event.occurred_simulation_msec and event.occurred_simulation_msec <= segment.end_simulation_msec:
-			if owned_by != null:
-				return null
-			owned_by = segment
-	return owned_by
+			if owned_index != -1:
+				return -1
+			owned_index = i
+	return owned_index
 
 func _validate_event_matches_segment(segment: SimulationSegmentResult, event: SimulationEvent) -> Dictionary:
 	match event.event_type:
 		EVENT_OUTPUT_CHANNEL_BANKED:
+			if not event.reportable or not event.tutorial_relevant:
+				return _fail(ERR_RESULT_INVALID, "OUTPUT_CHANNEL_BANKED must use the canonical reportable/tutorial flags.")
+			if event.priority != EVENT_PRIORITY_CHANNEL_GAIN:
+				return _fail(ERR_RESULT_INVALID, "OUTPUT_CHANNEL_BANKED must use the canonical channel-gain priority.")
 			if event.subject_id != segment.threshold_id:
 				return _fail(ERR_RESULT_INVALID, "Output-channel event subject must match owning segment Threshold.")
+			if event.occurred_simulation_msec != segment.end_simulation_msec:
+				return _fail(ERR_RESULT_INVALID, "Output-channel events must occur at the owning segment end.")
+			var payload_check := _validate_output_channel_event_payload(event.payload)
+			if not payload_check["ok"]: return payload_check
 			for delta in segment.channel_deltas:
 				if delta.channel_id != event.source_id:
 					continue
@@ -489,31 +632,59 @@ func _validate_event_matches_segment(segment: SimulationSegmentResult, event: Si
 					return _fail(ERR_RESULT_INVALID, "Output-channel event output item must match the channel delta.")
 				if int(event.payload.get("quantity", -1)) != delta.banked_units_delta:
 					return _fail(ERR_RESULT_INVALID, "Output-channel event quantity must match the channel delta.")
+				if str(event.payload.get("lifecycle_state", "")) != str(segment.lifecycle_state):
+					return _fail(ERR_RESULT_INVALID, "Output-channel event lifecycle_state must match the owning segment lifecycle.")
 				if int(event.payload.get("total_banked_units", -1)) != delta.total_banked_units_after:
 					return _fail(ERR_RESULT_INVALID, "Output-channel event total must match the channel delta endpoint.")
+				if int(event.payload.get("progress_subunits_after", -1)) != delta.progress_subunits_after:
+					return _fail(ERR_RESULT_INVALID, "Output-channel event progress endpoint must match the channel delta endpoint.")
 				return {"ok": true}
 			return _fail(ERR_RESULT_INVALID, "Output-channel event source must match a banked channel delta in its segment.")
 		EVENT_THRESHOLD_SETTLED:
-			if event.subject_id != segment.threshold_id or event.source_id != &"SIMULATION_ENGINE":
+			if not event.reportable or not event.tutorial_relevant:
+				return _fail(ERR_RESULT_INVALID, "THRESHOLD_SETTLED must use the canonical reportable/tutorial flags.")
+			if event.priority != EVENT_PRIORITY_LIFECYCLE:
+				return _fail(ERR_RESULT_INVALID, "THRESHOLD_SETTLED must use the canonical lifecycle priority.")
+			if segment.lifecycle_state != LIFECYCLE_OVERDUE:
+				return _fail(ERR_RESULT_INVALID, "Settlement events must belong to an OVERDUE segment.")
+			if event.subject_id != segment.threshold_id or event.source_id != SIMULATION_ENGINE_SOURCE_ID:
 				return _fail(ERR_RESULT_INVALID, "Settlement event identity must match owning segment Threshold.")
 			if event.occurred_simulation_msec != segment.end_simulation_msec:
 				return _fail(ERR_RESULT_INVALID, "Settlement event must occur at the owning segment end.")
+			var payload_shape := _validate_threshold_settled_event_payload(event.payload)
+			if not payload_shape["ok"]: return payload_shape
 			if str(event.payload.get("lifecycle_state", "")) != "SETTLED" or int(event.payload.get("remaining_backlog", -1)) != 0:
 				return _fail(ERR_RESULT_INVALID, "Settlement event payload must describe the Settled endpoint.")
 			return {"ok": true}
 		_:
-			return {"ok": true}
+			return _fail(ERR_RESULT_INVALID, "Unknown simulation event types are not allowed in the committed result grammar.")
 
 func _validate_active_change_summary(result: SimulationResult, requested_elapsed_msec: int) -> Dictionary:
 	var summary := result.change_summary
-	if summary.has("simulation_time_delta_msec") and int(summary.simulation_time_delta_msec) != requested_elapsed_msec:
+	if not _dictionary_has_exact_keys(summary, ACTIVE_CHANGE_SUMMARY_KEYS):
+		return _fail(ERR_RESULT_INVALID, "Active results must use the exact active change_summary key set.")
+	if typeof(summary.threshold_id) != TYPE_STRING or summary.threshold_id == "":
+		return _fail(ERR_RESULT_INVALID, "Active summary threshold_id must be a non-empty String.")
+	if typeof(summary.operation_id) != TYPE_STRING or summary.operation_id == "":
+		return _fail(ERR_RESULT_INVALID, "Active summary operation_id must be a non-empty String.")
+	if typeof(summary.lifecycle_before) != TYPE_STRING or typeof(summary.lifecycle_after) != TYPE_STRING:
+		return _fail(ERR_RESULT_INVALID, "Active summary lifecycle fields must be Strings.")
+	for key in ["simulation_time_delta_msec", "returned_souls_delta", "backlog_delta", "Essence_delta", "Mastery_delta_subunits", "completed_cycles_delta"]:
+		if typeof(summary[key]) != TYPE_INT:
+			return _fail(ERR_RESULT_INVALID, "Active summary %s must be an int." % key)
+	if not (summary.channel_deltas is Array):
+		return _fail(ERR_RESULT_INVALID, "Active summary channel_deltas must be an Array.")
+	if int(summary.simulation_time_delta_msec) != requested_elapsed_msec:
 		return _fail(ERR_RESULT_INVALID, "Summary simulation-time delta mismatch.")
 	var totals := _aggregate_segments(result.segments)
+	if not totals["ok"]: return totals
 	for key in ["returned_souls_delta", "Essence_delta", "Mastery_delta_subunits", "completed_cycles_delta"]:
 		if summary.has(key) and int(summary[key]) != int(totals[key]):
 			return _fail(ERR_RESULT_INVALID, "Summary %s mismatch." % key)
 	if summary.has("backlog_delta") and int(summary.backlog_delta) != -int(totals.backlog_reduced):
 		return _fail(ERR_RESULT_INVALID, "Summary backlog_delta mismatch.")
+	if str(summary.threshold_id) != str(result.segments[0].threshold_id) or str(summary.operation_id) != str(result.segments[0].threshold_id):
+		return _fail(ERR_RESULT_INVALID, "Active summary threshold and operation IDs must match the owning Threshold.")
 	if summary.has("lifecycle_before") and str(summary.lifecycle_before) != str(result.segments[0].lifecycle_state):
 		return _fail(ERR_RESULT_INVALID, "Summary lifecycle_before mismatch.")
 	if summary.has("lifecycle_after") and str(summary.lifecycle_after) != str(_result_lifecycle_after(result)):
@@ -524,6 +695,8 @@ func _validate_active_change_summary(result: SimulationResult, requested_elapsed
 		if summary_channels.size() != aggregate_channels.size():
 			return _fail(ERR_RESULT_INVALID, "Summary channel_deltas size mismatch.")
 		for i in range(summary_channels.size()):
+			if summary_channels[i] == null or not (summary_channels[i] is SimulationChannelDeltaResult):
+				return _fail(ERR_RESULT_INVALID, "Active summary channel_deltas must contain SimulationChannelDeltaResult values.")
 			if not _channel_delta_fields_equal(summary_channels[i], aggregate_channels[i]):
 				return _fail(ERR_RESULT_INVALID, "Summary channel_deltas mismatch.")
 	return {"ok": true}
@@ -540,18 +713,25 @@ func _aggregate_segments(segments: Array[SimulationSegmentResult]) -> Dictionary
 	var channel_accumulator := {}
 	var channel_order: Array[StringName] = []
 	for segment in segments:
-		totals.returned_souls_delta += segment.returned_souls_delta
-		totals.backlog_reduced += segment.backlog_reduced
-		totals.Essence_delta += segment.essence_delta
-		totals.Mastery_delta_subunits += segment.mastery_delta_subunits
-		totals.completed_cycles_delta += segment.completed_cycles_delta
+		for aggregate_key in [
+			["returned_souls_delta", segment.returned_souls_delta],
+			["backlog_reduced", segment.backlog_reduced],
+			["Essence_delta", segment.essence_delta],
+			["Mastery_delta_subunits", segment.mastery_delta_subunits],
+			["completed_cycles_delta", segment.completed_cycles_delta],
+		]:
+			var aggregate_total := _checked_add_non_negative(int(totals[aggregate_key[0]]), int(aggregate_key[1]), "segment aggregate %s" % aggregate_key[0])
+			if not aggregate_total["ok"]: return aggregate_total
+			totals[aggregate_key[0]] = int(aggregate_total.value)
 		for delta in segment.channel_deltas:
 			if not channel_accumulator.has(delta.channel_id):
 				channel_order.append(delta.channel_id)
 				channel_accumulator[delta.channel_id] = delta.detached_copy()
 			else:
 				var accumulated: SimulationChannelDeltaResult = channel_accumulator[delta.channel_id]
-				accumulated.banked_units_delta += delta.banked_units_delta
+				var banked_total := _checked_add_non_negative(accumulated.banked_units_delta, delta.banked_units_delta, "channel banked aggregate")
+				if not banked_total["ok"]: return banked_total
+				accumulated.banked_units_delta = int(banked_total.value)
 				accumulated.progress_subunits_after = delta.progress_subunits_after
 				accumulated.rate_carry_units_after = delta.rate_carry_units_after
 				accumulated.total_banked_units_after = delta.total_banked_units_after
@@ -576,10 +756,311 @@ func _channel_delta_fields_equal(left: SimulationChannelDeltaResult, right: Simu
 func _channel_contracts_for_segment(segment: SimulationSegmentResult) -> Dictionary:
 	var contracts := {}
 	for delta in segment.channel_deltas:
-		var record := registry.get_record(str(delta.channel_id))
-		if not record.ok: continue
+		if delta == null:
+			return _fail(ERR_RESULT_INVALID, "Segment channel deltas cannot contain null entries.")
+		var record := _get_enabled_content_record(delta.channel_id, "channel", "segment channel")
+		if not record["ok"]: return record
 		contracts[delta.channel_id] = {"period_msec": int(record.record.rate.period_msec), "output_item_id": StringName(record.record.output_item_id)}
-	return contracts
+	return {"ok": true, "contracts": contracts}
+
+func _validate_result_transition_coherence(source: GameState, candidate: GameState, result: SimulationResult) -> Dictionary:
+	if not result.success:
+		return _validate_exact_state_match(source, candidate, 0, "Failed results")
+	if result.requested_elapsed_msec == 0:
+		return _validate_exact_state_match(source, candidate, 0, "Zero-duration success")
+	if result.segments.is_empty():
+		return _validate_timeline_only_transition(source, candidate, result)
+	return _validate_active_transition(source, candidate, result)
+
+func _validate_timeline_only_transition(source: GameState, candidate: GameState, result: SimulationResult) -> Dictionary:
+	if not _active_reaping_ids(source).is_empty() or not _active_reaping_ids(candidate).is_empty():
+		return _fail(ERR_RESULT_INVALID, "Timeline-only committed results require no active Reaping in source or candidate.")
+	return _validate_exact_state_match(source, candidate, result.requested_elapsed_msec, "Timeline-only committed results")
+
+func _validate_active_transition(source: GameState, candidate: GameState, result: SimulationResult) -> Dictionary:
+	var source_active_ids := _active_reaping_ids(source)
+	var candidate_active_ids := _active_reaping_ids(candidate)
+	if source_active_ids.size() != 1 or candidate_active_ids.size() != 1 or source_active_ids[0] != candidate_active_ids[0]:
+		return _fail(ERR_RESULT_INVALID, "Active committed results require exactly one matching active operation in source and candidate.")
+	var threshold_id: StringName = source_active_ids[0]
+	var source_reaping: GameState.ReapingState = source.reapings[threshold_id]
+	var candidate_reaping: GameState.ReapingState = candidate.reapings[threshold_id]
+	if source_reaping.assignment_revision != candidate_reaping.assignment_revision or source_reaping.form_id != candidate_reaping.form_id or source_reaping.writ_id != candidate_reaping.writ_id or source_reaping.retinue_ids != candidate_reaping.retinue_ids:
+		return _fail(ERR_RESULT_INVALID, "Source and candidate must describe the same one active operation before commit.")
+	for segment in result.segments:
+		if segment.threshold_id != threshold_id or segment.assignment_revision != source_reaping.assignment_revision or segment.form_id != source_reaping.form_id or segment.writ_id != source_reaping.writ_id or segment.ordered_retinue_ids != source_reaping.retinue_ids:
+			return _fail(ERR_RESULT_INVALID, "Typed segments must match the exact source/candidate assignment identity.")
+	var source_threshold: GameState.ThresholdState = source.thresholds[threshold_id]
+	var candidate_threshold: GameState.ThresholdState = candidate.thresholds[threshold_id]
+	var lifecycle_check := _validate_transition_lifecycle_shape(source_threshold.lifecycle_state, candidate_threshold.lifecycle_state, result)
+	if not lifecycle_check["ok"]: return lifecycle_check
+	var totals := _aggregate_segments(result.segments)
+	if not totals["ok"]: return totals
+	var returned_delta := _checked_non_negative_difference(candidate_threshold.persistent_returns_total, source_threshold.persistent_returns_total, "actual returned_souls_delta")
+	if not returned_delta["ok"]: return returned_delta
+	if int(returned_delta.value) != int(totals.returned_souls_delta):
+		return _fail(ERR_RESULT_INVALID, "Typed returned_souls_delta does not match the candidate transition.")
+	var backlog_reduced := _checked_non_negative_difference(source_threshold.remaining_backlog, candidate_threshold.remaining_backlog, "actual backlog_reduced")
+	if not backlog_reduced["ok"]: return backlog_reduced
+	if int(backlog_reduced.value) != int(totals.backlog_reduced):
+		return _fail(ERR_RESULT_INVALID, "Typed backlog_reduced does not match the candidate transition.")
+	var source_essence := source.inventory.entries.get(&"RES_ESSENCE", GameState.InventoryEntryState.new()).total
+	var candidate_essence := candidate.inventory.entries.get(&"RES_ESSENCE", GameState.InventoryEntryState.new()).total
+	var essence_delta := _checked_non_negative_difference(candidate_essence, source_essence, "actual Essence_delta")
+	if not essence_delta["ok"]: return essence_delta
+	if int(essence_delta.value) != int(totals.Essence_delta):
+		return _fail(ERR_RESULT_INVALID, "Typed Essence_delta does not match the candidate transition.")
+	var source_form: GameState.FormState = source.forms[source_reaping.form_id]
+	var candidate_form: GameState.FormState = candidate.forms[source_reaping.form_id]
+	var mastery_delta := _checked_non_negative_difference(candidate_form.mastery_subunits, source_form.mastery_subunits, "actual Mastery_delta_subunits")
+	if not mastery_delta["ok"]: return mastery_delta
+	if int(mastery_delta.value) != int(totals.Mastery_delta_subunits):
+		return _fail(ERR_RESULT_INVALID, "Typed Mastery_delta_subunits does not match the candidate transition.")
+	var completed_delta := _checked_non_negative_difference(candidate_reaping.completed_cycle_count, source_reaping.completed_cycle_count, "actual completed_cycles_delta")
+	if not completed_delta["ok"]: return completed_delta
+	if int(completed_delta.value) != int(totals.completed_cycles_delta):
+		return _fail(ERR_RESULT_INVALID, "Typed completed_cycles_delta does not match the candidate transition.")
+	var actual_channels: Array = _overall_channel_deltas(source_threshold, candidate_threshold)
+	if actual_channels.size() != totals.channel_deltas.size():
+		return _fail(ERR_RESULT_INVALID, "Typed channel_deltas do not match the candidate transition channel count.")
+	for i in range(actual_channels.size()):
+		if not _channel_delta_fields_equal(actual_channels[i], totals.channel_deltas[i]):
+			return _fail(ERR_RESULT_INVALID, "Typed channel_deltas do not match the candidate transition endpoints.")
+	var summary_check := _validate_active_summary_against_transition(result, threshold_id, source_threshold, candidate_threshold, actual_channels)
+	if not summary_check["ok"]: return summary_check
+	return _validate_unrelated_active_state_stability(source, candidate, threshold_id, source_reaping.form_id, actual_channels)
+
+func _validate_transition_lifecycle_shape(source_lifecycle: StringName, candidate_lifecycle: StringName, result: SimulationResult) -> Dictionary:
+	var settlement_events := 0
+	for event in result.events:
+		if event.event_type == EVENT_THRESHOLD_SETTLED:
+			settlement_events += 1
+	if source_lifecycle == LIFECYCLE_OVERDUE and candidate_lifecycle == LIFECYCLE_OVERDUE:
+		if result.segments.size() != 1 or result.segments[0].lifecycle_state != LIFECYCLE_OVERDUE or settlement_events != 0:
+			return _fail(ERR_RESULT_INVALID, "Overdue-to-Overdue transitions must produce one OVERDUE segment and no Settlement event.")
+		return {"ok": true}
+	if source_lifecycle == LIFECYCLE_SETTLED and candidate_lifecycle == LIFECYCLE_SETTLED:
+		if result.segments.size() != 1 or result.segments[0].lifecycle_state != LIFECYCLE_SETTLED or settlement_events != 0:
+			return _fail(ERR_RESULT_INVALID, "Settled-to-Settled transitions must produce one SETTLED segment and no Settlement event.")
+		return {"ok": true}
+	if source_lifecycle == LIFECYCLE_OVERDUE and candidate_lifecycle == LIFECYCLE_SETTLED:
+		if settlement_events != 1:
+			return _fail(ERR_RESULT_INVALID, "Overdue-to-Settled transitions must emit exactly one Settlement event.")
+		if result.segments.size() == 1 and result.segments[0].lifecycle_state == LIFECYCLE_OVERDUE:
+			return {"ok": true}
+		if result.segments.size() == 2 and result.segments[0].lifecycle_state == LIFECYCLE_OVERDUE and result.segments[1].lifecycle_state == LIFECYCLE_SETTLED:
+			return {"ok": true}
+		return _fail(ERR_RESULT_INVALID, "Overdue-to-Settled transitions must be one OVERDUE segment ending in Settlement or OVERDUE then SETTLED.")
+	return _fail(ERR_RESULT_INVALID, "Committed segment lifecycle does not match the source/candidate lifecycle transition.")
+
+func _validate_active_summary_against_transition(result: SimulationResult, threshold_id: StringName, source_threshold: GameState.ThresholdState, candidate_threshold: GameState.ThresholdState, actual_channels: Array) -> Dictionary:
+	var summary := result.change_summary
+	if str(summary.threshold_id) != str(threshold_id) or str(summary.operation_id) != str(threshold_id):
+		return _fail(ERR_RESULT_INVALID, "Active change_summary Threshold and operation IDs must match the committed candidate operation.")
+	var backlog_delta := _checked_difference(candidate_threshold.remaining_backlog, source_threshold.remaining_backlog, "actual backlog_delta")
+	if not backlog_delta["ok"]: return backlog_delta
+	if int(summary.backlog_delta) != int(backlog_delta.value):
+		return _fail(ERR_RESULT_INVALID, "Active change_summary backlog_delta must match the candidate transition.")
+	if str(summary.lifecycle_before) != str(source_threshold.lifecycle_state) or str(summary.lifecycle_after) != str(candidate_threshold.lifecycle_state):
+		return _fail(ERR_RESULT_INVALID, "Active change_summary lifecycle fields must match the source/candidate transition.")
+	var summary_channels: Array = summary.channel_deltas
+	if summary_channels.size() != actual_channels.size():
+		return _fail(ERR_RESULT_INVALID, "Active change_summary channel_deltas must match the candidate transition channel count.")
+	for i in range(summary_channels.size()):
+		if not _channel_delta_fields_equal(summary_channels[i], actual_channels[i]):
+			return _fail(ERR_RESULT_INVALID, "Active change_summary channel_deltas must match the candidate transition endpoints.")
+	for event in result.events:
+		if event.event_type == EVENT_THRESHOLD_SETTLED and int(event.payload.persistent_returns_total) != candidate_threshold.persistent_returns_total:
+			return _fail(ERR_RESULT_INVALID, "Settlement event persistent_returns_total must match the committed candidate endpoint.")
+	return {"ok": true}
+
+func _validate_unrelated_active_state_stability(source: GameState, candidate: GameState, active_threshold_id: StringName, active_form_id: StringName, actual_channels: Array) -> Dictionary:
+	var changed_inventory_ids := {&"RES_ESSENCE": true}
+	for delta in actual_channels:
+		changed_inventory_ids[delta.output_item_id] = true
+	var inventory_check := _validate_inventory_stability(source.inventory, candidate.inventory, changed_inventory_ids)
+	if not inventory_check["ok"]: return inventory_check
+	if not _sorted_keys_equal(source.forms, candidate.forms) or not _sorted_keys_equal(source.thresholds, candidate.thresholds) or not _sorted_keys_equal(source.reapings, candidate.reapings):
+		return _fail(ERR_RESULT_INVALID, "Active transitions must preserve the complete source key set outside allowed field changes.")
+	for form_id in source.forms.keys():
+		var source_form: GameState.FormState = source.forms[form_id]
+		var candidate_form: GameState.FormState = candidate.forms[form_id]
+		if form_id == active_form_id:
+			if source_form.revealed != candidate_form.revealed or source_form.awakened != candidate_form.awakened or source_form.awakened_by != candidate_form.awakened_by:
+				return _fail(ERR_RESULT_INVALID, "Active transitions cannot mutate non-Mastery Form state.")
+		elif not _forms_equal(source_form, candidate_form):
+			return _fail(ERR_RESULT_INVALID, "Active transitions cannot mutate unrelated Forms.")
+	for threshold_id in source.thresholds.keys():
+		var source_threshold: GameState.ThresholdState = source.thresholds[threshold_id]
+		var candidate_threshold: GameState.ThresholdState = candidate.thresholds[threshold_id]
+		if threshold_id == active_threshold_id:
+			if source_threshold.knowledge_state != candidate_threshold.knowledge_state or source_threshold.availability_state != candidate_threshold.availability_state or source_threshold.familiarity_subunits != candidate_threshold.familiarity_subunits:
+				return _fail(ERR_RESULT_INVALID, "Active transitions cannot mutate unrelated Threshold fields.")
+		elif not _thresholds_equal(source_threshold, candidate_threshold):
+			return _fail(ERR_RESULT_INVALID, "Active transitions cannot mutate unrelated Thresholds.")
+	for threshold_id in source.reapings.keys():
+		var source_reaping: GameState.ReapingState = source.reapings[threshold_id]
+		var candidate_reaping: GameState.ReapingState = candidate.reapings[threshold_id]
+		if threshold_id == active_threshold_id:
+			if source_reaping.threshold_id != candidate_reaping.threshold_id or source_reaping.is_active != candidate_reaping.is_active or source_reaping.form_id != candidate_reaping.form_id or source_reaping.writ_id != candidate_reaping.writ_id or source_reaping.retinue_ids != candidate_reaping.retinue_ids or source_reaping.assignment_revision != candidate_reaping.assignment_revision or source_reaping.started_simulation_msec != candidate_reaping.started_simulation_msec or source_reaping.last_configuration_change_simulation_msec != candidate_reaping.last_configuration_change_simulation_msec:
+				return _fail(ERR_RESULT_INVALID, "Active transitions cannot mutate Reaping identity outside elapsed simulation facts.")
+		elif not _reapings_equal(source_reaping, candidate_reaping):
+			return _fail(ERR_RESULT_INVALID, "Active transitions cannot mutate unrelated Reapings.")
+	if source.progression.command_tether_capacity != candidate.progression.command_tether_capacity or source.progression.unlocked_output_item_ids != candidate.progression.unlocked_output_item_ids:
+		return _fail(ERR_RESULT_INVALID, "Active transitions cannot mutate unrelated progression state.")
+	return {"ok": true}
+
+func _validate_exact_state_match(source: GameState, candidate: GameState, expected_time_delta: int, context: String) -> Dictionary:
+	var time_delta := _checked_difference(candidate.simulation_time_msec, source.simulation_time_msec, "%s simulation_time_msec" % context)
+	if not time_delta["ok"]: return time_delta
+	if int(time_delta.value) != expected_time_delta:
+		return _fail(ERR_RESULT_INVALID, "%s must change only by the expected simulation cursor delta." % context)
+	var inventory_check := _validate_inventory_stability(source.inventory, candidate.inventory, {})
+	if not inventory_check["ok"]: return inventory_check
+	if not _sorted_keys_equal(source.forms, candidate.forms) or not _sorted_keys_equal(source.thresholds, candidate.thresholds) or not _sorted_keys_equal(source.reapings, candidate.reapings):
+		return _fail(ERR_RESULT_INVALID, "%s must preserve the complete source gameplay state." % context)
+	for form_id in source.forms.keys():
+		if not _forms_equal(source.forms[form_id], candidate.forms[form_id]):
+			return _fail(ERR_RESULT_INVALID, "%s must preserve source Form state." % context)
+	for threshold_id in source.thresholds.keys():
+		if not _thresholds_equal(source.thresholds[threshold_id], candidate.thresholds[threshold_id]):
+			return _fail(ERR_RESULT_INVALID, "%s must preserve source Threshold state." % context)
+	for threshold_id in source.reapings.keys():
+		if not _reapings_equal(source.reapings[threshold_id], candidate.reapings[threshold_id]):
+			return _fail(ERR_RESULT_INVALID, "%s must preserve source Reaping state." % context)
+	if source.progression.command_tether_capacity != candidate.progression.command_tether_capacity or source.progression.unlocked_output_item_ids != candidate.progression.unlocked_output_item_ids:
+		return _fail(ERR_RESULT_INVALID, "%s must preserve source progression state." % context)
+	return {"ok": true}
+
+func _validate_inventory_stability(source_inventory: GameState.InventoryState, candidate_inventory: GameState.InventoryState, allowed_total_changes: Dictionary) -> Dictionary:
+	var source_keys := source_inventory.entries.keys()
+	var candidate_keys := candidate_inventory.entries.keys()
+	for key in source_keys:
+		if not candidate_inventory.entries.has(key):
+			return _fail(ERR_RESULT_INVALID, "Candidate inventory must preserve the source key set.")
+	for key in candidate_keys:
+		if not source_inventory.entries.has(key) and not allowed_total_changes.has(key):
+			return _fail(ERR_RESULT_INVALID, "Candidate inventory cannot add unrelated entries.")
+	for key in candidate_keys:
+		var source_entry: GameState.InventoryEntryState = source_inventory.entries.get(key, GameState.InventoryEntryState.new())
+		var candidate_entry: GameState.InventoryEntryState = candidate_inventory.entries[key]
+		if source_entry.reservations != candidate_entry.reservations:
+			return _fail(ERR_RESULT_INVALID, "Inventory reservations cannot change during committed result validation.")
+		if not allowed_total_changes.has(key) and source_entry.total != candidate_entry.total:
+			return _fail(ERR_RESULT_INVALID, "Inventory totals may change only for actual simulated output items.")
+	return {"ok": true}
+
+func _forms_equal(left: GameState.FormState, right: GameState.FormState) -> bool:
+	return left.revealed == right.revealed and left.awakened == right.awakened and left.mastery_subunits == right.mastery_subunits and left.awakened_by == right.awakened_by
+
+func _thresholds_equal(left: GameState.ThresholdState, right: GameState.ThresholdState) -> bool:
+	if left.knowledge_state != right.knowledge_state or left.availability_state != right.availability_state or left.lifecycle_state != right.lifecycle_state or left.remaining_backlog != right.remaining_backlog or left.persistent_returns_total != right.persistent_returns_total or left.familiarity_subunits != right.familiarity_subunits:
+		return false
+	if not _sorted_keys_equal(left.channel_acquisition, right.channel_acquisition):
+		return false
+	for channel_id in left.channel_acquisition.keys():
+		var left_acq: GameState.ThresholdAcquisitionState = left.channel_acquisition[channel_id]
+		var right_acq: GameState.ThresholdAcquisitionState = right.channel_acquisition[channel_id]
+		if left_acq.progress_subunits != right_acq.progress_subunits or left_acq.rate_carry_units != right_acq.rate_carry_units or left_acq.total_banked_units != right_acq.total_banked_units:
+			return false
+	return true
+
+func _reapings_equal(left: GameState.ReapingState, right: GameState.ReapingState) -> bool:
+	return left.threshold_id == right.threshold_id and left.is_active == right.is_active and left.form_id == right.form_id and left.writ_id == right.writ_id and left.retinue_ids == right.retinue_ids and left.assignment_revision == right.assignment_revision and left.cycle_phase_msec == right.cycle_phase_msec and left.completed_cycle_count == right.completed_cycle_count and left.flow_carry_units == right.flow_carry_units and left.started_simulation_msec == right.started_simulation_msec and left.last_configuration_change_simulation_msec == right.last_configuration_change_simulation_msec
+
+func _get_enabled_content_record(id: StringName, expected_type: String, label: String) -> Dictionary:
+	if registry == null or not registry.ready:
+		return _fail(ERR_RESULT_INVALID, "Content registry is not ready for committed result validation.")
+	if str(id).is_empty():
+		return _fail(ERR_RESULT_INVALID, "%s ID must be non-empty." % label)
+	var result := registry.get_record(str(id))
+	if not result.ok:
+		return _fail(ERR_RESULT_INVALID, "%s must resolve in the content registry." % label)
+	var record: Dictionary = result.record
+	if str(record.get("type", "")) != expected_type:
+		return _fail(ERR_RESULT_INVALID, "%s must resolve to content type %s." % [label, expected_type])
+	if not bool(record.get("enabled", false)):
+		return _fail(ERR_RESULT_INVALID, "%s must resolve to an enabled content record." % label)
+	return {"ok": true, "record": record}
+
+func _validate_known_event_shape(event: SimulationEvent) -> Dictionary:
+	match event.event_type:
+		EVENT_OUTPUT_CHANNEL_BANKED:
+			if not event.reportable or not event.tutorial_relevant or event.priority != EVENT_PRIORITY_CHANNEL_GAIN:
+				return _fail(ERR_RESULT_INVALID, "OUTPUT_CHANNEL_BANKED must use canonical flags and priority even when treated as diagnostic.")
+			return _validate_output_channel_event_payload(event.payload)
+		EVENT_THRESHOLD_SETTLED:
+			if not event.reportable or not event.tutorial_relevant or event.priority != EVENT_PRIORITY_LIFECYCLE:
+				return _fail(ERR_RESULT_INVALID, "THRESHOLD_SETTLED must use canonical flags and priority even when treated as diagnostic.")
+			return _validate_threshold_settled_event_payload(event.payload)
+		_:
+			return _fail(ERR_RESULT_INVALID, "Unknown simulation event types are not allowed in the committed result grammar.")
+
+func _validate_output_channel_event_payload(payload: Dictionary) -> Dictionary:
+	if not _dictionary_has_exact_keys(payload, OUTPUT_CHANNEL_EVENT_PAYLOAD_KEYS):
+		return _fail(ERR_RESULT_INVALID, "OUTPUT_CHANNEL_BANKED payload must use the exact required key set.")
+	if typeof(payload.output_item_id) != TYPE_STRING_NAME or typeof(payload.quantity) != TYPE_INT or typeof(payload.lifecycle_state) != TYPE_STRING or typeof(payload.total_banked_units) != TYPE_INT or typeof(payload.progress_subunits_after) != TYPE_INT:
+		return _fail(ERR_RESULT_INVALID, "OUTPUT_CHANNEL_BANKED payload must use the canonical primitive field types.")
+	return {"ok": true}
+
+func _validate_threshold_settled_event_payload(payload: Dictionary) -> Dictionary:
+	if not _dictionary_has_exact_keys(payload, THRESHOLD_SETTLED_EVENT_PAYLOAD_KEYS):
+		return _fail(ERR_RESULT_INVALID, "THRESHOLD_SETTLED payload must use the exact required key set.")
+	if typeof(payload.remaining_backlog) != TYPE_INT or typeof(payload.lifecycle_state) != TYPE_STRING or typeof(payload.persistent_returns_total) != TYPE_INT:
+		return _fail(ERR_RESULT_INVALID, "THRESHOLD_SETTLED payload must use the canonical primitive field types.")
+	return {"ok": true}
+
+func _dictionary_has_exact_keys(value: Dictionary, expected_keys: Array) -> bool:
+	if value == null or value.size() != expected_keys.size():
+		return false
+	var actual_keys := value.keys()
+	actual_keys.sort()
+	var expected_sorted := expected_keys.duplicate()
+	expected_sorted.sort()
+	return actual_keys == expected_sorted
+
+func _segment_event_key(segment_index: int, source_id: StringName) -> String:
+	return "%d|%s" % [segment_index, str(source_id)]
+
+func _validate_cross_segment_channel_continuity(previous_segment: SimulationSegmentResult, next_segment: SimulationSegmentResult) -> Dictionary:
+	var previous_by_channel := {}
+	for delta in previous_segment.channel_deltas:
+		previous_by_channel[delta.channel_id] = delta
+	for delta in next_segment.channel_deltas:
+		if not previous_by_channel.has(delta.channel_id):
+			continue
+		var previous_delta: SimulationChannelDeltaResult = previous_by_channel[delta.channel_id]
+		if previous_delta.progress_subunits_after != delta.progress_subunits_before or previous_delta.rate_carry_units_after != delta.rate_carry_units_before or previous_delta.total_banked_units_after != delta.total_banked_units_before or previous_delta.output_item_id != delta.output_item_id:
+			return _fail(ERR_RESULT_INVALID, "Cross-segment channel endpoints must be continuous for the same channel.")
+	return {"ok": true}
+
+func _checked_add_non_negative(left: int, right: int, label: String) -> Dictionary:
+	if left < 0 or right < 0:
+		return _fail(ERR_RESULT_INVALID, "%s uses a negative value where a non-negative checked add was required." % label)
+	if left > FixedPoint.INT64_MAX - right:
+		return _fail(ERR_RESULT_INVALID, "%s overflowed signed 64-bit validation arithmetic." % label)
+	return {"ok": true, "value": left + right}
+
+func _checked_non_negative_difference(after: int, before: int, label: String) -> Dictionary:
+	if after < 0 or before < 0:
+		return _fail(ERR_RESULT_INVALID, "%s requires non-negative endpoints." % label)
+	if after < before:
+		return _fail(ERR_RESULT_INVALID, "%s cannot move backwards." % label)
+	return {"ok": true, "value": after - before}
+
+func _checked_difference(after: int, before: int, label: String) -> Dictionary:
+	if after >= before:
+		return _checked_non_negative_difference(after, before, label)
+	var reversed := _checked_non_negative_difference(before, after, label)
+	if not reversed["ok"]: return reversed
+	return {"ok": true, "value": -int(reversed.value)}
+
+func _sorted_keys_equal(left: Dictionary, right: Dictionary) -> bool:
+	var left_keys := left.keys()
+	var right_keys := right.keys()
+	left_keys.sort_custom(func(a, b): return str(a) < str(b))
+	right_keys.sort_custom(func(a, b): return str(a) < str(b))
+	return left_keys == right_keys
 
 ## Detached non-persisted evidence for one Threshold output channel during a segment.
 ##
@@ -671,23 +1152,23 @@ class SimulationSegmentResult:
 		for value in [returned_souls_delta, backlog_reduced, essence_delta, mastery_delta_subunits, completed_cycles_delta]:
 			if int(value) < 0: return {"ok": false, "code": ERR_RESULT_INVALID, "details": "Segment gains must be non-negative."}
 		var seen_retinues := {}
-		var previous_retinue := ""
 		for retinue_id in ordered_retinue_ids:
-			if str(retinue_id).is_empty() or seen_retinues.has(retinue_id) or (not previous_retinue.is_empty() and previous_retinue > str(retinue_id)): return {"ok": false, "code": ERR_RESULT_INVALID, "details": "Retinue IDs must be non-empty, unique, and ordered."}
+			if str(retinue_id).is_empty() or seen_retinues.has(retinue_id): return {"ok": false, "code": ERR_RESULT_INVALID, "details": "Retinue IDs must be non-empty and unique."}
 			seen_retinues[retinue_id] = true
-			previous_retinue = str(retinue_id)
 		var previous_channel := ""
 		for delta in channel_deltas:
+			if delta == null: return {"ok": false, "code": ERR_RESULT_INVALID, "details": "Segment channel_deltas cannot contain null entries."}
 			if not channel_contracts.has(delta.channel_id): return {"ok": false, "code": ERR_RESULT_INVALID, "details": "Missing channel contract for delta."}
 			if not previous_channel.is_empty() and previous_channel >= str(delta.channel_id): return {"ok": false, "code": ERR_RESULT_INVALID, "details": "Channel deltas must be unique and ordered."}
 			var contract_value: Variant = channel_contracts[delta.channel_id]
-			var period_msec := 0
-			if contract_value is Dictionary:
-				var contract: Dictionary = contract_value
-				if contract.has("output_item_id") and delta.output_item_id != contract.output_item_id: return {"ok": false, "code": ERR_RESULT_INVALID, "details": "Channel output item must match content."}
-				period_msec = int(contract.period_msec)
-			else:
-				period_msec = int(contract_value)
+			if not (contract_value is Dictionary): return {"ok": false, "code": ERR_RESULT_INVALID, "details": "Channel contracts must be exact dictionaries."}
+			var contract: Dictionary = contract_value
+			var contract_keys := contract.keys()
+			contract_keys.sort()
+			if contract_keys != ["output_item_id", "period_msec"]: return {"ok": false, "code": ERR_RESULT_INVALID, "details": "Channel contracts must contain exactly output_item_id and period_msec."}
+			if typeof(contract.period_msec) != TYPE_INT or typeof(contract.output_item_id) != TYPE_STRING_NAME: return {"ok": false, "code": ERR_RESULT_INVALID, "details": "Channel contracts must use canonical primitive field types."}
+			if delta.output_item_id != contract.output_item_id: return {"ok": false, "code": ERR_RESULT_INVALID, "details": "Channel output item must match content."}
+			var period_msec := int(contract.period_msec)
 			var delta_check: Dictionary = delta.validate(period_msec)
 			if not delta_check["ok"]: return delta_check
 			previous_channel = str(delta.channel_id)
@@ -727,8 +1208,9 @@ class SimulationEvent:
 	func validate() -> Dictionary:
 		if occurred_simulation_msec < 0 or priority < 0: return {"ok": false, "code": ERR_RESULT_INVALID, "details": "Event time and priority must be non-negative."}
 		if str(event_type).is_empty() or str(subject_id).is_empty() or str(source_id).is_empty(): return {"ok": false, "code": ERR_RESULT_INVALID, "details": "Event IDs must be non-empty."}
+		if payload == null: return {"ok": false, "code": ERR_RESULT_INVALID, "details": "Event payload must be a Dictionary."}
 		return {"ok": true}
 	static func threshold_settled(occurred: int, threshold_id: StringName, returns_total: int) -> SimulationEvent:
-		return SimulationEvent.new(EVENT_THRESHOLD_SETTLED, occurred, EVENT_PRIORITY_LIFECYCLE, threshold_id, &"SIMULATION_ENGINE", {"remaining_backlog": 0, "lifecycle_state": "SETTLED", "persistent_returns_total": returns_total})
+		return SimulationEvent.new(EVENT_THRESHOLD_SETTLED, occurred, EVENT_PRIORITY_LIFECYCLE, threshold_id, SIMULATION_ENGINE_SOURCE_ID, {"remaining_backlog": 0, "lifecycle_state": "SETTLED", "persistent_returns_total": returns_total})
 	static func output_channel_banked(occurred: int, threshold_id: StringName, channel_id: StringName, delta: SimulationChannelDeltaResult, lifecycle_state: String) -> SimulationEvent:
 		return SimulationEvent.new(EVENT_OUTPUT_CHANNEL_BANKED, occurred, EVENT_PRIORITY_CHANNEL_GAIN, threshold_id, channel_id, {"output_item_id": delta.output_item_id, "quantity": delta.banked_units_delta, "lifecycle_state": lifecycle_state, "total_banked_units": delta.total_banked_units_after, "progress_subunits_after": delta.progress_subunits_after})
