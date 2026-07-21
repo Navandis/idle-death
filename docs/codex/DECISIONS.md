@@ -3,8 +3,8 @@
 **Document role:** Durable record of approved and proposed design and architecture decisions  
 **Repository path:** `docs/codex/DECISIONS.md`  
 **Document status:** Approved architecture and active decision record  
-**Revision:** 26  
-**Last updated:** 2026-07-19
+**Revision:** 27  
+**Last updated:** 2026-07-20
 
 ## 1. How to use this file
 
@@ -70,7 +70,8 @@ Rules:
 | `DEC-0038` | Discrete non-Essence channels resolve only initialized sources; whole banking is immediate and Settlement is channel-specific | Accepted | 2026-07-18 |
 | `DEC-0039` | Valid loadouts remain distinct and swappable; rate-context changes preserve residuals and ETAs are baseline-derived views | Accepted | 2026-07-18 |
 | `DEC-0040` | Forecasts clone current state through the shared resolver; authoritative report history is a separate slice | Accepted | 2026-07-19 |
-| `DEC-0041` | Reports use schema-v4 attributed, cursor-idempotent state with read-only live views and bounded recent history | Accepted | 2026-07-19 |
+| `DEC-0041` | Reports use schema-v4 attributed, cursor-idempotent state with read-only live views and bounded recent history | Superseded | 2026-07-19 |
+| `DEC-0042` | Abandon the combined M04E2A implementation; require typed committed results and four replacement slices | Accepted | 2026-07-20 |
 
 ---
 
@@ -2583,7 +2584,8 @@ Direct M04E2 work remained blocked until `GATE-REPORT-SCHEMA` approved the exact
 
 ## `DEC-0041` — Reports use schema-v4 attributed, cursor-idempotent state with read-only live views and bounded recent history
 
-**Status:** Accepted  
+**Status:** Superseded  
+**Superseded by:** `DEC-0042`; report semantics carried forward, implementation packaging replaced  
 **Date:** 2026-07-19  
 **Decision type:** Report authority, attribution, save compatibility, idempotent ingestion, read-versus-archive behavior, retention, atomic orchestration, and milestone recalibration  
 **Refines:** `DEC-0011`, `DEC-0012`, `DEC-0016`, `DEC-0033`, `DEC-0034`, `DEC-0035`, `DEC-0039`, `DEC-0040`
@@ -2898,14 +2900,197 @@ Any failure preserves both gameplay and report state. M04E2B also owns the final
 - `docs/codex/TESTING_AND_VALIDATION.md`
 - `docs/codex/milestone-prompts/M04E2A-report-state-schema-history.md`
 
+## `DEC-0042` — Abandon the combined M04E2A implementation; require typed committed results and four replacement slices
+
+**Status:** Accepted  
+**Date:** 2026-07-20  
+**Decision type:** Implementation packaging, simulation-result contract, report prerequisites, review recovery, and milestone recalibration  
+**Supersedes:** `DEC-0041` implementation packaging while carrying forward its report-authority, attribution, idempotency, snapshot, retention, and no-claim semantics  
+**Refines:** `DEC-0010`, `DEC-0011`, `DEC-0012`, `DEC-0016`, `DEC-0033`, `DEC-0035`, `DEC-0036`, `DEC-0039`, `DEC-0040`, `DEC-0041`
+
+### Context
+
+PR #17 attempted the approved M04E2A v0.2 package as one branch. It was closed without merge at final head `5c87118045faa6f48f8ce50977a9bcdcfa967e57` after reaching 21 commits, 34 changed files, 2,333 additions, and 32 deletions. Repeated targeted review rounds continued to expose new P1/P2 correctness defects after earlier findings were fixed.
+
+The failure pattern was not a rejection of Reaping Reports or of the accepted `DEC-0041` report semantics. It exposed two implementation-planning defects:
+
+1. the current `SimulationEngine` result boundary carries segment and channel facts in raw dictionaries that require every downstream consumer to reconstruct and revalidate a large implicit grammar; and
+2. the attempted `ReportService` accumulated input validation, temporal classification, checked aggregation, historical attribution, public projection, snapshotting, retention, persistence integration, trace evidence, and owner-runner behavior in one implementation branch.
+
+The branch crossed the `DEC-0033` mandatory reassessment triggers: more than two review rounds produced new material findings, more than eight material defects were discovered, and implementation growth substantially exceeded the approved estimate. Continuing to patch the branch would optimize sunk cost rather than reviewability.
+
+### Decision
+
+#### PR #17 is abandoned, not merged
+
+PR #17 is an abandoned implementation attempt. Its branch is retained temporarily as forensic evidence and a regression-scenario source. It is not a production base.
+
+Replacement work must begin from current `main` in new Codex tasks and new pull requests. Do not:
+
+- reopen or continue the old Codex implementation task;
+- cherry-pick the PR #17 production implementation wholesale;
+- treat passing tests from that branch as merge evidence for a replacement slice;
+- copy its `ReportService` decomposition merely because it already exists.
+
+The replacement slices may inspect PR #17 only for accepted review findings, black-box expected behavior, and regression scenarios.
+
+#### Typed committed-result contract is the prerequisite
+
+Before report persistence is implemented, the simulation boundary must expose typed, self-contained, non-persisted committed-result records.
+
+The bounded result family is:
+
+```text
+SimulationRunResult
+  -> SimulationResult
+       -> Array[SimulationSegmentResult]
+            -> Array[SimulationChannelDeltaResult]
+       -> Array[SimulationEvent]
+```
+
+A `SimulationSegmentResult` carries the historical facts needed by delayed consumers:
+
+```text
+threshold_id
+assignment_revision
+form_id
+writ_id
+ordered_retinue_ids
+lifecycle_state
+start_simulation_msec
+end_simulation_msec
+elapsed_msec
+returned_souls_delta
+backlog_reduced
+essence_delta
+mastery_delta_subunits
+completed_cycles_delta
+channel_deltas
+```
+
+A `SimulationChannelDeltaResult` carries:
+
+```text
+channel_id
+output_item_id
+banked_units_delta
+progress_subunits_before
+progress_subunits_after
+rate_carry_units_before
+rate_carry_units_after
+total_banked_units_before
+total_banked_units_after
+```
+
+Historical identity travels with the committed result. A future report, tutorial, diagnostic, or analytics consumer must not reconstruct past Form, Writ, Retinue, assignment revision, lifecycle, or source identity from current mutable `GameState`.
+
+`SimulationResult` validates its complete local and run-level contract before the engine copies a candidate into live state. Invalid result construction is a transaction failure, not a downstream reporting concern.
+
+These result objects remain non-authoritative and non-persisted. `SimulationEngine` remains the sole production-formula and gameplay-mutation owner.
+
+#### M04E2A becomes a conceptual replacement sub-epic
+
+The abandoned direct M04E2A slice is replaced by four sequential implementation slices:
+
+```text
+M04E2A1 — Typed committed simulation-result contract
+M04E2A2 — Report runtime state and schema-v4 persistence
+M04E2A3 — Cursor-idempotent live report ingestion
+M04E2A4 — Report reads, snapshot, bounded history, and final evidence
+```
+
+M04E2A is now a conceptual sub-epic and receives no direct implementation prompt.
+
+##### M04E2A1
+
+Adds typed segment/channel result records, self-contained historical attribution, result-contract validation before live commit, and compatibility updates to existing simulation/run consumers. It adds no report state, no schema version, and no report service.
+
+##### M04E2A2
+
+Adds typed report runtime state, clone/copy and validation, schema version 4, exact primitive mapping, frozen historical validators/fixtures, sequential `v3 -> v4` migration, and persistence proof. It adds no report ingestion, peeks, snapshot command, or retention mutation.
+
+##### M04E2A3
+
+Adds cursor-idempotent ingestion of typed committed results into the live report accumulator. It owns the interval decision table, checked aggregation, historical attribution, no-gain advancement, exact-boundary event ownership, and no-mutation failures. It adds no public report read models, archiving, offline classification, or history pruning.
+
+##### M04E2A4
+
+Adds detached global/Threshold/assignment/history read models, snapshot semantics, offline-only classification, bounded event detail and recent history, final real-file trace, owner verification package, and synchronized evidence.
+
+#### One report authority does not require one monolithic script
+
+`ReportService` remains the sole public mutating authority for report state. It may delegate pure work to narrowly scoped helpers such as:
+
+```text
+ReportIntervalClassifier
+ReportAccumulator
+ReportReadModelBuilder
+```
+
+Those helpers own no authoritative state, perform no file I/O, read no clocks, and do not become alternate report authorities.
+
+#### M04E2B remains blocked
+
+M04E2B receives no implementation prompt until M04E2A1, M04E2A2, M04E2A3, and M04E2A4 are all Merged and Passed and a fresh `DEC-0033` scope review approves the coordinator/harness prompt.
+
+### Protected semantics carried forward from `DEC-0041`
+
+The replacement preserves all accepted report behavior:
+
+- gameplay gains are committed before and independently of report presentation;
+- reports never grant, remove, delay, or claim output;
+- report attribution remains Threshold operation -> assignment revision/loadout episode -> lifecycle -> channel;
+- component identity, not numeric output, identifies a loadout;
+- equal-output loadouts and A -> B -> A episodes remain distinct;
+- ingestion uses explicit contiguous simulation intervals and is idempotent for covered duplicates;
+- live inspection is read-only and never snapshots or clears state;
+- `OFFLINE_RETURN` requires an isolated offline-only live window;
+- recent history and event detail remain bounded and are not permanent Codex Mortis analytics;
+- schema version 4 begins report tracking prospectively and fabricates no pre-migration history;
+- M04E2B owns atomic simulation-plus-report orchestration.
+
+### Consequences
+
+- Schema version 3 and content revision `prototype-content-r2` remain current through M04E2A1.
+- M04E2A2 is the only replacement slice authorized to introduce schema version 4.
+- A1 must not change production arithmetic, rates, state ownership, or externally observed M04E1 outcomes.
+- Each replacement slice receives its own prompt, pull request, targeted review, and owner verification package.
+- A replacement prompt must include the relevant field-domain, propagation, consumer-input, temporal, and failure/no-mutation matrices before implementation begins.
+- Stop and re-slice again when a replacement slice crosses its approved file/line limit, introduces another authoritative aggregate, or requires another cross-layer seam.
+
+### Alternatives considered
+
+- **Continue patching PR #17:** rejected because review did not converge and the branch crossed mandatory stop thresholds.
+- **Rewrite inside PR #17:** rejected because the existing branch and Codex task would continue to bias the implementation toward the failed decomposition and would preserve an unreviewable history.
+- **Merge only the Stage 1 schema work from PR #17:** rejected because it was not independently reviewed or evidenced as a standalone mergeable slice and would couple the replacement to abandoned production code.
+- **Re-run the same broad M04E2A prompt from scratch:** rejected because the prompt still combines four independently risky transitions.
+- **Move reports into UI or reconstruct them from inventory:** rejected by the no-claim, attribution, interval, and persistence requirements carried forward from `DEC-0041`.
+- **Persist every simulation result:** rejected because result records are transaction evidence, not save authority.
+
+### Affected documents
+
+- `docs/codex/ARCHITECTURE.md`
+- `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`
+- `docs/codex/DECISIONS.md`
+- `docs/codex/MILESTONES.md`
+- `docs/codex/TESTING_AND_VALIDATION.md`
+- `docs/codex/milestone-prompts/M04E2A-report-state-schema-history.md`
+- `docs/codex/milestone-prompts/M04E2A1-typed-committed-simulation-result-contract.md`
+
+---
+
 ## 3. Current approval state
 
-- `DEC-0001` through `DEC-0041` are Accepted.
+- `DEC-0001` through `DEC-0040` and `DEC-0042` are Accepted.
+- `DEC-0041` is Superseded by `DEC-0042`; its report semantics are carried forward, while its direct M04E2A packaging is retired.
 - M04A through M04D3 are implemented, verified, and merged.
 - M04D3 merged through PR #15 from final head `5a5cafc6b640001fba86c7ea9531ae9daf43fcc3` at merge commit `9fd8f98e3787f711f3d03c9de03d3615d531216a`.
 - M04E1 merged through PR #16 from final head `738e89c606dd9f1f9f0396334ea9d8587ff389f3` at merge commit `03f05a3d78609a993cecab8b0077e5f7d7d55900`; Linux/Codex and owner Windows verification passed.
-- Accepted `DEC-0041` authoritatively recalibrates direct M04E2 into M04E2A and M04E2B.
-- M04E2A definition and prompt v0.2 are Approved; implementation has not started.
-- `GATE-REPORT-SCHEMA` and M04E2A `GATE-SLICE-SCOPE` are satisfied.
-- M04E2B has an approved high-level boundary only; its prompt is not drafted and remains blocked on M04E2A Merged/Passed plus a fresh scope review.
-- Future changes preserve decision IDs for wording clarifications and create a new decision only when semantics, ownership, compatibility, or security posture changes.
+- PR #17, the abandoned direct M04E2A implementation attempt, was closed without merge at head `5c87118045faa6f48f8ce50977a9bcdcfa967e57` and is retained only as forensic reference.
+- M04E2A is a conceptual replacement sub-epic decomposed into M04E2A1 through M04E2A4.
+- M04E2A1 definition and prompt v0.1 are Approved; implementation has not started.
+- `GATE-TYPED-SIMULATION-RESULT` and M04E2A1 `GATE-SLICE-SCOPE` are satisfied for prompt execution.
+- M04E2A2, M04E2A3, and M04E2A4 have approved boundaries but no implementation prompts and remain blocked on the preceding replacement slice being Merged/Passed plus a fresh scope review.
+- `GATE-REPORT-SCHEMA`, `GATE-REPORT-INGESTION`, `GATE-REPORT-READS-HISTORY`, and `GATE-ATOMIC-REPORTED-RUN` remain pending.
+- M04E2B retains an approved high-level boundary only; its prompt remains blocked on M04E2A1 through M04E2A4 all being Merged/Passed plus a fresh scope review.
+- Future changes preserve decision IDs for wording clarifications and create a new decision when semantics, ownership, compatibility, implementation packaging, or security posture changes.

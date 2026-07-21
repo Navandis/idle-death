@@ -1,8 +1,10 @@
 # Implementation slice M04E2A: Report state, schema-v4 attributed ingestion, read-only peeks, snapshot, and bounded recent history
 
+> **Superseded — do not execute.** PR #17 was closed without merge. Accepted `DEC-0042` replaces this direct package with M04E2A1 through M04E2A4. This file is retained as historical planning provenance only.
+
 **Prompt version:** v0.2  
 **Prompt date:** 2026-07-19  
-**Prompt status:** Approved  
+**Prompt status:** Superseded — do not execute  
 **Work item type:** Implementation slice  
 **Parent conceptual epic:** `M04 — Persistent Reaping simulation vertical slice` / M04E / approved M04E2 sub-epic  
 **Milestone definition:** `docs/codex/MILESTONES.md`  
