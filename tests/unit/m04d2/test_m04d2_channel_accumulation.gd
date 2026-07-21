@@ -144,7 +144,7 @@ func test_strict_commit_rejects_transitional_candidate_and_preserves_live_state(
 	var optimistic := SimulationEngine.SimulationResult.new(true, SimulationEngine.OK, "", 1)
 	optimistic.committed_elapsed_msec = 1
 	var result := _engine()._commit_if_valid(live, candidate, optimistic)
-	_assert_failure_no_mutation(result, SimulationEngine.ERR_STATE_INVALID, before, live)
+	_assert_failure_no_mutation(result, SimulationEngine.ERR_RESULT_INVALID, before, live)
 
 func test_eligibility_and_transaction_matrix() -> void:
 	var idle := _state(&"THR_GLOAMWOOD", false, 1000000)
@@ -308,10 +308,10 @@ func test_settlement_channel_specific_rates_and_event_ordering_contracts() -> vo
 	var half_result := half_engine.resolve_elapsed(half_one, 2000)
 	assert_true(half_result.success, half_result.developer_details)
 	assert_eq(half_result.segments.size(), 2)
-	assert_eq(half_result.segments[0].lifecycle, "OVERDUE")
+	assert_eq(str(half_result.segments[0].lifecycle_state), "OVERDUE")
 	assert_eq(half_result.segments[0].elapsed_msec, 870)
 	assert_eq(half_result.segments[0].channel_deltas[0].progress_subunits_after, 870000)
-	assert_eq(half_result.segments[1].lifecycle, "SETTLED")
+	assert_eq(str(half_result.segments[1].lifecycle_state), "SETTLED")
 	assert_eq(half_result.segments[1].elapsed_msec, 1130)
 	assert_eq(half_result.segments[1].channel_deltas[0].banked_units_delta, 1)
 	var half_acq: GameState.ThresholdAcquisitionState = half_one.thresholds[&"THR_GLOAMWOOD"].channel_acquisition[&"CHANNEL_GLOAMWOOD_SOLDIER_SOULS"]
@@ -332,9 +332,9 @@ func test_inventory_delta_and_failure_matrix() -> void:
 	assert_true(progress_result.success, progress_result.developer_details)
 	assert_false(progress_only.inventory.entries.has(&"SOUL_FORM_SCRIBE"))
 	assert_eq(_events_of_type(progress_result, SimulationEngine.EVENT_OUTPUT_CHANNEL_BANKED).size(), 0)
-	var delta: Dictionary = progress_result.change_summary.channel_deltas[0]
-	for field in ["channel_id", "output_item_id", "banked_units_delta", "progress_subunits_before", "progress_subunits_after", "rate_carry_units_before", "rate_carry_units_after", "total_banked_units_before", "total_banked_units_after"]:
-		assert_true(delta.has(field), field)
+	var delta: SimulationEngine.SimulationChannelDeltaResult = progress_result.change_summary.channel_deltas[0]
+	assert_eq(delta.channel_id, &"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS")
+	assert_eq(delta.output_item_id, &"SOUL_FORM_SCRIBE")
 	assert_eq(delta.banked_units_delta, 0)
 
 	var reserved := _state()

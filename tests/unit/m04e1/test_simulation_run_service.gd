@@ -75,7 +75,7 @@ func test_eight_hour_forecast_preserves_complete_core_and_generic_channels() -> 
 	assert_eq(projected.thresholds[&"THR_GLOAMWOOD"].channel_acquisition[&"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS"].progress_subunits, 0)
 	var delta_ids := []
 	for delta in result.simulation_result.change_summary.channel_deltas:
-		delta_ids.append(delta.channel_id)
+		delta_ids.append(str(delta.channel_id))
 	delta_ids.sort()
 	assert_eq(delta_ids, ["CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS", "CHANNEL_GLOAMWOOD_SOLDIER_SOULS"])
 
