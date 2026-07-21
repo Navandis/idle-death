@@ -162,6 +162,14 @@ function Invoke-TraceMarkerVerification {
 }
 
 
+function Invoke-MissingRootTraceFailure {
+    $Output = & $ResolvedGodot --headless --path "$RepoRoot" -s "res://tools/test/m04e2a1/m04e2a1_typed_result_trace.gd" 2>&1
+    $TraceExitCode = $LASTEXITCODE
+    foreach ($Line in $Output) { Write-Output "$Line" }
+    Write-Output "Missing-root trace exit code: $TraceExitCode"
+    if ($TraceExitCode -eq 0) { throw "M04E2A1 trace without --work-root unexpectedly succeeded." }
+}
+
 function Invoke-ArtifactAudit {
     if (-not (Test-Path -LiteralPath $LogPath -PathType Leaf)) { throw "Current owner verification log was not created: $LogPath" }
     $GitIgnorePath = Join-Path $RepoRoot ".gitignore"
@@ -242,18 +250,27 @@ try {
                 if ($ImportPassed) {
                     $TracePassed = Run-Step "Trace" "$ResolvedGodot --headless --path $RepoRoot -s res://tools/test/m04e2a1/m04e2a1_typed_result_trace.gd -- --work-root $TraceRoot" { Invoke-GodotCommand @("--headless", "--path", "$RepoRoot", "-s", "res://tools/test/m04e2a1/m04e2a1_typed_result_trace.gd", "--", "--work-root", "$TraceRoot") }
                     $CapturedTraceOutput = @($script:LastStepOutput)
-                    if ($TracePassed) { Run-Step "Trace-result marker verification" "verify required TRACE M04E2A1 markers" { Invoke-TraceMarkerVerification -TraceOutput $CapturedTraceOutput } }
-                    else { Write-SkippedStep "Trace-result marker verification" "prerequisite failed: Trace" }
+                    if ($TracePassed) {
+                        $MarkersPassed = Run-Step "Trace-result marker verification" "verify required TRACE M04E2A1 markers" { Invoke-TraceMarkerVerification -TraceOutput $CapturedTraceOutput }
+                        if ($MarkersPassed) { Run-Step "Missing-root trace failure" "$ResolvedGodot --headless --path $RepoRoot -s res://tools/test/m04e2a1/m04e2a1_typed_result_trace.gd" { Invoke-MissingRootTraceFailure } }
+                        else { Write-SkippedStep "Missing-root trace failure" "prerequisite failed: Trace-result marker verification" }
+                    }
+                    else {
+                        Write-SkippedStep "Trace-result marker verification" "prerequisite failed: Trace"
+                        Write-SkippedStep "Missing-root trace failure" "prerequisite failed: Trace"
+                    }
                 }
                 else {
                     Write-SkippedStep "Trace" "prerequisite failed: Import"
                     Write-SkippedStep "Trace-result marker verification" "prerequisite failed: Import"
+                    Write-SkippedStep "Missing-root trace failure" "prerequisite failed: Import"
                 }
             }
             else {
                 Write-SkippedStep "Import" "prerequisite failed: Focused M04E2A1"
                 Write-SkippedStep "Trace" "prerequisite failed: Focused M04E2A1"
                 Write-SkippedStep "Trace-result marker verification" "prerequisite failed: Focused M04E2A1"
+                Write-SkippedStep "Missing-root trace failure" "prerequisite failed: Focused M04E2A1"
             }
         }
         else {
@@ -261,6 +278,7 @@ try {
             Write-SkippedStep "Import" "prerequisite failed: Full GUT before"
             Write-SkippedStep "Trace" "prerequisite failed: Full GUT before"
             Write-SkippedStep "Trace-result marker verification" "prerequisite failed: Full GUT before"
+            Write-SkippedStep "Missing-root trace failure" "prerequisite failed: Full GUT before"
         }
     }
     else {
@@ -269,6 +287,7 @@ try {
         Write-SkippedStep "Import" "prerequisite failed: Godot version validation"
         Write-SkippedStep "Trace" "prerequisite failed: Godot version validation"
         Write-SkippedStep "Trace-result marker verification" "prerequisite failed: Godot version validation"
+        Write-SkippedStep "Missing-root trace failure" "prerequisite failed: Godot version validation"
     }
 }
 finally {

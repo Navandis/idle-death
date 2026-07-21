@@ -52,7 +52,9 @@ func test_complete_result_validation_matrix() -> void:
 
 func test_event_order_and_boundary_matrix() -> void:
 	var result := _result([_segment(0, 500), _segment(500, 1000, &"SETTLED")], 1000)
-	result.events.append(SimulationEngine.SimulationEvent.output_channel_banked(500, &"THR_GLOAMWOOD", &"CHANNEL_GLOAMWOOD_SOLDIER_SOULS", _delta(), "OVERDUE"))
+	result.segments[0].channel_deltas.clear()
+	result.segments[0].channel_deltas.append(_delta(&"CHANNEL_GLOAMWOOD_SOLDIER_SOULS", 1, 0, 1))
+	result.events.append(SimulationEngine.SimulationEvent.output_channel_banked(500, &"THR_GLOAMWOOD", &"CHANNEL_GLOAMWOOD_SOLDIER_SOULS", _delta(&"CHANNEL_GLOAMWOOD_SOLDIER_SOULS", 1, 0, 1), "OVERDUE"))
 	result.events.append(SimulationEngine.SimulationEvent.threshold_settled(500, &"THR_GLOAMWOOD", 1))
 	result.events.sort_custom(_event_less)
 	assert_eq(result.events[0].priority, SimulationEngine.EVENT_PRIORITY_CHANNEL_GAIN)
@@ -63,6 +65,32 @@ func test_event_order_and_boundary_matrix() -> void:
 	assert_false(_engine().validate_result(result, 0, 1000, 1000).ok)
 	result.events[0].reportable = false
 	assert_true(_engine().validate_result(result, 0, 1000, 1000).ok)
+
+func test_review_regression_mismatched_channel_output_event_and_summary_reject() -> void:
+	var bad_channel := _result([_segment()], 1000)
+	bad_channel.segments[0].channel_deltas[0].output_item_id = &"SOUL_FORM_SCRIBE"
+	assert_false(_engine().validate_result(bad_channel, 0, 1000, 1000).ok)
+
+	var out_of_order := _result([_segment(0, 500), _segment(500, 1000, &"SETTLED")], 1000)
+	out_of_order.events.append(SimulationEngine.SimulationEvent.threshold_settled(500, &"THR_GLOAMWOOD", 1))
+	out_of_order.events.append(SimulationEngine.SimulationEvent.output_channel_banked(500, &"THR_GLOAMWOOD", &"CHANNEL_GLOAMWOOD_SOLDIER_SOULS", _delta(&"CHANNEL_GLOAMWOOD_SOLDIER_SOULS", 1, 0, 1), "OVERDUE"))
+	assert_false(_engine().validate_result(out_of_order, 0, 1000, 1000).ok)
+
+	var wrong_event_subject := _result([_segment()], 1000)
+	wrong_event_subject.events.append(SimulationEngine.SimulationEvent.output_channel_banked(1000, &"THR_BROKEN_WATCH", &"CHANNEL_GLOAMWOOD_SOLDIER_SOULS", _delta(&"CHANNEL_GLOAMWOOD_SOLDIER_SOULS", 1, 0, 1), "OVERDUE"))
+	assert_false(_engine().validate_result(wrong_event_subject, 0, 1000, 1000).ok)
+
+	var wrong_event_channel := _result([_segment()], 1000)
+	wrong_event_channel.events.append(SimulationEngine.SimulationEvent.output_channel_banked(1000, &"THR_GLOAMWOOD", &"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS", _delta(&"CHANNEL_GLOAMWOOD_SOLDIER_SOULS", 1, 0, 1), "OVERDUE"))
+	assert_false(_engine().validate_result(wrong_event_channel, 0, 1000, 1000).ok)
+
+	var stale_summary := _result([_segment()], 1000)
+	stale_summary.change_summary["returned_souls_delta"] = 999
+	assert_false(_engine().validate_result(stale_summary, 0, 1000, 1000).ok)
+
+	var stale_channel_summary := _result([_segment()], 1000)
+	stale_channel_summary.change_summary["channel_deltas"] = [_delta(&"CHANNEL_GLOAMWOOD_SOLDIER_SOULS", 1, 0, 1)]
+	assert_false(_engine().validate_result(stale_channel_summary, 0, 1000, 1000).ok)
 
 func _event_less(a: SimulationEngine.SimulationEvent, b: SimulationEngine.SimulationEvent) -> bool:
 	if a.occurred_simulation_msec != b.occurred_simulation_msec: return a.occurred_simulation_msec < b.occurred_simulation_msec

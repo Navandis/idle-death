@@ -202,7 +202,7 @@ func _apply_output_channels(state: GameState, threshold_id: StringName, form_id:
 				# Use the loop's segment-end cursor so banked events in a post-Settlement
 				# segment cannot sort before the Settlement event that enabled that segment.
 				events.append(SimulationEvent.output_channel_banked(segment_end_msec, threshold_id, StringName(channel.id), delta, lifecycle_state))
-	deltas.sort_custom(func(a, b): return a.channel_id < b.channel_id)
+	deltas.sort_custom(func(a, b): return str(a.channel_id) < str(b.channel_id))
 	events.sort_custom(_event_less)
 	return {"ok": true, "channel_deltas": deltas, "events": events}
 
@@ -221,7 +221,7 @@ func _eligible_output_channels(state: GameState, threshold_id: StringName) -> Di
 			continue
 		if threshold.channel_acquisition.has(StringName(channel.id)):
 			channels.append(channel)
-	channels.sort_custom(func(a, b): return a.id < b.id)
+	channels.sort_custom(func(a, b): return str(a.id) < str(b.id))
 	return {"ok": true, "channels": channels}
 
 func _channel_rate(channel: Dictionary, lifecycle_state: String) -> Dictionary:
@@ -346,7 +346,7 @@ func _active_reaping_ids(state: GameState) -> Array[StringName]:
 	var ids: Array[StringName] = []
 	for id in state.reapings.keys():
 		if state.reapings[id].is_active: ids.append(id)
-	ids.sort()
+	ids.sort_custom(func(a, b): return str(a) < str(b))
 	return ids
 
 func _summary(before: GameState, after: GameState, threshold_id: StringName) -> Dictionary:
@@ -360,7 +360,7 @@ func _summary(before: GameState, after: GameState, threshold_id: StringName) -> 
 func _overall_channel_deltas(before_threshold: GameState.ThresholdState, after_threshold: GameState.ThresholdState) -> Array:
 	var deltas: Array = []
 	var ids := after_threshold.channel_acquisition.keys()
-	ids.sort()
+	ids.sort_custom(func(a, b): return str(a) < str(b))
 	for channel_id in ids:
 		if not before_threshold.channel_acquisition.has(channel_id): continue
 		var before: GameState.ThresholdAcquisitionState = before_threshold.channel_acquisition[channel_id]
@@ -403,7 +403,7 @@ func validate_result(result: SimulationResult, baseline_simulation_time_msec: in
 	var first: SimulationSegmentResult = result.segments[0]
 	for i in range(result.segments.size()):
 		var segment: SimulationSegmentResult = result.segments[i]
-		var local: Dictionary = segment.validate(_channel_periods_for_segment(segment))
+		var local: Dictionary = segment.validate(_channel_contracts_for_segment(segment))
 		if not local["ok"]: return local
 		if segment.start_simulation_msec != expected_start: return _fail(ERR_RESULT_INVALID, "Segments must be ordered and contiguous.")
 		if segment.threshold_id != first.threshold_id or segment.assignment_revision != first.assignment_revision or segment.form_id != first.form_id or segment.writ_id != first.writ_id or segment.ordered_retinue_ids != first.ordered_retinue_ids:
@@ -414,12 +414,10 @@ func validate_result(result: SimulationResult, baseline_simulation_time_msec: in
 		expected_start = segment.end_simulation_msec
 	if expected_start != result_simulation_time_msec: return _fail(ERR_RESULT_INVALID, "Final segment end must equal result cursor.")
 	if sum != requested_elapsed_msec: return _fail(ERR_RESULT_INVALID, "Segment elapsed sum must equal committed elapsed.")
-	for event in result.events:
-		var event_check: Dictionary = event.validate()
-		if not event_check["ok"]: return event_check
-		if event.reportable and _owning_segment_count(result.segments, event) != 1: return _fail(ERR_RESULT_INVALID, "Event marked reportable must belong to exactly one segment.")
-	if result.change_summary.has("simulation_time_delta_msec") and int(result.change_summary.simulation_time_delta_msec) != requested_elapsed_msec:
-		return _fail(ERR_RESULT_INVALID, "Summary simulation-time delta mismatch.")
+	var events_check := _validate_events_for_segments(result.segments, result.events)
+	if not events_check["ok"]: return events_check
+	var summary_check := _validate_active_change_summary(result, requested_elapsed_msec)
+	if not summary_check["ok"]: return summary_check
 	return {"ok": true}
 
 func _validate_timeline_only_result(result: SimulationResult, requested_elapsed_msec: int) -> Dictionary:
@@ -428,20 +426,137 @@ func _validate_timeline_only_result(result: SimulationResult, requested_elapsed_
 		return _fail(ERR_RESULT_INVALID, "Timeline-only summary must contain only the exact simulation-time delta.")
 	return {"ok": true}
 
-func _owning_segment_count(segments: Array[SimulationSegmentResult], event: SimulationEvent) -> int:
-	var count := 0
+func _validate_events_for_segments(segments: Array[SimulationSegmentResult], events: Array[SimulationEvent]) -> Dictionary:
+	var previous: SimulationEvent = null
+	for event in events:
+		var event_check: Dictionary = event.validate()
+		if not event_check["ok"]: return event_check
+		if previous != null and _event_less(event, previous):
+			return _fail(ERR_RESULT_INVALID, "Events must be in stable simulation-time, priority, subject, source order.")
+		previous = event
+		if not event.reportable:
+			continue
+		var owning := _owning_segment(segments, event)
+		if owning == null:
+			return _fail(ERR_RESULT_INVALID, "Event marked reportable must belong to exactly one segment.")
+		var coherence := _validate_event_matches_segment(owning, event)
+		if not coherence["ok"]: return coherence
+	return {"ok": true}
+
+func _owning_segment(segments: Array[SimulationSegmentResult], event: SimulationEvent) -> SimulationSegmentResult:
+	var owned_by: SimulationSegmentResult = null
 	for segment in segments:
 		if segment.start_simulation_msec < event.occurred_simulation_msec and event.occurred_simulation_msec <= segment.end_simulation_msec:
-			count += 1
-	return count
+			if owned_by != null:
+				return null
+			owned_by = segment
+	return owned_by
 
-func _channel_periods_for_segment(segment: SimulationSegmentResult) -> Dictionary:
-	var periods := {}
+func _validate_event_matches_segment(segment: SimulationSegmentResult, event: SimulationEvent) -> Dictionary:
+	match event.event_type:
+		EVENT_OUTPUT_CHANNEL_BANKED:
+			if event.subject_id != segment.threshold_id:
+				return _fail(ERR_RESULT_INVALID, "Output-channel event subject must match owning segment Threshold.")
+			for delta in segment.channel_deltas:
+				if delta.channel_id != event.source_id:
+					continue
+				if delta.banked_units_delta <= 0:
+					return _fail(ERR_RESULT_INVALID, "Output-channel event cannot reference a progress-only delta.")
+				if event.payload.get("output_item_id", &"") != delta.output_item_id:
+					return _fail(ERR_RESULT_INVALID, "Output-channel event output item must match the channel delta.")
+				if int(event.payload.get("quantity", -1)) != delta.banked_units_delta:
+					return _fail(ERR_RESULT_INVALID, "Output-channel event quantity must match the channel delta.")
+				if int(event.payload.get("total_banked_units", -1)) != delta.total_banked_units_after:
+					return _fail(ERR_RESULT_INVALID, "Output-channel event total must match the channel delta endpoint.")
+				return {"ok": true}
+			return _fail(ERR_RESULT_INVALID, "Output-channel event source must match a banked channel delta in its segment.")
+		EVENT_THRESHOLD_SETTLED:
+			if event.subject_id != segment.threshold_id or event.source_id != &"SIMULATION_ENGINE":
+				return _fail(ERR_RESULT_INVALID, "Settlement event identity must match owning segment Threshold.")
+			if event.occurred_simulation_msec != segment.end_simulation_msec:
+				return _fail(ERR_RESULT_INVALID, "Settlement event must occur at the owning segment end.")
+			if str(event.payload.get("lifecycle_state", "")) != "SETTLED" or int(event.payload.get("remaining_backlog", -1)) != 0:
+				return _fail(ERR_RESULT_INVALID, "Settlement event payload must describe the Settled endpoint.")
+			return {"ok": true}
+		_:
+			return {"ok": true}
+
+func _validate_active_change_summary(result: SimulationResult, requested_elapsed_msec: int) -> Dictionary:
+	var summary := result.change_summary
+	if summary.has("simulation_time_delta_msec") and int(summary.simulation_time_delta_msec) != requested_elapsed_msec:
+		return _fail(ERR_RESULT_INVALID, "Summary simulation-time delta mismatch.")
+	var totals := _aggregate_segments(result.segments)
+	for key in ["returned_souls_delta", "Essence_delta", "Mastery_delta_subunits", "completed_cycles_delta"]:
+		if summary.has(key) and int(summary[key]) != int(totals[key]):
+			return _fail(ERR_RESULT_INVALID, "Summary %s mismatch." % key)
+	if summary.has("backlog_delta") and int(summary.backlog_delta) != -int(totals.backlog_reduced):
+		return _fail(ERR_RESULT_INVALID, "Summary backlog_delta mismatch.")
+	if summary.has("lifecycle_before") and str(summary.lifecycle_before) != str(result.segments[0].lifecycle_state):
+		return _fail(ERR_RESULT_INVALID, "Summary lifecycle_before mismatch.")
+	if summary.has("lifecycle_after") and str(summary.lifecycle_after) != str(_result_lifecycle_after(result)):
+		return _fail(ERR_RESULT_INVALID, "Summary lifecycle_after mismatch.")
+	if summary.has("channel_deltas"):
+		var summary_channels: Array = summary.channel_deltas
+		var aggregate_channels: Array[SimulationChannelDeltaResult] = totals.channel_deltas
+		if summary_channels.size() != aggregate_channels.size():
+			return _fail(ERR_RESULT_INVALID, "Summary channel_deltas size mismatch.")
+		for i in range(summary_channels.size()):
+			if not _channel_delta_fields_equal(summary_channels[i], aggregate_channels[i]):
+				return _fail(ERR_RESULT_INVALID, "Summary channel_deltas mismatch.")
+	return {"ok": true}
+
+func _result_lifecycle_after(result: SimulationResult) -> StringName:
+	var last: SimulationSegmentResult = result.segments[result.segments.size() - 1]
+	for event in result.events:
+		if event.event_type == EVENT_THRESHOLD_SETTLED and event.subject_id == last.threshold_id and event.occurred_simulation_msec == last.end_simulation_msec:
+			return LIFECYCLE_SETTLED
+	return last.lifecycle_state
+
+func _aggregate_segments(segments: Array[SimulationSegmentResult]) -> Dictionary:
+	var totals := {"returned_souls_delta": 0, "backlog_reduced": 0, "Essence_delta": 0, "Mastery_delta_subunits": 0, "completed_cycles_delta": 0, "channel_deltas": []}
+	var channel_accumulator := {}
+	var channel_order: Array[StringName] = []
+	for segment in segments:
+		totals.returned_souls_delta += segment.returned_souls_delta
+		totals.backlog_reduced += segment.backlog_reduced
+		totals.Essence_delta += segment.essence_delta
+		totals.Mastery_delta_subunits += segment.mastery_delta_subunits
+		totals.completed_cycles_delta += segment.completed_cycles_delta
+		for delta in segment.channel_deltas:
+			if not channel_accumulator.has(delta.channel_id):
+				channel_order.append(delta.channel_id)
+				channel_accumulator[delta.channel_id] = delta.detached_copy()
+			else:
+				var accumulated: SimulationChannelDeltaResult = channel_accumulator[delta.channel_id]
+				accumulated.banked_units_delta += delta.banked_units_delta
+				accumulated.progress_subunits_after = delta.progress_subunits_after
+				accumulated.rate_carry_units_after = delta.rate_carry_units_after
+				accumulated.total_banked_units_after = delta.total_banked_units_after
+	channel_order.sort_custom(func(a, b): return str(a) < str(b))
+	var deltas: Array[SimulationChannelDeltaResult] = []
+	for channel_id in channel_order:
+		deltas.append(channel_accumulator[channel_id])
+	totals.channel_deltas = deltas
+	return totals
+
+func _channel_delta_fields_equal(left: SimulationChannelDeltaResult, right: SimulationChannelDeltaResult) -> bool:
+	return left.channel_id == right.channel_id \
+		and left.output_item_id == right.output_item_id \
+		and left.banked_units_delta == right.banked_units_delta \
+		and left.progress_subunits_before == right.progress_subunits_before \
+		and left.progress_subunits_after == right.progress_subunits_after \
+		and left.rate_carry_units_before == right.rate_carry_units_before \
+		and left.rate_carry_units_after == right.rate_carry_units_after \
+		and left.total_banked_units_before == right.total_banked_units_before \
+		and left.total_banked_units_after == right.total_banked_units_after
+
+func _channel_contracts_for_segment(segment: SimulationSegmentResult) -> Dictionary:
+	var contracts := {}
 	for delta in segment.channel_deltas:
 		var record := registry.get_record(str(delta.channel_id))
 		if not record.ok: continue
-		periods[delta.channel_id] = int(record.record.rate.period_msec)
-	return periods
+		contracts[delta.channel_id] = {"period_msec": int(record.record.rate.period_msec), "output_item_id": StringName(record.record.output_item_id)}
+	return contracts
 
 ## Detached non-persisted evidence for one Threshold output channel during a segment.
 ##
@@ -525,7 +640,7 @@ class SimulationSegmentResult:
 		for delta in channel_values: channel_deltas.append(delta.detached_copy())
 	func detached_copy() -> SimulationSegmentResult:
 		return SimulationSegmentResult.new(threshold_id, assignment_revision, form_id, writ_id, ordered_retinue_ids, lifecycle_state, start_simulation_msec, end_simulation_msec, elapsed_msec, returned_souls_delta, backlog_reduced, essence_delta, mastery_delta_subunits, completed_cycles_delta, channel_deltas)
-	func validate(channel_periods: Dictionary) -> Dictionary:
+	func validate(channel_contracts: Dictionary) -> Dictionary:
 		if str(threshold_id).is_empty() or str(form_id).is_empty() or str(writ_id).is_empty(): return {"ok": false, "code": ERR_RESULT_INVALID, "details": "Segment identity IDs must be non-empty."}
 		if assignment_revision <= 0: return {"ok": false, "code": ERR_RESULT_INVALID, "details": "Assignment revision must be positive."}
 		if lifecycle_state != LIFECYCLE_OVERDUE and lifecycle_state != LIFECYCLE_SETTLED: return {"ok": false, "code": ERR_RESULT_INVALID, "details": "Invalid segment lifecycle."}
@@ -540,9 +655,17 @@ class SimulationSegmentResult:
 			previous_retinue = str(retinue_id)
 		var previous_channel := ""
 		for delta in channel_deltas:
-			if not channel_periods.has(delta.channel_id): return {"ok": false, "code": ERR_RESULT_INVALID, "details": "Missing channel period for delta."}
+			if not channel_contracts.has(delta.channel_id): return {"ok": false, "code": ERR_RESULT_INVALID, "details": "Missing channel contract for delta."}
 			if not previous_channel.is_empty() and previous_channel >= str(delta.channel_id): return {"ok": false, "code": ERR_RESULT_INVALID, "details": "Channel deltas must be unique and ordered."}
-			var delta_check: Dictionary = delta.validate(int(channel_periods[delta.channel_id]))
+			var contract_value: Variant = channel_contracts[delta.channel_id]
+			var period_msec := 0
+			if contract_value is Dictionary:
+				var contract: Dictionary = contract_value
+				if contract.has("output_item_id") and delta.output_item_id != contract.output_item_id: return {"ok": false, "code": ERR_RESULT_INVALID, "details": "Channel output item must match content."}
+				period_msec = int(contract.period_msec)
+			else:
+				period_msec = int(contract_value)
+			var delta_check: Dictionary = delta.validate(period_msec)
 			if not delta_check["ok"]: return delta_check
 			previous_channel = str(delta.channel_id)
 		return {"ok": true}
