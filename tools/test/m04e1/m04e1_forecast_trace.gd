@@ -153,12 +153,37 @@ func _event_and_delta_match() -> bool:
 	var commit := _service.run_committed(commit_state, 10000, SimulationRunService.MODE_FOREGROUND_SUPPLIED)
 	if not (forecast.success and commit.success): return false
 	if forecast.simulation_result.segments.size() != commit.simulation_result.segments.size(): return false
-	if forecast.simulation_result.change_summary != commit.simulation_result.change_summary: return false
+	if not _change_summaries_match(forecast.simulation_result.change_summary, commit.simulation_result.change_summary): return false
 	if forecast.simulation_result.events.size() != commit.simulation_result.events.size(): return false
 	for i in range(forecast.simulation_result.events.size()):
 		var a: SimulationEngine.SimulationEvent = forecast.simulation_result.events[i]
 		var b: SimulationEngine.SimulationEvent = commit.simulation_result.events[i]
 		if a.event_type != b.event_type or a.occurred_simulation_msec != b.occurred_simulation_msec or a.subject_id != b.subject_id or a.source_id != b.source_id or a.payload != b.payload: return false
+	return true
+
+func _change_summaries_match(left: Dictionary, right: Dictionary) -> bool:
+	if left.keys().size() != right.keys().size(): return false
+	for key in left.keys():
+		if not right.has(key): return false
+		if key == "channel_deltas":
+			if not _channel_delta_arrays_match(left[key], right[key]): return false
+		elif left[key] != right[key]:
+			return false
+	return true
+
+func _channel_delta_arrays_match(left: Array, right: Array) -> bool:
+	if left.size() != right.size(): return false
+	for i in range(left.size()):
+		var a: SimulationEngine.SimulationChannelDeltaResult = left[i]
+		var b: SimulationEngine.SimulationChannelDeltaResult = right[i]
+		if a.channel_id != b.channel_id or a.output_item_id != b.output_item_id or a.banked_units_delta != b.banked_units_delta:
+			return false
+		if a.progress_subunits_before != b.progress_subunits_before or a.progress_subunits_after != b.progress_subunits_after:
+			return false
+		if a.rate_carry_units_before != b.rate_carry_units_before or a.rate_carry_units_after != b.rate_carry_units_after:
+			return false
+		if a.total_banked_units_before != b.total_banked_units_before or a.total_banked_units_after != b.total_banked_units_after:
+			return false
 	return true
 
 func _save_bytes_unchanged(_snapshot: Dictionary, state: GameState) -> bool:

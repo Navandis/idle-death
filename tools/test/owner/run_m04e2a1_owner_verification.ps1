@@ -89,6 +89,7 @@ function Run-Step([string]$Name, [string]$CommandDescription, [scriptblock]$Comm
     $StepExitCode = 0
     $script:LastStepOutput = @()
     try {
+        $global:LASTEXITCODE = 0
         $Output = & $Command 2>&1
         foreach ($Line in $Output) {
             $Text = "$Line"
@@ -168,6 +169,7 @@ function Invoke-MissingRootTraceFailure {
     foreach ($Line in $Output) { Write-Output "$Line" }
     Write-Output "Missing-root trace exit code: $TraceExitCode"
     if ($TraceExitCode -eq 0) { throw "M04E2A1 trace without --work-root unexpectedly succeeded." }
+    $global:LASTEXITCODE = 0
 }
 
 function Invoke-ArtifactAudit {

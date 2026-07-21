@@ -85,9 +85,9 @@ func _run() -> void:
 	var half_result := SimulationEngine.new(half_registry).resolve_elapsed(half, 2000)
 	_assert(half_result.success, "half fixture resolves")
 	_assert(half_result.segments.size() == 2, "half fixture segments")
-	_assert(half_result.segments[0].elapsed_msec == 870 and half_result.segments[0].lifecycle == "OVERDUE", "half overdue segment")
+	_assert(half_result.segments[0].elapsed_msec == 870 and half_result.segments[0].lifecycle_state == "OVERDUE", "half overdue segment")
 	_assert(half_result.segments[0].channel_deltas[0].progress_subunits_after == 870000, "half overdue channel arithmetic")
-	_assert(half_result.segments[1].elapsed_msec == 1130 and half_result.segments[1].lifecycle == "SETTLED", "half settled segment")
+	_assert(half_result.segments[1].elapsed_msec == 1130 and half_result.segments[1].lifecycle_state == "SETTLED", "half settled segment")
 	_assert(half_result.segments[1].channel_deltas[0].banked_units_delta == 1, "half settled bank")
 	var half_acq: GameState.ThresholdAcquisitionState = half.thresholds[&"THR_GLOAMWOOD"].channel_acquisition[&"CHANNEL_GLOAMWOOD_SOLDIER_SOULS"]
 	_assert(half.inventory.entries[&"SOUL_CALLING_SOLDIER"].total == 1 and half_acq.progress_subunits == 435000 and half_acq.rate_carry_units == 0, "half final acquisition")

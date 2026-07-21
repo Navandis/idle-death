@@ -40,6 +40,16 @@ func test_complete_result_validation_matrix() -> void:
 	var missing_segments := SimulationEngine.SimulationResult.new(true, SimulationEngine.OK, "", 1000)
 	missing_segments.committed_elapsed_msec = 1000
 	assert_false(_engine().validate_result(missing_segments, 0, 1000, 1000).ok)
+	missing_segments.change_summary["simulation_time_delta_msec"] = 1000
+	assert_true(_engine().validate_result(missing_segments, 0, 1000, 1000).ok)
+	assert_false(_engine().validate_result(missing_segments, 0, 1000, 1000, true).ok)
+	assert_false(_engine().validate_result(_result([_segment(0, 1000, &"OVERDUE", 1, &"FORM_DOES_NOT_EXIST")], 1000), 0, 1000, 1000).ok)
+	assert_false(_engine().validate_result(_result([_segment(0, 1000, &"OVERDUE", 1, &"FORM_MAN_AT_ARMS", &"WRIT_DOES_NOT_EXIST")], 1000), 0, 1000, 1000).ok)
+	assert_false(_engine().validate_result(_result([_segment(0, 1000, &"OVERDUE", 1, &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD", &"THR_DOES_NOT_EXIST")], 1000), 0, 1000, 1000).ok)
+	var wrong_threshold_channel := _result([_segment()], 1000)
+	wrong_threshold_channel.segments[0].channel_deltas.clear()
+	wrong_threshold_channel.segments[0].channel_deltas.append(_delta(&"CHANNEL_BROKEN_WATCH_PROVISIONS"))
+	assert_false(_engine().validate_result(wrong_threshold_channel, 0, 1000, 1000).ok)
 	assert_false(_engine().validate_result(_result([_segment(1, 1000)], 999), 0, 999, 999).ok)
 	assert_false(_engine().validate_result(_result([_segment(0, 900)], 900), 0, 1000, 900).ok)
 	assert_false(_engine().validate_result(_result([_segment(0, 400), _segment(500, 1000)], 1000), 0, 1000, 1000).ok)

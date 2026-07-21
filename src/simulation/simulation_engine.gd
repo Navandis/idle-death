@@ -335,7 +335,7 @@ func _validate_core_flows(reaping: GameState.ReapingState) -> Dictionary:
 	return {"ok": true}
 
 func _commit_if_valid(live: GameState, candidate: GameState, result: SimulationResult) -> SimulationResult:
-	var result_validation: Dictionary = validate_result(result, live.simulation_time_msec, candidate.simulation_time_msec, result.requested_elapsed_msec)
+	var result_validation: Dictionary = validate_result(result, live.simulation_time_msec, candidate.simulation_time_msec, result.requested_elapsed_msec, not _active_reaping_ids(candidate).is_empty())
 	if not result_validation["ok"]: return SimulationResult.failure(ERR_RESULT_INVALID, result.requested_elapsed_msec, result_validation["details"])
 	var validation := GameStateValidator.validate(candidate, registry, true)
 	if not validation.ok: return SimulationResult.failure(ERR_STATE_INVALID, result.requested_elapsed_msec, str(validation))
@@ -386,7 +386,7 @@ func _has_any(left: Array, right: Array) -> bool:
 func _fail(code: StringName, details: String) -> Dictionary:
 	return {"ok": false, "code": code, "details": details}
 
-func validate_result(result: SimulationResult, baseline_simulation_time_msec: int, result_simulation_time_msec: int, requested_elapsed_msec: int) -> Dictionary:
+func validate_result(result: SimulationResult, baseline_simulation_time_msec: int, result_simulation_time_msec: int, requested_elapsed_msec: int, active_candidate_resolved: bool = false) -> Dictionary:
 	if result == null: return _fail(ERR_RESULT_INVALID, "SimulationResult is null.")
 	if not result.success:
 		if result.segments.is_empty() and result.events.is_empty() and result.committed_elapsed_msec == 0: return {"ok": true}
@@ -397,12 +397,15 @@ func validate_result(result: SimulationResult, baseline_simulation_time_msec: in
 	if result.committed_elapsed_msec != requested_elapsed_msec: return _fail(ERR_RESULT_INVALID, "Committed elapsed must equal requested elapsed.")
 	if result_simulation_time_msec - baseline_simulation_time_msec != requested_elapsed_msec: return _fail(ERR_RESULT_INVALID, "Result cursor does not match requested elapsed.")
 	if result.segments.is_empty():
+		if active_candidate_resolved: return _fail(ERR_RESULT_INVALID, "Active committed result must include typed segments.")
 		return _validate_timeline_only_result(result, requested_elapsed_msec)
 	var sum := 0
 	var expected_start := baseline_simulation_time_msec
 	var first: SimulationSegmentResult = result.segments[0]
 	for i in range(result.segments.size()):
 		var segment: SimulationSegmentResult = result.segments[i]
+		var identity_check := _validate_segment_content_identity(segment)
+		if not identity_check["ok"]: return identity_check
 		var local: Dictionary = segment.validate(_channel_contracts_for_segment(segment))
 		if not local["ok"]: return local
 		if segment.start_simulation_msec != expected_start: return _fail(ERR_RESULT_INVALID, "Segments must be ordered and contiguous.")
@@ -424,6 +427,26 @@ func _validate_timeline_only_result(result: SimulationResult, requested_elapsed_
 	if not result.events.is_empty(): return _fail(ERR_RESULT_INVALID, "Timeline-only result cannot carry events.")
 	if result.change_summary.size() != 1 or not result.change_summary.has("simulation_time_delta_msec") or int(result.change_summary.simulation_time_delta_msec) != requested_elapsed_msec:
 		return _fail(ERR_RESULT_INVALID, "Timeline-only summary must contain only the exact simulation-time delta.")
+	return {"ok": true}
+
+func _validate_segment_content_identity(segment: SimulationSegmentResult) -> Dictionary:
+	var threshold_record := registry.get_record(str(segment.threshold_id))
+	if not threshold_record.ok: return _fail(ERR_RESULT_INVALID, "Segment Threshold must resolve in content.")
+	if not str(segment.threshold_id).begins_with("THR_"): return _fail(ERR_RESULT_INVALID, "Segment Threshold ID must use THR_ content identity.")
+	var form_record := registry.get_record(str(segment.form_id))
+	if not form_record.ok or not str(segment.form_id).begins_with("FORM_"):
+		return _fail(ERR_RESULT_INVALID, "Segment Form must resolve in content.")
+	var writ_record := registry.get_record(str(segment.writ_id))
+	if not writ_record.ok or not str(segment.writ_id).begins_with("WRIT_"):
+		return _fail(ERR_RESULT_INVALID, "Segment Writ must resolve in content.")
+	var threshold_channels: Array = threshold_record.record.channel_ids
+	for delta in segment.channel_deltas:
+		if not threshold_channels.has(str(delta.channel_id)):
+			return _fail(ERR_RESULT_INVALID, "Segment channel must be authored on the owning Threshold.")
+		var channel_record := registry.get_record(str(delta.channel_id))
+		if not channel_record.ok: return _fail(ERR_RESULT_INVALID, "Segment channel must resolve in content.")
+		if str(channel_record.record.source_threshold_id) != str(segment.threshold_id):
+			return _fail(ERR_RESULT_INVALID, "Segment channel source Threshold must match the segment Threshold.")
 	return {"ok": true}
 
 func _validate_events_for_segments(segments: Array[SimulationSegmentResult], events: Array[SimulationEvent]) -> Dictionary:
