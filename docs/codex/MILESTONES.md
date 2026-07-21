@@ -171,7 +171,7 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 | M04E1 | Forecast clone and supplied-resolution adapters | Implementation slice | Approved | Approved | Merged | Passed |
 | M04E2 | Report persistence and final M04 closure | Conceptual sub-epic | Approved | Not applicable | Not directly executable | — |
 | M04E2A | Report-foundation replacement sequence | Conceptual sub-epic | Approved | Not applicable | Not directly executable | — |
-| M04E2A1 | Typed committed simulation-result contract | Implementation slice | Approved | Approved | Not started | — |
+| M04E2A1 | Typed committed simulation-result contract | Implementation slice | Approved | Approved | Pull request open | Partial |
 | M04E2A2 | Report runtime state and schema-v4 persistence | Implementation slice | Approved | Not drafted | Not started | — |
 | M04E2A3 | Cursor-idempotent live report ingestion | Implementation slice | Approved | Not drafted | Not started | — |
 | M04E2A4 | Report reads, snapshot, bounded history, and final evidence | Implementation slice | Approved | Not drafted | Not started | — |
@@ -794,7 +794,7 @@ Schema version 1 and its key spelling remain unchanged. New-save calls pass the 
 **Definition status:** Approved  
 **Prompt status:** Not applicable — no direct epic prompt  
 **Implementation status:** Not directly executable  
-**Verification status:** —  
+**Verification status:** —
 **Approved final decomposition:** M04A → M04B → M04C → M04D1 → M04D2 → M04D3 → M04E1 → M04E2A1 → M04E2A2 → M04E2A3 → M04E2A4 → M04E2B
 
 #### Purpose
@@ -1383,7 +1383,7 @@ Permit currently valid changed loadouts to redispatch without losing or reinterp
 **Definition status:** Approved  
 **Prompt status:** Not applicable — no direct epic prompt  
 **Implementation status:** Not directly executable  
-**Verification status:** —  
+**Verification status:** —
 **Approved decomposition:** M04E1 → M04E2A1 → M04E2A2 → M04E2A3 → M04E2A4 → M04E2B
 
 #### Purpose
@@ -1454,7 +1454,7 @@ Add one non-authoritative forecast seam and one explicit-duration adapter owner 
 **Definition status:** Approved under accepted `DEC-0042`  
 **Prompt status:** Not applicable — no direct prompt  
 **Implementation status:** Not directly executable  
-**Verification status:** —  
+**Verification status:** —
 **Approved decomposition:** M04E2A1 -> M04E2A2 -> M04E2A3 -> M04E2A4 -> M04E2B
 
 #### Recalibration record
@@ -1476,7 +1476,7 @@ M04E2 is complete only when M04E2A1, M04E2A2, M04E2A3, M04E2A4, and M04E2B are a
 **Definition status:** Approved under accepted `DEC-0042`  
 **Prompt status:** Not applicable — the retired direct prompt is Superseded  
 **Implementation status:** Not directly executable  
-**Verification status:** —  
+**Verification status:** —
 **Approved decomposition:** M04E2A1 -> M04E2A2 -> M04E2A3 -> M04E2A4
 
 #### Purpose
@@ -1499,8 +1499,8 @@ The former direct implementation slice and prompt `M04E2A-report-state-schema-hi
 **Parent epic:** M04 / M04E / M04E2 / M04E2A  
 **Definition status:** Approved under accepted `DEC-0042`  
 **Prompt status:** Approved v0.1  
-**Implementation status:** Not started  
-**Verification status:** —  
+**Implementation status:** Pull request open
+**Verification status:** Partial
 **Recommended Codex task size:** Small-medium; one typed-result and consumer-compatibility pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M04E2A1-typed-committed-simulation-result-contract.md`
 
@@ -1669,8 +1669,8 @@ Stop and request owner approval before:
 **Parent epic:** M04 / M04E / M04E2 / M04E2A  
 **Definition status:** Approved boundary under accepted `DEC-0042`  
 **Prompt status:** Not drafted  
-**Implementation status:** Not started  
-**Verification status:** —  
+**Implementation status:** Not started
+**Verification status:** —
 **Recommended Codex task size:** Small-medium; one report-state/schema/migration pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M04E2A2-report-state-schema-v4-persistence.md`
 
@@ -1710,8 +1710,8 @@ A valid report-empty or fixture-populated state can construct, clone, validate, 
 **Parent epic:** M04 / M04E / M04E2 / M04E2A  
 **Definition status:** Approved boundary under accepted `DEC-0042`  
 **Prompt status:** Not drafted  
-**Implementation status:** Not started  
-**Verification status:** —  
+**Implementation status:** Not started
+**Verification status:** —
 **Recommended Codex task size:** Small-medium; one temporal/checked-aggregation pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M04E2A3-live-report-ingestion.md`
 
@@ -1753,8 +1753,8 @@ A typed committed interval is represented once in live report state or rejected 
 **Parent epic:** M04 / M04E / M04E2 / M04E2A  
 **Definition status:** Approved boundary under accepted `DEC-0042`  
 **Prompt status:** Not drafted  
-**Implementation status:** Not started  
-**Verification status:** —  
+**Implementation status:** Not started
+**Verification status:** —
 **Recommended Codex task size:** Small-medium; one read/snapshot/history/evidence pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M04E2A4-report-reads-snapshot-history-evidence.md`
 
@@ -1795,8 +1795,8 @@ The accepted M04E2A report foundation is Merged/Passed only after this slice pas
 **Parent epic:** M04 / M04E / M04E2  
 **Definition status:** Approved high-level boundary under accepted `DEC-0042`  
 **Prompt status:** Not drafted  
-**Implementation status:** Not started  
-**Verification status:** —  
+**Implementation status:** Not started
+**Verification status:** —
 **Recommended Codex task size:** Small-medium; one transaction-coordinator/harness pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M04E2B-atomic-reported-run-final-m04-harness.md`
 
@@ -1837,7 +1837,7 @@ Make the application-level supplied-duration path commit gameplay and report ing
 **Definition status:** Approved  
 **Prompt status:** Not applicable — decompose before drafting  
 **Implementation status:** Not directly executable  
-**Verification status:** —  
+**Verification status:** —
 **Recommended planning action:** Reassess and approve lettered slices under `DEC-0033` immediately before implementation.  
 **Planned prompt file:** Not applicable — no direct epic prompt.
 
@@ -1940,7 +1940,7 @@ Startup and shutdown use M02 storage. Current screen, hover, and animation state
 **Definition status:** Approved  
 **Prompt status:** Not applicable — decompose before drafting  
 **Implementation status:** Not directly executable  
-**Verification status:** —  
+**Verification status:** —
 **Recommended planning action:** Reassess and approve lettered slices under `DEC-0033` immediately before implementation.  
 **Planned prompt file:** Not applicable — no direct epic prompt.
 
@@ -2094,7 +2094,7 @@ The trusted anchor, simulation time at anchor, foreground credited since anchor,
 **Definition status:** Approved  
 **Prompt status:** Not applicable — decompose before drafting  
 **Implementation status:** Not directly executable  
-**Verification status:** —  
+**Verification status:** —
 **Recommended planning action:** Reassess and approve lettered slices under `DEC-0033` immediately before implementation.  
 **Planned prompt file:** Not applicable — no direct epic prompt.
 
@@ -2195,7 +2195,7 @@ Tutorial, story checkpoint, skip/help, and presented-notice fields persist. Tran
 **Definition status:** Approved  
 **Prompt status:** Not applicable — decompose before drafting  
 **Implementation status:** Not directly executable  
-**Verification status:** —  
+**Verification status:** —
 **Recommended planning action:** Reassess and approve lettered slices under `DEC-0033` immediately before implementation.  
 **Planned prompt file:** Not applicable — no direct epic prompt.
 
@@ -2302,7 +2302,7 @@ Checkpoint after every tutorial transition, the four-return transaction, Brand c
 **Definition status:** Approved  
 **Prompt status:** Not applicable — decompose before drafting  
 **Implementation status:** Not directly executable  
-**Verification status:** —  
+**Verification status:** —
 **Recommended planning action:** Reassess and approve lettered slices under `DEC-0033` immediately before implementation.  
 **Planned prompt file:** Not applicable — no direct epic prompt.
 
@@ -2404,7 +2404,7 @@ Checkpoint after Archive restoration, Recollection purchase, tutorial transition
 **Definition status:** Approved  
 **Prompt status:** Not applicable — decompose before drafting  
 **Implementation status:** Not directly executable  
-**Verification status:** —  
+**Verification status:** —
 **Recommended planning action:** Reassess and approve lettered slices under `DEC-0033` immediately before implementation.  
 **Planned prompt file:** Not applicable — no direct epic prompt.
 
@@ -2508,7 +2508,7 @@ Checkpoint at milestone, Writ transition, guarantee, report snapshot/archive, Re
 **Definition status:** Approved  
 **Prompt status:** Not applicable — decompose before drafting  
 **Implementation status:** Not directly executable  
-**Verification status:** —  
+**Verification status:** —
 **Recommended planning action:** Reassess and approve lettered slices under `DEC-0033` immediately before implementation.  
 **Planned prompt file:** Not applicable — no direct epic prompt.
 
@@ -2610,7 +2610,7 @@ Checkpoint at milestone/top-ups, protection changes, awakening, tutorial present
 **Definition status:** Approved  
 **Prompt status:** Not applicable — decompose before drafting  
 **Implementation status:** Not directly executable  
-**Verification status:** —  
+**Verification status:** —
 **Recommended planning action:** Reassess and approve lettered slices under `DEC-0033` immediately before implementation.  
 **Planned prompt file:** Not applicable — no direct epic prompt.
 
@@ -2714,7 +2714,7 @@ Checkpoint at milestone/resonance, Threshold knowledge/availability, tether gran
 **Definition status:** Approved  
 **Prompt status:** Not applicable — no direct epic prompt  
 **Implementation status:** Not directly executable  
-**Verification status:** —  
+**Verification status:** —
 **Recommended planning action:** Reassess and approve lettered slices under `DEC-0033` immediately before implementation.  
 **Planned prompt file:** Not applicable — no direct epic prompt.
 
@@ -2820,7 +2820,7 @@ Checkpoint on access, source-identification, insight-state, and tutorial transit
 **Definition status:** Approved  
 **Prompt status:** Not applicable — decompose before drafting  
 **Implementation status:** Not directly executable  
-**Verification status:** —  
+**Verification status:** —
 **Recommended planning action:** Reassess and approve lettered slices under `DEC-0033` immediately before implementation.  
 **Planned prompt file:** Not applicable — no direct epic prompt.
 
@@ -2925,7 +2925,7 @@ Checkpoint at guarantee, Hall restoration/activation/target changes, support tra
 **Definition status:** Approved  
 **Prompt status:** Not applicable — decompose before drafting  
 **Implementation status:** Not directly executable  
-**Verification status:** —  
+**Verification status:** —
 **Recommended planning action:** Reassess and approve lettered slices under `DEC-0033` immediately before implementation.  
 **Planned prompt file:** Not applicable — no direct epic prompt.
 
@@ -3026,7 +3026,7 @@ Checkpoint at milestone/resonance/reward, choice availability, purchase, objecti
 **Definition status:** Approved  
 **Prompt status:** Not applicable — decompose before drafting  
 **Implementation status:** Not directly executable  
-**Verification status:** —  
+**Verification status:** —
 **Recommended planning action:** Reassess and approve lettered slices under `DEC-0033` immediately before implementation.  
 **Planned prompt file:** Not applicable — no direct epic prompt.
 
@@ -3156,7 +3156,7 @@ Create checkpoints before and after the offline transaction, after report snapsh
 **Definition status:** Approved  
 **Prompt status:** Not applicable — decompose before drafting  
 **Implementation status:** Not directly executable  
-**Verification status:** —  
+**Verification status:** —
 **Recommended planning action:** Reassess and approve lettered slices under `DEC-0033` immediately before implementation.  
 **Planned prompt file:** Not applicable — no direct epic prompt.
 
