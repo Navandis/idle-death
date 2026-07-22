@@ -363,10 +363,10 @@ func _validate_core_flows(reaping: GameState.ReapingState) -> Dictionary:
 	return {"ok": true}
 
 func _commit_if_valid(live: GameState, candidate: GameState, result: SimulationResult) -> SimulationResult:
-	var result_validation: Dictionary = validate_result(result, live.simulation_time_msec, candidate.simulation_time_msec, result.requested_elapsed_msec, not _active_reaping_ids(candidate).is_empty())
-	if not result_validation["ok"]: return SimulationResult.failure(ERR_RESULT_INVALID, result.requested_elapsed_msec, result_validation["details"])
 	var validation := GameStateValidator.validate(candidate, registry, true)
 	if not validation.ok: return SimulationResult.failure(ERR_STATE_INVALID, result.requested_elapsed_msec, str(validation))
+	var result_validation: Dictionary = validate_result(result, live.simulation_time_msec, candidate.simulation_time_msec, result.requested_elapsed_msec, not _active_reaping_ids(candidate).is_empty())
+	if not result_validation["ok"]: return SimulationResult.failure(ERR_RESULT_INVALID, result.requested_elapsed_msec, result_validation["details"])
 	var coherence: Dictionary = _validate_result_transition_coherence(live, candidate, result)
 	if not coherence["ok"]: return SimulationResult.failure(ERR_RESULT_INVALID, result.requested_elapsed_msec, coherence["details"])
 	live.copy_from(candidate)

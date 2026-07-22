@@ -144,7 +144,7 @@ func test_strict_commit_rejects_transitional_candidate_and_preserves_live_state(
 	var optimistic := SimulationEngine.SimulationResult.new(true, SimulationEngine.OK, "", 1)
 	optimistic.committed_elapsed_msec = 1
 	var result := _engine()._commit_if_valid(live, candidate, optimistic)
-	_assert_failure_no_mutation(result, SimulationEngine.ERR_RESULT_INVALID, before, live)
+	_assert_failure_no_mutation(result, SimulationEngine.ERR_STATE_INVALID, before, live)
 
 func test_eligibility_and_transaction_matrix() -> void:
 	var idle := _state(&"THR_GLOAMWOOD", false, 1000000)

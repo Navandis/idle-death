@@ -436,6 +436,19 @@ func test_review_regression_candidate_shape_is_validated_before_coherence_derefe
 	missing_form_candidate.forms.erase(&"FORM_MAN_AT_ARMS")
 	_assert_candidate_shape_rejected_without_mutation(live.deep_clone(), missing_form_candidate, forecast.simulation_result)
 
+func test_review_regression_candidate_reaping_values_reject_before_active_lookup() -> void:
+	var live := _prepared_state(1000000, [&"SOUL_CALLING_SOLDIER"])
+	var forecast := _run_service().forecast(live, HOUR)
+	assert_true(forecast.success, forecast.developer_details)
+
+	var null_reaping_candidate := forecast.projected_state.deep_clone()
+	null_reaping_candidate.reapings[&"THR_GLOAMWOOD"] = null
+	_assert_candidate_shape_rejected_without_mutation(live.deep_clone(), null_reaping_candidate, forecast.simulation_result)
+
+	var wrong_type_reaping_candidate := forecast.projected_state.deep_clone()
+	wrong_type_reaping_candidate.reapings[&"THR_GLOAMWOOD"] = {}
+	_assert_candidate_shape_rejected_without_mutation(live.deep_clone(), wrong_type_reaping_candidate, forecast.simulation_result)
+
 func test_review_regression_settlement_event_keeps_owning_boundary_total() -> void:
 	var state := _prepared_state(1, [&"SOUL_CALLING_SOLDIER"])
 	var result := _engine().resolve_elapsed(state, 100000)
