@@ -226,27 +226,6 @@ Simulation may call these services or narrowly scoped internal mutation methods.
 
 Treat authored Resources as immutable after registry validation. Never store player progress by changing a loaded `FormDefinition`, `ThresholdDefinition`, or other shared Resource.
 
-### 8.4 Single-provenance supplied-duration simulation
-
-For the one-active-Reaping supplied-duration resolver, open one internal
-transaction from the validated source. The transaction owns one deep-cloned
-candidate, one immutable run context, one bounded fact journal, checked
-mutation operations, final candidate/journal validation, compatibility result
-projection, and the one final live `copy_from`.
-
-`SimulationEngine` remains the formula and segmentation owner. It may calculate
-pure endpoint plans from detached transaction snapshots, but no gameplay field
-may be written outside the transaction operations. The operation that changes a
-candidate endpoint must record its explanatory fact from the same before/after
-values. Do not add a public commit method that accepts an arbitrary candidate and
-independently authored result. Do not derive a second authoritative summary by
-diffing candidate state after the journal projection.
-
-Candidate validation precedes journal freeze and result projection; any failure
-after partial private work returns without changing live state. The journal is
-runtime evidence only and is not persisted, replayed, or retained as report
-history.
-
 ## 9. Commands and results
 
 Use explicit command methods with stable failure reason codes.

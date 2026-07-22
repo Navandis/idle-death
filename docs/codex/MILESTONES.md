@@ -175,7 +175,7 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 | M04E1 | Forecast clone and supplied-resolution adapters | Implementation slice | Approved | Approved | Merged | Passed |
 | M04E2 | Transaction provenance, report persistence, and final M04 closure | Conceptual sub-epic | Approved | Not applicable | Not directly executable | — |
 | M04E2A1 | Typed committed simulation-result contract — failed predecessor | Implementation slice | Superseded | Superseded | Rework required | Failed |
-| M04E2T1 | Single-provenance simulation transaction journal and commit boundary | Implementation slice | Approved | Approved v0.1 | Pull request open | Partial |
+| M04E2T1 | Single-provenance simulation transaction journal and commit boundary | Implementation slice | Approved | Drafted | Not started | — |
 | M04E2T2 | Finalized typed run facts and current-consumer migration | Implementation slice | Approved | Not drafted | Not started | — |
 | M04E2A | Report-foundation implementation sequence | Conceptual sub-epic | Approved | Not applicable | Not directly executable | — |
 | M04E2A2 | Report runtime state and schema-v4 persistence | Implementation slice | Approved | Not drafted | Not started | — |
@@ -1148,7 +1148,7 @@ A developer can provide a duration to one Gloamwood/Man-at-Arms operation and ob
 
 ### M04D — Output access and discrete-channel progression
 
-**Work item type:** Conceptual sub-epic
+**Work item type:** Conceptual sub-epic  
 **Parent epic:** M04  
 **Definition status:** Approved  
 **Prompt status:** Not applicable — no direct prompt  
@@ -1476,91 +1476,14 @@ M04E2 is complete only when M04E2T1, M04E2T2, M04E2A2, M04E2A3, M04E2A4, and M04
 
 ---
 
-### M04E2A — Report foundation replacement sequence
+### M04E2A1 — Typed committed simulation-result contract — failed predecessor
 
-**Work item type:** Conceptual sub-epic
-**Parent epic:** M04 / M04E / M04E2
-**Definition status:** Approved under accepted `DEC-0042`
-**Prompt status:** Not applicable — the retired direct prompt is Superseded
-**Implementation status:** Not directly executable
-**Verification status:** —
-**Approved decomposition:** M04E2T1 -> M04E2T2 -> M04E2A2 -> M04E2A3 -> M04E2A4
-
-#### Purpose
-
-Deliver the accepted typed committed-result, report-state, ingestion, read/snapshot/history, and verification foundations as separately reviewable transitions rather than one monolithic report branch.
-
-#### Completion rule
-
-M04E2A is complete only when M04E2A1 through M04E2A4 are all Merged and Passed.
-
-#### Abandoned predecessor
-
-The former direct implementation slice and prompt `M04E2A-report-state-schema-history.md` are Superseded. PR #17 is Abandoned/Failed and is not a merge or cherry-pick source.
-
----
-
-### M04E2T1 — Single-provenance simulation transaction and commit boundary
-
-**Work item type:** Implementation slice
-**Parent epic:** M04 / M04E / M04E2
-**Definition status:** Approved under the supplied M04E2T1 brief and accepted transaction-boundary decision
-**Prompt status:** Approved v0.1
-**Implementation status:** Pull request open
-**Verification status:** Partial
-**Planned trace:** `tools/test/m04e2t1/m04e2t1_transaction_trace.gd`
-**Owner package:** `tools/test/owner/run_m04e2t1_owner_verification.ps1`
-
-#### Purpose
-
-Refactor supplied-duration simulation so one internal transaction owns the
-private candidate, immutable run context, checked mutations, bounded fact
-journal, compatibility projection, and one final live commit. Existing raw
-`SimulationResult` segments/channel deltas, typed `SimulationEvent`, formulas,
-schema version 3, content revision `prototype-content-r2`, forecast behavior,
-and current one-active-Reaping limits remain unchanged.
-
-#### Included scope
-
-- `SimulationRunContext`, `SimulationTransaction`, and
-  `SimulationFactJournal` runtime collaborators;
-- transaction ownership of timeline, core, channel, and Settlement writes;
-- journal-derived segments, channels, events, and `change_summary`;
-- candidate validation before journal freeze and live commit;
-- focused unit/integration tests, isolated trace, missing-root negative check,
-  and mature Windows owner runner.
-
-#### Explicit non-goals
-
-- M04E2T2 finalized typed public run facts;
-- report state, report ingestion/reads/history, schema version 4, or M04E2B;
-- UI, trusted time, support, tutorial, Halls, progression, analytics,
-  concurrency, or changes to production formulas;
-- arbitrary candidate/result commit APIs or event-sourcing infrastructure;
-- copying or cherry-picking PR #17 or PR #18 production implementation.
-
-#### Completion boundary
-
-M04E2T1 is Merged/Passed only after the focused and full suites, explicit
-import, real trace and exact twelve markers, negative missing-root trace,
-cleanup/artifact checks, final review, and owner Windows verification pass on
-the exact reviewed head. M04E2T2 is the next typed-fact planning slice.
-
----
-
-### M04E2A1 — Typed committed simulation-result contract
-
-> Planning note: this former A1 boundary is retained for provenance from the
-> DEC-0042 reset package. The active implementation sequence now uses
-> M04E2T1 followed by the separately approved M04E2T2 finalized-facts slice;
-> do not execute this former direct implementation boundary as a substitute.
-
-**Work item type:** Implementation slice
-**Parent epic:** M04 / M04E / M04E2
-**Definition status:** Superseded by accepted `DEC-0043`
-**Prompt status:** Superseded — do not execute
-**Implementation status:** Rework required; PR #18 closed unmerged
-**Verification status:** Failed
+**Work item type:** Implementation slice  
+**Parent epic:** M04 / M04E / M04E2  
+**Definition status:** Superseded by accepted `DEC-0043`  
+**Prompt status:** Superseded — do not execute  
+**Implementation status:** Rework required; PR #18 closed unmerged  
+**Verification status:** Failed  
 **Historical prompt file:** `docs/codex/milestone-prompts/M04E2A1-typed-committed-simulation-result-contract.md`
 
 #### Historical record
@@ -1568,6 +1491,63 @@ the exact reviewed head. M04E2T2 is the next typed-fact planning slice.
 PR #18 closed without merge at terminal head `602dec077f44338cdb4a2eabbd30d3989c877902`. The branch attempted to validate independently mutable candidate state, typed result records, and compatibility summary after resolution. Repeated targeted reviews continued to find unrepresented inventory, residual, boundary, event, and malformed-candidate cases.
 
 The prompt and branch remain provenance only. Do not cherry-pick or copy production implementation wholesale.
+
+---
+
+### M04E2T1 — Single-provenance simulation transaction journal and commit boundary
+
+**Work item type:** Implementation slice  
+**Parent epic:** M04 / M04E / M04E2  
+**Definition status:** Approved under accepted `DEC-0043`  
+**Prompt status:** Draft v0.1 — pending explicit owner approval  
+**Implementation status:** Not started  
+**Verification status:** —  
+**Recommended Codex task size:** Small-medium; one behavior-preserving transaction-boundary pull request.  
+**Planned prompt file:** `docs/codex/milestone-prompts/M04E2T1-simulation-transaction-journal.md`
+
+#### Purpose
+
+Refactor the existing supplied-duration simulation so every authoritative mutation and every explanatory compatibility fact originate from one internal transaction operation, without changing public result representation or gameplay behavior.
+
+#### Player or developer outcome
+
+A developer can run the existing M04 simulation, forecast, debug, traces, and persistence tests while proving that the candidate is private to one transaction, all current authoritative writes are owned by declared transaction operations, compatibility results are journal-derived, and any failure after partial candidate work leaves live state unchanged.
+
+#### Dependencies
+
+- M04E1 Merged and Passed.
+- Accepted `DEC-0043`.
+- Explicit owner approval of M04E2T1 prompt v0.1 or later.
+- `GATE-SINGLE-PROVENANCE-TRANSACTION` and `GATE-SLICE-SCOPE` satisfied before execution.
+- Current `main`; PR #17 and PR #18 are forensic references only.
+
+#### Included scope
+
+- One immutable run context captured from validated source state.
+- One transaction-owned private deep-cloned candidate.
+- One bounded non-persisted fact journal.
+- A complete current authoritative mutation-ownership inventory.
+- Narrow transaction methods that apply candidate mutation and record corresponding facts atomically.
+- Final candidate validation, journal freeze, compatibility-result projection, and one live commit.
+- Derivation of existing segment/channel compatibility dictionaries, typed events, and `change_summary` from finalized journal facts.
+- Current M04C/M04D2/M04D3/M04E1 consumer and behavior compatibility.
+- Focused tests, truthful trace, owner runner, and documentation synchronization.
+
+#### Explicit non-goals
+
+- Final public typed segment/channel records; M04E2T2 owns them.
+- Any public result field or semantic change.
+- Report state, schema version 4, report service, ingestion, reads, snapshots, history, or M04E2B.
+- Formula, rate, content, assignment, access, persistence, forecast, or current one-active-Reaping behavior changes.
+- Generic event sourcing, replay, undo, analytics, command bus, dependency framework, or scene/UI work.
+
+#### Completion boundary
+
+The existing external simulation and run-adapter behavior is unchanged, but no arbitrary candidate/result pair can enter the commit path and no compatibility fact is authored independently from the transaction journal.
+
+#### Follow-on dependencies
+
+- M04E2T2 fresh planning and prompt approval.
 
 ---
 
