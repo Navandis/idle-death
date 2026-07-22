@@ -42,12 +42,15 @@ function Set-Failed([int]$Code = 1) {
     if ($script:ExitCode -eq 0) { $script:ExitCode = $Code }
 }
 
-function Run-Step([string]$Name, [string]$Description, [scriptblock]$Action) {
+function Run-Step([string]$Name, [string]$Description, [scriptblock]$Action, [switch]$ExpectedNonZero) {
     Write-LogLine "=== $Name ==="
     Write-LogLine "Command: $Description"
     $StepExit = 0
     $script:LastStepOutput = @()
     try {
+        # Native exit codes persist across PowerShell commands. Clear stale state
+        # so a step with no native command cannot inherit an earlier failure.
+        $global:LASTEXITCODE = 0
         $Output = & $Action 2>&1
         foreach ($Line in $Output) {
             $Text = "$Line"
@@ -61,10 +64,12 @@ function Run-Step([string]$Name, [string]$Description, [scriptblock]$Action) {
         Write-LogLine "ERROR: $($_.Exception.Message)"
     }
     Write-LogLine "Exit code: $StepExit"
-    if ($StepExit -ne 0) { Write-LogLine "FAILED: $Name"; Set-Failed $StepExit }
+    $StepPassed = $StepExit -eq 0
+    if ($ExpectedNonZero) { $StepPassed = $StepExit -ne 0 }
+    if (-not $StepPassed) { Write-LogLine "FAILED: $Name"; Set-Failed $StepExit }
     else { Write-LogLine "PASSED: $Name" }
     Write-LogLine ""
-    return ($StepExit -eq 0)
+    return $StepPassed
 }
 
 function Skip-Step([string]$Name, [string]$Reason) {
@@ -192,7 +197,11 @@ try {
         $TraceOk = $false
         if ($ImportOk) {
             $TraceOk = Run-Step "M04E2T1 trace" "$ResolvedGodot --headless --path <repo> -s m04e2t1_transaction_trace.gd -- --work-root <isolated>" { Invoke-Godot @("--headless", "--path", "$RepoRoot", "-s", "res://tools/test/m04e2t1/m04e2t1_transaction_trace.gd", "--", "--work-root", "$TraceRoot") }
-            if ($TraceOk) { Run-Step "Exact trace marker verification" "verify all 12 M04E2T1 markers" { Verify-TraceMarkers $script:LastStepOutput } }
+            if ($TraceOk) {
+                # Verify the persisted trace lines so marker checking observes the
+                # same complete UTF-8 evidence that the owner receives in the log.
+                Run-Step "Exact trace marker verification" "verify all 12 M04E2T1 markers" { Verify-TraceMarkers (Get-Content -LiteralPath $LogPath) }
+            }
             else { Skip-Step "Exact trace marker verification" "prerequisite failed: trace" }
         }
         else {
@@ -203,7 +212,7 @@ try {
             & $ResolvedGodot --headless --path "$RepoRoot" -s "res://tools/test/m04e2t1/m04e2t1_transaction_trace.gd"
             if ($LASTEXITCODE -eq 0) { throw "Missing-root trace unexpectedly succeeded." }
             Write-Output "Negative trace exit confirmed: $LASTEXITCODE"
-        }
+        } -ExpectedNonZero
     }
     else {
         Skip-Step "Full GUT before" "prerequisite failed: Godot version validation"
