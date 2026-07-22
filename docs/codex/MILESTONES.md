@@ -1476,30 +1476,6 @@ M04E2 is complete only when M04E2T1, M04E2T2, M04E2A2, M04E2A3, M04E2A4, and M04
 
 ---
 
-### M04E2A — Report foundation replacement sequence
-
-**Work item type:** Conceptual sub-epic
-**Parent epic:** M04 / M04E / M04E2
-**Definition status:** Approved under accepted `DEC-0042`
-**Prompt status:** Not applicable — the retired direct prompt is Superseded
-**Implementation status:** Not directly executable
-**Verification status:** —
-**Approved decomposition:** M04E2T1 -> M04E2T2 -> M04E2A2 -> M04E2A3 -> M04E2A4
-
-#### Purpose
-
-Deliver the accepted typed committed-result, report-state, ingestion, read/snapshot/history, and verification foundations as separately reviewable transitions rather than one monolithic report branch.
-
-#### Completion rule
-
-M04E2A is complete only when M04E2T1, M04E2T2, M04E2A2, M04E2A3, and M04E2A4 are all Merged and Passed.
-
-#### Abandoned predecessor
-
-The former direct implementation slice and prompt `M04E2A-report-state-schema-history.md` are Superseded. PR #17 is Abandoned/Failed and is not a merge or cherry-pick source.
-
----
-
 ### M04E2T1 — Single-provenance simulation transaction and commit boundary
 
 **Work item type:** Implementation slice
