@@ -2,9 +2,9 @@
 
 **Document role:** Canonical test strategy, commands, fixture rules, and manual validation flows
 **Repository path:** `docs/codex/TESTING_AND_VALIDATION.md`
-**Document status:** Approved validation plan through M04E2A1 v0.1
-**Validation revision:** 27
-**Last updated:** 2026-07-20
+**Document status:** Approved architecture through DEC-0043; M04E2T1 validation plan Draft v0.1
+**Validation revision:** 28
+**Last updated:** 2026-07-22
 **Engine target:** Godot 4.7 standard build, GDScript only
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)  
 **Owner evidence companion:** [OWNER_VERIFICATION_WORKFLOW.md](OWNER_VERIFICATION_WORKFLOW.md)
@@ -46,7 +46,7 @@ M04D2 merged through PR #14 at merge commit `24228a078199d9728eb57e4e26c27447aa6
 
 M04D3 merged through PR #15 at merge commit `9fd8f98e3787f711f3d03c9de03d3615d531216a` from final head `5a5cafc6b640001fba86c7ea9531ae9daf43fcc3`. Linux/Codex focused coverage passed `35/35` tests and `592` assertions. Owner Windows verification passed the full suite before and after (`144/144`, `2,222` assertions), focused M04D3 (`18/18`, `254` assertions), import, all sixteen markers, cleanup, cleanup proof, and artifact audit with zero failed steps. Accepted `DEC-0040` decomposes M04E into approved forecast-only M04E1 and report-state M04E2.
 
-M04E1 merged through PR #16 at merge commit `03f05a3d78609a993cecab8b0077e5f7d7d55900` from final head `738e89c606dd9f1f9f0396334ea9d8587ff389f3`. Owner Windows verification passed the full suite before and after (`153/153`, `2,522` assertions), focused M04E1 (`9/9`, `295` assertions), explicit import, all fifteen markers, cleanup, cleanup proof, and artifact audit with zero failed steps. PR #17 later attempted that direct M04E2A package and was closed unmerged at `5c87118045faa6f48f8ce50977a9bcdcfa967e57`. Accepted `DEC-0042` now replaces it with M04E2A1 through M04E2A4; M04E2B remains separately blocked.
+M04E1 merged through PR #16 at merge commit `03f05a3d78609a993cecab8b0077e5f7d7d55900` from final head `738e89c606dd9f1f9f0396334ea9d8587ff389f3`. Owner Windows verification passed the full suite before and after (`153/153`, `2,522` assertions), focused M04E1 (`9/9`, `295` assertions), explicit import, all fifteen markers, cleanup, cleanup proof, and artifact audit with zero failed steps. PR #17 and PR #18 later attempted M04E2 report/result foundations and were closed unmerged at terminal heads `5c87118045faa6f48f8ce50977a9bcdcfa967e57` and `602dec077f44338cdb4a2eabbd30d3989c877902`. Accepted `DEC-0043` now requires M04E2T1 single-provenance transaction work before M04E2T2 finalized typed facts and the report slices.
 
 ## 2. Pinned test and platform dependencies
 
@@ -2077,28 +2077,46 @@ TRACE M04E1 no_clock_scene_platform_or_duplicate_rules=PASS
 
 `DEC-0040`, `GATE-FORECAST-CLONE`, and M04E1 `GATE-SLICE-SCOPE` are satisfied.
 
-## 28. M04E2A reset and M04E2A1 typed-result validation package
+## 28. M04E2 failed implementation record
 
-PR #17 was closed without merge at head `5c87118045faa6f48f8ce50977a9bcdcfa967e57`. It is not test evidence or a code base for replacement work. Accepted `DEC-0042` replaces the direct M04E2A package with M04E2A1 through M04E2A4.
+PR #17 and PR #18 are closed unmerged. Their code and passing tests are not part of the current baseline.
 
-M04E2A1 is approved for execution from current `main` after the planning-only reset documents are merged. Schema version 3 and content revision `prototype-content-r2` remain current.
+```text
+PR #17 terminal head: 5c87118045faa6f48f8ce50977a9bcdcfa967e57
+PR #18 terminal head: 602dec077f44338cdb4a2eabbd30d3989c877902
+```
 
-### 28.1 Focused Linux/Codex commands
+The durable defect classes and replacement controls are documented in:
+
+- `docs/codex/M04E2_IMPLEMENTATION_POSTMORTEM.md`;
+- accepted `DEC-0043`;
+- `docs/codex/M04E2_TRANSACTION_REDESIGN_PLAN.md`.
+
+Do not run either abandoned owner package as merge evidence and do not count either branch's focused tests in the current repository suite.
+
+## 29. M04E2T1 single-provenance transaction validation package
+
+This validation plan is Draft with the M04E2T1 prompt v0.1 and becomes executable only after explicit owner approval.
+
+M04E2T1 is behavior-preserving. Schema version 3, content revision `prototype-content-r2`, formulas, public result representation, and current M04C through M04E1 outcomes remain unchanged.
+
+### 29.1 Focused commands
 
 ```bash
 ./tools/test/run_gut.sh -- \
   -gdir=res://tests/unit/m04c \
   -gdir=res://tests/unit/m04d2 \
+  -gdir=res://tests/unit/m04d3 \
   -gdir=res://tests/unit/m04e1 \
-  -gdir=res://tests/unit/m04e2a1 \
+  -gdir=res://tests/unit/m04e2t1 \
   -gdir=res://tests/integration/m04e1 \
-  -gdir=res://tests/integration/m04e2a1
+  -gdir=res://tests/integration/m04e2t1
 
 godot --headless --path . --import
 
 trace_root="$(mktemp -d)"
 godot --headless --path . \
-  -s res://tools/test/m04e2a1/m04e2a1_typed_result_trace.gd \
+  -s res://tools/test/m04e2t1/m04e2t1_transaction_trace.gd \
   -- --work-root "$trace_root"
 trace_exit=$?
 rm -rf "$trace_root"
@@ -2107,7 +2125,7 @@ test "$trace_exit" -eq 0
 
 # Missing required work root must fail.
 godot --headless --path . \
-  -s res://tools/test/m04e2a1/m04e2a1_typed_result_trace.gd
+  -s res://tools/test/m04e2t1/m04e2t1_transaction_trace.gd
 test "$?" -ne 0
 
 ./tools/test/run_gut.sh
@@ -2115,132 +2133,89 @@ git diff --check
 git status --short
 ```
 
-The actual trace argument may be named `--work-root` or another clearly documented isolated root. It must be used, cleaned, and verified absent; a decorative unused argument does not satisfy this contract.
+### 29.2 Required behavior groups
 
-### 28.2 Required focused groups
+1. complete source/request validation before transaction creation;
+2. immutable run context captured exactly once;
+3. transaction creates and owns one private deep-cloned candidate;
+4. no production/test-facing arbitrary candidate/result commit seam;
+5. complete authoritative mutation-ownership inventory;
+6. timeline-only transaction changes only the simulation cursor;
+7. core-return/backlog mutation and journal fact share one operation;
+8. Essence mutation and journal fact share one operation;
+9. Mastery/cycle/residual mutation and journal fact share one operation;
+10. channel progress/carry/history/inventory mutation and journal fact share one operation;
+11. Settlement transition and boundary event fact share one operation;
+12. boundary payload records boundary values rather than final-run values;
+13. compatibility segments, channel deltas, events, and summary are derived from the finalized journal;
+14. journal and candidate cannot mutate after finalization;
+15. failure after partial candidate work leaves live state canonically unchanged;
+16. candidate validation failure leaves live state canonically unchanged;
+17. checked overflow at each current authoritative flow leaves live state unchanged;
+18. exact one-hour Gloamwood values unchanged;
+19. exact eight-hour Gloamwood values unchanged;
+20. exact Overdue-to-Settled segmentation and same-time ordering unchanged;
+21. progress-only and multiple-whole channel behavior unchanged;
+22. regular/irregular chunk equivalence unchanged;
+23. forecast versus committed-clone equivalence unchanged;
+24. foreground/offline-fixture/debug mode equivalence unchanged;
+25. current M04C/M04D2/M04D3/M04E1 tests and traces remain green;
+26. schema-v3 production save/load remains unchanged with no transaction/journal artifacts;
+27. no report, schema-v4, UI, trusted-time, tutorial, Hall, support, or concurrency ownership enters the diff;
+28. actual file/line scope remains within approved M04E2T1 guardrails.
 
-1. current M04E1 Merged/Passed baseline, schema v3, and content r2;
-2. typed `SimulationSegmentResult` construction and deep detachment;
-3. typed `SimulationChannelDeltaResult` construction and deep detachment;
-4. complete segment identity, integer-domain, lifecycle, Retinue-order, and local interval validation;
-5. channel ID, item ID, ordering, uniqueness, progress range, carry range, and total/banked endpoint validation;
-6. active-run first/last boundary, contiguity, elapsed-sum, and stable loadout identity validation;
-7. Overdue-to-Settled lifecycle segmentation as the only allowed within-run lifecycle change;
-8. timeline-only positive no-Reaping result;
-9. zero-duration successful empty result;
-10. failure result with no committed segment/event authority;
-11. event type/identity/range validation;
-12. event stable ordering and single-segment ownership under `start < time <= end`;
-13. assignment boundary event belongs only to the interval that ended;
-14. Settlement boundary event belongs only to the Overdue segment that ended;
-15. exact one-hour Gloamwood fixture values through typed records;
-16. exact eight-hour Gloamwood fixture values through typed records;
-17. progress-only channel typed delta;
-18. multiple whole banking and endpoint equality;
-19. same-timestamp recall preserves the original segment revision/loadout;
-20. same-timestamp redispatch preserves the original segment revision/loadout;
-21. different equal-output loadout identities remain distinct in typed records;
-22. forecast versus separately committed clone typed-result equality;
-23. foreground/offline-fixture/debug typed-result equality;
-24. regular and irregular chunk equality for gameplay state and aggregate result facts;
-25. malformed result validation fails before live candidate commit;
-26. every failure preserves canonical source gameplay state;
-27. debug adapter consumes the typed contract without reconstructing dictionaries;
-28. current M04C/M04D2/M04D3/M04E1 tests compile and pass after conversion;
-29. schema-v3 production snapshots contain no result, segment, channel-delta, event, validation, or projection artifacts;
-30. no report state, ReportService, schema-v4, UI, clock, platform, tutorial, Hall, support, concurrency, or later-slice ownership enters M04E2A1;
-31. actual scope remains within the approved M04E2A1 guardrails.
-
-### 28.3 Exact typed one-hour fixture
-
-Starting from the approved M04E1 Gloamwood state at simulation cursor `0`, a one-hour committed run returns one typed segment:
+### 29.3 Required trace markers
 
 ```text
-threshold_id = THR_GLOAMWOOD
-assignment_revision = 1
-form_id = FORM_MAN_AT_ARMS
-writ_id = WRIT_STANDARD
-ordered_retinue_ids = []
-lifecycle_state = OVERDUE
-start = 0
-end = 3,600,000
-elapsed = 3,600,000
-returned_souls_delta = 4,140
-backlog_reduced = 4,140
-essence_delta = 360
-mastery_delta_subunits = 60,000,000
-completed_cycles_delta = 60
-
-CHANNEL_GLOAMWOOD_SOLDIER_SOULS:
-  banked_units_delta = 12
-
-CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS:
-  progress 0 -> 125,000
-  banked_units_delta = 0
+TRACE M04E2T1 private_candidate_single_commit=PASS
+TRACE M04E2T1 run_context_captured_once=PASS
+TRACE M04E2T1 core_mutation_fact_shared_provenance=PASS
+TRACE M04E2T1 channel_mutation_fact_shared_provenance=PASS
+TRACE M04E2T1 settlement_boundary_fact_shared_provenance=PASS
+TRACE M04E2T1 timeline_only_transaction=PASS
+TRACE M04E2T1 partial_candidate_failure_preserves_live=PASS
+TRACE M04E2T1 compatibility_summary_derived_from_journal=PASS
+TRACE M04E2T1 events_derived_from_journal=PASS
+TRACE M04E2T1 one_hour_eight_hour_settlement_unchanged=PASS
+TRACE M04E2T1 forecast_commit_chunk_mode_equivalence=PASS
+TRACE M04E2T1 schema_v3_no_later_slice_artifacts=PASS
 ```
 
-The result and candidate state must equal the previously verified M04E1 outcome; only representation changes.
+Each marker is earned by behavioral assertions. Source-text checks may supplement but cannot replace behavior.
 
-### 28.4 Required trace markers
-
-The trace must earn each marker after complete assertions:
-
-```text
-TRACE M04E2A1 typed_segment_identity_and_timing=PASS
-TRACE M04E2A1 typed_channel_endpoint_contract=PASS
-TRACE M04E2A1 one_hour_values_unchanged=PASS
-TRACE M04E2A1 eight_hour_values_unchanged=PASS
-TRACE M04E2A1 settlement_segments_and_events=PASS
-TRACE M04E2A1 timeline_only_positive_run=PASS
-TRACE M04E2A1 zero_and_failure_shapes=PASS
-TRACE M04E2A1 same_timestamp_recall_attribution=PASS
-TRACE M04E2A1 same_timestamp_redispatch_attribution=PASS
-TRACE M04E2A1 equal_output_component_identity_distinct=PASS
-TRACE M04E2A1 malformed_result_rejects_before_commit=PASS
-TRACE M04E2A1 forecast_commit_and_mode_equivalence=PASS
-TRACE M04E2A1 schema_v3_no_result_artifacts=PASS
-TRACE M04E2A1 no_report_or_later_slice_sources=PASS
-```
-
-Do not emit a marker from an unconditional true value or source-text assertion alone.
-
-### 28.5 Owner Windows package
+### 29.4 Owner Windows package
 
 Codex creates:
 
 ```text
-tools/test/owner/run_m04e2a1_owner_verification.ps1
+tools/test/owner/run_m04e2t1_owner_verification.ps1
 ```
 
-The runner follows the mature final pattern:
+Required order:
 
 ```text
-record environment and requested SHA
+environment + requested SHA
 full GUT before
-focused M04C/M04D2/M04E1/M04E2A1 unit + integration
+focused M04C/M04D2/M04D3/M04E1/M04E2T1
 explicit import
-real behavioral trace
-exact marker verification
+real M04E2T1 trace
+12-marker verification
+missing-root negative trace
 cleanup in finally
 cleanup absence proof
 artifact audit
 full GUT after
-final zero-failure summary
+zero-failure summary
 ```
 
-It writes one ignored UTF-8 log named with UTC timestamp and requested PR head. A required failed or skipped step can never yield `Automated result: PASS`.
+Run with execution-policy bypass on the Windows owner machine. No interactive checklist is required.
 
-No interactive checklist is required.
+### 29.5 Review gates
 
-### 28.6 Merge gates
+Before owner verification:
 
-M04E2A1 cannot merge until:
+1. one targeted single-provenance transaction audit must be clean;
+2. one final unrestricted current-head review must be clean;
+3. any correction after either review invalidates that head and requires the applicable review again.
 
-- focused and full Linux/Codex suites pass;
-- one targeted typed-result/consumer audit is clean;
-- one final unrestricted review against the current head is clean of P1/P2 findings;
-- owner Windows verification passes against that exact head;
-- schema remains v3 and content remains r2;
-- PR #17 production code was not copied/cherry-picked wholesale;
-- no report/schema-v4/later-slice work entered the diff;
-- actual scope remains inside the approved guardrails.
+Stop and return to planning when more than two targeted rounds produce new P1/P2 findings, more than six material findings are discovered, or the approved M04E2T1 file/line guardrail is crossed.

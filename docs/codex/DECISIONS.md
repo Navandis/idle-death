@@ -3,8 +3,8 @@
 **Document role:** Durable record of approved and proposed design and architecture decisions  
 **Repository path:** `docs/codex/DECISIONS.md`  
 **Document status:** Approved architecture and active decision record  
-**Revision:** 27  
-**Last updated:** 2026-07-20
+**Revision:** 28  
+**Last updated:** 2026-07-22
 
 ## 1. How to use this file
 
@@ -71,7 +71,8 @@ Rules:
 | `DEC-0039` | Valid loadouts remain distinct and swappable; rate-context changes preserve residuals and ETAs are baseline-derived views | Accepted | 2026-07-18 |
 | `DEC-0040` | Forecasts clone current state through the shared resolver; authoritative report history is a separate slice | Accepted | 2026-07-19 |
 | `DEC-0041` | Reports use schema-v4 attributed, cursor-idempotent state with read-only live views and bounded recent history | Superseded | 2026-07-19 |
-| `DEC-0042` | Abandon the combined M04E2A implementation; require typed committed results and four replacement slices | Accepted | 2026-07-20 |
+| `DEC-0042` | Abandon the combined M04E2A implementation; require typed committed results and four replacement slices | Superseded | 2026-07-20 |
+| `DEC-0043` | Simulation mutation and explanatory facts share one transaction provenance; M04E2 is re-sliced after failed PRs #17 and #18 | Accepted | 2026-07-22 |
 
 ---
 
@@ -2902,7 +2903,8 @@ Any failure preserves both gameplay and report state. M04E2B also owns the final
 
 ## `DEC-0042` — Abandon the combined M04E2A implementation; require typed committed results and four replacement slices
 
-**Status:** Accepted  
+**Status:** Superseded  
+**Superseded by:** `DEC-0043`; PR #17 reset lessons and report semantics retained, typed-result-first packaging replaced
 **Date:** 2026-07-20  
 **Decision type:** Implementation packaging, simulation-result contract, report prerequisites, review recovery, and milestone recalibration  
 **Supersedes:** `DEC-0041` implementation packaging while carrying forward its report-authority, attribution, idempotency, snapshot, retention, and no-claim semantics  
@@ -3079,18 +3081,211 @@ The replacement preserves all accepted report behavior:
 
 ---
 
+---
+
+## `DEC-0043` — Simulation mutation and explanatory facts share one transaction provenance; M04E2 is re-sliced after failed PRs #17 and #18
+
+**Status:** Accepted  
+**Date:** 2026-07-22  
+**Decision type:** Simulation transaction ownership, result provenance, report prerequisite redesign, milestone recalibration, and review governance  
+**Supersedes:** `DEC-0042` implementation packaging  
+**Carries forward:** the report semantics of superseded `DEC-0041` and the non-claim, attribution, migration, idempotency, read, snapshot, retention, and atomic-coordination requirements retained by `DEC-0042`  
+**Refines:** `DEC-0010`, `DEC-0012`, `DEC-0016`, `DEC-0026`, `DEC-0027`, `DEC-0028`, `DEC-0033`, `DEC-0035`, `DEC-0036`, `DEC-0038`, `DEC-0039`, `DEC-0040`
+
+### Context
+
+Two consecutive M04E2 implementation attempts failed the project's objective stop rules.
+
+PR #17 attempted report state, schema version 4, migration, ingestion, temporal/idempotent classification, attribution, reads, snapshots, retention, trace, and owner evidence in one branch. It was closed unmerged at terminal head `5c87118045faa6f48f8ce50977a9bcdcfa967e57` after 21 commits, 34 changed files, 2,333 additions, and 32 deletions. The implementation concentrated too many independent correctness domains in one report service and continued to produce new P1/P2 defects after repeated targeted reviews.
+
+Accepted `DEC-0042` then introduced M04E2A1 as a typed committed-result prerequisite. PR #18 attempted that slice and was closed unmerged at terminal head `602dec077f44338cdb4a2eabbd30d3989c877902` after 8 commits, 15 changed files, 1,973 additions, and 53 deletions. It also continued to produce new P1/P2 findings after the terminal audit.
+
+The second attempt exposed the deeper seam problem. The implementation kept three independently mutable descriptions of one elapsed transaction:
+
+```text
+candidate GameState
+public typed result segments/events
+compatibility change_summary
+```
+
+It then added a large post-hoc validator to prove those structures agreed. Each newly considered authoritative field created another comparison obligation: inventory totals, Threshold state, Form Mastery, acquisition progress/carry/history, Reaping flow carries, cycle phase/count, lifecycle transitions, event payloads, and summary values. The validator was therefore duplicating simulation semantics without structurally guaranteeing common provenance.
+
+The report design itself remains valid. Ordinary output is already banked, reports remain explanatory, and later report authority still requires schema version 4, cursor-idempotent ingestion, historical attribution, pure reads, bounded history, and atomic application coordination.
+
+### Decision
+
+#### 1. Abandon both failed production implementations
+
+PR #17 and PR #18 remain closed and unmerged. Their branches are forensic references only.
+
+Do not:
+
+- reopen either implementation task;
+- cherry-pick or copy their production implementation wholesale;
+- use their service/class decomposition as the starting architecture;
+- treat a passing test from either branch as merged repository behavior.
+
+Their accepted black-box values, review findings, boundary cases, and regression scenarios may be re-authored against the replacement contracts.
+
+#### 2. Use one single-provenance simulation transaction
+
+Every authoritative mutation and every explanatory fact for one elapsed simulation call must originate from the same internal transaction operation.
+
+The approved flow is:
+
+```text
+validate source state and request
+  -> capture immutable SimulationRunContext
+  -> create SimulationTransaction with one private deep-cloned candidate
+  -> calculate one bounded segment/boundary operation
+  -> transaction applies candidate mutation and records its fact atomically
+  -> repeat until elapsed interval is exhausted
+  -> finalize the transaction
+  -> validate the complete candidate GameState
+  -> derive detached public result data from the finalized journal
+  -> copy the candidate to live state once
+```
+
+The transaction boundary contains three conceptual roles:
+
+```text
+SimulationRunContext
+  immutable baseline cursor and exact operation/loadout identity
+
+SimulationTransaction
+  private candidate, checked mutation methods, finalization, one commit result
+
+SimulationFactJournal
+  ordered non-persisted facts recorded only by successful transaction mutations
+```
+
+Exact class/file names may be adjusted during the approved prompt's pre-edit inspection, but these responsibilities and boundaries are mandatory.
+
+#### 3. Candidate state is private to the transaction
+
+No production or test-facing commit method may accept an independently supplied mutable candidate plus an independently supplied result or summary.
+
+This pattern is prohibited:
+
+```text
+commit_if_valid(live, caller_supplied_candidate, caller_supplied_result)
+```
+
+The transaction creates and owns its candidate. Only finalization may expose a validated candidate for the engine's one `copy_from` commit.
+
+#### 4. Mutation and fact recording are atomic operations
+
+The transaction provides narrow internal operations equivalent to:
+
+```text
+advance_timeline
+apply_core_segment
+apply_channel_segment
+apply_settlement_transition
+```
+
+Each operation:
+
+1. receives validated calculation inputs;
+2. checks all arithmetic before mutation;
+3. updates every affected candidate field;
+4. records the corresponding journal fact from the same before/after values;
+5. either completes both mutation and fact recording or completes neither.
+
+A later validator is not responsible for discovering that inventory, residuals, cycle phase, acquisition endpoints, or event facts diverged from the mutation that produced them.
+
+#### 5. The journal is internal evidence, not persisted event sourcing
+
+The journal is:
+
+- runtime-only;
+- bounded to one supplied elapsed call;
+- discarded after detached result projection and commit;
+- not a save format;
+- not a general event bus;
+- not a replay framework;
+- not a permanent analytics ledger.
+
+`GameState` remains the authoritative persisted aggregate. The project continues to reject event sourcing as the save architecture.
+
+#### 6. Public results are projections of finalized journal facts
+
+M04E2T1 preserves the current merged public `SimulationResult` representation while moving its construction behind the journal. Existing raw segment/channel compatibility data and `change_summary` are generated only from finalized journal facts; they are never independently authored.
+
+M04E2T2 later introduces the final typed, detached, self-contained public run-fact family and migrates consumers. It does not need to revalidate an independently mutated candidate because journal and candidate already share provenance.
+
+`change_summary` in M04E2T2 is either removed from direct consumers or retained temporarily as a pure derived compatibility view. It is never a separate authority.
+
+#### 7. Events use closed transaction operations
+
+Simulation events are created only by bounded transaction/journal operations for currently supported behavior, including channel banking and Threshold Settlement. An arbitrary mutable event object does not enter the commit boundary.
+
+Boundary totals are captured at the boundary where the event is recorded, not reconstructed from the final run state after later segments.
+
+#### 8. Re-slice M04E2
+
+The active implementation sequence becomes:
+
+```text
+M04E2T1 — Single-provenance simulation transaction journal and commit boundary
+M04E2T2 — Finalized typed run facts and current-consumer migration
+M04E2A2 — Report runtime state and schema-v4 persistence
+M04E2A3 — Cursor-idempotent live report ingestion
+M04E2A4 — Report reads, snapshot, bounded history, and final evidence
+M04E2B  — Atomic reported-run coordinator and final M04 harness
+```
+
+M04E2A1 is Superseded and failed verification. It remains in the milestone history but is not an active dependency.
+
+No later slice receives an executable prompt until the preceding slice is Merged/Passed and a fresh scope assessment is approved.
+
+### Consequences
+
+- `SimulationEngine` remains the sole gameplay formula owner and becomes a smaller orchestrator around a focused transaction boundary.
+- The transaction journal prevents candidate/result/summary divergence by construction rather than through a simulation-sized post-hoc validator.
+- M04E2T1 is behavior-preserving and changes no save schema, content revision, formulas, public result representation, report state, or UI.
+- M04E2T2 can focus on public typed facts, historical attribution, and consumer migration without also redesigning commit atomicity.
+- M04E2A2 through M04E2A4 retain the report requirements carried from `DEC-0041`/`DEC-0042`.
+- M04E2B remains the application-level atomic simulation-plus-report coordinator after both simulation provenance and report authority are stable.
+- The root and detailed engineering rules now prohibit independently mutable candidate/result commit seams.
+
+### Alternatives considered
+
+- **Continue patching PR #18:** rejected because new P1/P2 findings continued after the terminal audit and the branch exceeded its approved line guardrail.
+- **Add more post-hoc comparison fields:** rejected because every authoritative state field would become another duplicated simulation contract.
+- **Merge only the typed record classes from PR #18:** rejected because those classes were designed around the failed candidate/result reconciliation seam and would bias the replacement architecture.
+- **Build a generic event-sourcing framework:** rejected because the prototype needs one bounded transaction journal, not a new persistence or replay architecture.
+- **Move report implementation ahead of the simulation redesign:** rejected because report ingestion requires trustworthy self-contained run facts.
+- **Put report mutation inside `SimulationEngine`:** rejected because simulation and report remain separate authorities and M04E2B owns their application-level atomic coordination.
+
+### Affected documents
+
+- `AGENTS.md`
+- `docs/codex/ARCHITECTURE.md`
+- `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`
+- `docs/codex/IMPLEMENTATION_RULES.md`
+- `docs/codex/TESTING_AND_VALIDATION.md`
+- `docs/codex/MILESTONES.md`
+- `docs/codex/M04E2_RESET_PLAN.md`
+- `docs/codex/M04E2_TRANSACTION_REDESIGN_PLAN.md`
+- `docs/codex/M04E2_IMPLEMENTATION_POSTMORTEM.md`
+- `docs/codex/milestone-prompts/M04E2A1-typed-committed-simulation-result-contract.md`
+- `docs/codex/milestone-prompts/M04E2T1-simulation-transaction-journal.md`
+
 ## 3. Current approval state
 
-- `DEC-0001` through `DEC-0040` and `DEC-0042` are Accepted.
-- `DEC-0041` is Superseded by `DEC-0042`; its report semantics are carried forward, while its direct M04E2A packaging is retired.
-- M04A through M04D3 are implemented, verified, and merged.
-- M04D3 merged through PR #15 from final head `5a5cafc6b640001fba86c7ea9531ae9daf43fcc3` at merge commit `9fd8f98e3787f711f3d03c9de03d3615d531216a`.
-- M04E1 merged through PR #16 from final head `738e89c606dd9f1f9f0396334ea9d8587ff389f3` at merge commit `03f05a3d78609a993cecab8b0077e5f7d7d55900`; Linux/Codex and owner Windows verification passed.
-- PR #17, the abandoned direct M04E2A implementation attempt, was closed without merge at head `5c87118045faa6f48f8ce50977a9bcdcfa967e57` and is retained only as forensic reference.
-- M04E2A is a conceptual replacement sub-epic decomposed into M04E2A1 through M04E2A4.
-- M04E2A1 definition and prompt v0.1 are Approved; implementation has not started.
-- `GATE-TYPED-SIMULATION-RESULT` and M04E2A1 `GATE-SLICE-SCOPE` are satisfied for prompt execution.
-- M04E2A2, M04E2A3, and M04E2A4 have approved boundaries but no implementation prompts and remain blocked on the preceding replacement slice being Merged/Passed plus a fresh scope review.
-- `GATE-REPORT-SCHEMA`, `GATE-REPORT-INGESTION`, `GATE-REPORT-READS-HISTORY`, and `GATE-ATOMIC-REPORTED-RUN` remain pending.
-- M04E2B retains an approved high-level boundary only; its prompt remains blocked on M04E2A1 through M04E2A4 all being Merged/Passed plus a fresh scope review.
+- `DEC-0001` through `DEC-0040` and `DEC-0043` are Accepted.
+- `DEC-0041` is Superseded; its report semantics remain carried forward.
+- `DEC-0042` is Superseded by `DEC-0043`; its PR #17 reset record and report-slice lessons remain historical context, while its typed-result-first implementation packaging is retired.
+- M04A through M04D3 and M04E1 are implemented, verified, and merged.
+- PR #17 was closed unmerged at terminal head `5c87118045faa6f48f8ce50977a9bcdcfa967e57` and is retained only as forensic reference.
+- PR #18 was closed unmerged at terminal head `602dec077f44338cdb4a2eabbd30d3989c877902` and is retained only as forensic reference.
+- M04E2A1 definition and prompt are Superseded; implementation verification Failed and no branch code is authoritative.
+- The active M04E2 sequence is M04E2T1 -> M04E2T2 -> M04E2A2 -> M04E2A3 -> M04E2A4 -> M04E2B.
+- M04E2T1 definition is Approved. Its prompt is Draft v0.1 and must receive explicit owner approval before execution.
+- `GATE-SINGLE-PROVENANCE-TRANSACTION` is pending approval of the M04E2T1 prompt and final scope review.
+- M04E2T2 has an approved boundary but no prompt and remains blocked on M04E2T1 Merged/Passed.
+- M04E2A2, M04E2A3, and M04E2A4 retain approved boundaries but remain blocked on the new prerequisite chain and fresh scope reviews.
+- `GATE-FINALIZED-RUN-FACTS`, `GATE-REPORT-SCHEMA`, `GATE-REPORT-INGESTION`, `GATE-REPORT-READS-HISTORY`, and `GATE-ATOMIC-REPORTED-RUN` remain pending.
+- M04E2B retains an approved high-level boundary only; its prompt remains blocked on M04E2T1, M04E2T2, and M04E2A2 through M04E2A4 all being Merged/Passed plus a fresh scope review.
 - Future changes preserve decision IDs for wording clarifications and create a new decision when semantics, ownership, compatibility, implementation packaging, or security posture changes.

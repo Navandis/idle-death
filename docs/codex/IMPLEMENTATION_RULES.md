@@ -3,8 +3,8 @@
 **Document role:** Detailed engineering conventions for Godot 4.7 and GDScript implementation  
 **Repository path:** `docs/codex/IMPLEMENTATION_RULES.md`  
 **Document status:** Approved engineering rules  
-**Rules revision:** 6  
-**Last updated:** 2026-07-14  
+**Rules revision:** 7  
+**Last updated:** 2026-07-22  
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)  
 **Data companion:** [DATA_AND_CONTENT_CONTRACTS.md](DATA_AND_CONTENT_CONTRACTS.md)
 
@@ -408,6 +408,47 @@ For a deterministic rare source governed by `DEC-0027`:
 A Threshold-level acquisition bar is not a second Reaping-cycle bar. It displays durable saved progress toward a specific known whole output.
 
 At `50.0%` progress, an improved rate may shorten the ETA without changing the bar. A percentage jump requires actual future accumulation or an explicit exactly-once progress grant; an ordinary rate bonus is not retroactive.
+
+### 11.8 Single-provenance simulation transactions
+
+For an authoritative elapsed transaction, candidate mutation and explanatory facts must share one provenance.
+
+Required shape:
+
+```text
+validated source + explicit request
+  -> transaction-owned private candidate
+  -> checked mutation operation
+  -> journal fact recorded from the same before/after values
+  -> candidate validation
+  -> public result derived from finalized journal
+  -> one live commit
+```
+
+Rules:
+
+- No production or test-facing commit method accepts both an independently supplied mutable candidate and an independently supplied result, event list, or summary.
+- The transaction creates its candidate from the source and does not expose it for arbitrary mutation before finalization.
+- Every authoritative field changed by the transaction appears in a mutation-ownership inventory before implementation.
+- A transaction mutation method either updates all affected candidate fields and records its corresponding fact, or does neither.
+- Formula/rate helpers may remain pure and return checked calculations; they do not mutate the candidate or author public result facts.
+- Compatibility summaries and public events are derived from finalized journal facts. They are never populated independently in parallel with the mutation.
+- Boundary facts capture values at the boundary. Do not reconstruct an event's payload from the final run state after later segments.
+- The journal is bounded runtime evidence for one call. Do not persist it, replay it, expose it as analytics authority, or generalize it into a project-wide event-sourcing framework.
+- Candidate validation occurs before the live `copy_from` commit. Failure at any stage leaves the source state canonically unchanged.
+- Public detached results are constructed only after the journal is finalized and the candidate is valid.
+
+A source audit is useful supplemental evidence, but behavioral fault tests must also prove that failures after partial candidate work do not mutate the live state.
+
+### 11.9 Result and compatibility-view ownership
+
+A public result is an observation of a finalized transaction, not a second mutation authority.
+
+- Do not allow callers to construct a result and submit it for live-state commit.
+- Do not make a compatibility dictionary the only owner of historical identity or channel endpoints.
+- If a compatibility `change_summary` remains temporarily, generate it from the same finalized facts used by the primary result contract.
+- Compare detached typed objects by documented fields, not object identity.
+- When a public result contract changes, migrate all current production, debug, test, and trace consumers in one bounded slice; do not maintain parallel raw and typed public grammars indefinitely.
 
 ## 12. Inventory and reservation rules
 

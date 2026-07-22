@@ -70,6 +70,8 @@ If a referenced document required by the current task is missing, stale, or inte
 
 For non-trivial work, briefly state the proposed approach, expected files, and verification plan before editing.
 
+For authoritative state transitions, follow the single-provenance rule in accepted `DEC-0043` and `IMPLEMENTATION_RULES.md`: do not pass an independently mutable candidate state and independently mutable result/summary into a commit method and then attempt to prove they agree. One transaction owner must create the private candidate, apply checked mutations, record explanatory facts from the same before/after values, validate, and expose one final commit result.
+
 ## Confirmed prototype decisions
 
 The following decisions supersede ambiguous shorthand in the design documents:

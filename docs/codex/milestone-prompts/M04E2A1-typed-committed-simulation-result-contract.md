@@ -2,13 +2,16 @@
 
 **Prompt version:** v0.1  
 **Prompt date:** 2026-07-20  
-**Prompt status:** Approved  
+**Prompt status:** Superseded — do not execute  
 **Work item type:** Implementation slice  
 **Parent conceptual epics:** `M04 — Persistent Reaping simulation vertical slice` / M04E / M04E2 / M04E2A replacement sequence  
 **Milestone definition:** `docs/codex/MILESTONES.md`  
 **Expected base branch or ref:** current `main` after the planning-only `DEC-0042` reset package is merged  
 **Gameplay baseline:** M04E1 merge commit `03f05a3d78609a993cecab8b0077e5f7d7d55900`; pre-reset planning head `d37d4af5a82804593c23f913c0b01b3da63e6953`  
 **Planned prompt path:** `docs/codex/milestone-prompts/M04E2A1-typed-committed-simulation-result-contract.md`
+
+
+> **Historical prompt only.** PR #18 implemented this prompt and was closed unmerged at terminal head `602dec077f44338cdb4a2eabbd30d3989c877902` after repeated targeted reviews continued to identify P1/P2 defects. Accepted `DEC-0043` supersedes this implementation approach with M04E2T1 and M04E2T2. Do not execute this prompt or copy the abandoned production implementation wholesale.
 
 > This prompt authorizes a typed, self-contained, non-persisted committed simulation-result boundary. It replaces raw public segment/channel dictionaries with validated typed records, carries historical assignment/loadout/lifecycle/source identity on each segment, validates the complete result before live candidate commit, updates current simulation/run/debug/test consumers, and adds focused verification. It does not authorize report state, schema version 4, report ingestion, report queries, snapshot/history behavior, UI, trusted time, concurrency, or M04E2B.
 
