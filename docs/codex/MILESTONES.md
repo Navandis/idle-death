@@ -175,7 +175,7 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 | M04E1 | Forecast clone and supplied-resolution adapters | Implementation slice | Approved | Approved | Merged | Passed |
 | M04E2 | Transaction provenance, report persistence, and final M04 closure | Conceptual sub-epic | Approved | Not applicable | Not directly executable | — |
 | M04E2A1 | Typed committed simulation-result contract — failed predecessor | Implementation slice | Superseded | Superseded | Rework required | Failed |
-| M04E2T1 | Single-provenance simulation transaction journal and commit boundary | Implementation slice | Approved | Approved v0.1 | Pull request open | Partial |
+| M04E2T1 | Single-provenance simulation transaction journal and commit boundary | Implementation slice | Approved | Approved v0.1 | Merged | Passed |
 | M04E2T2 | Finalized typed run facts and current-consumer migration | Implementation slice | Approved | Not drafted | Not started | — |
 | M04E2A | Report-foundation implementation sequence | Conceptual sub-epic | Approved | Not applicable | Not directly executable | — |
 | M04E2A2 | Report runtime state and schema-v4 persistence | Implementation slice | Approved | Not drafted | Not started | — |
@@ -1482,8 +1482,8 @@ M04E2 is complete only when M04E2T1, M04E2T2, M04E2A2, M04E2A3, M04E2A4, and M04
 **Parent epic:** M04 / M04E / M04E2
 **Definition status:** Approved under the supplied M04E2T1 brief and accepted transaction-boundary decision
 **Prompt status:** Approved v0.1
-**Implementation status:** Pull request open
-**Verification status:** Partial
+**Implementation status:** Merged
+**Verification status:** Passed
 **Planned trace:** `tools/test/m04e2t1/m04e2t1_transaction_trace.gd`
 **Owner package:** `tools/test/owner/run_m04e2t1_owner_verification.ps1`
 
