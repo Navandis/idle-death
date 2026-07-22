@@ -160,11 +160,11 @@ func test_transaction_finalization_and_journal_freeze_are_one_way() -> void:
 	var before := _canonical(source)
 	assert_true(transaction.calculation_snapshot() != source)
 	assert_true(transaction.advance_timeline().ok)
-	var finalization := transaction.finalize(Callable(self, "_positive_stub_result"))
+	var finalization := transaction.finalize()
 	assert_true(finalization.ok, str(finalization))
 	assert_true(transaction.journal_is_frozen())
 	assert_false(transaction.advance_timeline().ok)
-	assert_false(transaction.finalize(Callable(self, "_positive_stub_result")).ok)
+	assert_false(transaction.finalize().ok)
 	assert_eq(_canonical(source), before)
 	var committed: Dictionary = transaction.commit_to(source)
 	assert_true(committed.ok, str(committed))
@@ -192,7 +192,7 @@ func test_candidate_validation_failure_preserves_live_state() -> void:
 	var before := _canonical(source)
 	var context := SimulationRunContext.new(0, 1000, false, &"", 0, &"", &"", [], &"", ContentRegistry.CURRENT_REVISION)
 	var transaction := SimulationTransaction.open(source, context, _registry())
-	var failed := transaction.finalize(Callable(self, "_positive_stub_result"))
+	var failed := transaction.finalize()
 	assert_false(failed.ok)
 	assert_eq(failed.code, SimulationEngine.ERR_STATE_INVALID)
 	assert_eq(transaction.state, SimulationTransaction.STATE_FAILED)
@@ -200,11 +200,8 @@ func test_candidate_validation_failure_preserves_live_state() -> void:
 
 func test_source_audit_has_no_arbitrary_candidate_result_commit_seam() -> void:
 	var transaction_source := FileAccess.get_file_as_string("res://src/simulation/simulation_transaction.gd")
+	assert_eq(transaction_source.find("func finalize(result_builder"), -1)
+	assert_eq(transaction_source.find("result_builder"), -1)
 	assert_eq(transaction_source.find("commit_if_valid(live"), -1)
 	assert_eq(transaction_source.find("arbitrary_candidate"), -1)
 	assert_eq(transaction_source.find("arbitrary_result"), -1)
-
-func _positive_stub_result(_journal: SimulationFactJournal, context: SimulationRunContext) -> SimulationEngine.SimulationResult:
-	var result := SimulationEngine.SimulationResult.new(true, SimulationEngine.OK, "", context.requested_elapsed_msec)
-	result.committed_elapsed_msec = context.requested_elapsed_msec
-	return result

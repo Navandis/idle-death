@@ -26,7 +26,7 @@ var _candidate: GameState
 var _context: SimulationRunContext
 var _journal: SimulationFactJournal
 var state := STATE_OPEN
-var finalized_result = null
+var _finalized_result = null
 var _current_segment_index := -1
 
 static func open(source_state: GameState, run_context: SimulationRunContext, content_registry: ContentRegistry) -> SimulationTransaction:
@@ -183,7 +183,7 @@ func apply_settlement_transition() -> Dictionary:
 		return _failure(ERR_TRANSACTION_INPUT, recorded.details)
 	return {"ok": true}
 
-func finalize(result_builder: Callable) -> Dictionary:
+func finalize() -> Dictionary:
 	if state != STATE_OPEN: return _failure(ERR_TRANSACTION_STATE, "Transaction can finalize only once from OPEN.")
 	var validation := GameStateValidator.validate(_candidate, _registry, true)
 	if not validation.ok:
@@ -197,11 +197,11 @@ func finalize(result_builder: Callable) -> Dictionary:
 	if not frozen.ok:
 		state = STATE_FAILED
 		return _failure(SimulationEngine.ERR_RESULT_INVALID, frozen.details)
-	var projected = result_builder.call(_journal, _context)
+	var projected := _build_result_from_journal()
 	if projected == null:
 		state = STATE_FAILED
 		return _failure(SimulationEngine.ERR_RESULT_INVALID, "Compatibility projection returned null.")
-	finalized_result = projected
+	_finalized_result = projected
 	state = STATE_FINALIZED
 	return {"ok": true, "result": projected}
 
@@ -211,7 +211,111 @@ func commit_to(live_state: GameState):
 	# This is the only live-state mutation in the transaction path.
 	live_state.copy_from(_candidate)
 	state = STATE_COMMITTED
-	return {"ok": true, "result": finalized_result}
+	return {"ok": true, "result": _finalized_result}
+
+func _build_result_from_journal() -> SimulationEngine.SimulationResult:
+	var result := SimulationEngine.SimulationResult.new(true, SimulationEngine.OK, "", _context.requested_elapsed_msec)
+	var facts := _journal.facts_snapshot()
+	var core_facts: Array[Dictionary] = []
+	var channel_facts: Array[Dictionary] = []
+	var settlement_facts: Array[Dictionary] = []
+	var timeline: Dictionary = {}
+	for fact in facts:
+		match fact.get("kind", &""):
+			SimulationFactJournal.KIND_TIMELINE: timeline = fact
+			SimulationFactJournal.KIND_CORE_SEGMENT: core_facts.append(fact)
+			SimulationFactJournal.KIND_CHANNEL_SEGMENT: channel_facts.append(fact)
+			SimulationFactJournal.KIND_SETTLEMENT: settlement_facts.append(fact)
+	if core_facts.is_empty():
+		result.committed_elapsed_msec = _context.requested_elapsed_msec
+		result.change_summary = {"simulation_time_delta_msec": int(timeline.get("elapsed_msec", 0))}
+		return result
+	result.committed_elapsed_msec = _context.requested_elapsed_msec
+	var returned_total := 0
+	var backlog_total := 0
+	var essence_total := 0
+	var mastery_total := 0
+	var cycles_total := 0
+	var channel_by_id := {}
+	for core in core_facts:
+		var segment_channels: Array = []
+		for channel in channel_facts:
+			if int(channel.segment_index) != int(core.segment_index): continue
+			var delta := _raw_channel_delta(channel)
+			segment_channels.append(delta)
+			var channel_id := str(channel.channel_id)
+			if not channel_by_id.has(channel_id):
+				channel_by_id[channel_id] = delta.duplicate(true)
+			else:
+				var aggregate: Dictionary = channel_by_id[channel_id]
+				aggregate.banked_units_delta += int(delta.banked_units_delta)
+				aggregate.progress_subunits_after = delta.progress_subunits_after
+				aggregate.rate_carry_units_after = delta.rate_carry_units_after
+				aggregate.total_banked_units_after = delta.total_banked_units_after
+			segment_channels.sort_custom(func(a, b): return str(a.channel_id) < str(b.channel_id))
+		result.segments.append({
+			"start_simulation_msec": int(core.start_simulation_msec),
+			"end_simulation_msec": int(core.end_simulation_msec),
+			"elapsed_msec": int(core.elapsed_msec),
+			"lifecycle": str(core.lifecycle_state),
+			"returned_souls_delta": int(core.returned_souls_delta),
+			"backlog_delta": int(core.backlog_delta),
+			"Essence_delta": int(core.Essence_delta),
+			"Mastery_delta_subunits": int(core.Mastery_delta_subunits),
+			"completed_cycles_delta": int(core.completed_cycles_delta),
+			"channel_deltas": segment_channels,
+		})
+		returned_total += int(core.returned_souls_delta)
+		backlog_total += int(core.backlog_delta)
+		essence_total += int(core.Essence_delta)
+		mastery_total += int(core.Mastery_delta_subunits)
+		cycles_total += int(core.completed_cycles_delta)
+	for settlement in settlement_facts:
+		result.events.append(SimulationEngine.SimulationEvent.threshold_settled(int(settlement.occurred_simulation_msec), _context.threshold_id, int(settlement.persistent_returns_total)))
+	for channel in channel_facts:
+		if int(channel.banked_units_delta) <= 0: continue
+		result.events.append(SimulationEngine.SimulationEvent.output_channel_banked(int(channel.segment_end_simulation_msec), _context.threshold_id, StringName(channel.channel_id), _raw_channel_delta(channel), str(channel.lifecycle_state)))
+	result.events.sort_custom(_event_less)
+	var summary_channels: Array = []
+	var channel_ids := channel_by_id.keys()
+	channel_ids.sort()
+	for channel_id in channel_ids:
+		summary_channels.append(channel_by_id[channel_id])
+	var lifecycle_after := str(core_facts[core_facts.size() - 1].lifecycle_state)
+	if not settlement_facts.is_empty(): lifecycle_after = "SETTLED"
+	result.change_summary = {
+		"threshold_id": str(_context.threshold_id),
+		"operation_id": str(_context.threshold_id),
+		"simulation_time_delta_msec": _context.requested_elapsed_msec,
+		"returned_souls_delta": returned_total,
+		"backlog_delta": backlog_total,
+		"Essence_delta": essence_total,
+		"Mastery_delta_subunits": mastery_total,
+		"completed_cycles_delta": cycles_total,
+		"lifecycle_before": str(_context.initial_lifecycle_state),
+		"lifecycle_after": lifecycle_after,
+		"channel_deltas": summary_channels,
+	}
+	return result
+
+func _raw_channel_delta(fact: Dictionary) -> Dictionary:
+	return {
+		"channel_id": str(fact.channel_id),
+		"output_item_id": str(fact.output_item_id),
+		"banked_units_delta": int(fact.banked_units_delta),
+		"progress_subunits_before": int(fact.progress_subunits_before),
+		"progress_subunits_after": int(fact.progress_subunits_after),
+		"rate_carry_units_before": int(fact.rate_carry_units_before),
+		"rate_carry_units_after": int(fact.rate_carry_units_after),
+		"total_banked_units_before": int(fact.total_banked_units_before),
+		"total_banked_units_after": int(fact.total_banked_units_after),
+	}
+
+func _event_less(a: SimulationEngine.SimulationEvent, b: SimulationEngine.SimulationEvent) -> bool:
+	if a.occurred_simulation_msec != b.occurred_simulation_msec: return a.occurred_simulation_msec < b.occurred_simulation_msec
+	if a.priority != b.priority: return a.priority < b.priority
+	if str(a.subject_id) != str(b.subject_id): return str(a.subject_id) < str(b.subject_id)
+	return str(a.source_id) < str(b.source_id)
 
 func read_only_snapshot() -> Dictionary:
 	return {

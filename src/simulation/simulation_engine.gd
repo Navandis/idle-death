@@ -140,7 +140,7 @@ func _capture_run_context(state: GameState, elapsed_msec: int, active_ids: Array
 	return SimulationRunContext.new(state.simulation_time_msec, elapsed_msec, true, threshold_id, reaping.assignment_revision, reaping.form_id, reaping.writ_id, reaping.retinue_ids, threshold.lifecycle_state, registry.content_revision)
 
 func _finalize_and_commit(state: GameState, transaction: SimulationTransaction, trace_output: Dictionary = {}) -> SimulationResult:
-	var finalized := transaction.finalize(Callable(self, "_build_result_from_journal"))
+	var finalized := transaction.finalize()
 	if not finalized.ok:
 		return SimulationResult.failure(StringName(finalized.code), transaction.requested_elapsed_msec(), finalized.details)
 	var committed: Dictionary = transaction.commit_to(state)
@@ -332,110 +332,6 @@ func _active_reaping_ids(state: GameState) -> Array[StringName]:
 		if state.reapings[id].is_active: ids.append(id)
 	ids.sort()
 	return ids
-
-func _build_result_from_journal(journal: SimulationFactJournal, context: SimulationRunContext) -> SimulationResult:
-	var result := SimulationResult.new(true, OK, "", context.requested_elapsed_msec)
-	var facts := journal.facts_snapshot()
-	var core_facts: Array[Dictionary] = []
-	var channel_facts: Array[Dictionary] = []
-	var settlement_facts: Array[Dictionary] = []
-	var timeline: Dictionary = {}
-	for fact in facts:
-		match fact.get("kind", &""):
-			SimulationFactJournal.KIND_TIMELINE: timeline = fact
-			SimulationFactJournal.KIND_CORE_SEGMENT: core_facts.append(fact)
-			SimulationFactJournal.KIND_CHANNEL_SEGMENT: channel_facts.append(fact)
-			SimulationFactJournal.KIND_SETTLEMENT: settlement_facts.append(fact)
-	if core_facts.is_empty():
-		result.committed_elapsed_msec = context.requested_elapsed_msec
-		result.change_summary = {"simulation_time_delta_msec": int(timeline.get("elapsed_msec", 0))}
-		return result
-	result.committed_elapsed_msec = context.requested_elapsed_msec
-	var returned_total := 0
-	var backlog_total := 0
-	var essence_total := 0
-	var mastery_total := 0
-	var cycles_total := 0
-	var channel_by_id := {}
-	for core in core_facts:
-		var segment_channels: Array = []
-		for channel in channel_facts:
-			if int(channel.segment_index) != int(core.segment_index): continue
-			var delta := _raw_channel_delta(channel)
-			segment_channels.append(delta)
-			var channel_id := str(channel.channel_id)
-			if not channel_by_id.has(channel_id):
-				channel_by_id[channel_id] = delta.duplicate(true)
-			else:
-				var aggregate: Dictionary = channel_by_id[channel_id]
-				aggregate.banked_units_delta += int(delta.banked_units_delta)
-				aggregate.progress_subunits_after = delta.progress_subunits_after
-				aggregate.rate_carry_units_after = delta.rate_carry_units_after
-				aggregate.total_banked_units_after = delta.total_banked_units_after
-			segment_channels.sort_custom(func(a, b): return str(a.channel_id) < str(b.channel_id))
-		result.segments.append({
-			"start_simulation_msec": int(core.start_simulation_msec),
-			"end_simulation_msec": int(core.end_simulation_msec),
-			"elapsed_msec": int(core.elapsed_msec),
-			"lifecycle": str(core.lifecycle_state),
-			"returned_souls_delta": int(core.returned_souls_delta),
-			"backlog_delta": int(core.backlog_delta),
-			"Essence_delta": int(core.Essence_delta),
-			"Mastery_delta_subunits": int(core.Mastery_delta_subunits),
-			"completed_cycles_delta": int(core.completed_cycles_delta),
-			"channel_deltas": segment_channels,
-		})
-		returned_total += int(core.returned_souls_delta)
-		backlog_total += int(core.backlog_delta)
-		essence_total += int(core.Essence_delta)
-		mastery_total += int(core.Mastery_delta_subunits)
-		cycles_total += int(core.completed_cycles_delta)
-	for settlement in settlement_facts:
-		result.events.append(SimulationEvent.threshold_settled(int(settlement.occurred_simulation_msec), context.threshold_id, int(settlement.persistent_returns_total)))
-	for channel in channel_facts:
-		if int(channel.banked_units_delta) <= 0: continue
-		result.events.append(SimulationEvent.output_channel_banked(int(channel.segment_end_simulation_msec), context.threshold_id, StringName(channel.channel_id), _raw_channel_delta(channel), str(channel.lifecycle_state)))
-	result.events.sort_custom(_event_less)
-	var summary_channels: Array = []
-	var channel_ids := channel_by_id.keys()
-	channel_ids.sort()
-	for channel_id in channel_ids:
-		summary_channels.append(channel_by_id[channel_id])
-	var lifecycle_after := str(core_facts[core_facts.size() - 1].lifecycle_state)
-	if not settlement_facts.is_empty(): lifecycle_after = "SETTLED"
-	result.change_summary = {
-		"threshold_id": str(context.threshold_id),
-		"operation_id": str(context.threshold_id),
-		"simulation_time_delta_msec": context.requested_elapsed_msec,
-		"returned_souls_delta": returned_total,
-		"backlog_delta": backlog_total,
-		"Essence_delta": essence_total,
-		"Mastery_delta_subunits": mastery_total,
-		"completed_cycles_delta": cycles_total,
-		"lifecycle_before": str(context.initial_lifecycle_state),
-		"lifecycle_after": lifecycle_after,
-		"channel_deltas": summary_channels,
-	}
-	return result
-
-func _raw_channel_delta(fact: Dictionary) -> Dictionary:
-	return {
-		"channel_id": str(fact.channel_id),
-		"output_item_id": str(fact.output_item_id),
-		"banked_units_delta": int(fact.banked_units_delta),
-		"progress_subunits_before": int(fact.progress_subunits_before),
-		"progress_subunits_after": int(fact.progress_subunits_after),
-		"rate_carry_units_before": int(fact.rate_carry_units_before),
-		"rate_carry_units_after": int(fact.rate_carry_units_after),
-		"total_banked_units_before": int(fact.total_banked_units_before),
-		"total_banked_units_after": int(fact.total_banked_units_after),
-	}
-
-func _event_less(a: SimulationEvent, b: SimulationEvent) -> bool:
-	if a.occurred_simulation_msec != b.occurred_simulation_msec: return a.occurred_simulation_msec < b.occurred_simulation_msec
-	if a.priority != b.priority: return a.priority < b.priority
-	if str(a.subject_id) != str(b.subject_id): return str(a.subject_id) < str(b.subject_id)
-	return str(a.source_id) < str(b.source_id)
 
 func _has_any(left: Array, right: Array) -> bool:
 	for value in right:

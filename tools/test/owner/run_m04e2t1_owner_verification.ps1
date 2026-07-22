@@ -46,6 +46,7 @@ function Run-Step([string]$Name, [string]$Description, [scriptblock]$Action, [sw
     Write-LogLine "=== $Name ==="
     Write-LogLine "Command: $Description"
     $StepExit = 0
+    $ActionFailed = $false
     $script:LastStepOutput = @()
     try {
         # Native exit codes persist across PowerShell commands. Clear stale state
@@ -60,12 +61,13 @@ function Run-Step([string]$Name, [string]$Description, [scriptblock]$Action, [sw
         if ($null -ne $LASTEXITCODE) { $StepExit = $LASTEXITCODE }
     }
     catch {
+        $ActionFailed = $true
         $StepExit = 1
         Write-LogLine "ERROR: $($_.Exception.Message)"
     }
     Write-LogLine "Exit code: $StepExit"
-    $StepPassed = $StepExit -eq 0
-    if ($ExpectedNonZero) { $StepPassed = $StepExit -ne 0 }
+    $StepPassed = (-not $ActionFailed) -and ($StepExit -eq 0)
+    if ($ExpectedNonZero) { $StepPassed = (-not $ActionFailed) -and ($StepExit -ne 0) }
     if (-not $StepPassed) { Write-LogLine "FAILED: $Name"; Set-Failed $StepExit }
     else { Write-LogLine "PASSED: $Name" }
     Write-LogLine ""
@@ -209,9 +211,20 @@ try {
             Skip-Step "Exact trace marker verification" "prerequisite failed: import"
         }
         Run-Step "Missing-root trace must fail" "$ResolvedGodot --headless ... m04e2t1_transaction_trace.gd (no --work-root)" {
-            & $ResolvedGodot --headless --path "$RepoRoot" -s "res://tools/test/m04e2t1/m04e2t1_transaction_trace.gd"
-            if ($LASTEXITCODE -eq 0) { throw "Missing-root trace unexpectedly succeeded." }
-            Write-Output "Negative trace exit confirmed: $LASTEXITCODE"
+            # Godot reports the intentional missing-root assertion on stderr. Do
+            # not let that expected native diagnostic become a PowerShell throw;
+            # a throw from the explicit success assertion below must still fail.
+            $previousErrorActionPreference = $ErrorActionPreference
+            $ErrorActionPreference = "Continue"
+            try {
+                & $ResolvedGodot --headless --path "$RepoRoot" -s "res://tools/test/m04e2t1/m04e2t1_transaction_trace.gd"
+                $negativeExit = $LASTEXITCODE
+            }
+            finally {
+                $ErrorActionPreference = $previousErrorActionPreference
+            }
+            if ($negativeExit -eq 0) { throw "Missing-root trace unexpectedly succeeded." }
+            Write-Output "Negative trace exit confirmed: $negativeExit"
         } -ExpectedNonZero
     }
     else {
