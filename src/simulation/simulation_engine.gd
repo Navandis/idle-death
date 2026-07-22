@@ -709,7 +709,7 @@ func _result_lifecycle_after(result: SimulationResult) -> StringName:
 	return last.lifecycle_state
 
 func _aggregate_segments(segments: Array[SimulationSegmentResult]) -> Dictionary:
-	var totals := {"returned_souls_delta": 0, "backlog_reduced": 0, "Essence_delta": 0, "Mastery_delta_subunits": 0, "completed_cycles_delta": 0, "channel_deltas": []}
+	var totals := {"ok": true, "returned_souls_delta": 0, "backlog_reduced": 0, "Essence_delta": 0, "Mastery_delta_subunits": 0, "completed_cycles_delta": 0, "channel_deltas": []}
 	var channel_accumulator := {}
 	var channel_order: Array[StringName] = []
 	for segment in segments:
@@ -804,8 +804,8 @@ func _validate_active_transition(source: GameState, candidate: GameState, result
 	if not backlog_reduced["ok"]: return backlog_reduced
 	if int(backlog_reduced.value) != int(totals.backlog_reduced):
 		return _fail(ERR_RESULT_INVALID, "Typed backlog_reduced does not match the candidate transition.")
-	var source_essence := source.inventory.entries.get(&"RES_ESSENCE", GameState.InventoryEntryState.new()).total
-	var candidate_essence := candidate.inventory.entries.get(&"RES_ESSENCE", GameState.InventoryEntryState.new()).total
+	var source_essence: int = source.inventory.entries.get(&"RES_ESSENCE", GameState.InventoryEntryState.new()).total
+	var candidate_essence: int = candidate.inventory.entries.get(&"RES_ESSENCE", GameState.InventoryEntryState.new()).total
 	var essence_delta := _checked_non_negative_difference(candidate_essence, source_essence, "actual Essence_delta")
 	if not essence_delta["ok"]: return essence_delta
 	if int(essence_delta.value) != int(totals.Essence_delta):

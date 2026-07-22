@@ -7,7 +7,7 @@ func _engine() -> SimulationEngine:
 	return SimulationEngine.new(_registry())
 
 func _periods() -> Dictionary:
-	return {&"CHANNEL_GLOAMWOOD_SOLDIER_SOULS": 900000}
+	return {&"CHANNEL_GLOAMWOOD_SOLDIER_SOULS": {"output_item_id": &"SOUL_CALLING_SOLDIER", "period_msec": 900000}}
 
 func _delta() -> SimulationEngine.SimulationChannelDeltaResult:
 	return SimulationEngine.SimulationChannelDeltaResult.new(&"CHANNEL_GLOAMWOOD_SOLDIER_SOULS", &"SOUL_CALLING_SOLDIER", 1, 100, 200, 0, 1, 4, 5)
@@ -40,10 +40,22 @@ func test_complete_result_shapes_and_event_boundaries() -> void:
 	result.committed_elapsed_msec = 1000
 	result.segments.append(_segment())
 	result.events.append(SimulationEngine.SimulationEvent.output_channel_banked(1000, &"THR_GLOAMWOOD", &"CHANNEL_GLOAMWOOD_SOLDIER_SOULS", _delta(), "OVERDUE"))
-	result.change_summary["simulation_time_delta_msec"] = 1000
-	assert_true(_engine().validate_result(result, 0, 1000, 1000).ok)
+	result.change_summary = {
+		"threshold_id": "THR_GLOAMWOOD",
+		"operation_id": "THR_GLOAMWOOD",
+		"simulation_time_delta_msec": 1000,
+		"returned_souls_delta": 1,
+		"backlog_delta": -1,
+		"Essence_delta": 0,
+		"Mastery_delta_subunits": 100,
+		"completed_cycles_delta": 0,
+		"lifecycle_before": "OVERDUE",
+		"lifecycle_after": "OVERDUE",
+		"channel_deltas": [_delta()],
+	}
+	assert_true(_engine().validate_result(result, 0, 1000, 1000, true).ok)
 	result.events[0].occurred_simulation_msec = 0
-	assert_false(_engine().validate_result(result, 0, 1000, 1000).ok)
+	assert_false(_engine().validate_result(result, 0, 1000, 1000, true).ok)
 
 func test_timeline_zero_and_failed_shapes() -> void:
 	var timeline := SimulationEngine.SimulationResult.new(true, SimulationEngine.OK, "", 5)
