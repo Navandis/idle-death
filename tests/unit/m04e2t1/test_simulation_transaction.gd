@@ -149,6 +149,27 @@ func test_timeline_only_transaction_and_summary_are_journal_derived() -> void:
 	assert_eq(trace.transaction.facts[0].before_time, 0)
 	assert_eq(trace.transaction.facts[0].after_time, 1234)
 
+func test_active_core_segments_must_cover_full_timeline() -> void:
+	var trace := _engine().resolve_elapsed_with_trace(_state(), HOUR)
+	assert_true(trace.result.success, trace.result.developer_details)
+	var source_core: Dictionary = {}
+	for fact in trace.transaction.facts:
+		if fact.kind == SimulationFactJournal.KIND_CORE_SEGMENT:
+			source_core = fact.duplicate(true)
+			break
+	assert_false(source_core.is_empty())
+
+	var journal := SimulationFactJournal.new(0, HOUR)
+	assert_true(journal.record_timeline(0, HOUR).ok)
+	var incomplete_core := source_core.duplicate(true)
+	incomplete_core.start_simulation_msec = 0
+	incomplete_core.end_simulation_msec = 1000
+	incomplete_core.elapsed_msec = 1000
+	assert_true(journal.record_core_segment(incomplete_core).ok)
+	var validation := journal.validate()
+	assert_false(validation.ok)
+	assert_eq(validation.code, &"SIM_JOURNAL_INVALID")
+
 func test_transaction_finalization_and_journal_freeze_are_one_way() -> void:
 	var journal := SimulationFactJournal.new(0, 1000)
 	assert_true(journal.record_timeline(0, 1000).ok)

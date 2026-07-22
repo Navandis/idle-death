@@ -117,6 +117,8 @@ func validate() -> Dictionary:
 			if int(core.end_simulation_msec) > timeline.after_time:
 				return _failure("Core segment exceeds the transaction timeline.")
 			expected_start = int(core.end_simulation_msec)
+		if expected_start != int(timeline.after_time):
+			return _failure("Core segments must cover the full transaction timeline.")
 		for channel in channel_facts:
 			if int(channel.segment_index) < 0 or int(channel.segment_index) >= core_facts.size():
 				return _failure("Channel fact references an invalid segment.")
