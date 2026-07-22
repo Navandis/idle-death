@@ -115,20 +115,20 @@ func _run() -> void:
 
 	var one_hour := _state()
 	var eight_hour := _state()
-	var one_result := SimulationEngine.new(_registry()).resolve_elapsed(one_hour, HOUR)
-	var eight_result := SimulationEngine.new(_registry()).resolve_elapsed(eight_hour, 8 * HOUR)
+	var one_result := SimulationEngine.new(_registry).resolve_elapsed(one_hour, HOUR)
+	var eight_result := SimulationEngine.new(_registry).resolve_elapsed(eight_hour, 8 * HOUR)
 	_assert(one_result.success and eight_result.success, "one/eight hour success")
 	_assert(one_hour.thresholds[&"THR_GLOAMWOOD"].persistent_returns_total == 4140 and eight_hour.thresholds[&"THR_GLOAMWOOD"].persistent_returns_total == 33120, "one/eight hour returns")
 	_assert(one_hour.inventory.entries[&"RES_ESSENCE"].total == 360 and eight_hour.inventory.entries[&"RES_ESSENCE"].total == 2880, "one/eight hour Essence")
 	_pass("one_hour_eight_hour_settlement_unchanged")
 
 	var forecast_base := _state()
-	var forecast := SimulationRunService.new(_registry()).forecast(forecast_base, HOUR)
+	var forecast := SimulationRunService.new(_registry).forecast(forecast_base, HOUR)
 	var committed := forecast_base.deep_clone()
-	var committed_result := SimulationRunService.new(_registry()).run_committed(committed, HOUR, SimulationRunService.MODE_OFFLINE_FIXTURE)
+	var committed_result := SimulationRunService.new(_registry).run_committed(committed, HOUR, SimulationRunService.MODE_OFFLINE_FIXTURE)
 	var chunked := forecast_base.deep_clone()
 	for _i in range(4):
-		_assert(SimulationRunService.new(_registry()).run_committed(chunked, HOUR / 4, SimulationRunService.MODE_DEBUG).success, "chunk success")
+		_assert(SimulationRunService.new(_registry).run_committed(chunked, HOUR / 4, SimulationRunService.MODE_DEBUG).success, "chunk success")
 	_assert(forecast.success and committed_result.success and _canonical(forecast.projected_state) == _canonical(committed) and _canonical(committed) == _canonical(chunked), "forecast commit chunk equivalence")
 	_pass("forecast_commit_chunk_mode_equivalence")
 
