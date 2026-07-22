@@ -1492,7 +1492,7 @@ Deliver the accepted typed committed-result, report-state, ingestion, read/snaps
 
 #### Completion rule
 
-M04E2A is complete only when M04E2A1 through M04E2A4 are all Merged and Passed.
+M04E2A is complete only when M04E2T1, M04E2T2, M04E2A2, M04E2A3, and M04E2A4 are all Merged and Passed.
 
 #### Abandoned predecessor
 
