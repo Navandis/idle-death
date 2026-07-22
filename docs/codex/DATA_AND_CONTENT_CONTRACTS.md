@@ -2689,6 +2689,46 @@ Final Windows evidence passed `153/153` full tests and `2,522` assertions before
 ## Approved M04E2 transaction and report contracts
 
 Accepted `DEC-0043` supersedes the M04E2A1 implementation packaging in `DEC-0042` while carrying forward the report semantics of `DEC-0041` and `DEC-0042`.
+The active replacement sequence begins with the single-provenance transaction prerequisite, followed by finalized typed run facts and then M04E2A2 through M04E2A4.
+
+## M04E2T1 single-provenance transaction contract
+
+M04E2T1 adds no authoritative aggregate and changes no serialized field. One
+runtime transaction contains exactly one detached `SimulationRunContext`, one
+private deep-cloned `GameState` candidate, and one bounded ordered
+`SimulationFactJournal`. Context identity includes the baseline simulation
+cursor, requested elapsed milliseconds, active-operation presence, Threshold,
+assignment revision, Form, Writ, ordered Retinues, initial lifecycle, and
+validated content revision. Context arrays are detached copies.
+
+The journal fact kinds are runtime-only:
+
+```text
+TIMELINE
+  before_time, after_time, elapsed_msec
+CORE_SEGMENT
+  segment identity, lifecycle, start/end/elapsed, core deltas, flow endpoints
+CHANNEL_SEGMENT
+  channel/item identity, segment endpoint, progress/carry endpoints,
+  total-banked endpoints, banked quantity, inventory endpoints
+SETTLEMENT
+  segment identity, boundary time, boundary persistent-return total,
+  backlog endpoints, Overdue -> Settled lifecycle endpoints
+```
+
+Each checked transaction operation validates all before values and ranges before
+writing its candidate fields, then records the fact from the same candidate
+before/after endpoints. The journal freezes after structural validation and
+cannot be mutated after finalization. It is not save data, event history,
+analytics, a replay stream, or an input to an arbitrary candidate/result commit
+method.
+
+The current public `SimulationResult` remains the raw compatibility shape:
+timeline-only `change_summary`, raw segment dictionaries, raw channel-delta
+dictionaries, and typed `SimulationEvent` envelopes. Segments, channel deltas,
+events, and `change_summary` are all projected from the finalized journal.
+Schema version remains `3` and content revision remains
+`prototype-content-r2`. M04E2T2 owns any later final typed public fact family.
 
 The active sequence is:
 

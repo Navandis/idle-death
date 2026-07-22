@@ -130,20 +130,13 @@ func _canonical(state: GameState) -> Dictionary:
 	return SaveSchemaMapper.runtime_to_snapshot(state, TimeAuthorityState.new(), 1, ContentRegistry.CURRENT_REVISION).game_state
 
 func test_strict_commit_rejects_transitional_candidate_and_preserves_live_state() -> void:
+	# M04E2T1 removes the old arbitrary candidate/result commit seam. Validation
+	# now begins from the supplied source before the private transaction opens.
 	var live := _state()
 	_unlock_and_init(live, [&"SOUL_CALLING_SOLDIER"])
-	var candidate := live.deep_clone()
-	var hidden := GameState.ThresholdState.new()
-	hidden.knowledge_state = &"CHARTED"
-	hidden.availability_state = &"LOCKED"
-	hidden.lifecycle_state = &"OVERDUE"
-	hidden.remaining_backlog = 250000
-	hidden.channel_acquisition[&"CHANNEL_BROKEN_WATCH_PROVISIONS"] = GameState.ThresholdAcquisitionState.new(0, 0, 0)
-	candidate.thresholds[&"THR_BROKEN_WATCH"] = hidden
+	live.thresholds[&"THR_GLOAMWOOD"].channel_acquisition[&"CHANNEL_GLOAMWOOD_SOLDIER_SOULS"].progress_subunits = FixedPoint.SCALE
 	var before := _canonical(live)
-	var optimistic := SimulationEngine.SimulationResult.new(true, SimulationEngine.OK, "", 1)
-	optimistic.committed_elapsed_msec = 1
-	var result := _engine()._commit_if_valid(live, candidate, optimistic)
+	var result := _engine().resolve_elapsed(live, 1)
 	_assert_failure_no_mutation(result, SimulationEngine.ERR_STATE_INVALID, before, live)
 
 func test_eligibility_and_transaction_matrix() -> void:
