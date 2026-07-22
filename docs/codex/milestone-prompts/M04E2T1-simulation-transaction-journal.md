@@ -1,8 +1,8 @@
 # Implementation slice M04E2T1: Single-provenance simulation transaction journal and commit boundary
 
-**Prompt version:** Draft v0.1  
+**Prompt version:** v0.1  
 **Prompt date:** 2026-07-22  
-**Prompt status:** Draft — do not execute until explicit owner approval  
+**Prompt status:** Approved  
 **Work item type:** Implementation slice  
 **Parent conceptual epics:** M04 / M04E / M04E2  
 **Milestone definition:** `docs/codex/MILESTONES.md`  
