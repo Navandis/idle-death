@@ -142,6 +142,13 @@ func _assert_commit_rejected_without_mutation(live: GameState, candidate: GameSt
 	assert_eq(commit.error_code, SimulationEngine.ERR_RESULT_INVALID)
 	assert_eq(_canonical(live), before)
 
+func _assert_candidate_shape_rejected_without_mutation(live: GameState, candidate: GameState, result: SimulationEngine.SimulationResult) -> void:
+	var before := _canonical(live)
+	var commit := _engine()._commit_if_valid(live, candidate, result)
+	assert_false(commit.success)
+	assert_eq(commit.error_code, SimulationEngine.ERR_STATE_INVALID)
+	assert_eq(_canonical(live), before)
+
 func test_complete_result_shape_union_accepts_every_valid_shape() -> void:
 	var failed := _failed_result(1)
 	assert_true(_engine().validate_result(failed, 10, 10, 1).ok)
@@ -415,3 +422,28 @@ func test_review_regression_transition_coherence_rejects_assignment_lifecycle_nu
 	var zero_candidate := zero_live.deep_clone()
 	zero_candidate.progression.command_tether_capacity = 99
 	_assert_commit_rejected_without_mutation(zero_live, zero_candidate, SimulationEngine.SimulationResult.success_empty(0))
+
+func test_review_regression_candidate_shape_is_validated_before_coherence_dereferences() -> void:
+	var live := _prepared_state(1000000, [&"SOUL_CALLING_SOLDIER"])
+	var forecast := _run_service().forecast(live, HOUR)
+	assert_true(forecast.success, forecast.developer_details)
+
+	var missing_threshold_candidate := forecast.projected_state.deep_clone()
+	missing_threshold_candidate.thresholds.erase(&"THR_GLOAMWOOD")
+	_assert_candidate_shape_rejected_without_mutation(live.deep_clone(), missing_threshold_candidate, forecast.simulation_result)
+
+	var missing_form_candidate := forecast.projected_state.deep_clone()
+	missing_form_candidate.forms.erase(&"FORM_MAN_AT_ARMS")
+	_assert_candidate_shape_rejected_without_mutation(live.deep_clone(), missing_form_candidate, forecast.simulation_result)
+
+func test_review_regression_settlement_event_keeps_owning_boundary_total() -> void:
+	var state := _prepared_state(1, [&"SOUL_CALLING_SOLDIER"])
+	var result := _engine().resolve_elapsed(state, 100000)
+	assert_true(result.success, result.developer_details)
+	assert_eq(result.events.size(), 1)
+	assert_eq(result.events[0].event_type, SimulationEngine.EVENT_THRESHOLD_SETTLED)
+	assert_eq(result.events[0].occurred_simulation_msec, 870)
+	assert_eq(result.segments.size(), 2)
+	assert_eq(result.segments[0].returned_souls_delta, 1)
+	assert_eq(result.events[0].payload.persistent_returns_total, 1)
+	assert_gt(state.thresholds[&"THR_GLOAMWOOD"].persistent_returns_total, result.events[0].payload.persistent_returns_total)

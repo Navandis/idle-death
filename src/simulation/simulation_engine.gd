@@ -138,9 +138,6 @@ func resolve_elapsed(state: GameState, elapsed_msec: int) -> SimulationResult:
 			result.events.append(SimulationEvent.threshold_settled(cursor, active_id, threshold.persistent_returns_total))
 	var timeline2 := candidate.advance_simulation_time(elapsed_msec)
 	if not timeline2.ok: return SimulationResult.failure(ERR_OVERFLOW, elapsed_msec, str(timeline2))
-	for event in result.events:
-		if event.event_type == EVENT_THRESHOLD_SETTLED:
-			event.payload["persistent_returns_total"] = candidate.thresholds[active_id].persistent_returns_total
 	result.committed_elapsed_msec = elapsed_msec
 	result.change_summary = _summary(state, candidate, active_id)
 	result.events.sort_custom(_event_less)
@@ -368,10 +365,10 @@ func _validate_core_flows(reaping: GameState.ReapingState) -> Dictionary:
 func _commit_if_valid(live: GameState, candidate: GameState, result: SimulationResult) -> SimulationResult:
 	var result_validation: Dictionary = validate_result(result, live.simulation_time_msec, candidate.simulation_time_msec, result.requested_elapsed_msec, not _active_reaping_ids(candidate).is_empty())
 	if not result_validation["ok"]: return SimulationResult.failure(ERR_RESULT_INVALID, result.requested_elapsed_msec, result_validation["details"])
-	var coherence: Dictionary = _validate_result_transition_coherence(live, candidate, result)
-	if not coherence["ok"]: return SimulationResult.failure(ERR_RESULT_INVALID, result.requested_elapsed_msec, coherence["details"])
 	var validation := GameStateValidator.validate(candidate, registry, true)
 	if not validation.ok: return SimulationResult.failure(ERR_STATE_INVALID, result.requested_elapsed_msec, str(validation))
+	var coherence: Dictionary = _validate_result_transition_coherence(live, candidate, result)
+	if not coherence["ok"]: return SimulationResult.failure(ERR_RESULT_INVALID, result.requested_elapsed_msec, coherence["details"])
 	live.copy_from(candidate)
 	return result
 
@@ -870,8 +867,18 @@ func _validate_active_summary_against_transition(result: SimulationResult, thres
 		if not _channel_delta_fields_equal(summary_channels[i], actual_channels[i]):
 			return _fail(ERR_RESULT_INVALID, "Active change_summary channel_deltas must match the candidate transition endpoints.")
 	for event in result.events:
-		if event.event_type == EVENT_THRESHOLD_SETTLED and int(event.payload.persistent_returns_total) != candidate_threshold.persistent_returns_total:
-			return _fail(ERR_RESULT_INVALID, "Settlement event persistent_returns_total must match the committed candidate endpoint.")
+		if event.event_type != EVENT_THRESHOLD_SETTLED:
+			continue
+		var owning_index := _owning_segment_index(result.segments, event)
+		if owning_index < 0:
+			return _fail(ERR_RESULT_INVALID, "Settlement event must have one owning segment before endpoint validation.")
+		var boundary_total: Dictionary = _checked_add_non_negative(source_threshold.persistent_returns_total, 0, "settlement event boundary total")
+		if not boundary_total["ok"]: return boundary_total
+		for segment_index in range(owning_index + 1):
+			boundary_total = _checked_add_non_negative(int(boundary_total.value), result.segments[segment_index].returned_souls_delta, "settlement event boundary total")
+			if not boundary_total["ok"]: return boundary_total
+		if int(event.payload.persistent_returns_total) != int(boundary_total.value):
+			return _fail(ERR_RESULT_INVALID, "Settlement event persistent_returns_total must match its owning segment endpoint.")
 	return {"ok": true}
 
 func _validate_unrelated_active_state_stability(source: GameState, candidate: GameState, active_threshold_id: StringName, active_form_id: StringName, actual_channels: Array) -> Dictionary:
