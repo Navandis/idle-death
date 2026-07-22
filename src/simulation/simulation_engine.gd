@@ -5,10 +5,9 @@ extends RefCounted
 ##
 ## The engine owns online/offline/forecast-compatible arithmetic for the current
 ## single-Reaping slice only, including already-initialized eligible non-Essence
-## Threshold channels. It calculates deterministic endpoint plans while a focused
-## SimulationTransaction owns the deep-cloned candidate, validates that candidate,
-## and replaces the live aggregate once so every failure preserves exact caller
-## state. It does not own clocks, frame callbacks,
+## Threshold channels. It mutates a deep-cloned GameState candidate,
+## validates that candidate, and then replaces the live aggregate once so every
+## failure preserves exact caller state. It does not own clocks, frame callbacks,
 ## Nodes, file I/O, Retinue effects, reports, milestones, Writ transitions,
 ## discovery, tutorial state, offline trust, access/source initialization, output
 ## channel modifiers, ETA queries, or multi-Reaping concurrency. All
@@ -18,7 +17,6 @@ extends RefCounted
 const OK := &""
 const ERR_NEGATIVE_ELAPSED := &"SIM_NEGATIVE_ELAPSED"
 const ERR_STATE_INVALID := &"SIM_STATE_INVALID"
-const ERR_RESULT_INVALID := &"SIM_RESULT_INVALID"
 const ERR_UNSUPPORTED_CONCURRENCY := &"SIM_UNSUPPORTED_CONCURRENCY"
 const ERR_UNSUPPORTED_RETINUE := &"SIM_UNSUPPORTED_RETINUE"
 const ERR_UNSUPPORTED_FLOW := &"SIM_UNSUPPORTED_FLOW"
@@ -48,17 +46,6 @@ func _init(content_registry: ContentRegistry) -> void:
 
 ## Resolves explicit elapsed milliseconds and commits only a fully validated candidate.
 func resolve_elapsed(state: GameState, elapsed_msec: int) -> SimulationResult:
-	return _resolve_elapsed_internal(state, elapsed_msec, {})
-
-## Narrow non-persisted diagnostic seam for M04E2T1 provenance tests and traces.
-## It returns the same committed result as `resolve_elapsed` plus detached context
-## and journal facts; it never exposes the candidate or accepts a commit input.
-func resolve_elapsed_with_trace(state: GameState, elapsed_msec: int) -> Dictionary:
-	var trace := {}
-	var result := _resolve_elapsed_internal(state, elapsed_msec, trace)
-	return {"result": result, "transaction": trace.get("transaction", {})}
-
-func _resolve_elapsed_internal(state: GameState, elapsed_msec: int, trace_output: Dictionary) -> SimulationResult:
 	if elapsed_msec < 0:
 		return SimulationResult.failure(ERR_NEGATIVE_ELAPSED, elapsed_msec, "Elapsed milliseconds must be non-negative.")
 	if elapsed_msec == 0:
@@ -70,90 +57,68 @@ func _resolve_elapsed_internal(state: GameState, elapsed_msec: int, trace_output
 	if active_ids.size() > 1:
 		return SimulationResult.failure(ERR_UNSUPPORTED_CONCURRENCY, elapsed_msec, "M04C supports at most one active Reaping.")
 
-	var context := _capture_run_context(state, elapsed_msec, active_ids)
-	var transaction := SimulationTransaction.open(state, context, registry)
+	var candidate := state.deep_clone()
+	var result := SimulationResult.new(true, OK, "", elapsed_msec)
 	if active_ids.is_empty():
-		var timeline := transaction.advance_timeline()
-		if not timeline.ok:
-			return SimulationResult.failure(StringName(timeline.code), elapsed_msec, timeline.details)
-		return _finalize_and_commit(state, transaction, trace_output)
+		var timeline := candidate.advance_simulation_time(elapsed_msec)
+		if not timeline.ok: return SimulationResult.failure(ERR_OVERFLOW, elapsed_msec, str(timeline))
+		result.committed_elapsed_msec = elapsed_msec
+		result.change_summary["simulation_time_delta_msec"] = elapsed_msec
+		return _commit_if_valid(state, candidate, result)
 
 	var active_id: StringName = active_ids[0]
-	var initial_snapshot := transaction.calculation_snapshot()
-	var reaping: GameState.ReapingState = initial_snapshot.reapings[active_id]
+	var reaping: GameState.ReapingState = candidate.reapings[active_id]
 	if not reaping.retinue_ids.is_empty():
 		return SimulationResult.failure(ERR_UNSUPPORTED_RETINUE, elapsed_msec, "Retinues are deferred until after M04C.")
 	var flow_check := _validate_core_flows(reaping)
 	if not flow_check.ok:
 		return SimulationResult.failure(StringName(flow_check.code), elapsed_msec, flow_check.details)
 
-	var cursor := context.baseline_simulation_time_msec
+	var cursor := candidate.simulation_time_msec
 	var remaining := elapsed_msec
 	var transition_guard := 0
 	while remaining > 0:
 		transition_guard += 1
 		if transition_guard > 2:
 			return SimulationResult.failure(ERR_ZERO_BOUNDARY, elapsed_msec, "Exceeded bounded M04C settlement segmentation.")
-		var working := transaction.calculation_snapshot()
-		var working_reaping: GameState.ReapingState = working.reapings[active_id]
-		var threshold: GameState.ThresholdState = working.thresholds[active_id]
+		var threshold: GameState.ThresholdState = candidate.thresholds[active_id]
 		var segment_msec := remaining
 		var will_settle := false
 		if str(threshold.lifecycle_state) == "OVERDUE" and threshold.remaining_backlog > 0:
-			var boundary := _msec_to_next_return(working_reaping, active_id, threshold.remaining_backlog)
+			var boundary := _msec_to_next_return(reaping, active_id, threshold.remaining_backlog)
 			if not boundary.ok: return SimulationResult.failure(StringName(boundary.code), elapsed_msec, boundary.details)
 			if boundary.elapsed_msec <= 0: return SimulationResult.failure(ERR_ZERO_BOUNDARY, elapsed_msec, "Settlement boundary cannot advance time.")
 			if boundary.elapsed_msec <= remaining:
 				segment_msec = boundary.elapsed_msec
 				will_settle = true
-		if cursor > FixedPoint.INT64_MAX - segment_msec:
-			return SimulationResult.failure(ERR_OVERFLOW, elapsed_msec, "simulation segment end")
 		var segment_end_msec := cursor + segment_msec
-		var core_plan := _calculate_core_segment(working, active_id, segment_msec, cursor, segment_end_msec, transaction.next_segment_index())
-		if not core_plan.ok: return SimulationResult.failure(StringName(core_plan.code), elapsed_msec, core_plan.details)
-		var applied_core := transaction.apply_core_segment(core_plan)
-		if not applied_core.ok: return SimulationResult.failure(StringName(applied_core.code), elapsed_msec, applied_core.details)
-		var channel_snapshot := transaction.calculation_snapshot()
-		var channels := _eligible_output_channels(channel_snapshot, active_id)
-		if not channels.ok: return SimulationResult.failure(StringName(channels.code), elapsed_msec, channels.details)
-		for channel in channels.channels:
-			channel_snapshot = transaction.calculation_snapshot()
-			var channel_plan := _calculate_channel_segment(channel_snapshot, active_id, channel, segment_msec, segment_end_msec, transaction.current_segment_index())
-			if not channel_plan.ok: return SimulationResult.failure(StringName(channel_plan.code), elapsed_msec, channel_plan.details)
-			var applied_channel := transaction.apply_channel_segment(channel_plan)
-			if not applied_channel.ok: return SimulationResult.failure(StringName(applied_channel.code), elapsed_msec, applied_channel.details)
+		var applied := _apply_segment(candidate, reaping, active_id, segment_msec, segment_end_msec)
+		if not applied.ok: return SimulationResult.failure(StringName(applied.code), elapsed_msec, applied.details)
 		cursor = segment_end_msec
 		remaining -= segment_msec
+		result.segments.append({"start_simulation_msec": cursor - segment_msec, "end_simulation_msec": cursor, "elapsed_msec": segment_msec, "lifecycle": applied.lifecycle, "returned_souls_delta": applied.returned_souls_delta, "backlog_delta": applied.backlog_delta, "Essence_delta": applied.Essence_delta, "Mastery_delta_subunits": applied.Mastery_delta_subunits, "completed_cycles_delta": applied.completed_cycles_delta, "channel_deltas": applied.channel_deltas})
+		for event in applied.events:
+			result.events.append(event)
 		if will_settle:
-			var settled := transaction.apply_settlement_transition()
-			if not settled.ok: return SimulationResult.failure(StringName(settled.code), elapsed_msec, settled.details)
-	var timeline := transaction.advance_timeline()
-	if not timeline.ok: return SimulationResult.failure(StringName(timeline.code), elapsed_msec, timeline.details)
-	return _finalize_and_commit(state, transaction, trace_output)
+			threshold = candidate.thresholds[active_id]
+			threshold.remaining_backlog = 0
+			threshold.lifecycle_state = &"SETTLED"
+			result.events.append(SimulationEvent.threshold_settled(cursor, active_id, threshold.persistent_returns_total))
+	var timeline2 := candidate.advance_simulation_time(elapsed_msec)
+	if not timeline2.ok: return SimulationResult.failure(ERR_OVERFLOW, elapsed_msec, str(timeline2))
+	result.committed_elapsed_msec = elapsed_msec
+	result.change_summary = _summary(state, candidate, active_id)
+	result.events.sort_custom(_event_less)
+	return _commit_if_valid(state, candidate, result)
 
-func _capture_run_context(state: GameState, elapsed_msec: int, active_ids: Array[StringName]) -> SimulationRunContext:
-	if active_ids.is_empty():
-		return SimulationRunContext.new(state.simulation_time_msec, elapsed_msec, false, &"", 0, &"", &"", [], &"", registry.content_revision)
-	var threshold_id: StringName = active_ids[0]
-	var reaping: GameState.ReapingState = state.reapings[threshold_id]
+func _apply_segment(state: GameState, reaping: GameState.ReapingState, threshold_id: StringName, elapsed_msec: int, segment_end_msec: int) -> Dictionary:
 	var threshold: GameState.ThresholdState = state.thresholds[threshold_id]
-	return SimulationRunContext.new(state.simulation_time_msec, elapsed_msec, true, threshold_id, reaping.assignment_revision, reaping.form_id, reaping.writ_id, reaping.retinue_ids, threshold.lifecycle_state, registry.content_revision)
-
-func _finalize_and_commit(state: GameState, transaction: SimulationTransaction, trace_output: Dictionary = {}) -> SimulationResult:
-	var finalized := transaction.finalize(Callable(self, "_build_result_from_journal"))
-	if not finalized.ok:
-		return SimulationResult.failure(StringName(finalized.code), transaction.requested_elapsed_msec(), finalized.details)
-	var committed: Dictionary = transaction.commit_to(state)
-	if not committed.ok:
-		return SimulationResult.failure(StringName(committed.code), transaction.requested_elapsed_msec(), committed.details)
-	if trace_output != null:
-		trace_output["transaction"] = transaction.read_only_snapshot()
-	return committed.result
-
-func _calculate_core_segment(state: GameState, threshold_id: StringName, elapsed_msec: int, start_msec: int, end_msec: int, segment_index: int) -> Dictionary:
-	var threshold: GameState.ThresholdState = state.thresholds[threshold_id]
-	var reaping: GameState.ReapingState = state.reapings[threshold_id]
 	var form: GameState.FormState = state.forms[reaping.form_id]
+	var before_returns: int = threshold.persistent_returns_total
+	var before_backlog: int = threshold.remaining_backlog
+	var before_essence: int = state.inventory.entries.get(&"RES_ESSENCE", GameState.InventoryEntryState.new()).total
+	var before_mastery: int = form.mastery_subunits
+	var before_cycles: int = reaping.completed_cycle_count
 	var form_record: Dictionary = registry.get_record(str(reaping.form_id)).record
 	var threshold_record: Dictionary = registry.get_record(str(threshold_id)).record
 	var return_rate := _scaled_rate(form_record.base_returned_souls_rate, form_record.traits, threshold_record, "SOULS_RETURNED_RATE", str(threshold.lifecycle_state) == "SETTLED")
@@ -162,43 +127,80 @@ func _calculate_core_segment(state: GameState, threshold_id: StringName, elapsed
 	if not essence_rate.ok: return essence_rate
 	var mastery_rate := _scaled_rate(form_record.active_mastery_rate, form_record.traits, threshold_record, "MASTERY_RATE", false)
 	if not mastery_rate.ok: return mastery_rate
+
 	var returns := _accumulate_flow(reaping, FLOW_CORE_RETURNS_PROGRESS_SUBUNITS, FLOW_CORE_RETURNS_RATE_CARRY_UNITS, return_rate.rate, return_rate.period, elapsed_msec)
 	if not returns.ok: return returns
+	var whole_returns: int = returns.whole
+	if threshold.persistent_returns_total > FixedPoint.INT64_MAX - whole_returns: return _fail(ERR_OVERFLOW, "persistent_returns_total")
+	threshold.persistent_returns_total += whole_returns
+	if str(threshold.lifecycle_state) == "OVERDUE":
+		threshold.remaining_backlog = max(0, threshold.remaining_backlog - whole_returns)
+
 	var essence := _accumulate_flow(reaping, FLOW_CORE_ESSENCE_PROGRESS_SUBUNITS, FLOW_CORE_ESSENCE_RATE_CARRY_UNITS, essence_rate.rate, essence_rate.period, elapsed_msec)
 	if not essence.ok: return essence
+	var entry: GameState.InventoryEntryState = state.inventory.entries.get(&"RES_ESSENCE", GameState.InventoryEntryState.new())
+	if entry.total > FixedPoint.INT64_MAX - int(essence.whole): return _fail(ERR_OVERFLOW, "RES_ESSENCE")
+	entry.total += int(essence.whole)
+	state.inventory.entries[&"RES_ESSENCE"] = entry
+
 	var mastery := FixedPoint.accumulate_for_elapsed_msec(mastery_rate.rate, mastery_rate.period, elapsed_msec, int(reaping.flow_carry_units.get(FLOW_CORE_MASTERY_RATE_CARRY_UNITS, 0)))
 	if not mastery.ok: return _fail(ERR_OVERFLOW, "mastery")
 	if form.mastery_subunits > FixedPoint.INT64_MAX - int(mastery.produced_subunits): return _fail(ERR_OVERFLOW, "mastery")
+	form.mastery_subunits += int(mastery.produced_subunits)
+	reaping.flow_carry_units[FLOW_CORE_MASTERY_RATE_CARRY_UNITS] = int(mastery.carry_units)
 	if form_record.cycle_duration_msec <= 0: return _fail(ERR_CONTENT, "cycle_duration_msec")
 	if reaping.cycle_phase_msec > FixedPoint.INT64_MAX - elapsed_msec: return _fail(ERR_OVERFLOW, "cycle_phase_msec")
 	var phase_total := reaping.cycle_phase_msec + elapsed_msec
 	var completed := phase_total / int(form_record.cycle_duration_msec)
 	if reaping.completed_cycle_count > FixedPoint.INT64_MAX - completed: return _fail(ERR_OVERFLOW, "completed_cycle_count")
-	var essence_entry: GameState.InventoryEntryState = state.inventory.entries.get(&"RES_ESSENCE", GameState.InventoryEntryState.new())
-	if essence_entry.total > FixedPoint.INT64_MAX - int(essence.whole): return _fail(ERR_OVERFLOW, "RES_ESSENCE")
-	if threshold.persistent_returns_total > FixedPoint.INT64_MAX - int(returns.whole): return _fail(ERR_OVERFLOW, "persistent_returns_total")
-	var backlog_after := threshold.remaining_backlog
-	if threshold.lifecycle_state == &"OVERDUE": backlog_after = max(0, backlog_after - int(returns.whole))
-	return {"ok": true, "segment_index": segment_index, "threshold_id": threshold_id, "assignment_revision": reaping.assignment_revision, "form_id": reaping.form_id, "writ_id": reaping.writ_id, "ordered_retinue_ids": reaping.retinue_ids.duplicate(), "lifecycle_state": threshold.lifecycle_state, "start_simulation_msec": start_msec, "end_simulation_msec": end_msec, "elapsed_msec": elapsed_msec, "persistent_returns_before": threshold.persistent_returns_total, "persistent_returns_after": threshold.persistent_returns_total + int(returns.whole), "remaining_backlog_before": threshold.remaining_backlog, "remaining_backlog_after": backlog_after, "essence_before": essence_entry.total, "essence_after": essence_entry.total + int(essence.whole), "mastery_before": form.mastery_subunits, "mastery_after": form.mastery_subunits + int(mastery.produced_subunits), "cycle_phase_before": reaping.cycle_phase_msec, "cycle_phase_after": phase_total % int(form_record.cycle_duration_msec), "completed_cycles_before": reaping.completed_cycle_count, "completed_cycles_after": reaping.completed_cycle_count + completed, "flow_endpoints": {FLOW_CORE_RETURNS_PROGRESS_SUBUNITS: {"before": reaping.flow_carry_units.get(FLOW_CORE_RETURNS_PROGRESS_SUBUNITS, 0), "after": returns.progress_after}, FLOW_CORE_RETURNS_RATE_CARRY_UNITS: {"before": reaping.flow_carry_units.get(FLOW_CORE_RETURNS_RATE_CARRY_UNITS, 0), "after": returns.carry_after}, FLOW_CORE_ESSENCE_PROGRESS_SUBUNITS: {"before": reaping.flow_carry_units.get(FLOW_CORE_ESSENCE_PROGRESS_SUBUNITS, 0), "after": essence.progress_after}, FLOW_CORE_ESSENCE_RATE_CARRY_UNITS: {"before": reaping.flow_carry_units.get(FLOW_CORE_ESSENCE_RATE_CARRY_UNITS, 0), "after": essence.carry_after}, FLOW_CORE_MASTERY_RATE_CARRY_UNITS: {"before": reaping.flow_carry_units.get(FLOW_CORE_MASTERY_RATE_CARRY_UNITS, 0), "after": mastery.carry_units}}}
+	reaping.completed_cycle_count += completed
+	reaping.cycle_phase_msec = phase_total % int(form_record.cycle_duration_msec)
+	var channel_result := _apply_output_channels(state, threshold_id, reaping.form_id, reaping.writ_id, reaping.retinue_ids, elapsed_msec, segment_end_msec, str(threshold.lifecycle_state))
+	if not channel_result.ok: return channel_result
+	return {"ok": true, "lifecycle": str(threshold.lifecycle_state), "returned_souls_delta": threshold.persistent_returns_total - before_returns, "backlog_delta": threshold.remaining_backlog - before_backlog, "Essence_delta": state.inventory.entries.get(&"RES_ESSENCE", GameState.InventoryEntryState.new()).total - before_essence, "Mastery_delta_subunits": form.mastery_subunits - before_mastery, "completed_cycles_delta": reaping.completed_cycle_count - before_cycles, "channel_deltas": channel_result.channel_deltas, "events": channel_result.events}
 
-func _calculate_channel_segment(state: GameState, threshold_id: StringName, channel: Dictionary, elapsed_msec: int, segment_end_msec: int, segment_index: int) -> Dictionary:
-	var reaping: GameState.ReapingState = state.reapings[threshold_id]
-	var threshold: GameState.ThresholdState = state.thresholds[threshold_id]
-	var channel_id := StringName(channel.id)
-	var acq: GameState.ThresholdAcquisitionState = threshold.channel_acquisition[channel_id]
-	var rate := rate_context.output_channel_rate_plan(threshold_id, reaping.form_id, channel_id, str(threshold.lifecycle_state), reaping.writ_id, reaping.retinue_ids)
-	if not rate.ok: return _fail(StringName(rate.code), rate.get("details", "channel rate"))
-	var acc := FixedPoint.accumulate_for_elapsed_msec(int(rate.rate_subunits_per_period), int(rate.period_msec), elapsed_msec, acq.rate_carry_units)
-	if not acc.ok: return _fail(ERR_OVERFLOW, "channel accumulation %s" % channel.id)
-	var added := FixedPoint.add_subunits(acq.progress_subunits, int(acc.produced_subunits))
-	if not added.ok: return _fail(ERR_OVERFLOW, "channel progress %s" % channel.id)
-	var extracted := FixedPoint.extract_whole(int(added.subunits))
-	var whole := int(extracted.whole_units)
-	if acq.total_banked_units > FixedPoint.INT64_MAX - whole: return _fail(ERR_OVERFLOW, "channel total_banked_units %s" % channel.id)
-	var item_id := StringName(channel.output_item_id)
-	var entry: GameState.InventoryEntryState = state.inventory.entries.get(item_id, GameState.InventoryEntryState.new())
-	if entry.total > FixedPoint.INT64_MAX - whole: return _fail(ERR_OVERFLOW, "inventory %s" % item_id)
-	return {"ok": true, "segment_index": segment_index, "channel_id": channel_id, "output_item_id": item_id, "lifecycle_state": threshold.lifecycle_state, "segment_end_simulation_msec": segment_end_msec, "progress_subunits_before": acq.progress_subunits, "progress_subunits_after": extracted.remaining_subunits, "rate_carry_units_before": acq.rate_carry_units, "rate_carry_units_after": acc.carry_units, "total_banked_units_before": acq.total_banked_units, "total_banked_units_after": acq.total_banked_units + whole, "banked_units_delta": whole, "inventory_total_before": entry.total, "inventory_total_after": entry.total + whole, "period_msec": int(rate.period_msec)}
+
+func _apply_output_channels(state: GameState, threshold_id: StringName, form_id: StringName, writ_id: StringName, retinue_ids: Array[StringName], elapsed_msec: int, segment_end_msec: int, lifecycle_state: String) -> Dictionary:
+	var channels := _eligible_output_channels(state, threshold_id)
+	if not channels.ok: return channels
+	var deltas: Array = []
+	var events: Array = []
+	for channel in channels.channels:
+		var acq: GameState.ThresholdAcquisitionState = state.thresholds[threshold_id].channel_acquisition[StringName(channel.id)]
+		var before_progress := acq.progress_subunits
+		var before_carry := acq.rate_carry_units
+		var before_banked := acq.total_banked_units
+		var rate := rate_context.output_channel_rate_plan(threshold_id, form_id, StringName(channel.id), lifecycle_state, writ_id, retinue_ids)
+		if not rate.ok: return _fail(StringName(rate.code), rate.get("details", "channel rate"))
+		var acc := FixedPoint.accumulate_for_elapsed_msec(int(rate.rate_subunits_per_period), int(rate.period_msec), elapsed_msec, acq.rate_carry_units)
+		if not acc.ok: return _fail(ERR_OVERFLOW, "channel accumulation %s" % channel.id)
+		var added := FixedPoint.add_subunits(acq.progress_subunits, int(acc.produced_subunits))
+		if not added.ok: return _fail(ERR_OVERFLOW, "channel progress %s" % channel.id)
+		var extracted := FixedPoint.extract_whole(int(added.subunits))
+		var whole := int(extracted.whole_units)
+		acq.progress_subunits = int(extracted.remaining_subunits)
+		acq.rate_carry_units = int(acc.carry_units)
+		if whole > 0:
+			if acq.total_banked_units > FixedPoint.INT64_MAX - whole: return _fail(ERR_OVERFLOW, "channel total_banked_units %s" % channel.id)
+			acq.total_banked_units += whole
+			var item_id := StringName(channel.output_item_id)
+			var entry: GameState.InventoryEntryState = state.inventory.entries.get(item_id, GameState.InventoryEntryState.new())
+			if entry.total > FixedPoint.INT64_MAX - whole: return _fail(ERR_OVERFLOW, "inventory %s" % item_id)
+			# Only the owned total changes. Reservation ledgers remain attached to the
+			# same entry so banking cannot free or consume reserved Soldier Souls.
+			entry.total += whole
+			state.inventory.entries[item_id] = entry
+		if before_progress != acq.progress_subunits or before_carry != acq.rate_carry_units or whole > 0:
+			var delta := {"channel_id": str(channel.id), "output_item_id": str(channel.output_item_id), "banked_units_delta": whole, "progress_subunits_before": before_progress, "progress_subunits_after": acq.progress_subunits, "rate_carry_units_before": before_carry, "rate_carry_units_after": acq.rate_carry_units, "total_banked_units_before": before_banked, "total_banked_units_after": acq.total_banked_units}
+			deltas.append(delta)
+			if whole > 0:
+				# GameState.simulation_time_msec advances only after the transaction commits.
+				# Use the loop's segment-end cursor so banked events in a post-Settlement
+				# segment cannot sort before the Settlement event that enabled that segment.
+				events.append(SimulationEvent.output_channel_banked(segment_end_msec, threshold_id, StringName(channel.id), delta, lifecycle_state))
+	deltas.sort_custom(func(a, b): return a.channel_id < b.channel_id)
+	events.sort_custom(_event_less)
+	return {"ok": true, "channel_deltas": deltas, "events": events}
 
 func _eligible_output_channels(state: GameState, threshold_id: StringName) -> Dictionary:
 	var threshold: GameState.ThresholdState = state.thresholds[threshold_id]
@@ -235,7 +237,9 @@ func _accumulate_flow(reaping: GameState.ReapingState, progress_key: StringName,
 	var added := FixedPoint.add_subunits(progress, int(acc.produced_subunits))
 	if not added.ok: return _fail(ERR_OVERFLOW, progress_key)
 	var extracted := FixedPoint.extract_whole(int(added.subunits))
-	return {"ok": true, "whole": int(extracted.whole_units), "progress_before": progress, "progress_after": int(extracted.remaining_subunits), "carry_before": int(reaping.flow_carry_units.get(carry_key, 0)), "carry_after": int(acc.carry_units)}
+	reaping.flow_carry_units[progress_key] = int(extracted.remaining_subunits)
+	reaping.flow_carry_units[carry_key] = int(acc.carry_units)
+	return {"ok": true, "whole": int(extracted.whole_units)}
 
 func _msec_to_next_return(reaping: GameState.ReapingState, threshold_id: StringName, needed_returns: int) -> Dictionary:
 	var form_record: Dictionary = registry.get_record(str(reaping.form_id)).record
@@ -326,6 +330,12 @@ func _validate_core_flows(reaping: GameState.ReapingState) -> Dictionary:
 			return _fail(ERR_UNSUPPORTED_FLOW, "Unknown nonzero flow key: %s" % key)
 	return {"ok": true}
 
+func _commit_if_valid(live: GameState, candidate: GameState, result: SimulationResult) -> SimulationResult:
+	var validation := GameStateValidator.validate(candidate, registry, true)
+	if not validation.ok: return SimulationResult.failure(ERR_STATE_INVALID, result.requested_elapsed_msec, str(validation))
+	live.copy_from(candidate)
+	return result
+
 func _active_reaping_ids(state: GameState) -> Array[StringName]:
 	var ids: Array[StringName] = []
 	for id in state.reapings.keys():
@@ -333,103 +343,28 @@ func _active_reaping_ids(state: GameState) -> Array[StringName]:
 	ids.sort()
 	return ids
 
-func _build_result_from_journal(journal: SimulationFactJournal, context: SimulationRunContext) -> SimulationResult:
-	var result := SimulationResult.new(true, OK, "", context.requested_elapsed_msec)
-	var facts := journal.facts_snapshot()
-	var core_facts: Array[Dictionary] = []
-	var channel_facts: Array[Dictionary] = []
-	var settlement_facts: Array[Dictionary] = []
-	var timeline: Dictionary = {}
-	for fact in facts:
-		match fact.get("kind", &""):
-			SimulationFactJournal.KIND_TIMELINE: timeline = fact
-			SimulationFactJournal.KIND_CORE_SEGMENT: core_facts.append(fact)
-			SimulationFactJournal.KIND_CHANNEL_SEGMENT: channel_facts.append(fact)
-			SimulationFactJournal.KIND_SETTLEMENT: settlement_facts.append(fact)
-	if core_facts.is_empty():
-		result.committed_elapsed_msec = context.requested_elapsed_msec
-		result.change_summary = {"simulation_time_delta_msec": int(timeline.get("elapsed_msec", 0))}
-		return result
-	result.committed_elapsed_msec = context.requested_elapsed_msec
-	var returned_total := 0
-	var backlog_total := 0
-	var essence_total := 0
-	var mastery_total := 0
-	var cycles_total := 0
-	var channel_by_id := {}
-	for core in core_facts:
-		var segment_channels: Array = []
-		for channel in channel_facts:
-			if int(channel.segment_index) != int(core.segment_index): continue
-			var delta := _raw_channel_delta(channel)
-			segment_channels.append(delta)
-			var channel_id := str(channel.channel_id)
-			if not channel_by_id.has(channel_id):
-				channel_by_id[channel_id] = delta.duplicate(true)
-			else:
-				var aggregate: Dictionary = channel_by_id[channel_id]
-				aggregate.banked_units_delta += int(delta.banked_units_delta)
-				aggregate.progress_subunits_after = delta.progress_subunits_after
-				aggregate.rate_carry_units_after = delta.rate_carry_units_after
-				aggregate.total_banked_units_after = delta.total_banked_units_after
-			segment_channels.sort_custom(func(a, b): return str(a.channel_id) < str(b.channel_id))
-		result.segments.append({
-			"start_simulation_msec": int(core.start_simulation_msec),
-			"end_simulation_msec": int(core.end_simulation_msec),
-			"elapsed_msec": int(core.elapsed_msec),
-			"lifecycle": str(core.lifecycle_state),
-			"returned_souls_delta": int(core.returned_souls_delta),
-			"backlog_delta": int(core.backlog_delta),
-			"Essence_delta": int(core.Essence_delta),
-			"Mastery_delta_subunits": int(core.Mastery_delta_subunits),
-			"completed_cycles_delta": int(core.completed_cycles_delta),
-			"channel_deltas": segment_channels,
-		})
-		returned_total += int(core.returned_souls_delta)
-		backlog_total += int(core.backlog_delta)
-		essence_total += int(core.Essence_delta)
-		mastery_total += int(core.Mastery_delta_subunits)
-		cycles_total += int(core.completed_cycles_delta)
-	for settlement in settlement_facts:
-		result.events.append(SimulationEvent.threshold_settled(int(settlement.occurred_simulation_msec), context.threshold_id, int(settlement.persistent_returns_total)))
-	for channel in channel_facts:
-		if int(channel.banked_units_delta) <= 0: continue
-		result.events.append(SimulationEvent.output_channel_banked(int(channel.segment_end_simulation_msec), context.threshold_id, StringName(channel.channel_id), _raw_channel_delta(channel), str(channel.lifecycle_state)))
-	result.events.sort_custom(_event_less)
-	var summary_channels: Array = []
-	var channel_ids := channel_by_id.keys()
-	channel_ids.sort()
-	for channel_id in channel_ids:
-		summary_channels.append(channel_by_id[channel_id])
-	var lifecycle_after := str(core_facts[core_facts.size() - 1].lifecycle_state)
-	if not settlement_facts.is_empty(): lifecycle_after = "SETTLED"
-	result.change_summary = {
-		"threshold_id": str(context.threshold_id),
-		"operation_id": str(context.threshold_id),
-		"simulation_time_delta_msec": context.requested_elapsed_msec,
-		"returned_souls_delta": returned_total,
-		"backlog_delta": backlog_total,
-		"Essence_delta": essence_total,
-		"Mastery_delta_subunits": mastery_total,
-		"completed_cycles_delta": cycles_total,
-		"lifecycle_before": str(context.initial_lifecycle_state),
-		"lifecycle_after": lifecycle_after,
-		"channel_deltas": summary_channels,
-	}
-	return result
+func _summary(before: GameState, after: GameState, threshold_id: StringName) -> Dictionary:
+	var before_threshold: GameState.ThresholdState = before.thresholds[threshold_id]
+	var after_threshold: GameState.ThresholdState = after.thresholds[threshold_id]
+	var form_id: StringName = after.reapings[threshold_id].form_id
+	var channel_deltas := _overall_channel_deltas(before_threshold, after_threshold)
+	return {"threshold_id": str(threshold_id), "operation_id": str(threshold_id), "simulation_time_delta_msec": after.simulation_time_msec - before.simulation_time_msec, "returned_souls_delta": after_threshold.persistent_returns_total - before_threshold.persistent_returns_total, "backlog_delta": after_threshold.remaining_backlog - before_threshold.remaining_backlog, "Essence_delta": after.inventory.entries.get(&"RES_ESSENCE", GameState.InventoryEntryState.new()).total - before.inventory.entries.get(&"RES_ESSENCE", GameState.InventoryEntryState.new()).total, "Mastery_delta_subunits": after.forms[form_id].mastery_subunits - before.forms[form_id].mastery_subunits, "completed_cycles_delta": after.reapings[threshold_id].completed_cycle_count - before.reapings[threshold_id].completed_cycle_count, "lifecycle_before": str(before_threshold.lifecycle_state), "lifecycle_after": str(after_threshold.lifecycle_state), "channel_deltas": channel_deltas}
 
-func _raw_channel_delta(fact: Dictionary) -> Dictionary:
-	return {
-		"channel_id": str(fact.channel_id),
-		"output_item_id": str(fact.output_item_id),
-		"banked_units_delta": int(fact.banked_units_delta),
-		"progress_subunits_before": int(fact.progress_subunits_before),
-		"progress_subunits_after": int(fact.progress_subunits_after),
-		"rate_carry_units_before": int(fact.rate_carry_units_before),
-		"rate_carry_units_after": int(fact.rate_carry_units_after),
-		"total_banked_units_before": int(fact.total_banked_units_before),
-		"total_banked_units_after": int(fact.total_banked_units_after),
-	}
+
+func _overall_channel_deltas(before_threshold: GameState.ThresholdState, after_threshold: GameState.ThresholdState) -> Array:
+	var deltas: Array = []
+	var ids := after_threshold.channel_acquisition.keys()
+	ids.sort()
+	for channel_id in ids:
+		if not before_threshold.channel_acquisition.has(channel_id): continue
+		var before: GameState.ThresholdAcquisitionState = before_threshold.channel_acquisition[channel_id]
+		var after: GameState.ThresholdAcquisitionState = after_threshold.channel_acquisition[channel_id]
+		var banked_delta := after.total_banked_units - before.total_banked_units
+		if before.progress_subunits == after.progress_subunits and before.rate_carry_units == after.rate_carry_units and banked_delta == 0:
+			continue
+		var channel: Dictionary = registry.get_record(str(channel_id)).record
+		deltas.append({"channel_id": str(channel_id), "output_item_id": str(channel.output_item_id), "banked_units_delta": banked_delta, "progress_subunits_before": before.progress_subunits, "progress_subunits_after": after.progress_subunits, "rate_carry_units_before": before.rate_carry_units, "rate_carry_units_after": after.rate_carry_units, "total_banked_units_before": before.total_banked_units, "total_banked_units_after": after.total_banked_units})
+	return deltas
 
 func _event_less(a: SimulationEvent, b: SimulationEvent) -> bool:
 	if a.occurred_simulation_msec != b.occurred_simulation_msec: return a.occurred_simulation_msec < b.occurred_simulation_msec
