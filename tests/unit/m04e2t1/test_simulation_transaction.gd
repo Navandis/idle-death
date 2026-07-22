@@ -171,6 +171,33 @@ func test_transaction_finalization_and_journal_freeze_are_one_way() -> void:
 	assert_eq(source.simulation_time_msec, 1000)
 	assert_false(transaction.commit_to(source).ok)
 
+func test_failed_operation_after_successful_operation_preserves_candidate_and_journal() -> void:
+	var source := _state(100, false)
+	var context := SimulationRunContext.new(0, 1000, false, &"", 0, &"", &"", [], &"", ContentRegistry.CURRENT_REVISION)
+	var transaction := SimulationTransaction.open(source, context, _registry())
+	assert_true(transaction.advance_timeline().ok)
+	var facts_before: Array = transaction.read_only_snapshot().facts
+	var failed := transaction.apply_core_segment({})
+	assert_false(failed.ok)
+	assert_eq(transaction.state, SimulationTransaction.STATE_FAILED)
+	# A failed transaction deliberately hides its private candidate; its source and
+	# journal remain observable only through the no-commit and unchanged-facts proofs.
+	assert_eq(transaction.calculation_snapshot(), null)
+	assert_eq(transaction.read_only_snapshot().facts, facts_before)
+	assert_eq(_canonical(source), _canonical(_state(100, false)))
+
+func test_candidate_validation_failure_preserves_live_state() -> void:
+	var source := _state(100, false)
+	source.forms[&"FORM_MAN_AT_ARMS"].mastery_subunits = -1
+	var before := _canonical(source)
+	var context := SimulationRunContext.new(0, 1000, false, &"", 0, &"", &"", [], &"", ContentRegistry.CURRENT_REVISION)
+	var transaction := SimulationTransaction.open(source, context, _registry())
+	var failed := transaction.finalize(Callable(self, "_positive_stub_result"))
+	assert_false(failed.ok)
+	assert_eq(failed.code, SimulationEngine.ERR_STATE_INVALID)
+	assert_eq(transaction.state, SimulationTransaction.STATE_FAILED)
+	assert_eq(_canonical(source), before)
+
 func test_source_audit_has_no_arbitrary_candidate_result_commit_seam() -> void:
 	var transaction_source := FileAccess.get_file_as_string("res://src/simulation/simulation_transaction.gd")
 	assert_eq(transaction_source.find("commit_if_valid(live"), -1)
