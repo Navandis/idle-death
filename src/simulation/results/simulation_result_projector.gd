@@ -139,7 +139,7 @@ static func _validate_active(result: SimulationResult, settlement_expected: bool
 		if segment == null or segment.segment_index != index: return _failure("Segment index is not contiguous.")
 		if str(segment.threshold_id).is_empty() or segment.assignment_revision <= 0 or str(segment.form_id).is_empty() or str(segment.writ_id).is_empty(): return _failure("Segment identity is invalid.")
 		if not [&"OVERDUE", &"SETTLED"].has(segment.lifecycle_state): return _failure("Segment lifecycle is invalid.")
-		if segment.ordered_retinue_ids != _sorted_unique(segment.ordered_retinue_ids): return _failure("Segment Retinue order or uniqueness is invalid.")
+		if not _has_unique_retinues(segment.ordered_retinue_ids): return _failure("Segment Retinue identity contains duplicates.")
 		if segment.start_simulation_msec != previous_end or segment.start_simulation_msec < 0 or segment.end_simulation_msec <= segment.start_simulation_msec or segment.elapsed_msec != segment.end_simulation_msec - segment.start_simulation_msec: return _failure("Segment timing is invalid.")
 		if segment.end_simulation_msec > result.result_simulation_time_msec: return _failure("Segment exceeds result cursor.")
 		if not _checked_add(total_elapsed, segment.elapsed_msec).ok: return _failure("Segment elapsed aggregation overflow.")
@@ -162,7 +162,13 @@ static func _validate_active(result: SimulationResult, settlement_expected: bool
 	if segments.size() > 2 or (segments.size() == 2 and (segments[0].lifecycle_state != &"OVERDUE" or segments[1].lifecycle_state != &"SETTLED")):
 		return _failure("Current resolver produced an unsupported lifecycle sequence.")
 	if total_elapsed != result.committed_elapsed_msec or previous_end != result.result_simulation_time_msec: return _failure("Segments do not cover the committed interval.")
-	return _validate_events(result, settlement_expected)
+	# A normal two-segment OVERDUE -> SETTLED result proves that a Settlement
+	# event is required from its own public lifecycle sequence. The optional
+	# journal-backed flag remains only for the exact-boundary case where the
+	# resolver ends immediately after Settlement and therefore exposes one
+	# OVERDUE segment with no following SETTLED segment.
+	var inferred_settlement := segments.size() == 2 and segments[0].lifecycle_state == &"OVERDUE" and segments[1].lifecycle_state == &"SETTLED"
+	return _validate_events(result, settlement_expected or inferred_settlement)
 
 static func _validate_channel(channel: SimulationChannelDeltaResult) -> Dictionary:
 	if channel.rate_period_msec <= 0 or channel.banked_units_delta < 0 or channel.progress_subunits_before < 0 or channel.progress_subunits_before >= FixedPoint.SCALE or channel.progress_subunits_after < 0 or channel.progress_subunits_after >= FixedPoint.SCALE or channel.rate_carry_units_before < 0 or channel.rate_carry_units_before >= channel.rate_period_msec or channel.rate_carry_units_after < 0 or channel.rate_carry_units_after >= channel.rate_period_msec or channel.total_banked_units_before < 0 or channel.total_banked_units_after < 0 or channel.total_banked_units_after < channel.total_banked_units_before:
@@ -217,14 +223,12 @@ static func _copy_string_names(values: Array) -> Array[StringName]:
 	for value in values: copied.append(StringName(value))
 	return copied
 
-static func _sorted_unique(values: Array[StringName]) -> Array[StringName]:
-	var copy := values.duplicate()
-	copy.sort()
-	var output: Array[StringName] = []
-	for value in copy:
-		if output.has(value): return []
-		output.append(value)
-	return output
+static func _has_unique_retinues(values: Array[StringName]) -> bool:
+	var seen := {}
+	for value in values:
+		if seen.has(value): return false
+		seen[value] = true
+	return true
 
 static func _event_less(left: SimulationEvent, right: SimulationEvent) -> bool:
 	if left.occurred_simulation_msec != right.occurred_simulation_msec: return left.occurred_simulation_msec < right.occurred_simulation_msec

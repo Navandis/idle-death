@@ -214,6 +214,7 @@ func test_event_subtype_fields_and_settlement_cardinality_reject_mismatches() ->
 	var bad_returns_result := SimulationResult.active_reaping(settlement_result.requested_elapsed_msec, settlement_result.baseline_simulation_time_msec, settlement_result.result_simulation_time_msec, settlement_result.content_revision, settlement_result.segments, [bad_returns])
 	assert_false(SimulationResultProjector.validate(bad_returns_result, true).ok)
 	var missing_settlement := SimulationResult.active_reaping(settlement_result.requested_elapsed_msec, settlement_result.baseline_simulation_time_msec, settlement_result.result_simulation_time_msec, settlement_result.content_revision, settlement_result.segments, [])
+	assert_false(SimulationResultProjector.validate(missing_settlement).ok)
 	assert_false(SimulationResultProjector.validate(missing_settlement, true).ok)
 	var duplicate_settlement: Array[SimulationEvent] = [settlement, settlement]
 	var duplicate_result := SimulationResult.active_reaping(settlement_result.requested_elapsed_msec, settlement_result.baseline_simulation_time_msec, settlement_result.result_simulation_time_msec, settlement_result.content_revision, settlement_result.segments, duplicate_settlement)
@@ -265,6 +266,9 @@ func test_structural_validation_rejects_gap_duplicate_channel_and_endpoint_misma
 	var duplicate_retinues := SimulationSegmentResult.new(0, &"THR_TEST", 1, &"FORM_TEST", &"WRIT_TEST", [&"RET_A", &"RET_A"], &"OVERDUE", 0, 1000, 1000, 0, 0, 0, 0, 0, [])
 	var duplicate_result := SimulationResult.active_reaping(1000, 0, 1000, ContentRegistry.CURRENT_REVISION, [duplicate_retinues], [])
 	assert_false(SimulationResultProjector.validate(duplicate_result).ok)
+	var selected_order := SimulationSegmentResult.new(0, &"THR_TEST", 1, &"FORM_TEST", &"WRIT_TEST", [&"RET_B", &"RET_A"], &"OVERDUE", 0, 1000, 1000, 0, 0, 0, 0, 0, [])
+	var selected_order_result := SimulationResult.active_reaping(1000, 0, 1000, ContentRegistry.CURRENT_REVISION, [selected_order], [])
+	assert_true(SimulationResultProjector.validate(selected_order_result).ok)
 	var bad_index := _segment(1, 0, 1000, null)
 	assert_false(SimulationResultProjector.validate(SimulationResult.active_reaping(1000, 0, 1000, ContentRegistry.CURRENT_REVISION, [bad_index], [])).ok)
 	var bad_elapsed := SimulationSegmentResult.new(0, &"THR_TEST", 1, &"FORM_TEST", &"WRIT_TEST", [], &"OVERDUE", 0, 1000, 999, 0, 0, 0, 0, 0, [])
