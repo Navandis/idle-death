@@ -210,15 +210,18 @@ func test_closed_events_have_exact_fields_order_and_boundary_ownership() -> void
 func test_event_subtype_fields_and_settlement_cardinality_reject_mismatches() -> void:
 	var settlement_result := _engine().resolve_elapsed(_state(1), 10000)
 	var settlement: SimulationThresholdSettledEvent = settlement_result.events[0]
+	var exact_boundary := _engine().resolve_elapsed(_state(1), 870)
+	assert_eq(exact_boundary.segments.size(), 1)
+	assert_eq(exact_boundary.events.size(), 1)
+	assert_true(SimulationResultProjector.validate(exact_boundary).ok)
 	var bad_returns := SimulationThresholdSettledEvent.new(settlement.occurred_simulation_msec, settlement.segment_index, settlement.subject_id, -1, settlement.remaining_backlog_before, settlement.remaining_backlog_after, settlement.lifecycle_before, settlement.lifecycle_after)
 	var bad_returns_result := SimulationResult.active_reaping(settlement_result.requested_elapsed_msec, settlement_result.baseline_simulation_time_msec, settlement_result.result_simulation_time_msec, settlement_result.content_revision, settlement_result.segments, [bad_returns])
-	assert_false(SimulationResultProjector.validate(bad_returns_result, true).ok)
+	assert_false(SimulationResultProjector.validate(bad_returns_result).ok)
 	var missing_settlement := SimulationResult.active_reaping(settlement_result.requested_elapsed_msec, settlement_result.baseline_simulation_time_msec, settlement_result.result_simulation_time_msec, settlement_result.content_revision, settlement_result.segments, [])
 	assert_false(SimulationResultProjector.validate(missing_settlement).ok)
-	assert_false(SimulationResultProjector.validate(missing_settlement, true).ok)
 	var duplicate_settlement: Array[SimulationEvent] = [settlement, settlement]
 	var duplicate_result := SimulationResult.active_reaping(settlement_result.requested_elapsed_msec, settlement_result.baseline_simulation_time_msec, settlement_result.result_simulation_time_msec, settlement_result.content_revision, settlement_result.segments, duplicate_settlement)
-	assert_false(SimulationResultProjector.validate(duplicate_result, true).ok)
+	assert_false(SimulationResultProjector.validate(duplicate_result).ok)
 	var incomplete := _engine().resolve_elapsed(_state(1000000), 1000)
 	assert_true(incomplete.events.is_empty())
 	assert_true(SimulationResultProjector.validate(incomplete).ok)
@@ -289,11 +292,11 @@ func test_event_order_ownership_priority_and_signed_cursor_boundary() -> void:
 	var settlement := SimulationThresholdSettledEvent.new(1000, 0, &"THR_TEST", 0, 1, 0, &"OVERDUE", &"SETTLED")
 	var ordered: Array[SimulationEvent] = [bank_a, bank_b, settlement]
 	var ordered_result := SimulationResult.active_reaping(1000, 0, 1000, ContentRegistry.CURRENT_REVISION, [segment], ordered)
-	assert_true(SimulationResultProjector.validate(ordered_result, true).ok)
+	assert_true(SimulationResultProjector.validate(ordered_result).ok)
 	var reversed: Array[SimulationEvent] = [bank_b, bank_a, settlement]
-	assert_false(SimulationResultProjector.validate(SimulationResult.active_reaping(1000, 0, 1000, ContentRegistry.CURRENT_REVISION, [segment], reversed), true).ok)
+	assert_false(SimulationResultProjector.validate(SimulationResult.active_reaping(1000, 0, 1000, ContentRegistry.CURRENT_REVISION, [segment], reversed)).ok)
 	var early_bank := SimulationChannelBankedEvent.new(0, 0, &"THR_TEST", &"CHANNEL_A", &"SOUL_A", 1, &"OVERDUE", 1, 0)
-	assert_false(SimulationResultProjector.validate(SimulationResult.active_reaping(1000, 0, 1000, ContentRegistry.CURRENT_REVISION, [segment], [early_bank, bank_b, settlement]), true).ok)
+	assert_false(SimulationResultProjector.validate(SimulationResult.active_reaping(1000, 0, 1000, ContentRegistry.CURRENT_REVISION, [segment], [early_bank, bank_b, settlement])).ok)
 	var max_cursor := FixedPoint.INT64_MAX
 	var edge_segment := SimulationSegmentResult.new(0, &"THR_TEST", 1, &"FORM_TEST", &"WRIT_TEST", [], &"OVERDUE", max_cursor - 1000, max_cursor, 1000, 0, 0, 0, 0, 0, [channel_a])
 	var edge_event := SimulationChannelBankedEvent.new(max_cursor, 0, &"THR_TEST", &"CHANNEL_A", &"SOUL_A", 1, &"OVERDUE", 1, 0)

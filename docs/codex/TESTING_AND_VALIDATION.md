@@ -2261,6 +2261,6 @@ The bounded readiness regression suite is in `tests/unit/m04e2t2/test_simulation
 - `test_event_order_ownership_priority_and_signed_cursor_boundary`
 - `test_projector_requires_frozen_journal_and_preserves_timeline_shape`
 
-The persistence exclusion test remains `test_typed_result_and_projector_artifacts_never_enter_schema_v3_save` in `tests/integration/m04e2t2/test_finalized_facts_persistence_exclusion.gd`. The current focused matrix passes 74 tests with 1,284 assertions; the full suite passes 178 tests with 2,825 assertions. Exact-head owner Windows verification remains pending final GitHub review.
+The persistence exclusion test remains `test_typed_result_and_projector_artifacts_never_enter_schema_v3_save` in `tests/integration/m04e2t2/test_finalized_facts_persistence_exclusion.gd`. The current focused matrix passes 74 tests with 1,286 assertions; the full suite passes 178 tests with 2,827 assertions. Exact-head owner Windows verification remains pending final GitHub review.
 
 Stop and return to planning when more than two targeted rounds produce new P1/P2 findings, more than six material findings are discovered, the approved file/line guardrail is crossed, another owner/aggregate/schema/seam is required, or candidate mutation/commit behavior must change.

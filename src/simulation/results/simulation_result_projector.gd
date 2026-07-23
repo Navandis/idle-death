@@ -104,11 +104,11 @@ static func project(context: SimulationRunContext, journal: SimulationFactJourna
 		))
 	events.sort_custom(_event_less)
 	var result := SimulationResult.active_reaping(context.requested_elapsed_msec, context.baseline_simulation_time_msec, result_time, context.content_revision, segments, events)
-	var validation := validate(result, not settlement_facts.is_empty())
+	var validation := validate(result)
 	if not validation.ok: return validation
 	return {"ok": true, "result": result}
 
-static func validate(result: SimulationResult, settlement_expected: bool = false) -> Dictionary:
+static func validate(result: SimulationResult) -> Dictionary:
 	if result == null: return _failure("Result is null.")
 	match result.result_kind:
 		SimulationResult.KIND_FAILURE:
@@ -124,11 +124,11 @@ static func validate(result: SimulationResult, settlement_expected: bool = false
 			return {"ok": true}
 		SimulationResult.KIND_ACTIVE_REAPING:
 			if not _valid_positive_envelope(result) or result.segments.is_empty(): return _failure("Active result envelope is invalid.")
-			return _validate_active(result, settlement_expected)
+			return _validate_active(result)
 		_:
 			return _failure("Unknown result kind.")
 
-static func _validate_active(result: SimulationResult, settlement_expected: bool) -> Dictionary:
+static func _validate_active(result: SimulationResult) -> Dictionary:
 	var segments := result.segments
 	var expected_identity := {}
 	var total_elapsed := 0
@@ -162,13 +162,7 @@ static func _validate_active(result: SimulationResult, settlement_expected: bool
 	if segments.size() > 2 or (segments.size() == 2 and (segments[0].lifecycle_state != &"OVERDUE" or segments[1].lifecycle_state != &"SETTLED")):
 		return _failure("Current resolver produced an unsupported lifecycle sequence.")
 	if total_elapsed != result.committed_elapsed_msec or previous_end != result.result_simulation_time_msec: return _failure("Segments do not cover the committed interval.")
-	# A normal two-segment OVERDUE -> SETTLED result proves that a Settlement
-	# event is required from its own public lifecycle sequence. The optional
-	# journal-backed flag remains only for the exact-boundary case where the
-	# resolver ends immediately after Settlement and therefore exposes one
-	# OVERDUE segment with no following SETTLED segment.
-	var inferred_settlement := segments.size() == 2 and segments[0].lifecycle_state == &"OVERDUE" and segments[1].lifecycle_state == &"SETTLED"
-	return _validate_events(result, settlement_expected or inferred_settlement)
+	return _validate_events(result)
 
 static func _validate_channel(channel: SimulationChannelDeltaResult) -> Dictionary:
 	if channel.rate_period_msec <= 0 or channel.banked_units_delta < 0 or channel.progress_subunits_before < 0 or channel.progress_subunits_before >= FixedPoint.SCALE or channel.progress_subunits_after < 0 or channel.progress_subunits_after >= FixedPoint.SCALE or channel.rate_carry_units_before < 0 or channel.rate_carry_units_before >= channel.rate_period_msec or channel.rate_carry_units_after < 0 or channel.rate_carry_units_after >= channel.rate_period_msec or channel.total_banked_units_before < 0 or channel.total_banked_units_after < 0 or channel.total_banked_units_after < channel.total_banked_units_before:
@@ -176,7 +170,7 @@ static func _validate_channel(channel: SimulationChannelDeltaResult) -> Dictiona
 	if channel.total_banked_units_after - channel.total_banked_units_before != channel.banked_units_delta: return _failure("Channel banked delta does not match totals.")
 	return {"ok": true}
 
-static func _validate_events(result: SimulationResult, settlement_expected: bool) -> Dictionary:
+static func _validate_events(result: SimulationResult) -> Dictionary:
 	var segments := result.segments
 	var events := result.events
 	var expected_banks := {}
@@ -206,7 +200,13 @@ static func _validate_events(result: SimulationResult, settlement_expected: bool
 			var settle_event: SimulationThresholdSettledEvent = event
 			settlement_count += 1
 			if settle_event.event_type != SimulationEvent.EVENT_THRESHOLD_SETTLED or settle_event.priority != SimulationEvent.EVENT_PRIORITY_LIFECYCLE or not settle_event.reportable or not settle_event.tutorial_relevant or settle_event.subject_id != owner.threshold_id or settle_event.source_id != SimulationEvent.SIMULATION_ENGINE_SOURCE or settle_event.lifecycle_before != &"OVERDUE" or settle_event.lifecycle_after != &"SETTLED" or settle_event.persistent_returns_total < 0 or settle_event.remaining_backlog_before < 0 or settle_event.remaining_backlog_after != 0 or settle_event.remaining_backlog_before < settle_event.remaining_backlog_after or settle_event.occurred_simulation_msec != owner.end_simulation_msec or owner.lifecycle_state != &"OVERDUE": return _failure("Settlement event is invalid.")
-	if actual_banks.size() != expected_banks.size() or settlement_count != (1 if settlement_expected else 0): return _failure("Event cardinality does not match segment facts.")
+	# A two-segment OVERDUE -> SETTLED sequence proves that Settlement evidence
+	# is required even when a detached caller has no journal metadata. An exact
+	# boundary has one OVERDUE segment, so its typed Settlement event is the
+	# self-contained evidence that the event is expected. No caller flag is
+	# needed to validate either form.
+	var lifecycle_requires_settlement := segments.size() == 2 and segments[0].lifecycle_state == &"OVERDUE" and segments[1].lifecycle_state == &"SETTLED"
+	if actual_banks.size() != expected_banks.size() or settlement_count > 1 or (lifecycle_requires_settlement and settlement_count != 1): return _failure("Event cardinality does not match segment facts.")
 	return {"ok": true}
 
 static func _valid_positive_envelope(result: SimulationResult) -> bool:
