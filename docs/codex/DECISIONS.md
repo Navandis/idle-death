@@ -3,7 +3,7 @@
 **Document role:** Durable record of approved and proposed design and architecture decisions  
 **Repository path:** `docs/codex/DECISIONS.md`  
 **Document status:** Approved architecture and active decision record  
-**Revision:** 28  
+**Revision:** 29  
 **Last updated:** 2026-07-22
 
 ## 1. How to use this file
@@ -73,6 +73,7 @@ Rules:
 | `DEC-0041` | Reports use schema-v4 attributed, cursor-idempotent state with read-only live views and bounded recent history | Superseded | 2026-07-19 |
 | `DEC-0042` | Abandon the combined M04E2A implementation; require typed committed results and four replacement slices | Superseded | 2026-07-20 |
 | `DEC-0043` | Simulation mutation and explanatory facts share one transaction provenance; M04E2 is re-sliced after failed PRs #17 and #18 | Accepted | 2026-07-22 |
+| `DEC-0044` | Finalized simulation facts use one detached typed result family and a closed event union | Accepted | 2026-07-22 |
 
 ---
 
@@ -3272,20 +3273,131 @@ No later slice receives an executable prompt until the preceding slice is Merged
 - `docs/codex/milestone-prompts/M04E2A1-typed-committed-simulation-result-contract.md`
 - `docs/codex/milestone-prompts/M04E2T1-simulation-transaction-journal.md`
 
+## `DEC-0044` — Finalized simulation facts use one detached typed result family and a closed event union
+
+**Status:** Accepted  
+**Date:** 2026-07-22  
+**Decision type:** Public simulation-result representation, journal projection, event grammar, historical attribution, consumer migration, and persistence exclusion  
+**Requires:** M04E2T1 Merged/Passed under accepted `DEC-0043`  
+**Refines:** `DEC-0012`, `DEC-0016`, `DEC-0033`, `DEC-0035`, `DEC-0036`, `DEC-0038`, `DEC-0039`, `DEC-0040`, `DEC-0043`
+
+### Context
+
+M04E2T1 merged through PR #21 and established one private candidate plus a finalized bounded journal whose facts share mutation provenance. The remaining public API is intentionally transitional: `SimulationEngine` owns nested result/event classes, segments and channel deltas are dictionaries, event payloads are dictionaries, and `change_summary` duplicates a subset of those facts for compatibility.
+
+M04E2A3 will need delayed, self-contained historical facts for report ingestion. Current and future consumers must not reconstruct the prior assignment, loadout, lifecycle, channel, or boundary from mutable current state. The project also must not repeat PR #18's failure by making a public result validate or authorize an independently mutated candidate.
+
+### Decision
+
+#### 1. One detached typed result envelope
+
+M04E2T2 introduces a global `SimulationResult` with a closed `result_kind`:
+
+```text
+FAILURE
+ZERO_DURATION
+TIMELINE_ONLY
+ACTIVE_REAPING
+```
+
+The result contains typed request/commit timing, baseline/result simulation cursors, content revision where applicable, typed segments, and typed events. Failure and zero results carry no committed segment/event authority. Positive timeline-only results carry only the exact interval. Positive active results carry complete contiguous segment facts.
+
+#### 2. Segments carry historical operation identity
+
+`SimulationSegmentResult` carries Threshold ID, assignment revision, Form ID, Writ ID, ordered Retinue IDs, lifecycle, exact timing, core deltas, and typed channel deltas.
+
+Historical identity is copied from the immutable run context/facts and remains stable after same-timestamp recall, redispatch, or later state changes. Component identity remains distinct even when two loadouts produce equal numeric output.
+
+#### 3. Channel facts are self-interpretable
+
+`SimulationChannelDeltaResult` carries channel/item identity, banked quantity, progress endpoints, rate period, rate-carry endpoints, and total-banked endpoints. The period travels with the carry so a retained detached fact does not require current content to interpret the carry domain.
+
+Internal inventory endpoints remain journal provenance and do not become a second public report authority.
+
+#### 4. Simulation events form a closed typed union
+
+The current event union contains only:
+
+```text
+SimulationChannelBankedEvent
+SimulationThresholdSettledEvent
+```
+
+Each event has a typed common envelope and an explicit owning segment index. Each subtype has typed fields instead of a generic payload dictionary. Unknown event types and arbitrary payloads are not part of the public contract.
+
+Stable order remains occurred simulation time, priority, subject ID, source ID. Ownership remains start-exclusive/end-inclusive. Event cardinality must agree with the typed segment/channel facts.
+
+#### 5. Projection consumes finalized evidence only
+
+One pure `SimulationResultProjector` or equivalent maps finalized `SimulationRunContext` plus frozen `SimulationFactJournal` to public typed facts.
+
+The projector receives no live or candidate `GameState`, mutates nothing, calculates no gameplay formula, and cannot authorize commit. Pure validation covers field domains, detachment, timing, identity continuity, ordering, cardinality, and projection integrity only.
+
+#### 6. Remove the transitional public grammar
+
+M04E2T2 removes:
+
+- raw public segment dictionaries;
+- raw public channel-delta dictionaries;
+- generic public event payload dictionaries;
+- simulation `change_summary`;
+- nested result/event type ownership inside `SimulationEngine`.
+
+All current consumers migrate directly in the same slice. Internal journal trace dictionaries remain allowed as diagnostic evidence. No parallel raw public compatibility API remains after merge.
+
+#### 7. Preserve behavior, authority, and persistence
+
+M04E2T2 changes no formulas, rates, segmentation, candidate mutation, commit ordering, schema field, content revision, report state, or trusted-time behavior.
+
+```text
+save schema = 3
+content revision = prototype-content-r2
+```
+
+Results and their child facts remain detached, non-authoritative, and non-persisted.
+
+### Consequences
+
+- Later report ingestion receives self-contained historical facts without reading current mutable Reaping state.
+- The public contract becomes statically typed and closed without becoming a commit validator.
+- Candidate/fact provenance remains owned by M04E2T1; T2 does not duplicate it.
+- Current tests and traces must compare typed values rather than dictionary keys or object identity.
+- Adding a future simulation event type requires an explicit typed subtype and contract review.
+- M04E2A2 remains the only next slice authorized to introduce report state and schema version 4.
+
+### Alternatives considered
+
+- **Retain dictionaries and document their keys:** rejected because delayed consumers need a durable typed contract and dictionary drift is difficult to audit.
+- **Keep dictionaries beside typed records:** rejected because parallel public grammars would diverge and prolong migration indefinitely.
+- **Retain `change_summary` as a second public API:** rejected because current consumers can migrate and T1 already proved a single journal source.
+- **Let the projector compare the candidate with the result:** rejected because that recreates the failed PR #18 seam and duplicates simulation semantics.
+- **Persist every result:** rejected because run facts are transaction evidence; report persistence belongs to M04E2A2 onward.
+- **Use one generic event plus payload dictionary:** rejected because current event types have a small closed grammar and later report consumers need typed fields.
+- **Add report state in the same slice:** rejected because that adds an authoritative aggregate, schema transition, and separate risk domain.
+
+### Affected documents
+
+- `AGENTS.md`
+- `docs/codex/ARCHITECTURE.md`
+- `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`
+- `docs/codex/IMPLEMENTATION_RULES.md`
+- `docs/codex/TESTING_AND_VALIDATION.md`
+- `docs/codex/MILESTONES.md`
+- `docs/codex/M04E2T2_PLANNING.md`
+- `docs/codex/milestone-prompts/M04E2T2-finalized-typed-run-facts.md`
+
 ## 3. Current approval state
 
 - `DEC-0001` through `DEC-0040` and `DEC-0043` are Accepted.
 - `DEC-0041` is Superseded; its report semantics remain carried forward.
 - `DEC-0042` is Superseded by `DEC-0043`; its PR #17 reset record and report-slice lessons remain historical context, while its typed-result-first implementation packaging is retired.
-- M04A through M04D3 and M04E1 are implemented, verified, and merged.
-- PR #17 was closed unmerged at terminal head `5c87118045faa6f48f8ce50977a9bcdcfa967e57` and is retained only as forensic reference.
-- PR #18 was closed unmerged at terminal head `602dec077f44338cdb4a2eabbd30d3989c877902` and is retained only as forensic reference.
-- M04E2A1 definition and prompt are Superseded; implementation verification Failed and no branch code is authoritative.
+- `DEC-0044` is Proposed and is not authoritative until explicit owner acceptance.
+- M04A through M04D3, M04E1, and M04E2T1 are implemented, verified, and merged.
+- M04E2T1 merged through PR #21 from final head `a4d8056cb8771e84e1948fc5e59939c46a13003c` at merge commit `68364e0b417a6e7ebc63b50a386ac5d9f2c506bf`.
+- `GATE-SINGLE-PROVENANCE-TRANSACTION` and the owner-approved M04E2T1 scope exception are satisfied.
+- PR #17 and PR #18 remain closed unmerged forensic references; M04E2A1 remains Superseded/Failed.
 - The active M04E2 sequence is M04E2T1 -> M04E2T2 -> M04E2A2 -> M04E2A3 -> M04E2A4 -> M04E2B.
-- M04E2T1 definition is Approved. Its prompt is Draft v0.1 and must receive explicit owner approval before execution.
-- `GATE-SINGLE-PROVENANCE-TRANSACTION` is pending approval of the M04E2T1 prompt and final scope review.
-- M04E2T2 has an approved boundary but no prompt and remains blocked on M04E2T1 Merged/Passed.
-- M04E2A2, M04E2A3, and M04E2A4 retain approved boundaries but remain blocked on the new prerequisite chain and fresh scope reviews.
-- `GATE-FINALIZED-RUN-FACTS`, `GATE-REPORT-SCHEMA`, `GATE-REPORT-INGESTION`, `GATE-REPORT-READS-HISTORY`, and `GATE-ATOMIC-REPORTED-RUN` remain pending.
-- M04E2B retains an approved high-level boundary only; its prompt remains blocked on M04E2T1, M04E2T2, and M04E2A2 through M04E2A4 all being Merged/Passed plus a fresh scope review.
+- M04E2T2 has an approved high-level boundary under `DEC-0043`, a proposed exact contract in `DEC-0044`, and a Draft v0.1 prompt. It remains Not started.
+- `GATE-FINALIZED-RUN-FACTS` and the M04E2T2 `GATE-SLICE-SCOPE` remain pending explicit owner approval of `DEC-0044` and the prompt.
+- M04E2A2, M04E2A3, M04E2A4, and M04E2B remain blocked on their preceding active slices and fresh prompt/scope reviews.
 - Future changes preserve decision IDs for wording clarifications and create a new decision when semantics, ownership, compatibility, implementation packaging, or security posture changes.

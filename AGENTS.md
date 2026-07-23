@@ -63,6 +63,7 @@ Before modifying non-trivial behavior:
    - `docs/codex/TESTING_AND_VALIDATION.md`;
    - `docs/codex/DECISIONS.md`;
    - `docs/codex/OWNER_VERIFICATION_WORKFLOW.md` when the task has owner-run Windows, editor, visual, audio, functional, A/B, persistence, or Steam checks.
+   - `docs/codex/CODEX_DESKTOP_WORKFLOW.md` when using Codex desktop for branch, push, and pull-request publication.
 4. Read the applicable milestone definition and milestone prompt.
 5. Inspect the current implementation and tests before proposing changes.
 
@@ -71,6 +72,39 @@ If a referenced document required by the current task is missing, stale, or inte
 For non-trivial work, briefly state the proposed approach, expected files, and verification plan before editing.
 
 For authoritative state transitions, follow the single-provenance rule in accepted `DEC-0043` and `IMPLEMENTATION_RULES.md`: do not pass an independently mutable candidate state and independently mutable result/summary into a commit method and then attempt to prove they agree. One transaction owner must create the private candidate, apply checked mutations, record explanatory facts from the same before/after values, validate, and expose one final commit result.
+
+## Codex desktop branch and pull-request workflow
+
+Every implementation milestone executed through the Codex desktop app uses an owner-controlled pull-request lifecycle.
+
+Before editing:
+
+1. synchronize local `main` with `origin/main` using fast-forward-only behavior;
+2. create or switch to the milestone-specific feature branch named by the approved prompt;
+3. verify the current branch is not `main`;
+4. keep all implementation and later corrections for that milestone on the same feature branch and pull request unless the owner explicitly orders replacement.
+
+After implementation and local verification:
+
+1. commit the intended changes on the feature branch;
+2. push that feature branch to `origin`;
+3. create a pull request targeting `main`, or update the existing open pull request for the same branch;
+4. report the pull-request number, URL, branch, and exact head SHA;
+5. stop and wait for owner-directed review or correction work.
+
+Codex must never:
+
+- commit or push directly to `main`;
+- merge a pull request or invoke auto-merge;
+- close a pull request;
+- delete a remote or local milestone branch;
+- force-push or rewrite published history;
+- approve its own pull request;
+- create a replacement pull request merely because corrections are required.
+
+Only the project owner may authorize merge, close, branch deletion, history rewrite, or pull-request replacement.
+
+Use `docs/codex/CODEX_DESKTOP_WORKFLOW.md` for the complete workflow and `tools/codex/publish_milestone_pr.ps1` for the safe publish-or-update step. The helper creates or updates a pull request but contains no merge operation. Formal code review remains a GitHub pull-request action using `@codex review`; implementation and review corrections remain in the existing Codex desktop task.
 
 ## Confirmed prototype decisions
 

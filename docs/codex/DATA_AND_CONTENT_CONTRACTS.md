@@ -3,7 +3,7 @@
 **Document role:** Canonical prototype data, runtime-state, ID, and serialization contracts  
 **Repository path:** `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`  
 **Document status:** Approved architecture contract  
-**Revision:** 24  
+**Revision:** 25  
 **Last updated:** 2026-07-22
 
 ## 1. Purpose
@@ -2686,49 +2686,9 @@ Rules:
 
 Final Windows evidence passed `153/153` full tests and `2,522` assertions before and after the trace, `9/9` focused tests and `295` assertions, all fifteen markers, import, cleanup, cleanup proof, and artifact audit.
 
-## Approved M04E2 transaction and report contracts
+## Approved M04E2 transaction and proposed typed run-fact contracts
 
-Accepted `DEC-0043` supersedes the M04E2A1 implementation packaging in `DEC-0042` while carrying forward the report semantics of `DEC-0041` and `DEC-0042`.
-The active replacement sequence begins with the single-provenance transaction prerequisite, followed by finalized typed run facts and then M04E2A2 through M04E2A4.
-
-## M04E2T1 single-provenance transaction contract
-
-M04E2T1 adds no authoritative aggregate and changes no serialized field. One
-runtime transaction contains exactly one detached `SimulationRunContext`, one
-private deep-cloned `GameState` candidate, and one bounded ordered
-`SimulationFactJournal`. Context identity includes the baseline simulation
-cursor, requested elapsed milliseconds, active-operation presence, Threshold,
-assignment revision, Form, Writ, ordered Retinues, initial lifecycle, and
-validated content revision. Context arrays are detached copies.
-
-The journal fact kinds are runtime-only:
-
-```text
-TIMELINE
-  before_time, after_time, elapsed_msec
-CORE_SEGMENT
-  segment identity, lifecycle, start/end/elapsed, core deltas, flow endpoints
-CHANNEL_SEGMENT
-  channel/item identity, segment endpoint, progress/carry endpoints,
-  total-banked endpoints, banked quantity, inventory endpoints
-SETTLEMENT
-  segment identity, boundary time, boundary persistent-return total,
-  backlog endpoints, Overdue -> Settled lifecycle endpoints
-```
-
-Each checked transaction operation validates all before values and ranges before
-writing its candidate fields, then records the fact from the same candidate
-before/after endpoints. The journal freezes after structural validation and
-cannot be mutated after finalization. It is not save data, event history,
-analytics, a replay stream, or an input to an arbitrary candidate/result commit
-method.
-
-The current public `SimulationResult` remains the raw compatibility shape:
-timeline-only `change_summary`, raw segment dictionaries, raw channel-delta
-dictionaries, and typed `SimulationEvent` envelopes. Segments, channel deltas,
-events, and `change_summary` are all projected from the finalized journal.
-Schema version remains `3` and content revision remains
-`prototype-content-r2`. M04E2T2 owns any later final typed public fact family.
+Accepted `DEC-0043` supersedes the M04E2A1 implementation packaging in `DEC-0042` while carrying forward the report semantics of `DEC-0041` and `DEC-0042`. M04E2T1 is Merged/Passed. Proposed `DEC-0044` defines the exact M04E2T2 public contract and remains non-authoritative until explicit owner acceptance.
 
 The active sequence is:
 
@@ -2736,106 +2696,235 @@ The active sequence is:
 M04E2T1 -> M04E2T2 -> M04E2A2 -> M04E2A3 -> M04E2A4 -> M04E2B
 ```
 
-## M04E2T1 internal transaction contract
+## Realized M04E2T1 single-provenance transaction contract
 
-M04E2T1 introduces no persisted state and no final public typed-result family. It changes how one elapsed simulation call owns mutation and explanatory facts.
+M04E2T1 adds no authoritative aggregate and changes no serialized field. One runtime transaction contains exactly one detached `SimulationRunContext`, one private deep-cloned `GameState` candidate, and one bounded ordered `SimulationFactJournal`.
 
-### `SimulationRunContext`
-
-Conceptual fields under the current one-active-Reaping engine:
+Context identity contains:
 
 ```text
-baseline_simulation_time_msec: int
+baseline_simulation_time_msec
+requested_elapsed_msec
+has_active_reaping
+threshold_id
+assignment_revision
+form_id
+writ_id
+ordered_retinue_ids
+initial_lifecycle_state
+content_revision
+```
+
+The journal fact kinds are runtime-only:
+
+```text
+TIMELINE
+CORE_SEGMENT
+CHANNEL_SEGMENT
+SETTLEMENT
+```
+
+Each transaction operation validates before values and ranges before writing candidate fields, then records its fact from the same before/after endpoints. Candidate validation precedes journal freeze. Active core facts cover the complete requested interval. The source changes through one final `copy_from` only.
+
+The current temporary public compatibility result is generated from the finalized journal. The context, candidate, transaction, journal, result, events, and forecast projection never serialize.
+
+M04E2T1 merged through PR #21 at final head `a4d8056cb8771e84e1948fc5e59939c46a13003c` and merge commit `68364e0b417a6e7ebc63b50a386ac5d9f2c506bf`. Exact-head Windows evidence passed `165/165` full tests, `61/61` focused tests, all twelve trace markers, import, negative-root behavior, cleanup, and artifact audit.
+
+## Proposed M04E2T2 finalized typed run-fact contract
+
+### Result kinds and envelope
+
+The global non-persisted result uses these stable kinds:
+
+```text
+FAILURE
+ZERO_DURATION
+TIMELINE_ONLY
+ACTIVE_REAPING
+```
+
+Proposed fields:
+
+```text
+result_kind: StringName
+success: bool
+error_code: StringName
+developer_details: String
 requested_elapsed_msec: int
-has_active_reaping: bool
-threshold_id: StringName              # empty only when no active Reaping
-assignment_revision: int              # positive when active
-form_id: StringName                   # non-empty when active
-writ_id: StringName                   # non-empty when active
-ordered_retinue_ids: Array[StringName]
-initial_lifecycle_state: StringName    # OVERDUE or SETTLED when active
+committed_elapsed_msec: int
+baseline_simulation_time_msec: int
+result_simulation_time_msec: int
 content_revision: String
+segments: Array[SimulationSegmentResult]
+events: Array[SimulationEvent]
 ```
 
-The context is captured from a completely validated source and is immutable for the transaction.
+Shape rules:
 
-### `SimulationTransaction`
+| Kind | Required shape |
+|---|---|
+| `FAILURE` | `success == false`; stable non-empty error code; committed elapsed `0`; no segments/events; baseline equals result cursor; no committed fact authority |
+| `ZERO_DURATION` | `success == true`; requested and committed elapsed `0`; baseline equals result cursor; no segments/events |
+| `TIMELINE_ONLY` | positive requested/committed elapsed; result cursor minus baseline equals committed elapsed; no segments/events; exact validated content revision |
+| `ACTIVE_REAPING` | positive requested/committed elapsed; result cursor minus baseline equals committed elapsed; non-empty contiguous typed segments; closed typed events only |
 
-The transaction owns exactly one private candidate and one journal. Its public/internal result contract contains success/failure diagnostics and, on successful finalization, a validated candidate plus a compatibility result derived from the journal.
+A failed result may retain a negative requested duration when that request caused failure. Failure and zero-duration results do not imply a validated content revision; positive successful results do.
 
-The transaction may not accept an arbitrary candidate created by a caller. The only candidate construction path is a deep clone of the validated source supplied at transaction start.
-
-### Mutation ownership inventory
-
-Every authoritative write performed by the current engine must map to one transaction operation before implementation. The minimum set includes:
+### `SimulationSegmentResult`
 
 ```text
-GameState.simulation_time_msec
-ThresholdState.persistent_returns_total
-ThresholdState.remaining_backlog
-ThresholdState.lifecycle_state
-InventoryEntryState.total for Essence and channel outputs
-FormState.mastery_subunits
-ReapingState core progress and flow carries
-ReapingState.cycle_phase_msec
-ReapingState.completed_cycle_count
-ThresholdAcquisitionState.progress_subunits
-ThresholdAcquisitionState.rate_carry_units
-ThresholdAcquisitionState.total_banked_units
+segment_index: int
+threshold_id: StringName
+assignment_revision: int
+form_id: StringName
+writ_id: StringName
+ordered_retinue_ids: Array[StringName]
+lifecycle_state: StringName
+start_simulation_msec: int
+end_simulation_msec: int
+elapsed_msec: int
+returned_souls_delta: int
+backlog_reduced: int
+essence_delta: int
+mastery_delta_subunits: int
+completed_cycles_delta: int
+channel_deltas: Array[SimulationChannelDeltaResult]
 ```
-
-Reservations, unrelated inventory IDs, other Thresholds, other Forms, progression state, and assignment identity remain unchanged unless the current merged simulation already changes them.
-
-### `SimulationFactJournal`
-
-The journal records one ordered fact for each successful transaction mutation. Facts may include internal before/after endpoints needed to derive the existing result and prove deterministic sequencing. They are non-persisted and bounded to one call.
 
 Rules:
 
-- a journal fact is created only by the operation that applies the corresponding candidate mutation;
-- journal arrays and nested records do not alias live or candidate mutable storage after finalization;
-- boundary facts capture boundary-time values;
-- no caller appends an arbitrary event or segment to an open transaction;
-- finalization freezes the journal;
-- failed transactions expose no journal as committed authority.
+- segment indexes are zero-based, contiguous, and match array order;
+- IDs are non-empty for active facts;
+- assignment revision is positive;
+- ordered Retinue IDs are detached, non-empty when present, unique, and preserve selected order;
+- lifecycle is `OVERDUE` or `SETTLED`;
+- start is before end and elapsed equals end minus start using checked arithmetic;
+- all deltas are non-negative;
+- channel deltas are unique and canonically ordered by channel ID;
+- one run keeps exact Threshold/assignment/Form/Writ/Retinue identity across segments;
+- under the current resolver, valid lifecycle sequences are one `OVERDUE`, one `SETTLED`, or `OVERDUE` followed by `SETTLED`;
+- first start equals result baseline, final end equals result cursor, and segments cover the entire positive active interval without gap or overlap.
 
-### Compatibility result
-
-M04E2T1 preserves the current merged `SimulationResult` envelope and segment/channel compatibility representation. The exact current field names and shapes remain unchanged.
-
-Every compatibility segment, channel delta, event, and `change_summary` value is derived from the finalized journal. No independent code path authors the summary from the candidate after the fact.
-
-### Commit contract
+### `SimulationChannelDeltaResult`
 
 ```text
-validate source + request
--> private candidate/journal operations
--> candidate GameState validation
--> journal finalization
--> compatibility-result projection
--> one live copy_from
+channel_id: StringName
+output_item_id: StringName
+banked_units_delta: int
+progress_subunits_before: int
+progress_subunits_after: int
+rate_period_msec: int
+rate_carry_units_before: int
+rate_carry_units_after: int
+total_banked_units_before: int
+total_banked_units_after: int
 ```
 
-A failure at any point leaves canonical live state unchanged.
+Rules:
+
+- IDs are non-empty;
+- period is positive;
+- progress endpoints are in `[0, FixedPoint.SCALE)`;
+- carry endpoints are in `[0, rate_period_msec)`;
+- totals are non-negative and monotonic;
+- banked delta equals total after minus total before using checked arithmetic;
+- progress-only changes with zero banked units remain representable;
+- no fractional inventory is created or implied;
+- records are detached and compared by value.
+
+Internal journal inventory endpoints remain available for T1 mutation provenance but are not duplicated as public report authority.
+
+### Closed `SimulationEvent` family
+
+Common read-only fields:
+
+```text
+event_type: StringName
+occurred_simulation_msec: int
+priority: int
+segment_index: int
+subject_id: StringName
+source_id: StringName
+reportable: bool
+tutorial_relevant: bool
+```
+
+Allowed concrete types:
+
+#### `SimulationChannelBankedEvent`
+
+```text
+event_type = OUTPUT_CHANNEL_BANKED
+output_item_id: StringName
+quantity: int
+lifecycle_state: StringName
+total_banked_units_after: int
+progress_subunits_after: int
+```
+
+The event is owned by the referenced segment, occurs at its end, uses the channel as source, and exists exactly once for each positive-banking segment/channel delta. No event exists for a progress-only delta.
+
+#### `SimulationThresholdSettledEvent`
+
+```text
+event_type = THRESHOLD_SETTLED
+persistent_returns_total: int
+remaining_backlog_before: int
+remaining_backlog_after: int
+lifecycle_before: StringName
+lifecycle_after: StringName
+```
+
+The event occurs exactly once at the end of the `OVERDUE` segment that transitions to `SETTLED`. Its source is `SIMULATION_ENGINE`, backlog after is zero, and lifecycle is exactly `OVERDUE -> SETTLED`.
+
+No generic public payload dictionary, unknown event type, or arbitrary event subclass is valid. Stable order remains:
+
+```text
+occurred_simulation_msec
+priority
+subject_id
+source_id
+```
+
+Event ownership remains start-exclusive/end-inclusive and is also made explicit by `segment_index`.
+
+### Projection and validation boundary
+
+One pure `SimulationResultProjector` or equivalent receives only:
+
+```text
+finalized detached SimulationRunContext
+frozen SimulationFactJournal
+```
+
+It receives no live or candidate `GameState` and performs no mutation or gameplay calculation. It maps journal facts to the typed family, runs pure local/run-level structural validation, and returns detached facts.
+
+Structural validation covers result shape, field domains, timing, identity continuity, ordering, event cardinality, and journal-to-public projection integrity. It does not compare against candidate state and does not authorize commit.
+
+### Compatibility removal and consumer migration
+
+M04E2T2 removes from the public simulation contract:
+
+```text
+raw Dictionary segments
+raw Dictionary channel deltas
+generic event payload Dictionary
+simulation change_summary
+nested SimulationEngine.SimulationResult and SimulationEvent type ownership
+```
+
+All current engine, run-service, debug, test, trace, and persistence-exclusion consumers migrate directly. Internal diagnostic journal snapshots may remain dictionaries because they are not the public result grammar.
 
 ### Persistence exclusion
 
-M04E2T1 retains:
+M04E2T2 retains:
 
 ```text
 save schema = 3
 content revision = prototype-content-r2
 ```
 
-Do not serialize the context, transaction, journal, compatibility result, events, or forecast projection.
-
-## M04E2T2 finalized typed run-fact contract
-
-M04E2T2 introduces the final detached public run-fact family projected from a finalized journal. It replaces raw segment/channel public dictionaries and migrates current consumers.
-
-The exact field family is reviewed from the M04E2T1 journal and current consumer needs before prompt approval. It must include complete historical Threshold, assignment revision, Form, Writ, ordered Retinue, lifecycle, timing, core gain, channel endpoint, and closed event identity required by report ingestion.
-
-Public typed facts are immutable evidence by convention and never an input to candidate commit. `change_summary` is removed from direct consumers or remains only as a pure derived compatibility view.
+Do not serialize any result, segment, channel delta, event, projector, context, transaction, journal, validation object, mode wrapper, or forecast projection. Frozen v1/v2/v3 fixture bytes remain unchanged.
 
 ## Deferred report contracts
 

@@ -17,10 +17,13 @@ The active implementation sequence is now defined by `DEC-0043`:
 M04E2T1 -> M04E2T2 -> M04E2A2 -> M04E2A3 -> M04E2A4 -> M04E2B
 ```
 
+M04E2T1 later merged and passed through PR #21. The original T1 prompt is retained as executed historical provenance rather than the next action.
+
 Use:
 
-- `docs/codex/M04E2_IMPLEMENTATION_POSTMORTEM.md` for the failure record;
+- `docs/codex/M04E2_IMPLEMENTATION_POSTMORTEM.md` for the failed-attempt record and T1 replacement outcome;
 - `docs/codex/M04E2_TRANSACTION_REDESIGN_PLAN.md` for the active architecture and workflow;
-- `docs/codex/milestone-prompts/M04E2T1-simulation-transaction-journal.md` for the next implementation prompt after approval.
+- `docs/codex/M04E2T2_PLANNING.md` for the next planning boundary;
+- `docs/codex/milestone-prompts/M04E2T2-finalized-typed-run-facts.md` for the draft next implementation prompt after approval.
 
-Do not execute the superseded M04E2A1 prompt or reuse PR #17/PR #18 production implementation wholesale.
+Do not execute the superseded M04E2A1 prompt, re-execute the completed M04E2T1 prompt, or reuse PR #17/PR #18 production implementation wholesale.

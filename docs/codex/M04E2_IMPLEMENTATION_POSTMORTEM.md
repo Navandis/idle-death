@@ -147,6 +147,16 @@ Do not reuse wholesale:
 - nested typed-result architecture solely because it already exists on the abandoned branch;
 - branch-specific tests whose main purpose is to validate the failed internal decomposition.
 
+## Replacement validation outcome — M04E2T1
+
+The replacement principle was validated by M04E2T1 rather than remaining a planning hypothesis.
+
+PR #21 merged from final head `a4d8056cb8771e84e1948fc5e59939c46a13003c` at merge commit `68364e0b417a6e7ebc63b50a386ac5d9f2c506bf`. The implementation introduced one immutable run context, one transaction-owned private candidate, one bounded journal, checked mutation-plus-fact operations, one-way finalization, and one live commit. `SimulationEngine` became smaller while focused collaborators owned transaction and journal behavior.
+
+The final exact-head owner package passed `165/165` full tests and `2,641` assertions before and after, `61/61` focused tests and `1,136` assertions, import, all twelve markers, missing-root failure behavior, cleanup, and artifact audit. Final unrestricted review was clean.
+
+This successful replacement does not rehabilitate PR #17 or PR #18 production code. Their defect findings remain useful, but their implementations remain prohibited reuse. M04E2T2 now projects typed public facts from the successful T1 journal rather than validating a separately mutated candidate.
+
 ## Review-process lesson
 
 A review must audit the primary risk boundary, but repeated clean-up reviews are not an implementation strategy. The stop rule remains mandatory:

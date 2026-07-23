@@ -3,7 +3,7 @@
 **Document role:** Detailed engineering conventions for Godot 4.7 and GDScript implementation  
 **Repository path:** `docs/codex/IMPLEMENTATION_RULES.md`  
 **Document status:** Approved engineering rules  
-**Rules revision:** 7  
+**Rules revision:** 8  
 **Last updated:** 2026-07-22  
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)  
 **Data companion:** [DATA_AND_CONTENT_CONTRACTS.md](DATA_AND_CONTENT_CONTRACTS.md)
@@ -467,9 +467,27 @@ A public result is an observation of a finalized transaction, not a second mutat
 
 - Do not allow callers to construct a result and submit it for live-state commit.
 - Do not make a compatibility dictionary the only owner of historical identity or channel endpoints.
-- If a compatibility `change_summary` remains temporarily, generate it from the same finalized facts used by the primary result contract.
 - Compare detached typed objects by documented fields, not object identity.
 - When a public result contract changes, migrate all current production, debug, test, and trace consumers in one bounded slice; do not maintain parallel raw and typed public grammars indefinitely.
+- Internal journal/trace dictionaries remain permitted when they are bounded diagnostics and never become the public result or persistence contract.
+
+### 11.10 Finalized typed simulation facts
+
+M04E2T2 public facts are projected only after the M04E2T1 candidate is valid and the transaction journal is frozen.
+
+Required rules:
+
+- The projector receives immutable run context and frozen journal facts only. It receives no live or candidate `GameState`.
+- Public result classes are focused global `RefCounted` types with static field types, junior-readable ownership documentation, detached-copy behavior, and value equality.
+- Prefer read-only public properties backed by private fields. Consumers do not mutate retained facts.
+- Result kinds are closed and structurally distinct: failure, zero-duration, positive timeline-only, and positive active-Reaping.
+- Segment identity is historical context captured at run time, not a lookup against current Reaping state.
+- Channel carry includes its rate period so the detached endpoint is locally interpretable.
+- Public events use a closed typed union. Do not accept an arbitrary event payload dictionary or unknown event type.
+- Every event names its owning segment index and also obeys start-exclusive/end-inclusive timing and stable sort order.
+- Pure structural validation may check domains, timing, identity continuity, ordering, cardinality, and projection integrity. It must not recreate candidate/result reconciliation or duplicate gameplay formulas.
+- Raw public segment/channel dictionaries, generic event payload dictionaries, and simulation `change_summary` are removed when current consumers migrate. Do not keep a hidden fallback public API.
+- Result facts remain non-authoritative and non-persisted. Schema and content revision do not change merely because the public representation changes.
 
 ## 12. Inventory and reservation rules
 

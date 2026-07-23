@@ -3,7 +3,7 @@
 **Document role:** Maintained implementation architecture for the 0-90 minute prototype  
 **Repository path:** `docs/codex/ARCHITECTURE.md`  
 **Document status:** Approved architecture  
-**Architecture revision:** 22  
+**Architecture revision:** 23  
 **Last updated:** 2026-07-22  
 **Engine target:** Godot 4.7, GDScript only  
 **Primary design context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md) and [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md)
@@ -1739,7 +1739,7 @@ The realized implementation lives at `src/simulation/simulation_run_service.gd` 
 
 Final owner Windows evidence passed `153/153` full tests and `2,522` assertions before and after the trace, `9/9` focused M04E1 tests and `295` assertions, explicit import, all fifteen markers, cleanup, cleanup proof, and artifact audit with zero failed steps.
 
-## M04E2 failed attempts and approved transaction redesign
+## M04E2 failed attempts, realized transaction boundary, and typed-fact plan
 
 PR #17 and PR #18 are closed unmerged and are not production-code sources. Their terminal heads and review histories are recorded in [M04E2 implementation postmortem](M04E2_IMPLEMENTATION_POSTMORTEM.md).
 
@@ -1748,8 +1748,8 @@ Accepted `DEC-0043` supersedes the implementation packaging in `DEC-0042` while 
 The active sequence is:
 
 ```text
-M04E2T1 single-provenance simulation transaction
-  -> M04E2T2 finalized typed run facts
+M04E2T1 single-provenance simulation transaction  [Merged/Passed]
+  -> M04E2T2 finalized typed run facts             [Approved]
     -> M04E2A2 report state + schema v4
       -> M04E2A3 live report ingestion
         -> M04E2A4 reads + snapshot + bounded history + evidence
@@ -1758,144 +1758,173 @@ M04E2T1 single-provenance simulation transaction
 
 M04E2A1 is historical and Superseded. No direct M04E2 or M04E2A implementation prompt is valid.
 
-## Single-provenance simulation transaction boundary
+## Realized M04E2T1 single-provenance simulation transaction
 
-### Problem being removed
-
-The failed M04E2A1 implementation exposed an unsafe seam:
-
-```text
-independently mutable candidate GameState
-independently mutable result segments/events
-independently mutable compatibility summary
-```
-
-A large post-hoc validator then attempted to prove the three structures represented the same operation. This duplicated simulation semantics and repeatedly omitted fields such as inventory totals, residual carries, cycle phase, boundary totals, and malformed candidate shapes.
-
-### Approved flow
+### Implemented flow
 
 ```text
 SimulationEngine.resolve_elapsed(source, elapsed)
   -> validate source and request
   -> capture immutable SimulationRunContext
-  -> create SimulationTransaction(source.deep_clone())
-  -> resolve one bounded segment/boundary calculation
-  -> transaction applies mutation and records journal fact atomically
-  -> repeat
+  -> create SimulationTransaction with one private deep-cloned candidate
+  -> calculate one bounded segment/boundary plan
+  -> transaction applies mutation and records journal fact from the same endpoints
+  -> repeat until the requested interval is fully represented
   -> transaction.finalize()
-       -> validate candidate GameState
-       -> freeze journal
-       -> derive compatibility/public result
-  -> source.copy_from(finalized_candidate) once
+       -> validate complete candidate GameState
+       -> validate and freeze SimulationFactJournal
+       -> derive current compatibility result from frozen facts
+  -> source.copy_from(private_candidate) once
   -> return detached result
 ```
 
-`SimulationEngine` remains the formula and segmentation owner. The transaction is the mutation and provenance boundary, not another formula owner.
+`SimulationEngine` remains the formula and segmentation owner. `SimulationTransaction` owns candidate mutation provenance and finalization. `SimulationFactJournal` is bounded runtime evidence, not a save model, report history, replay stream, or general event bus.
 
-### `SimulationRunContext`
+### Realized collaborators
 
-The context is captured once from validated source state and remains immutable for the call. Under the current one-active-Reaping engine it contains, as applicable:
+`SimulationRunContext` captures the baseline cursor, requested elapsed interval, active-operation marker, Threshold, assignment revision, Form, Writ, ordered Retinues, initial lifecycle, and content revision once before mutation.
+
+`SimulationTransaction` owns the private candidate, context, journal, checked mutation operations, one-way finalization, and one final commit. It exposes no arbitrary caller-supplied candidate/result commit seam.
+
+`SimulationFactJournal` records successful timeline, core-segment, channel-segment, and Settlement operations in deterministic order. Active core facts must cover the full requested interval. Settlement facts retain boundary-time totals. Finalization freezes the journal.
+
+### M04E2T1 completion
+
+M04E2T1 merged through PR #21 from final head `a4d8056cb8771e84e1948fc5e59939c46a13003c` at merge commit `68364e0b417a6e7ebc63b50a386ac5d9f2c506bf`. The exact-head owner package passed `165/165` full tests and `2,641` assertions before and after, `61/61` focused tests and `1,136` assertions, import, all twelve markers, the required missing-root failure, cleanup, cleanup proof, and artifact audit with zero failed steps.
+
+The realized public boundary remains intentionally temporary: nested `SimulationEngine.SimulationResult`, raw segment/channel dictionaries, typed events with generic payload dictionaries, and journal-derived `change_summary` are preserved only until M04E2T2.
+
+## Proposed M04E2T2 finalized typed run-fact boundary
+
+Proposed `DEC-0044` defines M04E2T2. It changes public representation and current consumers only. It does not change candidate mutation, formulas, segmentation, transaction operations, or commit order.
+
+### Principal transition
 
 ```text
-baseline_simulation_time_msec
-requested_elapsed_msec
-active_threshold_id or no-active marker
+finalized SimulationRunContext + frozen SimulationFactJournal
+  -> pure SimulationResultProjector
+  -> detached typed SimulationResult
+       -> typed SimulationSegmentResult[]
+       -> typed SimulationChannelDeltaResult[]
+       -> closed typed SimulationEvent union
+```
+
+The projector receives no live or candidate `GameState`. Public facts are observations of a transaction already proven by T1 provenance. They are never submitted back into `commit_to()` and never authorize a candidate.
+
+### Public result envelope
+
+The proposed global result envelope contains:
+
+```text
+result_kind: FAILURE | ZERO_DURATION | TIMELINE_ONLY | ACTIVE_REAPING
+success: bool
+error_code: StringName
+developer_details: String
+requested_elapsed_msec: int
+committed_elapsed_msec: int
+baseline_simulation_time_msec: int
+result_simulation_time_msec: int
+content_revision: String
+segments: Array[SimulationSegmentResult]
+events: Array[SimulationEvent]
+```
+
+Positive results carry exact baseline/result cursors. Failure and zero-duration shapes carry no committed segment/event authority. A positive timeline-only result has no segments or events. A positive active result has one or two contiguous segments under the current one-active-Reaping resolver.
+
+### Typed segment facts
+
+Each segment carries:
+
+```text
+segment_index
+threshold_id
 assignment_revision
 form_id
 writ_id
 ordered_retinue_ids
-initial_lifecycle_state
-content revision / validated registry identity
+lifecycle_state
+start_simulation_msec
+end_simulation_msec
+elapsed_msec
+returned_souls_delta
+backlog_reduced
+essence_delta
+mastery_delta_subunits
+completed_cycles_delta
+channel_deltas
 ```
 
-Later same-timestamp assignment changes cannot rewrite the context or finalized facts.
+Historical component identity comes from the captured context and journal. It is not reconstructed from mutable current `GameState` after the run.
 
-### `SimulationTransaction`
+### Typed channel facts
 
-The transaction owns:
-
-- one private working candidate;
-- the immutable run context;
-- checked mutation operations;
-- one bounded `SimulationFactJournal`;
-- final candidate validation;
-- finalization status.
-
-It does not own:
-
-- clock sampling;
-- save files;
-- report state;
-- tutorial, progression, Hall, support, UI, or platform behavior;
-- another gameplay formula;
-- a persistent event store.
-
-No public/test-facing method may commit an arbitrary caller-supplied candidate/result pair.
-
-### Mutation operations
-
-The realized implementation may split methods differently after inspection, but every authoritative write belongs to one declared transaction operation. The minimum ownership inventory covers:
+Each channel delta carries:
 
 ```text
-timeline cursor
-Threshold persistent returns, remaining backlog, and lifecycle
-Essence and channel-output inventory totals
-Form Mastery
-Reaping core progress, rate carries, cycle phase, and completed cycles
-Threshold acquisition progress, carry, and total-banked history
-Settlement boundary state
-simulation events and compatibility segment/summary facts
+channel_id
+output_item_id
+banked_units_delta
+progress_subunits_before
+progress_subunits_after
+rate_period_msec
+rate_carry_units_before
+rate_carry_units_after
+total_banked_units_before
+total_banked_units_after
 ```
 
-Each operation checks arithmetic first, applies all related candidate fields, and records its fact from the same before/after values.
+The period travels with the carry so a detached record remains locally interpretable. Internal candidate inventory endpoints may remain journal-only and are not separate public authority.
 
-### `SimulationFactJournal`
+### Closed event union
 
-The journal is ordered, bounded, non-persisted evidence for one elapsed call. It records only successful transaction operations. It may contain internal endpoint fields that are not part of the eventual public report contract when they are required to preserve provenance or derive compatibility output.
-
-The journal is not:
-
-- `GameState` authority;
-- a save format;
-- event sourcing;
-- replay input;
-- permanent history;
-- Codex Mortis analytics.
-
-### Finalization
-
-Finalization is one-way:
+The public event family has a common typed envelope:
 
 ```text
-open -> finalized success
-open -> finalized failure
+event_type
+occurred_simulation_msec
+priority
+segment_index
+subject_id
+source_id
+reportable
+tutorial_relevant
 ```
 
-After finalization, no candidate or journal mutation is allowed. Success requires:
+Only these current subtypes are valid:
 
-- the requested interval is completely represented;
-- segment/boundary order is valid;
-- all checked mutation operations succeeded;
-- the complete candidate passes `GameStateValidator`;
-- compatibility/public result projection succeeds without new authoritative calculation.
+```text
+SimulationChannelBankedEvent
+SimulationThresholdSettledEvent
+```
 
-Only then may the engine commit the candidate once.
+Channel banking events carry typed output item, quantity, lifecycle, total-banked-after, and progress-after values. Settlement events carry typed persistent-return total, backlog before/after, and lifecycle before/after values. An arbitrary payload dictionary or unknown event type is not part of the public contract.
 
-## M04E2T1 compatibility boundary
+The owning segment index is explicit. Stable sorting remains occurred time, priority, subject ID, source ID. Start-exclusive/end-inclusive ownership remains protected.
 
-M04E2T1 changes internal provenance only. It preserves the current merged public `SimulationResult`, segment/channel compatibility dictionaries, typed `SimulationEvent`, `SimulationRunService`, debug adapter, formulas, values, schema version 3, and content revision `prototype-content-r2`.
+### Structural validation without candidate reconciliation
 
-The compatibility result is generated from the finalized journal. `change_summary` is a derived view, not a parallel authoring path.
+Local and run-level validation checks field domains, detachment, result shape, contiguous timing, stable historical identity, event ordering/cardinality, and fact consistency. It does not receive or compare a candidate `GameState`. T1 already guarantees mutation/fact provenance; T2 must not recreate PR #18's post-hoc candidate/result validator.
 
-M04E2T1 does not introduce the final typed public result family.
+### Consumer migration
 
-## M04E2T2 finalized typed run-fact boundary
+M04E2T2 migrates:
 
-M04E2T2 projects detached typed public facts from the finalized journal and migrates all current consumers. It removes the raw public segment/channel grammar and removes or derives the compatibility summary.
+- `SimulationEngine` return types and stable event constants;
+- `SimulationTransaction` finalized-result storage and projection;
+- `SimulationRunService` passthrough typing;
+- `M04CDebugAdvance` return typing;
+- M04C, M04D2, M04D3, M04E1, and M04E2T1 tests/traces that consume public results;
+- persistence-exclusion and source-ownership checks.
 
-The typed public facts contain the historical assignment/loadout/lifecycle/source identity needed by delayed report ingestion, but they do not authorize or mutate `GameState`.
+Internal diagnostic journal snapshots may remain primitive dictionaries. The removal applies to the public simulation result grammar, not to bounded internal trace evidence.
 
-Because candidate mutation and journal facts already share provenance, M04E2T2 validates field domains and projection integrity rather than duplicating every internal simulation transition as a post-hoc candidate comparison.
+### Compatibility removal
+
+M04E2T2 removes the public raw segment/channel arrays, generic public event payload dictionaries, and simulation `change_summary`. It does not keep a parallel raw-result API. Unrelated domain-service summaries are outside this slice.
+
+### Persistence and scope
+
+Schema version 3 and content revision `prototype-content-r2` remain current. Result, event, segment, channel, projection, context, transaction, and journal objects remain non-persisted. No report state or schema version 4 enters this slice.
 
 ## Deferred report boundaries
 

@@ -2,7 +2,7 @@
 
 **Prompt version:** v0.1  
 **Prompt date:** 2026-07-22  
-**Prompt status:** Approved  
+**Prompt status:** Implemented — Merged/Passed; historical prompt, do not re-execute  
 **Work item type:** Implementation slice  
 **Parent conceptual epics:** M04 / M04E / M04E2  
 **Milestone definition:** `docs/codex/MILESTONES.md`  
@@ -10,11 +10,13 @@
 **Expected base:** current `main` after the planning-only DEC-0043 package is merged  
 **Planned prompt path:** `docs/codex/milestone-prompts/M04E2T1-simulation-transaction-journal.md`
 
-> This prompt authorizes a behavior-preserving internal simulation-transaction refactor. It does not authorize the final typed public result family, report state, schema version 4, report ingestion/reads/history, UI, trusted time, concurrency, or M04E2B.
+> **Historical executed prompt.** M04E2T1 merged through PR #21 from final head `a4d8056cb8771e84e1948fc5e59939c46a13003c` at merge commit `68364e0b417a6e7ebc63b50a386ac5d9f2c506bf`. Final exact-head owner verification passed `165/165` full tests, `61/61` focused tests, all twelve markers, import, negative-root behavior, cleanup, and artifact audit. Do not re-execute this prompt; use it as implementation provenance only.
+>
+> This prompt authorized a behavior-preserving internal simulation-transaction refactor. It did not authorize the final typed public result family, report state, schema version 4, report ingestion/reads/history, UI, trusted time, concurrency, or M04E2B.
 
-## Approval gate
+## Historical approval gate
 
-Do not begin implementation until the project owner changes the prompt status to Approved and confirms:
+Before implementation, the project owner approved the following gate:
 
 ```text
 DEC-0043: Accepted
