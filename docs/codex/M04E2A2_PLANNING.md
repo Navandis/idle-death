@@ -5,7 +5,7 @@
 **Planning baseline:** `main` at `afd390e8338a198d76938eef5ddcf35718ec189c` after PR #22 merged  
 **Prerequisite:** M04E2T2 Merged/Passed through PR #22  
 **Authority:** Accepted `DEC-0043`, accepted `DEC-0044`, and the report semantics carried forward from superseded `DEC-0041`/`DEC-0042`  
-**Prompt:** `docs/codex/milestone-prompts/M04E2A2-report-state-schema-v4-persistence.md` Draft v0.1
+**Prompt:** `docs/codex/milestone-prompts/M04E2A2-report-state-schema-v4-persistence.md` Approved v0.1
 
 ## Purpose
 

@@ -136,7 +136,7 @@ A conceptual epic uses `Prompt: Not applicable` and `Implementation: Not directl
 | `GATE-TYPED-SIMULATION-RESULT` | Retired M04E2A1 prompt | Superseded by accepted `DEC-0043`. PR #18 closed unmerged and does not satisfy a current implementation gate. |
 | `GATE-SINGLE-PROVENANCE-TRANSACTION` | M04E2T1 prompt approval | Satisfied by M04E2T1 Merged/Passed through PR #21 and its exact-head owner evidence. |
 | `GATE-FINALIZED-RUN-FACTS` | M04E2T2 prompt approval | Satisfied by M04E2T2 Merged/Passed through PR #22, accepted `DEC-0044`, clean reviews, and exact-head owner evidence. |
-| `GATE-REPORT-SCHEMA` | M04E2A2 prompt approval | M04E2T2 prerequisite is satisfied. Pending explicit owner approval of the Draft v0.1 field/propagation/malformed-save/migration plan and scope review. M04E2A2 alone may introduce schema v4 and report persistence. |
+| `GATE-REPORT-SCHEMA` | M04E2A2 prompt approval | Satisfied by M04E2T2 Merged/Passed, the approved M04E2A2 v0.1 field/propagation/malformed-save/migration plan, explicit owner approval, and the completed scope review. M04E2A2 alone may introduce schema v4 and report persistence. |
 | `GATE-REPORT-INGESTION` | M04E2A3 prompt approval | Pending M04E2A2 Merged/Passed plus a fresh interval-decision, checked-aggregation, finalized-fact-consumer, and scope review. |
 | `GATE-REPORT-READS-HISTORY` | M04E2A4 prompt approval | Pending M04E2A3 Merged/Passed plus a fresh read-model, snapshot, offline-classification, retention, evidence, and scope review. |
 | `GATE-ATOMIC-REPORTED-RUN` | M04E2B prompt approval | Pending M04E2T1, M04E2T2, and M04E2A2 through M04E2A4 Merged/Passed plus a fresh coordinator/final-harness scope review. |
@@ -181,7 +181,7 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 | M04E2T1 | Single-provenance simulation transaction journal and commit boundary | Implementation slice | Approved | Approved v0.1 | Merged | Passed |
 | M04E2T2 | Finalized typed run facts and current-consumer migration | Implementation slice | Approved | Approved v0.1 | Merged | Passed |
 | M04E2A | Report-foundation implementation sequence | Conceptual sub-epic | Approved | Not applicable | Not directly executable | — |
-| M04E2A2 | Report runtime state and schema-v4 persistence | Implementation slice | Approved | Draft v0.1 | Not started | — |
+| M04E2A2 | Report runtime state and schema-v4 persistence | Implementation slice | Approved | Approved v0.1 | Not started | — |
 | M04E2A3 | Cursor-idempotent live report ingestion | Implementation slice | Approved | Not drafted | Not started | — |
 | M04E2A4 | Report reads, snapshot, bounded history, and final evidence | Implementation slice | Approved | Not drafted | Not started | — |
 | M04E2B | Atomic reported-run coordinator and final M04 harness | Implementation slice | Approved | Not drafted | Not started | — |
