@@ -105,7 +105,7 @@ static func project(context: SimulationRunContext, journal: SimulationFactJourna
 			int(channel.progress_subunits_after)
 		))
 	events.sort_custom(_event_less)
-	var result := SimulationResult.active_reaping(context.requested_elapsed_msec, context.baseline_simulation_time_msec, result_time, context.content_revision, segments, events)
+	var result := SimulationResult.active_reaping(context.requested_elapsed_msec, context.baseline_simulation_time_msec, result_time, context.content_revision, segments, events, not settlement_facts.is_empty())
 	var validation := validate(result)
 	if not validation.ok: return validation
 	return {"ok": true, "result": result}
@@ -114,15 +114,15 @@ static func validate(result: SimulationResult) -> Dictionary:
 	if result == null: return _failure("Result is null.")
 	match result.result_kind:
 		SimulationResult.KIND_FAILURE:
-			if result.success or str(result.error_code).is_empty() or result.committed_elapsed_msec != 0 or not result.segments.is_empty() or not result.events.is_empty() or result.baseline_simulation_time_msec != result.result_simulation_time_msec:
+			if result.success or str(result.error_code).is_empty() or result.committed_elapsed_msec != 0 or not result.segments.is_empty() or not result.events.is_empty() or result.baseline_simulation_time_msec != result.result_simulation_time_msec or result.settlement_event_required:
 				return _failure("Failure result shape is invalid.")
 			return {"ok": true}
 		SimulationResult.KIND_ZERO_DURATION:
-			if not result.success or result.requested_elapsed_msec != 0 or result.committed_elapsed_msec != 0 or not result.segments.is_empty() or not result.events.is_empty() or result.baseline_simulation_time_msec != result.result_simulation_time_msec:
+			if not result.success or result.requested_elapsed_msec != 0 or result.committed_elapsed_msec != 0 or not result.segments.is_empty() or not result.events.is_empty() or result.baseline_simulation_time_msec != result.result_simulation_time_msec or result.settlement_event_required:
 				return _failure("Zero-duration result shape is invalid.")
 			return {"ok": true}
 		SimulationResult.KIND_TIMELINE_ONLY:
-			if not _valid_positive_envelope(result) or not result.segments.is_empty() or not result.events.is_empty(): return _failure("Timeline-only result shape is invalid.")
+			if not _valid_positive_envelope(result) or not result.segments.is_empty() or not result.events.is_empty() or result.settlement_event_required: return _failure("Timeline-only result shape is invalid.")
 			return {"ok": true}
 		SimulationResult.KIND_ACTIVE_REAPING:
 			if not _valid_positive_envelope(result) or result.segments.is_empty(): return _failure("Active result envelope is invalid.")
@@ -208,7 +208,8 @@ static func _validate_events(result: SimulationResult) -> Dictionary:
 	# self-contained evidence that the event is expected. No caller flag is
 	# needed to validate either form.
 	var lifecycle_requires_settlement := segments.size() == 2 and segments[0].lifecycle_state == &"OVERDUE" and segments[1].lifecycle_state == &"SETTLED"
-	if actual_banks.size() != expected_banks.size() or settlement_count > 1 or (lifecycle_requires_settlement and settlement_count != 1): return _failure("Event cardinality does not match segment facts.")
+	var settlement_required := result.settlement_event_required or lifecycle_requires_settlement
+	if actual_banks.size() != expected_banks.size() or settlement_count != (1 if settlement_required else 0): return _failure("Event cardinality does not match segment facts.")
 	return {"ok": true}
 
 static func _valid_positive_envelope(result: SimulationResult) -> bool:

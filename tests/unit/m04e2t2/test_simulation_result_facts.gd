@@ -213,7 +213,10 @@ func test_event_subtype_fields_and_settlement_cardinality_reject_mismatches() ->
 	var exact_boundary := _engine().resolve_elapsed(_state(1), 870)
 	assert_eq(exact_boundary.segments.size(), 1)
 	assert_eq(exact_boundary.events.size(), 1)
+	assert_true(exact_boundary.settlement_event_required)
 	assert_true(SimulationResultProjector.validate(exact_boundary).ok)
+	var exact_boundary_without_event := SimulationResult.active_reaping(exact_boundary.requested_elapsed_msec, exact_boundary.baseline_simulation_time_msec, exact_boundary.result_simulation_time_msec, exact_boundary.content_revision, exact_boundary.segments, [], true)
+	assert_false(SimulationResultProjector.validate(exact_boundary_without_event).ok)
 	var bad_returns := SimulationThresholdSettledEvent.new(settlement.occurred_simulation_msec, settlement.segment_index, settlement.subject_id, -1, settlement.remaining_backlog_before, settlement.remaining_backlog_after, settlement.lifecycle_before, settlement.lifecycle_after)
 	var bad_returns_result := SimulationResult.active_reaping(settlement_result.requested_elapsed_msec, settlement_result.baseline_simulation_time_msec, settlement_result.result_simulation_time_msec, settlement_result.content_revision, settlement_result.segments, [bad_returns])
 	assert_false(SimulationResultProjector.validate(bad_returns_result).ok)
@@ -222,8 +225,8 @@ func test_event_subtype_fields_and_settlement_cardinality_reject_mismatches() ->
 	var duplicate_settlement: Array[SimulationEvent] = [settlement, settlement]
 	var duplicate_result := SimulationResult.active_reaping(settlement_result.requested_elapsed_msec, settlement_result.baseline_simulation_time_msec, settlement_result.result_simulation_time_msec, settlement_result.content_revision, settlement_result.segments, duplicate_settlement)
 	assert_false(SimulationResultProjector.validate(duplicate_result).ok)
-	var spurious_segment := _segment(0, 0, 1000, null)
-	var spurious_settlement := SimulationThresholdSettledEvent.new(1000, 0, &"THR_TEST", 0, 1, 0, &"OVERDUE", &"SETTLED")
+	var spurious_segment := SimulationSegmentResult.new(0, &"THR_TEST", 1, &"FORM_TEST", &"WRIT_TEST", [], &"OVERDUE", 0, 1000, 1000, 1, 1, 0, 0, 0, [])
+	var spurious_settlement := SimulationThresholdSettledEvent.new(1000, 0, &"THR_TEST", 0, 0, 0, &"OVERDUE", &"SETTLED")
 	var spurious_result := SimulationResult.active_reaping(1000, 0, 1000, ContentRegistry.CURRENT_REVISION, [spurious_segment], [spurious_settlement])
 	assert_false(SimulationResultProjector.validate(spurious_result).ok)
 	var incomplete := _engine().resolve_elapsed(_state(1000000), 1000)
@@ -295,12 +298,12 @@ func test_event_order_ownership_priority_and_signed_cursor_boundary() -> void:
 	var bank_b := SimulationChannelBankedEvent.new(1000, 0, &"THR_TEST", &"CHANNEL_B", &"SOUL_B", 1, &"OVERDUE", 1, 0)
 	var settlement := SimulationThresholdSettledEvent.new(1000, 0, &"THR_TEST", 0, 1, 0, &"OVERDUE", &"SETTLED")
 	var ordered: Array[SimulationEvent] = [bank_a, bank_b, settlement]
-	var ordered_result := SimulationResult.active_reaping(1000, 0, 1000, ContentRegistry.CURRENT_REVISION, [segment], ordered)
+	var ordered_result := SimulationResult.active_reaping(1000, 0, 1000, ContentRegistry.CURRENT_REVISION, [segment], ordered, true)
 	assert_true(SimulationResultProjector.validate(ordered_result).ok)
 	var reversed: Array[SimulationEvent] = [bank_b, bank_a, settlement]
-	assert_false(SimulationResultProjector.validate(SimulationResult.active_reaping(1000, 0, 1000, ContentRegistry.CURRENT_REVISION, [segment], reversed)).ok)
+	assert_false(SimulationResultProjector.validate(SimulationResult.active_reaping(1000, 0, 1000, ContentRegistry.CURRENT_REVISION, [segment], reversed, true)).ok)
 	var early_bank := SimulationChannelBankedEvent.new(0, 0, &"THR_TEST", &"CHANNEL_A", &"SOUL_A", 1, &"OVERDUE", 1, 0)
-	assert_false(SimulationResultProjector.validate(SimulationResult.active_reaping(1000, 0, 1000, ContentRegistry.CURRENT_REVISION, [segment], [early_bank, bank_b, settlement])).ok)
+	assert_false(SimulationResultProjector.validate(SimulationResult.active_reaping(1000, 0, 1000, ContentRegistry.CURRENT_REVISION, [segment], [early_bank, bank_b, settlement], true)).ok)
 	var max_cursor := FixedPoint.INT64_MAX
 	var edge_segment := SimulationSegmentResult.new(0, &"THR_TEST", 1, &"FORM_TEST", &"WRIT_TEST", [], &"OVERDUE", max_cursor - 1000, max_cursor, 1000, 0, 0, 0, 0, 0, [channel_a])
 	var edge_event := SimulationChannelBankedEvent.new(max_cursor, 0, &"THR_TEST", &"CHANNEL_A", &"SOUL_A", 1, &"OVERDUE", 1, 0)
