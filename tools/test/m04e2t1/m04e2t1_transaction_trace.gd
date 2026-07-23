@@ -68,7 +68,7 @@ func _run() -> void:
 	var core: Dictionary = _first_fact(trace.transaction.facts, SimulationFactJournal.KIND_CORE_SEGMENT)
 	_assert(not core.is_empty(), "core fact exists")
 	_assert(core.returned_souls_delta == trace.result.segments[0].returned_souls_delta, "core returned endpoint")
-	_assert(core.Essence_delta == trace.result.segments[0].Essence_delta, "core Essence endpoint")
+	_assert(core.Essence_delta == trace.result.segments[0].essence_delta, "core Essence endpoint")
 	_pass("core_mutation_fact_shared_provenance")
 
 	var soldier_state := _state()
@@ -77,7 +77,7 @@ func _run() -> void:
 	var channel_trace := SimulationEngine.new(_registry).resolve_elapsed_with_trace(soldier_state, HOUR)
 	var channel_fact: Dictionary = _first_banked_fact(channel_trace.transaction.facts)
 	_assert(not channel_fact.is_empty(), "channel fact exists")
-	var channel_delta: Dictionary = channel_trace.result.segments[0].channel_deltas[0]
+	var channel_delta: SimulationChannelDeltaResult = channel_trace.result.segments[0].channel_deltas[0]
 	_assert(channel_fact.progress_subunits_after == channel_delta.progress_subunits_after and channel_fact.total_banked_units_after == channel_delta.total_banked_units_after, "channel endpoints")
 	_pass("channel_mutation_fact_shared_provenance")
 
@@ -85,12 +85,12 @@ func _run() -> void:
 	var settlement_trace := SimulationEngine.new(_registry).resolve_elapsed_with_trace(settlement_state, 10000)
 	var settlement_fact: Dictionary = _first_fact(settlement_trace.transaction.facts, SimulationFactJournal.KIND_SETTLEMENT)
 	_assert(settlement_trace.result.events.size() == 1 and settlement_fact.persistent_returns_total == 1, "Settlement boundary total")
-	_assert(settlement_trace.result.events[0].payload.persistent_returns_total == settlement_fact.persistent_returns_total, "Settlement event provenance")
+	_assert(settlement_trace.result.events[0].persistent_returns_total == settlement_fact.persistent_returns_total, "Settlement event provenance")
 	_pass("settlement_boundary_fact_shared_provenance")
 
 	var idle := _state(100, false)
 	var idle_trace := SimulationEngine.new(_registry).resolve_elapsed_with_trace(idle, 1234)
-	_assert(idle_trace.result.change_summary == {"simulation_time_delta_msec": 1234}, "timeline summary")
+	_assert(idle_trace.result.result_kind == SimulationResult.KIND_TIMELINE_ONLY and idle_trace.result.committed_elapsed_msec == 1234, "timeline result")
 	_assert(idle_trace.transaction.facts.size() == 1 and idle_trace.transaction.facts[0].kind == SimulationFactJournal.KIND_TIMELINE, "timeline fact")
 	_pass("timeline_only_transaction")
 
@@ -106,11 +106,11 @@ func _run() -> void:
 	_assert(_canonical(overflow) == overflow_before, "partial failure preserves live")
 	_pass("partial_candidate_failure_preserves_live")
 
-	_assert(trace.result.change_summary.returned_souls_delta == core.returned_souls_delta, "summary core total")
-	_assert(trace.result.change_summary.simulation_time_delta_msec == HOUR, "summary timeline")
+	_assert(trace.result.segments[0].returned_souls_delta == core.returned_souls_delta, "typed core total")
+	_assert(trace.result.committed_elapsed_msec == HOUR, "typed timeline")
 	_pass("compatibility_summary_derived_from_journal")
-	var bank_event: SimulationEngine.SimulationEvent = channel_trace.result.events[0]
-	_assert(bank_event.payload.quantity == channel_fact.banked_units_delta and bank_event.payload.total_banked_units == channel_fact.total_banked_units_after, "event channel fact")
+	var bank_event: SimulationChannelBankedEvent = channel_trace.result.events[0]
+	_assert(bank_event.quantity == channel_fact.banked_units_delta and bank_event.total_banked_units_after == channel_fact.total_banked_units_after, "event channel fact")
 	_pass("events_derived_from_journal")
 
 	var one_hour := _state()

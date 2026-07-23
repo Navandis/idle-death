@@ -74,8 +74,9 @@ func test_eight_hour_forecast_preserves_complete_core_and_generic_channels() -> 
 	assert_eq(projected.inventory.entries[&"SOUL_FORM_SCRIBE"].total, 1)
 	assert_eq(projected.thresholds[&"THR_GLOAMWOOD"].channel_acquisition[&"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS"].progress_subunits, 0)
 	var delta_ids := []
-	for delta in result.simulation_result.change_summary.channel_deltas:
-		delta_ids.append(delta.channel_id)
+	for segment in result.simulation_result.segments:
+		for delta in segment.channel_deltas:
+			delta_ids.append(str(delta.channel_id))
 	delta_ids.sort()
 	assert_eq(delta_ids, ["CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS", "CHANNEL_GLOAMWOOD_SOLDIER_SOULS"])
 
@@ -90,7 +91,9 @@ func test_broken_watch_channel_kinds_pass_through_without_forecast_branch() -> v
 	assert_eq(_canonical(forecast.projected_state), _canonical(commit_state))
 	assert_eq(forecast.projected_state.inventory.entries[&"RES_PROVISIONS"].total, 2880)
 	assert_eq(forecast.projected_state.inventory.entries[&"SOUL_FORM_MAN_AT_ARMS"].total, 1)
-	assert_eq(forecast.simulation_result.change_summary.channel_deltas.size(), 2)
+	var channel_count := 0
+	for segment in forecast.simulation_result.segments: channel_count += segment.channel_deltas.size()
+	assert_eq(channel_count, 2)
 
 func test_settlement_modes_and_chunking_are_canonically_equal() -> void:
 	var service := _service()
@@ -102,7 +105,7 @@ func test_settlement_modes_and_chunking_are_canonically_equal() -> void:
 		var result := service.run_committed(state, 10000, mode)
 		assert_true(result.success, result.developer_details)
 		_assert_run_result_fields(result, true, mode, 10000, 0, 10000, true, false)
-		assert_eq(result.simulation_result.events[0].event_type, SimulationEngine.EVENT_THRESHOLD_SETTLED)
+		assert_eq(result.simulation_result.events[0].event_type, SimulationEvent.EVENT_THRESHOLD_SETTLED)
 		snapshots.append(_canonical(state))
 	assert_eq(snapshots[0], snapshots[1])
 	assert_eq(snapshots[1], snapshots[2])

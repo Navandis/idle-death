@@ -2688,7 +2688,7 @@ Final Windows evidence passed `153/153` full tests and `2,522` assertions before
 
 ## Approved M04E2 transaction and proposed typed run-fact contracts
 
-Accepted `DEC-0043` supersedes the M04E2A1 implementation packaging in `DEC-0042` while carrying forward the report semantics of `DEC-0041` and `DEC-0042`. M04E2T1 is Merged/Passed. Proposed `DEC-0044` defines the exact M04E2T2 public contract and remains non-authoritative until explicit owner acceptance.
+Accepted `DEC-0043` supersedes the M04E2A1 implementation packaging in `DEC-0042` while carrying forward the report semantics of `DEC-0041` and `DEC-0042`. M04E2T1 is Merged/Passed. Accepted `DEC-0044` defines the exact M04E2T2 public contract; its implementation is on the open M04E2T2 pull request and remains non-persisted until later report slices.
 
 The active sequence is:
 
@@ -2730,7 +2730,7 @@ The current temporary public compatibility result is generated from the finalize
 
 M04E2T1 merged through PR #21 at final head `a4d8056cb8771e84e1948fc5e59939c46a13003c` and merge commit `68364e0b417a6e7ebc63b50a386ac5d9f2c506bf`. Exact-head Windows evidence passed `165/165` full tests, `61/61` focused tests, all twelve trace markers, import, negative-root behavior, cleanup, and artifact audit.
 
-## Proposed M04E2T2 finalized typed run-fact contract
+## M04E2T2 finalized typed run-fact contract
 
 ### Result kinds and envelope
 

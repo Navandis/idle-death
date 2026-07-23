@@ -2,9 +2,9 @@
 
 **Document role:** Canonical test strategy, commands, fixture rules, and manual validation flows
 **Repository path:** `docs/codex/TESTING_AND_VALIDATION.md`
-**Document status:** Approved through M04E2T1; M04E2T2 validation plan Draft v0.1 under proposed DEC-0044
-**Validation revision:** 29
-**Last updated:** 2026-07-22
+**Document status:** Approved through M04E2T2 implementation boundary; owner verification remains pending final review
+**Validation revision:** 30
+**Last updated:** 2026-07-23
 **Engine target:** Godot 4.7 standard build, GDScript only
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)  
 **Owner evidence companion:** [OWNER_VERIFICATION_WORKFLOW.md](OWNER_VERIFICATION_WORKFLOW.md)
@@ -2114,9 +2114,9 @@ Final exact-head Windows evidence recorded:
 
 The final unrestricted Codex review was clean and every review thread was resolved. `GATE-SINGLE-PROVENANCE-TRANSACTION` is satisfied. The owner-approved scope exception applies only to M04E2T1.
 
-## 30. Proposed M04E2T2 finalized typed run-fact validation package
+## 30. M04E2T2 finalized typed run-fact validation package
 
-This package is Draft with proposed `DEC-0044` and the M04E2T2 prompt v0.1. It becomes executable only after explicit owner approval.
+This package is the approved `DEC-0044` validation contract for the M04E2T2 prompt v0.1. The implementation pull request provides the focused automated suite, trace, and owner-verification entry point; exact-head owner execution remains a post-review merge gate.
 
 M04E2T2 changes public result representation and current consumers while preserving simulation behavior, mutation provenance, schema version 3, and content revision `prototype-content-r2`.
 

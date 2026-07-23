@@ -48,7 +48,9 @@ func _run_trace() -> Dictionary:
 	var watch := _state(&"THR_BROKEN_WATCH", 250000)
 	_unlock_and_init(watch, [&"RES_PROVISIONS", &"SOUL_FORM_MAN_AT_ARMS"])
 	var watch_forecast := _service.forecast(watch, 24 * HOUR)
-	if not (watch_forecast.success and watch_forecast.simulation_result.change_summary.channel_deltas.size() == 2): return _fail(14, "generic channel passthrough")
+	var watch_channel_count := 0
+	for segment in watch_forecast.simulation_result.segments: watch_channel_count += segment.channel_deltas.size()
+	if not (watch_forecast.success and watch_channel_count == 2): return _fail(14, "generic channel passthrough")
 	if not (watch_forecast.projected_state.inventory.entries[&"RES_PROVISIONS"].total == 2880 and watch_forecast.projected_state.inventory.entries[&"SOUL_FORM_MAN_AT_ARMS"].total == 1): return _fail(15, "Broken Watch outputs")
 	_trace("generic_channel_passthrough=PASS")
 
@@ -72,7 +74,7 @@ func _run_trace() -> Dictionary:
 	var low_forecast := _service.forecast(_prepared_state(&"THR_GLOAMWOOD", 1, [&"SOUL_CALLING_SOLDIER"]), 10000)
 	var low_commit := _prepared_state(&"THR_GLOAMWOOD", 1, [&"SOUL_CALLING_SOLDIER"])
 	var low_commit_result := _service.run_committed(low_commit, 10000, SimulationRunService.MODE_FOREGROUND_SUPPLIED)
-	if not (low_forecast.success and low_commit_result.success and _canonical(low_forecast.projected_state) == _canonical(low_commit) and low_forecast.simulation_result.events.size() > 0 and low_forecast.simulation_result.events[0].event_type == SimulationEngine.EVENT_THRESHOLD_SETTLED): return _fail(20, "settlement equivalence")
+	if not (low_forecast.success and low_commit_result.success and _canonical(low_forecast.projected_state) == _canonical(low_commit) and low_forecast.simulation_result.events.size() > 0 and low_forecast.simulation_result.events[0].event_type == SimulationEvent.EVENT_THRESHOLD_SETTLED): return _fail(20, "settlement equivalence")
 	_trace("settlement_boundary_equivalence=PASS")
 
 	var foreground := _prepared_state(&"THR_GLOAMWOOD", 1000000, [&"SOUL_CALLING_SOLDIER"])
@@ -153,12 +155,12 @@ func _event_and_delta_match() -> bool:
 	var commit := _service.run_committed(commit_state, 10000, SimulationRunService.MODE_FOREGROUND_SUPPLIED)
 	if not (forecast.success and commit.success): return false
 	if forecast.simulation_result.segments.size() != commit.simulation_result.segments.size(): return false
-	if forecast.simulation_result.change_summary != commit.simulation_result.change_summary: return false
+	if not forecast.simulation_result.value_equals(commit.simulation_result): return false
 	if forecast.simulation_result.events.size() != commit.simulation_result.events.size(): return false
 	for i in range(forecast.simulation_result.events.size()):
-		var a: SimulationEngine.SimulationEvent = forecast.simulation_result.events[i]
-		var b: SimulationEngine.SimulationEvent = commit.simulation_result.events[i]
-		if a.event_type != b.event_type or a.occurred_simulation_msec != b.occurred_simulation_msec or a.subject_id != b.subject_id or a.source_id != b.source_id or a.payload != b.payload: return false
+		var a: SimulationEvent = forecast.simulation_result.events[i]
+		var b: SimulationEvent = commit.simulation_result.events[i]
+		if not a.value_equals(b): return false
 	return true
 
 func _save_bytes_unchanged(_snapshot: Dictionary, state: GameState) -> bool:

@@ -1,6 +1,6 @@
 # M04E2 single-provenance transaction redesign plan
 
-**Status:** Approved architecture; M04E2T1 Merged/Passed; M04E2T2 planning Draft v0.1  
+**Status:** Approved architecture; M04E2T1 Merged/Passed; M04E2T2 implementation pull request open; verification partial
 **Date:** 2026-07-22  
 **Authority:** Accepted `DEC-0043`; Accepted `DEC-0044` for M04E2T2  
 **Current merged baseline:** M04E2T1 through PR #21 on schema version 3 / `prototype-content-r2`  
@@ -89,7 +89,7 @@ The owner approved the slice-specific line-count exception. `SimulationEngine` d
 
 `GATE-SINGLE-PROVENANCE-TRANSACTION` is satisfied.
 
-## M04E2T2 proposed boundary
+## M04E2T2 realized boundary in the open implementation PR
 
 ### Principal transition
 
@@ -106,7 +106,7 @@ One `SimulationResultProjector` or equivalent is the public-fact projection owne
 
 ### Public fact family
 
-Proposed `DEC-0044` defines:
+Accepted `DEC-0044` defines and the open implementation PR realizes:
 
 - one global typed `SimulationResult` with explicit result kind and run cursors;
 - typed `SimulationSegmentResult` historical facts;
@@ -166,14 +166,14 @@ full suite is red at review request
 
 ## Current action
 
-Review and explicitly approve or revise:
+Review the open M04E2T2 implementation pull request and run the exact-head owner package after final GitHub review:
 
 ```text
-proposed DEC-0044
+accepted DEC-0044
 docs/codex/M04E2T2_PLANNING.md
 docs/codex/milestone-prompts/M04E2T2-finalized-typed-run-facts.md
 docs/codex/CODEX_DESKTOP_WORKFLOW.md
-tools/codex/publish_milestone_pr.ps1
+tools/test/owner/run_m04e2t2_owner_verification.ps1
 ```
 
-Do not execute the M04E2T2 prompt while `DEC-0044` is Proposed or the prompt status is Draft.
+Do not mark M04E2T2 Merged/Passed until final review and exact-head owner verification are complete.

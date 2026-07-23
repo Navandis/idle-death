@@ -27,11 +27,6 @@ const ERR_UNSUPPORTED_MODIFIER := &"SIM_UNSUPPORTED_MODIFIER"
 const ERR_OVERFLOW := &"SIM_OVERFLOW"
 const ERR_ZERO_BOUNDARY := &"SIM_ZERO_BOUNDARY"
 
-const EVENT_THRESHOLD_SETTLED := &"THRESHOLD_SETTLED"
-const EVENT_OUTPUT_CHANNEL_BANKED := &"OUTPUT_CHANNEL_BANKED"
-const EVENT_PRIORITY_CHANNEL_GAIN := 100
-const EVENT_PRIORITY_LIFECYCLE := 200
-
 const FLOW_CORE_RETURNS_PROGRESS_SUBUNITS := CoreFlowKeys.RETURNS_PROGRESS
 const FLOW_CORE_RETURNS_RATE_CARRY_UNITS := CoreFlowKeys.RETURNS_CARRY
 const FLOW_CORE_ESSENCE_PROGRESS_SUBUNITS := CoreFlowKeys.ESSENCE_PROGRESS
@@ -62,7 +57,7 @@ func _resolve_elapsed_internal(state: GameState, elapsed_msec: int, trace_output
 	if elapsed_msec < 0:
 		return SimulationResult.failure(ERR_NEGATIVE_ELAPSED, elapsed_msec, "Elapsed milliseconds must be non-negative.")
 	if elapsed_msec == 0:
-		return SimulationResult.success_empty(elapsed_msec)
+		return SimulationResult.zero_duration(0 if state == null else state.simulation_time_msec)
 	var validation := GameStateValidator.validate(state, registry, true)
 	if not validation.ok:
 		return SimulationResult.failure(ERR_STATE_INVALID, elapsed_msec, str(validation))
@@ -340,39 +335,3 @@ func _has_any(left: Array, right: Array) -> bool:
 
 func _fail(code: StringName, details: String) -> Dictionary:
 	return {"ok": false, "code": code, "details": details}
-
-class SimulationResult:
-	extends RefCounted
-	var success: bool
-	var error_code: StringName
-	var developer_details: String
-	var requested_elapsed_msec: int
-	var committed_elapsed_msec: int = 0
-	var change_summary: Dictionary = {}
-	var segments: Array = []
-	var events: Array = []
-	func _init(success_value := false, error_value: StringName = &"", details := "", requested := 0) -> void:
-		success = success_value; error_code = error_value; developer_details = details; requested_elapsed_msec = requested
-	static func failure(code: StringName, requested: int, details: String) -> SimulationResult:
-		return SimulationResult.new(false, code, details, requested)
-	static func success_empty(requested: int) -> SimulationResult:
-		var result := SimulationResult.new(true, OK, "", requested)
-		result.committed_elapsed_msec = 0
-		return result
-
-class SimulationEvent:
-	extends RefCounted
-	var event_type: StringName
-	var occurred_simulation_msec: int
-	var priority: int
-	var subject_id: StringName
-	var source_id: StringName
-	var payload: Dictionary
-	var reportable: bool
-	var tutorial_relevant: bool
-	func _init(type_value: StringName, occurred: int, priority_value: int, subject: StringName, source: StringName, payload_value: Dictionary) -> void:
-		event_type = type_value; occurred_simulation_msec = occurred; priority = priority_value; subject_id = subject; source_id = source; payload = payload_value; reportable = true; tutorial_relevant = true
-	static func threshold_settled(occurred: int, threshold_id: StringName, returns_total: int) -> SimulationEvent:
-		return SimulationEvent.new(EVENT_THRESHOLD_SETTLED, occurred, EVENT_PRIORITY_LIFECYCLE, threshold_id, &"SIMULATION_ENGINE", {"remaining_backlog": 0, "lifecycle_state": "SETTLED", "persistent_returns_total": returns_total})
-	static func output_channel_banked(occurred: int, threshold_id: StringName, channel_id: StringName, delta: Dictionary, lifecycle_state: String) -> SimulationEvent:
-		return SimulationEvent.new(EVENT_OUTPUT_CHANNEL_BANKED, occurred, EVENT_PRIORITY_CHANNEL_GAIN, threshold_id, channel_id, {"output_item_id": delta.output_item_id, "quantity": delta.banked_units_delta, "lifecycle_state": lifecycle_state, "total_banked_units": delta.total_banked_units_after, "progress_subunits_after": delta.progress_subunits_after})
