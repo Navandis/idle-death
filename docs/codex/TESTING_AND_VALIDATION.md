@@ -2,7 +2,7 @@
 
 **Document role:** Canonical test strategy, commands, fixture rules, and manual validation flows
 **Repository path:** `docs/codex/TESTING_AND_VALIDATION.md`
-**Document status:** Approved through M04E2T2; M04E2A2 validation plan Draft v0.1
+**Document status:** Approved through M04E2T2; M04E2A2 implementation PR open, verification partial
 **Validation revision:** 32
 **Last updated:** 2026-07-23
 **Engine target:** Godot 4.7 standard build, GDScript only
@@ -46,7 +46,7 @@ M04D2 merged through PR #14 at merge commit `24228a078199d9728eb57e4e26c27447aa6
 
 M04D3 merged through PR #15 at merge commit `9fd8f98e3787f711f3d03c9de03d3615d531216a` from final head `5a5cafc6b640001fba86c7ea9531ae9daf43fcc3`. Linux/Codex focused coverage passed `35/35` tests and `592` assertions. Owner Windows verification passed the full suite before and after (`144/144`, `2,222` assertions), focused M04D3 (`18/18`, `254` assertions), import, all sixteen markers, cleanup, cleanup proof, and artifact audit with zero failed steps. Accepted `DEC-0040` decomposes M04E into approved forecast-only M04E1 and report-state M04E2.
 
-M04E1 merged through PR #16 at merge commit `03f05a3d78609a993cecab8b0077e5f7d7d55900` from final head `738e89c606dd9f1f9f0396334ea9d8587ff389f3`. Owner Windows verification passed the full suite before and after (`153/153`, `2,522` assertions), focused M04E1 (`9/9`, `295` assertions), explicit import, all fifteen markers, cleanup, cleanup proof, and artifact audit with zero failed steps. PR #17 and PR #18 later attempted M04E2 report/result foundations and were closed unmerged at terminal heads `5c87118045faa6f48f8ce50977a9bcdcfa967e57` and `602dec077f44338cdb4a2eabbd30d3989c877902`. M04E2T1 and M04E2T2 subsequently merged and passed through PR #21 and PR #22. M04E2A2 report state/schema-v4 persistence is the active planning boundary.
+M04E1 merged through PR #16 at merge commit `03f05a3d78609a993cecab8b0077e5f7d7d55900` from final head `738e89c606dd9f1f9f0396334ea9d8587ff389f3`. Owner Windows verification passed the full suite before and after (`153/153`, `2,522` assertions), focused M04E1 (`9/9`, `295` assertions), explicit import, all fifteen markers, cleanup, cleanup proof, and artifact audit with zero failed steps. PR #17 and PR #18 later attempted M04E2 report/result foundations and were closed unmerged at terminal heads `5c87118045faa6f48f8ce50977a9bcdcfa967e57` and `602dec077f44338cdb4a2eabbd30d3989c877902`. M04E2T1 and M04E2T2 subsequently merged and passed through PR #21 and PR #22. M04E2A2 report state/schema-v4 persistence is the active implementation boundary.
 
 ## 2. Pinned test and platform dependencies
 
@@ -2168,7 +2168,7 @@ Final non-documentation/non-`.uid` scope was 25 files and 1,460 net additions. T
 
 ## 31. M04E2A2 report-state and schema-v4 validation package
 
-This section is Draft v0.1 with the M04E2A2 planning package. It becomes executable only after explicit owner approval of the prompt, `GATE-REPORT-SCHEMA`, and `GATE-SLICE-SCOPE`.
+This section is the approved M04E2A2 validation package. The implementation PR is open; targeted/unrestricted review and exact-head Windows owner verification remain pending.
 
 M04E2A2 changes authoritative runtime state and the save writer but adds no production report mutation. Validation must prove exact construction, clone/copy isolation, schema grammar, migration, persistence, and failure preservation.
 

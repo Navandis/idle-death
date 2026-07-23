@@ -113,7 +113,7 @@ func _run() -> void:
 	var service := SaveService.new(FileSaveStorage.new(), files)
 	_assert(service.save_runtime(g8, TimeAuthorityState.new(), 3, _registry.content_revision).ok, "save")
 	var decoded := JsonSaveCodec.new().decode(FileAccess.get_file_as_bytes(files.primary_path))
-	_assert(decoded.ok and decoded.snapshot.schema_version == "3" and decoded.snapshot.content_revision == "prototype-content-r2", "schema v3 r2 bytes")
+	_assert(decoded.ok and decoded.snapshot.schema_version == "4" and decoded.snapshot.content_revision == "prototype-content-r2", "schema v4 r2 bytes")
 	_assert(str(decoded.snapshot).find("OUTPUT_CHANNEL_BANKED") == -1 and str(decoded.snapshot).find("channel_deltas") == -1, "result artifacts absent")
 	var loaded := service.load_runtime()
 	_assert(loaded.ok and _canonical(loaded.game_state) == _canonical(g8), "round trip")

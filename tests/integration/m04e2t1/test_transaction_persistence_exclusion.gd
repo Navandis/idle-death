@@ -29,8 +29,8 @@ func test_transaction_and_result_artifacts_are_excluded_from_schema_v3_snapshot(
 	var result := SimulationRunService.new(registry).run_committed(state, HOUR, SimulationRunService.MODE_FOREGROUND_SUPPLIED)
 	assert_true(result.success, result.developer_details)
 	var mapped := SaveSchemaMapper.runtime_to_snapshot(state, TimeAuthorityState.new(), 1, ContentRegistry.CURRENT_REVISION)
-	assert_eq(mapped.schema_version, SaveInt64.format(3))
+	assert_eq(mapped.schema_version, SaveInt64.format(4))
 	assert_eq(mapped.content_revision, ContentRegistry.CURRENT_REVISION)
 	var snapshot_text := JSON.stringify(mapped)
-	for forbidden in ["SimulationRunContext", "SimulationTransaction", "SimulationFactJournal", "transaction", "journal", "simulation_result", "forecast", "report"]:
+	for forbidden in ["SimulationRunContext", "SimulationTransaction", "SimulationFactJournal", "transaction", "journal", "simulation_result", "forecast"]:
 		assert_false(snapshot_text.contains(forbidden), forbidden)

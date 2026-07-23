@@ -48,7 +48,7 @@ After M04E2T2 completion:
 - Accepted `DEC-0043` supersedes the implementation packaging in `DEC-0042` and requires a single-provenance simulation transaction before finalized typed run facts and report persistence.
 - M04E2T1 merged through PR #21 from final head `a4d8056cb8771e84e1948fc5e59939c46a13003c` at merge commit `68364e0b417a6e7ebc63b50a386ac5d9f2c506bf`; exact-head Windows verification passed `165/165` full tests, `61/61` focused tests, all twelve markers, import, negative-root behavior, cleanup, and artifact audit.
 - M04E2T2 merged through PR #22 from final head `00bd7d1ce27817b508eb0aac1663d1de48353237` at merge commit `afd390e8338a198d76938eef5ddcf35718ec189c`; exact-head Windows verification passed `178/178` full tests, `74/74` focused tests, all fifteen markers, import, negative-root behavior, cleanup, and artifact audit.
-- `GATE-SINGLE-PROVENANCE-TRANSACTION` and `GATE-FINALIZED-RUN-FACTS` are satisfied. The Draft M04E2A2 planning package defines the next owner-approval boundary.
+- `GATE-SINGLE-PROVENANCE-TRANSACTION` and `GATE-FINALIZED-RUN-FACTS` are satisfied. The approved M04E2A2 planning package defines the active implementation boundary.
 - PR #17 and PR #18 are retained only as forensic review/finding references and are not cherry-pick or production-code sources.
 - The repository still has no authoritative report accumulator/history, atomic reported-run coordinator, application shell, trusted offline adapter, concurrent-Reaping resolver, or player-facing gameplay UI.
 - Existing dry-run assets and scene work are preserved unless a scoped milestone explicitly replaces or integrates them.
@@ -153,7 +153,7 @@ A conceptual epic uses `Prompt: Not applicable` and `Implementation: Not directl
 
 `GATE-CONTENT-CATALOG` was satisfied by M03. PR #7 merged on 2026-07-15 at merge commit `5e2b9b23878c9280f75b987cc9ad567d8980030d`; its final head was `971cdaa0fd46f641ec7409148e259d54f953d8c7`. Linux/Codex and owner Windows verification passed the full and focused suites, explicit import, semantic catalog trace, artifact audit, and Godot Inspector checklist.
 
-`GATE-SLICE-SCOPE` is mandatory for every post-M03 prompt. `GATE-GAMEPLAY-SCHEMA` through `GATE-FORECAST-CLONE` are satisfied by the merged M04A-M04E1 sequence. `GATE-TYPED-SIMULATION-RESULT` is Superseded after failed PR #18. `GATE-SINGLE-PROVENANCE-TRANSACTION` is satisfied by M04E2T1. `GATE-FINALIZED-RUN-FACTS` is satisfied by M04E2T2. `GATE-REPORT-SCHEMA` is the active pending owner-approval boundary for M04E2A2; later report and atomic-run gates remain pending their preceding slices and fresh scope reviews.
+`GATE-SLICE-SCOPE` is mandatory for every post-M03 prompt. `GATE-GAMEPLAY-SCHEMA` through `GATE-FORECAST-CLONE` are satisfied by the merged M04A-M04E1 sequence. `GATE-TYPED-SIMULATION-RESULT` is Superseded after failed PR #18. `GATE-SINGLE-PROVENANCE-TRANSACTION` is satisfied by M04E2T1. `GATE-FINALIZED-RUN-FACTS` is satisfied by M04E2T2. `GATE-REPORT-SCHEMA` is satisfied for implementation by the approved M04E2A2 boundary; its review and exact-head owner verification remain pending. Later report and atomic-run gates remain pending their preceding slices and fresh scope reviews.
 
 
 When trusted time is unavailable, the approved behavior is to grant no guessed closed-session progress, retain pending reconciliation, and continue monotonic foreground production. No milestone may introduce a local-device-time fallback.
@@ -220,7 +220,7 @@ M00 → M01 → M02 → M03
 | M04E1 | M04D3 Merged and Passed; `GATE-FORECAST-CLONE` satisfied | M04E2T1 planning |
 | M04E2T1 | M04E1 Merged/Passed; accepted `DEC-0043`; approved prompt and `GATE-SINGLE-PROVENANCE-TRANSACTION` | M04E2T2 planning |
 | M04E2T2 | Merged/Passed through PR #22; accepted `DEC-0044`; `GATE-FINALIZED-RUN-FACTS` satisfied | M04E2A2 prompt approval and implementation |
-| M04E2A2 | M04E2T2 Merged/Passed; Draft v0.1 planning/prompt; explicit `GATE-REPORT-SCHEMA` and scope approval | M04E2A3 planning |
+| M04E2A2 | M04E2T2 Merged/Passed; approved v0.1 planning/prompt; `GATE-REPORT-SCHEMA` and scope approval satisfied; implementation PR open | M04E2A3 planning |
 | M04E2A3 | M04E2A2 Merged/Passed; fresh temporal/ingestion scope approval | M04E2A4 planning |
 | M04E2A4 | M04E2A3 Merged/Passed; fresh read/snapshot/history scope approval | M04E2B planning |
 | M04E2B | M04E2T1, M04E2T2, and M04E2A2 through M04E2A4 Merged/Passed; atomic-coordinator prompt approved | M05 decomposition and prompt drafting |
@@ -1645,9 +1645,9 @@ M04E2A is complete only when M04E2A2, M04E2A3, and M04E2A4 are all Merged and Pa
 **Work item type:** Implementation slice  
 **Parent epic:** M04 / M04E / M04E2 / M04E2A  
 **Definition status:** Approved boundary under accepted `DEC-0043` and carried-forward report semantics  
-**Prompt status:** Draft v0.1 — pending explicit owner approval  
-**Implementation status:** Not started  
-**Verification status:** —  
+**Prompt status:** Approved v0.1
+**Implementation status:** Pull request open
+**Verification status:** Partial; targeted/unrestricted review and exact-head Windows package pending
 **Recommended Codex task size:** Medium; one report-state/schema/migration/persistence pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M04E2A2-report-state-schema-v4-persistence.md`
 

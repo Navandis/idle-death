@@ -4,7 +4,7 @@ extends RefCounted
 ## Explicit mapper between M04A runtime objects and primitive save snapshots.
 ##
 ## The mapper owns no bytes, files, content Resources, or live state. It writes
-## only schema v3, can still read historical v1 through migration callers, and
+## only the current schema, can still read historical v1-v3 through migration callers, and
 ## converts every authoritative integer to the canonical decimal string required
 ## at the JSON boundary.
 
@@ -66,6 +66,7 @@ static func snapshot_to_runtime(snapshot: Dictionary) -> Dictionary:
 	for item_id in validation.get("unlocked_output_item_ids", []):
 		game.progression.unlocked_output_item_ids.append(StringName(item_id))
 	game.progression.unlocked_output_item_ids.sort()
+	game.report_state = _report_state_from_snapshot(g.report_state) if g.has("report_state") else ReportState.empty_at_cursor(validation.simulation_time_msec)
 	var time := _map_time(snapshot.time_authority, validation)
 	return {"ok": true, "code": OK, "game_state": game, "time_authority_state": time, "save_revision": validation.save_revision, "content_revision": snapshot.content_revision}
 
@@ -77,7 +78,106 @@ static func _game_to_v2(game_state: GameState) -> Dictionary:
 		"thresholds": _thresholds_to_snapshot(game_state.thresholds),
 		"reapings": _reapings_to_snapshot(game_state.reapings),
 		"progression": _progression_to_snapshot(game_state.progression),
+		"report_state": _report_state_to_snapshot(game_state.report_state),
 	}
+
+static func _report_state_to_snapshot(report_state: ReportState) -> Dictionary:
+	var history := []
+	for record in report_state.history:
+		history.append(_report_record_to_snapshot(record))
+	return {
+		"ingested_through_simulation_msec": SaveInt64.format(report_state.ingested_through_simulation_msec),
+		"next_report_sequence": SaveInt64.format(report_state.next_report_sequence),
+		"next_event_sequence": SaveInt64.format(report_state.next_event_sequence),
+		"dropped_history_count": SaveInt64.format(report_state.dropped_history_count),
+		"live": _report_accumulator_to_snapshot(report_state.live),
+		"history": history,
+	}
+
+static func _report_accumulator_to_snapshot(accumulator: ReportAccumulatorState) -> Dictionary:
+	var modes := {}
+	for key in _sorted_keys(accumulator.committed_mode_counts): modes[str(key)] = SaveInt64.format(accumulator.committed_mode_counts[key])
+	var slices := {}
+	for key in _sorted_keys(accumulator.attribution_slices): slices[str(key)] = _report_slice_to_snapshot(accumulator.attribution_slices[key])
+	var event_counts := {}
+	for key in _sorted_keys(accumulator.event_type_counts): event_counts[str(key)] = SaveInt64.format(accumulator.event_type_counts[key])
+	var events := []
+	for event in accumulator.recent_events: events.append(_report_event_to_snapshot(event))
+	return {
+		"window_started_simulation_msec": SaveInt64.format(accumulator.window_started_simulation_msec),
+		"window_ended_simulation_msec": SaveInt64.format(accumulator.window_ended_simulation_msec),
+		"ingested_run_count": SaveInt64.format(accumulator.ingested_run_count),
+		"committed_mode_counts": modes,
+		"attribution_slices": slices,
+		"event_type_counts": event_counts,
+		"recent_events": events,
+		"omitted_event_count": SaveInt64.format(accumulator.omitted_event_count),
+	}
+
+static func _report_record_to_snapshot(record: ReportRecord) -> Dictionary:
+	return {"report_sequence": SaveInt64.format(record.report_sequence), "snapshot_reason": str(record.snapshot_reason), "snapshot_simulation_msec": SaveInt64.format(record.snapshot_simulation_msec), "window": _report_accumulator_to_snapshot(record.window)}
+
+static func _report_slice_to_snapshot(slice: ReportAttributionSlice) -> Dictionary:
+	var inventory := {}; for key in _sorted_keys(slice.inventory_gains_by_item_id): inventory[str(key)] = SaveInt64.format(slice.inventory_gains_by_item_id[key])
+	var mastery := {}; for key in _sorted_keys(slice.mastery_gains_subunits_by_form_id): mastery[str(key)] = SaveInt64.format(slice.mastery_gains_subunits_by_form_id[key])
+	var channels := {}; for key in _sorted_keys(slice.channel_summaries_by_channel_id): channels[str(key)] = _report_channel_to_snapshot(slice.channel_summaries_by_channel_id[key])
+	return {
+		"threshold_id": str(slice.threshold_id), "assignment_revision": SaveInt64.format(slice.assignment_revision), "lifecycle_state": str(slice.lifecycle_state),
+		"loadout_identity": {"form_id": str(slice.loadout_identity.form_id), "writ_id": str(slice.loadout_identity.writ_id), "ordered_retinue_ids": _string_array(slice.loadout_identity.ordered_retinue_ids)},
+		"window_started_simulation_msec": SaveInt64.format(slice.window_started_simulation_msec), "window_ended_simulation_msec": SaveInt64.format(slice.window_ended_simulation_msec), "elapsed_msec": SaveInt64.format(slice.elapsed_msec),
+		"returned_souls_delta": SaveInt64.format(slice.returned_souls_delta), "backlog_reduced": SaveInt64.format(slice.backlog_reduced), "completed_cycles_delta": SaveInt64.format(slice.completed_cycles_delta),
+		"inventory_gains_by_item_id": inventory, "mastery_gains_subunits_by_form_id": mastery, "channel_summaries_by_channel_id": channels,
+	}
+
+static func _report_channel_to_snapshot(channel: ReportChannelSummary) -> Dictionary:
+	return {"threshold_id": str(channel.threshold_id), "channel_id": str(channel.channel_id), "output_item_id": str(channel.output_item_id), "elapsed_msec": SaveInt64.format(channel.elapsed_msec), "banked_units_delta": SaveInt64.format(channel.banked_units_delta), "progress_subunits_start": SaveInt64.format(channel.progress_subunits_start), "progress_subunits_end": SaveInt64.format(channel.progress_subunits_end), "rate_carry_units_start": SaveInt64.format(channel.rate_carry_units_start), "rate_carry_units_end": SaveInt64.format(channel.rate_carry_units_end), "total_banked_units_start": SaveInt64.format(channel.total_banked_units_start), "total_banked_units_end": SaveInt64.format(channel.total_banked_units_end)}
+
+static func _report_event_to_snapshot(event: ReportEventRecord) -> Dictionary:
+	return {"event_sequence": SaveInt64.format(event.event_sequence), "event_type": str(event.event_type), "occurred_simulation_msec": SaveInt64.format(event.occurred_simulation_msec), "priority": SaveInt64.format(event.priority), "subject_id": str(event.subject_id), "source_id": str(event.source_id)}
+
+static func _report_state_from_snapshot(data: Dictionary) -> ReportState:
+	var state := ReportState.new(SaveInt64.parse(data.ingested_through_simulation_msec, false, "").value)
+	state.next_report_sequence = SaveInt64.parse(data.next_report_sequence, false, "").value
+	state.next_event_sequence = SaveInt64.parse(data.next_event_sequence, false, "").value
+	state.dropped_history_count = SaveInt64.parse(data.dropped_history_count, false, "").value
+	state.live = _report_accumulator_from_snapshot(data.live)
+	for record_data in data.history: state.history.append(_report_record_from_snapshot(record_data))
+	return state
+
+static func _report_accumulator_from_snapshot(data: Dictionary) -> ReportAccumulatorState:
+	var accumulator := ReportAccumulatorState.new(SaveInt64.parse(data.window_ended_simulation_msec, false, "").value)
+	accumulator.window_started_simulation_msec = SaveInt64.parse(data.window_started_simulation_msec, false, "").value
+	accumulator.ingested_run_count = SaveInt64.parse(data.ingested_run_count, false, "").value
+	accumulator.omitted_event_count = SaveInt64.parse(data.omitted_event_count, false, "").value
+	for key in _sorted_keys(data.committed_mode_counts): accumulator.committed_mode_counts[StringName(key)] = SaveInt64.parse(data.committed_mode_counts[key], false, "").value
+	for key in _sorted_keys(data.attribution_slices): accumulator.attribution_slices[key] = _report_slice_from_snapshot(data.attribution_slices[key])
+	for key in _sorted_keys(data.event_type_counts): accumulator.event_type_counts[StringName(key)] = SaveInt64.parse(data.event_type_counts[key], false, "").value
+	for event_data in data.recent_events: accumulator.recent_events.append(_report_event_from_snapshot(event_data))
+	return accumulator
+
+static func _report_record_from_snapshot(data: Dictionary) -> ReportRecord:
+	return ReportRecord.new(SaveInt64.parse(data.report_sequence, false, "").value, StringName(data.snapshot_reason), SaveInt64.parse(data.snapshot_simulation_msec, false, "").value, _report_accumulator_from_snapshot(data.window))
+
+static func _report_slice_from_snapshot(data: Dictionary) -> ReportAttributionSlice:
+	var identity_data: Dictionary = data.loadout_identity
+	var retinues: Array[StringName] = []; for retinue_id in identity_data.ordered_retinue_ids: retinues.append(StringName(retinue_id))
+	var slice := ReportAttributionSlice.new(StringName(data.threshold_id), SaveInt64.parse(data.assignment_revision, false, "").value, StringName(data.lifecycle_state), ReportLoadoutIdentity.new(StringName(identity_data.form_id), StringName(identity_data.writ_id), retinues), SaveInt64.parse(data.window_started_simulation_msec, false, "").value, SaveInt64.parse(data.window_ended_simulation_msec, false, "").value, SaveInt64.parse(data.elapsed_msec, false, "").value, SaveInt64.parse(data.returned_souls_delta, false, "").value, SaveInt64.parse(data.backlog_reduced, false, "").value, SaveInt64.parse(data.completed_cycles_delta, false, "").value)
+	for key in _sorted_keys(data.inventory_gains_by_item_id): slice.inventory_gains_by_item_id[StringName(key)] = SaveInt64.parse(data.inventory_gains_by_item_id[key], false, "").value
+	for key in _sorted_keys(data.mastery_gains_subunits_by_form_id): slice.mastery_gains_subunits_by_form_id[StringName(key)] = SaveInt64.parse(data.mastery_gains_subunits_by_form_id[key], false, "").value
+	for key in _sorted_keys(data.channel_summaries_by_channel_id): slice.channel_summaries_by_channel_id[StringName(key)] = _report_channel_from_snapshot(data.channel_summaries_by_channel_id[key])
+	return slice
+
+static func _report_channel_from_snapshot(data: Dictionary) -> ReportChannelSummary:
+	return ReportChannelSummary.new(StringName(data.threshold_id), StringName(data.channel_id), StringName(data.output_item_id), SaveInt64.parse(data.elapsed_msec, false, "").value, SaveInt64.parse(data.banked_units_delta, false, "").value, SaveInt64.parse(data.progress_subunits_start, false, "").value, SaveInt64.parse(data.progress_subunits_end, false, "").value, SaveInt64.parse(data.rate_carry_units_start, false, "").value, SaveInt64.parse(data.rate_carry_units_end, false, "").value, SaveInt64.parse(data.total_banked_units_start, false, "").value, SaveInt64.parse(data.total_banked_units_end, false, "").value)
+
+static func _report_event_from_snapshot(data: Dictionary) -> ReportEventRecord:
+	return ReportEventRecord.new(SaveInt64.parse(data.event_sequence, false, "").value, StringName(data.event_type), SaveInt64.parse(data.occurred_simulation_msec, false, "").value, SaveInt64.parse(data.priority, false, "").value, StringName(data.subject_id), StringName(data.source_id))
+
+static func _string_array(values: Array[StringName]) -> Array[String]:
+	var out: Array[String] = []
+	for value in values:
+		out.append(str(value))
+	return out
 
 static func _progression_to_snapshot(progression: GameState.ProgressionState) -> Dictionary:
 	var unlocked := []

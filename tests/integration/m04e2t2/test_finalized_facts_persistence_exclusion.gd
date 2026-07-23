@@ -28,8 +28,8 @@ func test_typed_result_and_projector_artifacts_never_enter_schema_v3_save() -> v
 	assert_true(run.success, run.developer_details)
 	assert_true(run.simulation_result is SimulationResult)
 	var mapped := SaveSchemaMapper.runtime_to_snapshot(state, TimeAuthorityState.new(), 1, ContentRegistry.CURRENT_REVISION)
-	assert_eq(mapped.schema_version, SaveInt64.format(3))
+	assert_eq(mapped.schema_version, SaveInt64.format(4))
 	assert_eq(mapped.content_revision, ContentRegistry.CURRENT_REVISION)
 	var snapshot_text := JSON.stringify(mapped)
-	for forbidden in ["SimulationResult", "SimulationSegmentResult", "SimulationChannelDeltaResult", "SimulationEvent", "SimulationResultProjector", "SimulationRunContext", "SimulationTransaction", "SimulationFactJournal", "simulation_result", "segments", "channel_deltas", "report"]:
+	for forbidden in ["SimulationResult", "SimulationSegmentResult", "SimulationChannelDeltaResult", "SimulationEvent", "SimulationResultProjector", "SimulationRunContext", "SimulationTransaction", "SimulationFactJournal", "simulation_result", "segments", "channel_deltas"]:
 		assert_false(snapshot_text.contains(forbidden), forbidden)

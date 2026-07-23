@@ -119,7 +119,7 @@ func _run_trace() -> void:
 	_assert(not state.progression.unlocked_output_item_ids.has(&"RES_PROVISIONS") and provisions.size() == 1 and not v3_snapshot.game_state.progression.has("insight"), "access knowledge insight separate")
 	_earn("TRACE M04D1 access_knowledge_insight_separated=PASS")
 	var v3_loaded := v3_service.load_runtime()
-	_assert(v3_loaded.ok and SaveSchemaMapper.runtime_to_snapshot(v3_loaded.game_state, v3_loaded.time_authority_state, v3_loaded.save_revision, registry.content_revision).schema_version == "3", "v3 round trip")
+	_assert(v3_loaded.ok and SaveSchemaMapper.runtime_to_snapshot(v3_loaded.game_state, v3_loaded.time_authority_state, v3_loaded.save_revision, registry.content_revision).schema_version == "4", "v4 round trip")
 	_earn("TRACE M04D1 schema_v3_round_trip=PASS")
 	_assert(_source_ownership_audit(), "source ownership audit")
 	_earn("TRACE M04D1 no_clock_or_production_sources=PASS")

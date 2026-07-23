@@ -3397,7 +3397,7 @@ Results and their child facts remain detached, non-authoritative, and non-persis
 - `GATE-SINGLE-PROVENANCE-TRANSACTION` and `GATE-FINALIZED-RUN-FACTS` are satisfied. Their recorded owner scope exceptions apply only to their completed slices.
 - PR #17 and PR #18 remain closed unmerged forensic references; M04E2A1 remains Superseded/Failed.
 - The active M04E2 sequence is M04E2T1 -> M04E2T2 -> M04E2A2 -> M04E2A3 -> M04E2A4 -> M04E2B.
-- M04E2A2 has an approved milestone boundary and a Draft v0.1 planning package/prompt. No new decision is proposed because its exact report-state/schema semantics are already carried forward in maintained contracts.
-- `GATE-REPORT-SCHEMA` and the M04E2A2 `GATE-SLICE-SCOPE` remain pending explicit owner approval of the planning package and prompt.
+- M04E2A2 has an approved milestone boundary and approved v0.1 planning package/prompt. No new decision is proposed because its exact report-state/schema semantics are already carried forward in maintained contracts.
+- `GATE-REPORT-SCHEMA` and the M04E2A2 `GATE-SLICE-SCOPE` are satisfied for implementation; review and exact-head owner verification remain pending.
 - M04E2A3, M04E2A4, and M04E2B remain blocked on their preceding slices and fresh prompt/scope reviews.
 - Future changes preserve decision IDs for wording clarifications and create a new decision when semantics, ownership, compatibility, implementation packaging, or security posture changes.

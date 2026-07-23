@@ -30,6 +30,8 @@ static func validate(state: GameState, registry: ContentRegistry, require_comple
 	var active := 0
 	for reaping in state.reapings.values(): if reaping.is_active: active += 1
 	if active > state.progression.command_tether_capacity: return _err(ERR_CROSS_FIELD, "reapings.active")
+	result = ReportStateValidator.validate(state.report_state, state.simulation_time_msec, registry)
+	if not result.ok: return result
 	return {"ok": true, "code": OK}
 
 static func _validate_inventory(state: GameState, registry: ContentRegistry) -> Dictionary:

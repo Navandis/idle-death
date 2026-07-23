@@ -1,6 +1,6 @@
 # M04E2A2 report-state and schema-v4 persistence planning
 
-**Status:** Approved  
+**Status:** Approved; implementation PR open, verification partial
 **Date:** 2026-07-23  
 **Planning baseline:** `main` at `afd390e8338a198d76938eef5ddcf35718ec189c` after PR #22 merged  
 **Prerequisite:** M04E2T2 Merged/Passed through PR #22  
@@ -38,10 +38,10 @@ The final targeted and unrestricted reviews were clean. The owner approved the M
 
 Current merged `main` has:
 
-- schema version 3 as the current writer;
+- schema version 3 as the current writer before this slice;
 - frozen version-1, version-2, and version-3 validation/migration fixtures;
 - explicit canonical signed-64-bit decimal-string encoding;
-- `GameState` with simulation, inventory, Form, Threshold, Reaping, and progression state but no report state;
+- `GameState` with simulation, inventory, Form, Threshold, Reaping, and progression state before this slice;
 - `GameState.deep_clone()` and `copy_from()` with explicit substate cloning;
 - `SaveSchemaMapper`, `SaveSchemaValidator`, `SaveMigrationRegistry`, and `GameStatePersistenceCoordinator` as the existing persistence architecture;
 - M04E2T2 detached typed run facts, which remain runtime-only and are not persisted;

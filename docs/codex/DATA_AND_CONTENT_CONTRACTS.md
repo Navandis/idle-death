@@ -2696,7 +2696,7 @@ The active sequence is:
 M04E2T1 -> M04E2T2 -> M04E2A2 -> M04E2A3 -> M04E2A4 -> M04E2B
 ```
 
-M04E2T1 and M04E2T2 are Merged/Passed. M04E2A2 is the active planning boundary.
+M04E2T1 and M04E2T2 are Merged/Passed. M04E2A2 is the active implementation boundary; its pull request is open and verification is partial.
 
 ## Realized M04E2T1 single-provenance transaction contract
 
@@ -2835,7 +2835,7 @@ Channel events carry output item, positive quantity, lifecycle, total-banked-aft
 
 M04E2T2 removed raw public segment/channel dictionaries, generic public payloads, simulation `change_summary`, and nested engine result/event ownership. Internal bounded journal diagnostics may remain dictionaries.
 
-Schema remains 3 and content remains `prototype-content-r2` through M04E2T2. No result, segment, channel, event, projector, context, transaction, journal, wrapper, or forecast object serializes.
+Schema remains 3 and content remains `prototype-content-r2` through M04E2T2. M04E2A2 advances only the production writer to schema 4 and adds the report-state tree; no result, segment, channel, projector, context, transaction, journal, wrapper, or forecast object serializes.
 
 M04E2T2 merged through PR #22 at final head `00bd7d1ce27817b508eb0aac1663d1de48353237` and merge commit `afd390e8338a198d76938eef5ddcf35718ec189c`. Final exact-head evidence passed 178 full tests, 74 focused tests, all 15 markers, import, cleanup, and artifact audit.
 

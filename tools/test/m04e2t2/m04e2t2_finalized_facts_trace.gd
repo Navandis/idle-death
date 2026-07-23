@@ -145,7 +145,7 @@ func _run() -> bool:
 
 	var snapshot := SaveSchemaMapper.runtime_to_snapshot(eight_hour, TimeAuthorityState.new(), 1, ContentRegistry.CURRENT_REVISION)
 	var text := JSON.stringify(snapshot)
-	if not _assert(snapshot.schema_version == SaveInt64.format(3) and snapshot.content_revision == ContentRegistry.CURRENT_REVISION and not text.contains("SimulationResult") and not text.contains("channel_deltas") and not text.contains("OUTPUT_CHANNEL_BANKED"), "schema exclusion"): return false
+	if not _assert(snapshot.schema_version == SaveInt64.format(4) and snapshot.content_revision == ContentRegistry.CURRENT_REVISION and not text.contains("SimulationResult") and not text.contains("channel_deltas") and not text.contains("OUTPUT_CHANNEL_BANKED"), "schema exclusion"): return false
 	_pass("schema_v3_no_result_artifacts")
 	return true
 

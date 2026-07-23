@@ -103,6 +103,8 @@ static func validate_current(snapshot: Variant) -> Dictionary:
 		return validate_v2(snapshot)
 	if version.value == SaveEnvelope.SCHEMA_VERSION_V3:
 		return validate_v3(snapshot)
+	if version.value == SaveEnvelope.SCHEMA_VERSION_V4:
+		return validate_v4(snapshot)
 	return _err(ERR_SCHEMA_VERSION, "schema_version")
 
 
@@ -115,11 +117,18 @@ static func get_schema_version(snapshot: Variant) -> Dictionary:
 static func validate_v3(snapshot: Variant) -> Dictionary:
 	return _validate_v2_or_v3(snapshot, SaveEnvelope.SCHEMA_VERSION_V3, ["command_tether_capacity", "unlocked_output_item_ids"])
 
+static func validate_v4(snapshot: Variant) -> Dictionary:
+	var base := _validate_v2_or_v3(snapshot, SaveEnvelope.SCHEMA_VERSION_V4, ["command_tether_capacity", "unlocked_output_item_ids"], SaveEnvelope.GAME_KEYS_V4)
+	if not base.ok: return base
+	var report := ReportSchemaValidator.validate((snapshot as Dictionary).game_state.report_state, base.simulation_time_msec)
+	if not report.ok: return report
+	return base
+
 static func validate_v2(snapshot: Variant) -> Dictionary:
 	return _validate_v2_or_v3(snapshot, SaveEnvelope.SCHEMA_VERSION_V2, ["command_tether_capacity"])
 
-static func _validate_v2_or_v3(snapshot: Variant, expected_version: int, progression_keys: Array) -> Dictionary:
-	var base := _validate_common_envelope(snapshot, expected_version, SaveEnvelope.GAME_KEYS_V2)
+static func _validate_v2_or_v3(snapshot: Variant, expected_version: int, progression_keys: Array, game_keys: Array = SaveEnvelope.GAME_KEYS_V2) -> Dictionary:
+	var base := _validate_common_envelope(snapshot, expected_version, game_keys)
 	if not base.ok:
 		return base
 	var g: Dictionary = (snapshot as Dictionary).game_state
@@ -140,7 +149,7 @@ static func _validate_v2_or_v3(snapshot: Variant, expected_version: int, progres
 		return nested
 	base["command_tether_capacity"] = tether.value
 	base["unlocked_output_item_ids"] = []
-	if expected_version == SaveEnvelope.SCHEMA_VERSION_V3:
+	if expected_version == SaveEnvelope.SCHEMA_VERSION_V3 or expected_version == SaveEnvelope.SCHEMA_VERSION_V4:
 		if typeof(g.progression.unlocked_output_item_ids) != TYPE_ARRAY: return _err(ERR_TYPE, "game_state.progression.unlocked_output_item_ids")
 		var previous := ""
 		for i in range(g.progression.unlocked_output_item_ids.size()):

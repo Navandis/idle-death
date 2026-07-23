@@ -41,7 +41,7 @@ func test_forecast_loaded_schema_v3_state_preserves_production_save_files_and_sn
 	var snapshot := SaveService.new(FileSaveStorage.new(), file_set).load_snapshot()
 	assert_true(snapshot.ok, str(snapshot))
 	var snapshot_text := JSON.stringify(snapshot.snapshot)
-	for forbidden in ["mode", "run_result", "projection", "projected_state", "simulation_result", "event", "comparison", "report", "forecast", "baseline_simulation_time_msec", "result_simulation_time_msec"]:
+	for forbidden in ["run_result", "projection", "projected_state", "simulation_result", "comparison", "forecast", "baseline_simulation_time_msec", "result_simulation_time_msec"]:
 		assert_false(snapshot_text.contains(forbidden), forbidden)
 	_remove_root(root)
 

@@ -12,7 +12,7 @@ func test_schema_v3_round_trip_excludes_rate_context_query_artifacts() -> void:
 	var text := JSON.stringify(snapshot)
 	for forbidden in ["validation_result", "loadout_identity", "rate_context_signature", "continuity_result", "rate_plan", "modifier_trace", "progress_tenths_percent", "percent_tenths", "current_context_eta_msec", "eta_msec", "eta_display"]:
 		assert_false(text.contains(forbidden), forbidden)
-	assert_true(SaveSchemaValidator.validate_v3(snapshot).ok)
+	assert_true(SaveSchemaValidator.validate_v4(snapshot).ok)
 
 func test_production_coordinator_round_trip_preserves_runtime_and_no_derived_views() -> void:
 	var registry := _registry()

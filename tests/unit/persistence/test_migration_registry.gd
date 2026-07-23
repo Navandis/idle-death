@@ -12,4 +12,4 @@ func test_test_only_migration_step_advances_to_v1() -> void:
 func test_missing_and_future_migrations_fail() -> void:
 	var registry := SaveMigrationRegistry.new()
 	assert_eq(registry.migrate({}, 0).code, SaveMigrationRegistry.ERR_MISSING_STEP)
-	assert_eq(registry.migrate({}, 4).code, SaveMigrationRegistry.ERR_FUTURE_SCHEMA)
+	assert_eq(registry.migrate({}, SaveEnvelope.CURRENT_SCHEMA_VERSION + 1).code, SaveMigrationRegistry.ERR_FUTURE_SCHEMA)

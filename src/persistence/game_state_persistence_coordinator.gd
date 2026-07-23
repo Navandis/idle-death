@@ -32,17 +32,20 @@ func load_runtime() -> Dictionary:
 	if not registry.is_save_revision_compatible(loaded.snapshot.content_revision): return {"ok": false, "code": ERR_CONTENT}
 	var runtime := SaveSchemaMapper.snapshot_to_runtime(loaded.snapshot)
 	if not runtime.ok: return runtime
-	if loaded.get("migration_required", false):
+	if loaded.get("migration_required", false) and loaded.get("migration_from_version", SaveEnvelope.CURRENT_SCHEMA_VERSION) <= SaveEnvelope.SCHEMA_VERSION_V2:
 		var finalized := _finalize_legacy_access(runtime.game_state)
 		if not finalized.ok: return finalized
 	var domain := GameStateValidator.validate(runtime.game_state, registry)
-	if not domain.ok: return domain
+	if not domain.ok:
+		if loaded.get("migration_required", false) and loaded.get("migration_from_version", SaveEnvelope.CURRENT_SCHEMA_VERSION) <= SaveEnvelope.SCHEMA_VERSION_V2:
+			return {"ok": false, "code": OutputAccessService.ERR_MIGRATION_FINALIZATION_FAILED, "diagnostic": domain.get("field_path", "")}
+		return domain
 	if loaded.get("migration_required", false):
 		if loaded.save_revision == FixedPoint.INT64_MAX: return {"ok": false, "code": ERR_REVISION_OVERFLOW}
 		var upgrade_snapshot := SaveSchemaMapper.runtime_to_snapshot(runtime.game_state, runtime.time_authority_state, loaded.save_revision + 1, loaded.snapshot.content_revision)
 		upgrade_snapshot.metadata = loaded.snapshot.metadata.duplicate(true)
 		upgrade_snapshot.last_offline_resolution_id = loaded.snapshot.last_offline_resolution_id
-		var target_validation := SaveSchemaValidator.validate_v3(upgrade_snapshot)
+		var target_validation := SaveSchemaValidator.validate_v4(upgrade_snapshot)
 		if not target_validation.ok: return target_validation
 		var save_result := save_service.save_snapshot(upgrade_snapshot)
 		if not save_result.ok: return save_result

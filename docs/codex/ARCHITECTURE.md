@@ -1797,7 +1797,7 @@ Raw public segment/channel dictionaries, generic event payload dictionaries, nes
 
 M04E2T2 merged through PR #22 from final head `00bd7d1ce27817b508eb0aac1663d1de48353237` at merge commit `afd390e8338a198d76938eef5ddcf35718ec189c`. Exact-head owner evidence passed 178 full tests, 74 focused tests, all 15 markers, import, negative-root behavior, cleanup, and artifact audit. Final targeted and unrestricted reviews were clean.
 
-## Planned M04E2A2 report-state/schema boundary
+## Realized M04E2A2 report-state/schema boundary
 
 M04E2A2 adds one authoritative report-state family inside `GameState` and advances the current writer from schema version 3 to version 4.
 
@@ -1817,7 +1817,7 @@ The version-4 writer keeps codec `JSON_V1`, content revision `prototype-content-
 
 A report cursor may trail gameplay simulation time until M04E2A3. M04E2A2 validates and persists fixture-populated state but adds no `ReportService`, ingestion, read model, snapshot, clear, archive, pruning, offline classification, or simulation/report coordinator.
 
-The planning and prompt boundary is maintained in [M04E2A2 planning](M04E2A2_PLANNING.md). Implementation remains blocked pending explicit owner approval of `GATE-REPORT-SCHEMA`, `GATE-SLICE-SCOPE`, and the Draft v0.1 prompt.
+The implementation is published through the M04E2A2 pull request. Verification remains partial until the targeted/unrestricted reviews and exact-head Windows owner package complete. M04E2A3 still owns ingestion, reads, snapshots, pruning, and offline classification.
 
 ## Deferred report boundaries
 

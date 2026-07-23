@@ -113,7 +113,7 @@ func _run_trace() -> Dictionary:
 
 	if not _event_and_delta_match(): return _fail(32, "events/deltas")
 	_trace("events_and_deltas_match_engine=PASS")
-	if SaveEnvelope.CURRENT_SCHEMA_VERSION != SaveEnvelope.SCHEMA_VERSION_V3 or ContentRegistry.CURRENT_REVISION != "prototype-content-r2": return _fail(33, "schema/content")
+	if SaveEnvelope.CURRENT_SCHEMA_VERSION != SaveEnvelope.SCHEMA_VERSION_V4 or ContentRegistry.CURRENT_REVISION != "prototype-content-r2": return _fail(33, "schema/content")
 	_trace("schema_v3_content_r2_unchanged=PASS")
 	if not _save_bytes_unchanged(baseline_before, state): return _fail(34, "save bytes")
 	_trace("isolated_save_bytes_unchanged=PASS")
