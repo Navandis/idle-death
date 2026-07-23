@@ -3,8 +3,8 @@
 **Document role:** Approved implementation sequence and acceptance map for the 0–90 minute prototype  
 **Repository path:** `docs/codex/MILESTONES.md`  
 **Document status:** Approved rolling-wave milestone map  
-**Milestone-map revision:** 32  
-**Last updated:** 2026-07-22  
+**Milestone-map revision:** 33  
+**Last updated:** 2026-07-23  
 **Primary context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md), [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md), [Architecture](ARCHITECTURE.md), [Data contracts](DATA_AND_CONTENT_CONTRACTS.md), [Testing](TESTING_AND_VALIDATION.md), [Owner verification](OWNER_VERIFICATION_WORKFLOW.md), [Milestone recalibration](MILESTONE_RECALIBRATION_PROPOSAL.md), and [Decisions](DECISIONS.md)
 
 ## 1. Purpose and authority
@@ -15,7 +15,7 @@ Use the source hierarchy in `AGENTS.md`. A milestone definition cannot weaken a 
 
 ## 2. Current repository baseline
 
-After M04E2T1 completion:
+After M04E2T2 completion:
 
 - Godot 4.7, GDScript, the 1920 × 1080 reference viewport, resizing/stretch settings, and a temporary dry-run main scene exist.
 - `AGENTS.md`, project Codex configuration, the maintained design sources, the architecture documents, the approved `PROMPT_TEMPLATE.md`, and `OWNER_VERIFICATION_WORKFLOW.md` are present in the repository.
@@ -47,7 +47,8 @@ After M04E2T1 completion:
 - PR #18 attempted M04E2A1 and was closed without merge at head `602dec077f44338cdb4a2eabbd30d3989c877902` after repeated targeted reviews continued to identify P1/P2 defects and the branch exceeded its approved line guardrail.
 - Accepted `DEC-0043` supersedes the implementation packaging in `DEC-0042` and requires a single-provenance simulation transaction before finalized typed run facts and report persistence.
 - M04E2T1 merged through PR #21 from final head `a4d8056cb8771e84e1948fc5e59939c46a13003c` at merge commit `68364e0b417a6e7ebc63b50a386ac5d9f2c506bf`; exact-head Windows verification passed `165/165` full tests, `61/61` focused tests, all twelve markers, import, negative-root behavior, cleanup, and artifact audit.
-- `GATE-SINGLE-PROVENANCE-TRANSACTION` is satisfied. Accepted `DEC-0044` and the approved M04E2T2 prompt define the current implementation boundary.
+- M04E2T2 merged through PR #22 from final head `00bd7d1ce27817b508eb0aac1663d1de48353237` at merge commit `afd390e8338a198d76938eef5ddcf35718ec189c`; exact-head Windows verification passed `178/178` full tests, `74/74` focused tests, all fifteen markers, import, negative-root behavior, cleanup, and artifact audit.
+- `GATE-SINGLE-PROVENANCE-TRANSACTION` and `GATE-FINALIZED-RUN-FACTS` are satisfied. The Draft M04E2A2 planning package defines the next owner-approval boundary.
 - PR #17 and PR #18 are retained only as forensic review/finding references and are not cherry-pick or production-code sources.
 - The repository still has no authoritative report accumulator/history, atomic reported-run coordinator, application shell, trusted offline adapter, concurrent-Reaping resolver, or player-facing gameplay UI.
 - Existing dry-run assets and scene work are preserved unless a scoped milestone explicitly replaces or integrates them.
@@ -133,9 +134,9 @@ A conceptual epic uses `Prompt: Not applicable` and `Implementation: Not directl
 | `GATE-RATE-CONTEXT-CHANGE` | M04D3 prompt approval | Satisfied by M04D2 Merged/Passed, accepted `DEC-0039`, and approved M04D3 v0.2 covering assembly-time loadout validation, component-based equal-output identity, stable residual denominators, prospective baseline-derived modifiers, non-compounding, exact/current-context ETA queries, readable ETA presentation, persistence boundaries, and scope. |
 | `GATE-FORECAST-CLONE` | M04E1 prompt approval | Satisfied by M04D3 Merged/Passed, accepted `DEC-0040`, and approved M04E1 v0.2 covering detached clone projection, complete core/generic-channel passthrough, shared supplied-duration modes, canonical equivalence, no persistence/report side effects, and scope. |
 | `GATE-TYPED-SIMULATION-RESULT` | Retired M04E2A1 prompt | Superseded by accepted `DEC-0043`. PR #18 closed unmerged and does not satisfy a current implementation gate. |
-| `GATE-SINGLE-PROVENANCE-TRANSACTION` | M04E2T1 prompt approval | Pending explicit owner approval of M04E2T1 v0.1 or later plus the completed mutation-inventory, provenance, compatibility, and scope review under `DEC-0043`. |
-| `GATE-FINALIZED-RUN-FACTS` | M04E2T2 prompt approval | Pending M04E2T1 Merged/Passed plus a fresh journal-field, consumer-input, event-grammar, persistence-exclusion, and scope review. |
-| `GATE-REPORT-SCHEMA` | M04E2A2 prompt approval | Pending M04E2T2 Merged/Passed plus a fresh field/propagation/malformed-save and scope review. M04E2A2 alone may introduce schema v4 and report persistence. |
+| `GATE-SINGLE-PROVENANCE-TRANSACTION` | M04E2T1 prompt approval | Satisfied by M04E2T1 Merged/Passed through PR #21 and its exact-head owner evidence. |
+| `GATE-FINALIZED-RUN-FACTS` | M04E2T2 prompt approval | Satisfied by M04E2T2 Merged/Passed through PR #22, accepted `DEC-0044`, clean reviews, and exact-head owner evidence. |
+| `GATE-REPORT-SCHEMA` | M04E2A2 prompt approval | M04E2T2 prerequisite is satisfied. Pending explicit owner approval of the Draft v0.1 field/propagation/malformed-save/migration plan and scope review. M04E2A2 alone may introduce schema v4 and report persistence. |
 | `GATE-REPORT-INGESTION` | M04E2A3 prompt approval | Pending M04E2A2 Merged/Passed plus a fresh interval-decision, checked-aggregation, finalized-fact-consumer, and scope review. |
 | `GATE-REPORT-READS-HISTORY` | M04E2A4 prompt approval | Pending M04E2A3 Merged/Passed plus a fresh read-model, snapshot, offline-classification, retention, evidence, and scope review. |
 | `GATE-ATOMIC-REPORTED-RUN` | M04E2B prompt approval | Pending M04E2T1, M04E2T2, and M04E2A2 through M04E2A4 Merged/Passed plus a fresh coordinator/final-harness scope review. |
@@ -152,7 +153,7 @@ A conceptual epic uses `Prompt: Not applicable` and `Implementation: Not directl
 
 `GATE-CONTENT-CATALOG` was satisfied by M03. PR #7 merged on 2026-07-15 at merge commit `5e2b9b23878c9280f75b987cc9ad567d8980030d`; its final head was `971cdaa0fd46f641ec7409148e259d54f953d8c7`. Linux/Codex and owner Windows verification passed the full and focused suites, explicit import, semantic catalog trace, artifact audit, and Godot Inspector checklist.
 
-`GATE-SLICE-SCOPE` is mandatory for every post-M03 prompt. `GATE-GAMEPLAY-SCHEMA`, `GATE-REAPING-ASSIGNMENT`, `GATE-CORE-RESOLUTION`, `GATE-OUTPUT-ACCESS-SCHEMA`, `GATE-CHANNEL-ACCUMULATION`, `GATE-RATE-CONTEXT-CHANGE`, and `GATE-FORECAST-CLONE` are satisfied through approved M04E1 v0.2. `GATE-FORECAST-CLONE` is fully satisfied by M04E1 implementation and verification. `GATE-TYPED-SIMULATION-RESULT` is Superseded after failed PR #18. `GATE-SINGLE-PROVENANCE-TRANSACTION` is satisfied by M04E2T1. `GATE-FINALIZED-RUN-FACTS` is satisfied for the M04E2T2 implementation boundary; `GATE-REPORT-SCHEMA`, `GATE-REPORT-INGESTION`, `GATE-REPORT-READS-HISTORY`, and `GATE-ATOMIC-REPORTED-RUN` remain pending their preceding slices plus fresh scope reviews under accepted `DEC-0043`.
+`GATE-SLICE-SCOPE` is mandatory for every post-M03 prompt. `GATE-GAMEPLAY-SCHEMA` through `GATE-FORECAST-CLONE` are satisfied by the merged M04A-M04E1 sequence. `GATE-TYPED-SIMULATION-RESULT` is Superseded after failed PR #18. `GATE-SINGLE-PROVENANCE-TRANSACTION` is satisfied by M04E2T1. `GATE-FINALIZED-RUN-FACTS` is satisfied by M04E2T2. `GATE-REPORT-SCHEMA` is the active pending owner-approval boundary for M04E2A2; later report and atomic-run gates remain pending their preceding slices and fresh scope reviews.
 
 
 When trusted time is unavailable, the approved behavior is to grant no guessed closed-session progress, retain pending reconciliation, and continue monotonic foreground production. No milestone may introduce a local-device-time fallback.
@@ -178,9 +179,9 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 | M04E2 | Transaction provenance, report persistence, and final M04 closure | Conceptual sub-epic | Approved | Not applicable | Not directly executable | — |
 | M04E2A1 | Typed committed simulation-result contract — failed predecessor | Implementation slice | Superseded | Superseded | Rework required | Failed |
 | M04E2T1 | Single-provenance simulation transaction journal and commit boundary | Implementation slice | Approved | Approved v0.1 | Merged | Passed |
-| M04E2T2 | Finalized typed run facts and current-consumer migration | Implementation slice | Approved | Approved v0.1 | Not started | — |
+| M04E2T2 | Finalized typed run facts and current-consumer migration | Implementation slice | Approved | Approved v0.1 | Merged | Passed |
 | M04E2A | Report-foundation implementation sequence | Conceptual sub-epic | Approved | Not applicable | Not directly executable | — |
-| M04E2A2 | Report runtime state and schema-v4 persistence | Implementation slice | Approved | Not drafted | Not started | — |
+| M04E2A2 | Report runtime state and schema-v4 persistence | Implementation slice | Approved | Draft v0.1 | Not started | — |
 | M04E2A3 | Cursor-idempotent live report ingestion | Implementation slice | Approved | Not drafted | Not started | — |
 | M04E2A4 | Report reads, snapshot, bounded history, and final evidence | Implementation slice | Approved | Not drafted | Not started | — |
 | M04E2B | Atomic reported-run coordinator and final M04 harness | Implementation slice | Approved | Not drafted | Not started | — |
@@ -218,8 +219,8 @@ M00 → M01 → M02 → M03
 | M04D3 | M04D2 Merged and Passed | M04E1 planning |
 | M04E1 | M04D3 Merged and Passed; `GATE-FORECAST-CLONE` satisfied | M04E2T1 planning |
 | M04E2T1 | M04E1 Merged/Passed; accepted `DEC-0043`; approved prompt and `GATE-SINGLE-PROVENANCE-TRANSACTION` | M04E2T2 planning |
-| M04E2T2 | M04E2T1 Merged/Passed; accepted `DEC-0044`, approved prompt, `GATE-FINALIZED-RUN-FACTS`, and scope approval | M04E2A2 planning |
-| M04E2A2 | M04E2T2 Merged/Passed; fresh `GATE-REPORT-SCHEMA` and scope approval | M04E2A3 planning |
+| M04E2T2 | Merged/Passed through PR #22; accepted `DEC-0044`; `GATE-FINALIZED-RUN-FACTS` satisfied | M04E2A2 prompt approval and implementation |
+| M04E2A2 | M04E2T2 Merged/Passed; Draft v0.1 planning/prompt; explicit `GATE-REPORT-SCHEMA` and scope approval | M04E2A3 planning |
 | M04E2A3 | M04E2A2 Merged/Passed; fresh temporal/ingestion scope approval | M04E2A4 planning |
 | M04E2A4 | M04E2A3 Merged/Passed; fresh read/snapshot/history scope approval | M04E2B planning |
 | M04E2B | M04E2T1, M04E2T2, and M04E2A2 through M04E2A4 Merged/Passed; atomic-coordinator prompt approved | M05 decomposition and prompt drafting |
@@ -1531,7 +1532,7 @@ Refactor supplied-duration simulation so one internal transaction owns the priva
 
 #### Follow-on dependency
 
-- M04E2T2 planning and prompt approval.
+- M04E2T2 completed through PR #22; the active follow-on is M04E2A2.
 
 ---
 
@@ -1562,68 +1563,60 @@ The prompt and branch remain provenance only. Do not cherry-pick or copy product
 
 **Work item type:** Implementation slice  
 **Parent epic:** M04 / M04E / M04E2  
-**Definition status:** Approved boundary under accepted `DEC-0043` and `DEC-0044`
-**Prompt status:** Approved  
-**Implementation status:** Pull request open on `codex/implement-m04e2t2`; merge pending
-**Verification status:** —  
-**Recommended Codex task size:** Medium; one typed-result projection and consumer-migration pull request.  
-**Planned prompt file:** `docs/codex/milestone-prompts/M04E2T2-finalized-typed-run-facts.md`
+**Definition status:** Approved boundary under accepted `DEC-0043` and `DEC-0044`  
+**Prompt status:** Implemented — historical v0.1; do not re-execute  
+**Implementation status:** Merged through PR #22  
+**Verification status:** Passed  
+**Executed prompt file:** `docs/codex/milestone-prompts/M04E2T2-finalized-typed-run-facts.md`
 
-#### Purpose
+#### Realized purpose
 
-Replace the raw public segment/channel dictionaries and generic simulation-event payload dictionaries with one detached, typed, self-contained run-fact family projected only from the finalized M04E2T1 context and journal. Migrate every current simulation/run/debug/test/trace consumer without reopening candidate mutation or commit semantics.
+M04E2T2 replaced the transitional raw public simulation grammar with one detached typed fact family projected only from finalized M04E2T1 context/journal evidence. Every current simulation/run/debug/test/trace consumer migrated without reopening candidate mutation or commit semantics.
 
-#### Dependencies and gates
+#### Realized boundary
 
-- M04E2T1 Merged and Passed.
-- Accepted `DEC-0044` reviewed and implementation is on the approved M04E2T2 branch.
-- M04E2T2 prompt approved as v0.1 or later.
-- `GATE-FINALIZED-RUN-FACTS` and `GATE-SLICE-SCOPE` satisfied.
-- A clean current `main` and a new Codex desktop task/feature branch/PR.
+- Global `SimulationResult` with four closed result kinds and exact request/commit cursors.
+- Typed historical `SimulationSegmentResult` values including backlog endpoints.
+- Typed `SimulationChannelDeltaResult` values including rate period and endpoint totals.
+- Closed current event union for channel banking and Settlement.
+- Pure `SimulationResultProjector` with no live/candidate `GameState` input.
+- Deep detachment, complete value equality, and self-contained structural validation.
+- Removal of raw public segment/channel dictionaries, generic payload dictionaries, nested engine result/event ownership, and simulation `change_summary`.
+- Direct migration of engine, transaction, run service, debug, tests, traces, and persistence exclusion.
+- Schema version 3 and `prototype-content-r2` preserved.
 
-#### Proposed included scope
+#### Merge and review record
 
-- One global typed `SimulationResult` envelope with explicit result kind, request/commit duration, baseline/result simulation cursors, content revision, typed segments, and typed closed events.
-- Typed `SimulationSegmentResult` records carrying complete historical Threshold, assignment revision, Form, Writ, ordered Retinue, lifecycle, timing, core-delta, and channel-delta facts.
-- Typed `SimulationChannelDeltaResult` records carrying channel/item identity, banked quantity, progress endpoints, rate-carry endpoints, total-banked endpoints, and the rate period required to interpret carry.
-- A closed event union for current `OUTPUT_CHANNEL_BANKED` and `THRESHOLD_SETTLED` behavior with typed payload fields and explicit owning segment index.
-- One pure `SimulationResultProjector` or equivalent that consumes finalized context/journal evidence only and receives no live or candidate `GameState`.
-- Pure structural validation, detached-copy behavior, and value equality for public facts; no candidate/result reconciliation.
-- Removal of raw public segment/channel dictionaries, the generic public event payload dictionary, and simulation `change_summary` as a public contract.
-- Direct migration of `SimulationEngine`, `SimulationTransaction`, `SimulationRunService`, `M04CDebugAdvance`, current tests, and affected traces.
-- Schema-v3 persistence exclusion, exact behavior preservation, focused trace, and final-pattern Windows owner package.
-- Codex desktop branch/push/PR publication through the repository workflow helper, with owner-only merge authority.
+M04E2T2 merged through PR #22 from final head `00bd7d1ce27817b508eb0aac1663d1de48353237` at merge commit `afd390e8338a198d76938eef5ddcf35718ec189c`.
 
-#### Explicit non-goals
+Targeted findings were corrected with named regressions. Final targeted and unrestricted current-head Codex reviews were clean and all applicable review threads were resolved.
 
-- Candidate mutation, transaction ownership, formula, segmentation, or commit redesign.
-- Report runtime state, schema version 4, migration, report ingestion, reads, snapshot, history, retention, or M04E2B.
-- New event kinds, report classification, mode-dependent formulas, UI, trusted time, tutorial, progression, Halls, support, analytics, or concurrency.
-- A compatibility layer that keeps raw and typed public result grammars alive in parallel.
-- Reuse of the abandoned PR #18 post-hoc validator or candidate/result commit seam.
+#### Final verification
 
-#### Proposed completion boundary
+Exact-head Windows verification detected the final head and passed:
 
-Every current consumer uses detached typed facts produced from the finalized transaction journal. The public facts are never a candidate commit input, no raw public segment/channel/event-payload grammar remains, simulation `change_summary` is removed, schema version 3 and `prototype-content-r2` remain unchanged, and all exact M04C through M04E2T1 behavior remains green.
+```text
+Godot: 4.7.stable.official.5b4e0cb0f
+full suite before/after: 178/178 tests, 2,832 assertions
+focused M04C-M04E2T2: 74/74 tests, 1,291 assertions
+import: PASS
+15 exact M04E2T2 trace markers: PASS
+missing-root negative trace: PASS
+cleanup and cleanup-absence proof: PASS
+artifact audit: PASS
+failed steps: 0
+interactive checks: none
+```
 
-#### Scope assessment
+#### Scope outcome
 
-| Assessment item | Proposed limit |
-|---|---|
-| Primary subsystem owner | One pure result projector/fact family |
-| Principal transition | Frozen context+journal evidence -> detached typed public facts |
-| New authoritative aggregate | None |
-| Save-schema/content revision change | None |
-| Cross-layer seams | 2: transaction -> projector; typed result -> current consumers |
-| Risk dimensions | Representation/consumer migration; historical/event grammar; detachment/persistence exclusion |
-| Expected non-documentation source/test files | Approximately 14–26 |
-| Expected non-documentation code/test delta | Approximately 700–1,250 lines |
-| Mandatory stop | Before 30 files or approximately 1,450 lines, another owner/aggregate/schema, or a third seam |
-| Interactive owner checks | None |
+The final slice used 25 non-documentation/non-`.uid` files and 1,460 net additions. The net count exceeded the approximate planning threshold by 10 lines. The owner approved a slice-specific exception because the excess was the approved typed family, explicit edge-case regressions, trace, owner runner, and direct compatibility removal. No new authority, schema transition, later subsystem, or gameplay formula owner entered M04E2T2.
+
+`GATE-FINALIZED-RUN-FACTS` and the M04E2T2 scope gate are satisfied.
 
 #### Follow-on dependency
 
-- M04E2A2 planning and prompt approval after M04E2T2 is Merged/Passed.
+- M04E2A2 planning and prompt approval.
 
 ---
 
@@ -1651,40 +1644,73 @@ M04E2A is complete only when M04E2A2, M04E2A3, and M04E2A4 are all Merged and Pa
 
 **Work item type:** Implementation slice  
 **Parent epic:** M04 / M04E / M04E2 / M04E2A  
-**Definition status:** Approved boundary under accepted `DEC-0043`  
-**Prompt status:** Not drafted  
+**Definition status:** Approved boundary under accepted `DEC-0043` and carried-forward report semantics  
+**Prompt status:** Draft v0.1 — pending explicit owner approval  
 **Implementation status:** Not started  
 **Verification status:** —  
-**Recommended Codex task size:** Small-medium; one report-state/schema/migration pull request.  
+**Recommended Codex task size:** Medium; one report-state/schema/migration/persistence pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M04E2A2-report-state-schema-v4-persistence.md`
 
 #### Purpose
 
-Introduce save-owned report state and schema version 4 without report ingestion or public report operations.
+Introduce the authoritative, save-owned report-state family and schema version 4. Prove exact runtime construction, deep isolation, validation, primitive mapping, sequential migration, and atomic persistence without adding a report mutator or read API.
 
-#### Dependencies
+No new decision is proposed. The exact state and schema semantics are already maintained in `DATA_AND_CONTENT_CONTRACTS.md`; implementation must stop for an owner-approved decision if those semantics must change.
 
-- M04E2T2 Merged and Passed.
-- Fresh scope assessment and prompt approval.
+#### Dependencies and gates
 
-#### Preliminary included scope
+- M04E2T2 Merged and Passed through PR #22.
+- M04E2A2 planning and prompt v0.1 reviewed and explicitly owner-approved.
+- `GATE-REPORT-SCHEMA` satisfied.
+- `GATE-SLICE-SCOPE` satisfied.
+- New Codex desktop task and feature branch from current `main`.
 
-- Typed report state, live accumulator, immutable record, attribution slice, loadout identity, channel summary, and event detail.
+#### Included scope
+
+- One typed report-state aggregate family rooted at `ReportState` inside `GameState`.
+- Typed live accumulator, immutable record, loadout identity, attribution slice, channel summary, and event detail state.
 - Complete deep clone/copy isolation and runtime/content validation.
-- Exact schema-v4 field contract, primitive mapper parity, frozen v1/v2/v3 validators and fixtures, pure `v3 -> v4` migration, current-v4 no-rewrite, and production persistence round trip.
-- Table-driven malformed-save mutation matrix and field-propagation proof.
+- Schema version 4 with one exact report-state tree and canonical decimal-string integers.
+- Frozen v1/v2/v3 validators and fixture bytes retained.
+- Pure `v3 -> v4` migration that creates canonical empty report state at the source simulation cursor and fabricates no history.
+- Sequential `v1 -> v2 -> v3 -> v4` proof.
+- Populated-v4 mapper parity, codec round trip, real-file persistence, current-v4 no-rewrite, and failure preservation.
+- Table-driven runtime and primitive malformed-state matrices.
+- Field-by-field construction/clone/copy/map/load propagation proof.
+- Focused tests, one isolated real-file trace, and one exact-head Windows owner package.
 
 #### Explicit non-goals
 
-- Report ingestion, interval classification, public peeks, snapshot commands, offline classification, retention mutation, UI, M04E2B, or trusted time.
+- `ReportService` or another production report mutator.
+- Committed-result ingestion or interval classification.
+- Public live/history read models.
+- Snapshot, clear, archive, or history/event pruning commands.
+- Offline report classification or trusted-time orchestration.
+- Atomic simulation/report coordination or final M04 harness.
+- Changes to simulation, typed result facts, formulas, schema history, codec, content revision, UI, tutorial, progression, Halls, support, analytics, or concurrency.
 
 #### Completion boundary
 
-A valid empty or fixture-populated report state can construct, clone, validate, serialize, load, and migrate exactly. No service mutates it.
+A valid empty or fixture-populated report state can construct, validate, deep-clone, copy, serialize, encode, decode, load, and migrate exactly. Version-3 saves begin prospective report tracking at their existing simulation cursor; valid current version-4 saves do not rewrite. No production service mutates report state.
 
-#### Follow-on dependencies
+#### Scope assessment
 
-- M04E2A3.
+| Assessment item | Draft limit |
+|---|---|
+| Primary subsystem owner | One report-state aggregate/validator family |
+| Principal transition | Runtime report state -> schema-v4 mapping/migration/persistence |
+| New authoritative aggregate | One `ReportState` family |
+| Save-schema/content change | One v3-to-v4 transition; content unchanged |
+| Cross-layer seams | 2: GameState/validation; report state/persistence |
+| Risk dimensions | State/alias validation; wire/migration compatibility; atomic persistence |
+| Expected non-documentation files | Approximately 18–30, excluding `.uid` |
+| Expected code/test delta | Approximately 900–1,400 lines, excluding `.uid` |
+| Mandatory stop | Before 34 files or approximately 1,650 lines, another owner/schema, third seam, or report-service mutation |
+| Interactive owner checks | None |
+
+#### Follow-on dependency
+
+- M04E2A3 after M04E2A2 is Merged/Passed and receives a fresh ingestion/scope review.
 
 ---
 

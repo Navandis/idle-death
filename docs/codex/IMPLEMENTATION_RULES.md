@@ -3,8 +3,8 @@
 **Document role:** Detailed engineering conventions for Godot 4.7 and GDScript implementation  
 **Repository path:** `docs/codex/IMPLEMENTATION_RULES.md`  
 **Document status:** Approved engineering rules  
-**Rules revision:** 8  
-**Last updated:** 2026-07-22  
+**Rules revision:** 9  
+**Last updated:** 2026-07-23  
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)  
 **Data companion:** [DATA_AND_CONTENT_CONTRACTS.md](DATA_AND_CONTENT_CONTRACTS.md)
 
@@ -231,7 +231,7 @@ Treat authored Resources as immutable after registry validation. Never store pla
 For the one-active-Reaping supplied-duration resolver, open one internal
 transaction from the validated source. The transaction owns one deep-cloned
 candidate, one immutable run context, one bounded fact journal, checked
-mutation operations, final candidate/journal validation, compatibility result
+mutation operations, final candidate/journal validation, finalized typed result
 projection, and the one final live `copy_from`.
 
 `SimulationEngine` remains the formula and segmentation owner. It may calculate
@@ -453,7 +453,7 @@ Rules:
 - Every authoritative field changed by the transaction appears in a mutation-ownership inventory before implementation.
 - A transaction mutation method either updates all affected candidate fields and records its corresponding fact, or does neither.
 - Formula/rate helpers may remain pure and return checked calculations; they do not mutate the candidate or author public result facts.
-- Compatibility summaries and public events are derived from finalized journal facts. They are never populated independently in parallel with the mutation.
+- Public result facts and events are derived from finalized journal facts. They are never populated independently in parallel with the mutation.
 - Boundary facts capture values at the boundary. Do not reconstruct an event's payload from the final run state after later segments.
 - The journal is bounded runtime evidence for one call. Do not persist it, replay it, expose it as analytics authority, or generalize it into a project-wide event-sourcing framework.
 - Candidate validation occurs before the live `copy_from` commit. Failure at any stage leaves the source state canonically unchanged.
@@ -461,12 +461,12 @@ Rules:
 
 A source audit is useful supplemental evidence, but behavioral fault tests must also prove that failures after partial candidate work do not mutate the live state.
 
-### 11.9 Result and compatibility-view ownership
+### 11.9 Result and diagnostic-view ownership
 
 A public result is an observation of a finalized transaction, not a second mutation authority.
 
 - Do not allow callers to construct a result and submit it for live-state commit.
-- Do not make a compatibility dictionary the only owner of historical identity or channel endpoints.
+- Do not make a raw or diagnostic dictionary the public owner of historical identity or channel endpoints.
 - Compare detached typed objects by documented fields, not object identity.
 - When a public result contract changes, migrate all current production, debug, test, and trace consumers in one bounded slice; do not maintain parallel raw and typed public grammars indefinitely.
 - Internal journal/trace dictionaries remain permitted when they are bounded diagnostics and never become the public result or persistence contract.

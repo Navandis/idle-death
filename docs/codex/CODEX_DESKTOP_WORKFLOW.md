@@ -1,8 +1,8 @@
 # Codex desktop implementation and pull-request workflow
 
 **Document role:** Repository operating procedure for Codex desktop milestone tasks  
-**Status:** Proposed operational workflow for M04E2T2 onward  
-**Date:** 2026-07-22  
+**Status:** Approved operational workflow for M04E2T2 and later milestone slices  
+**Date:** 2026-07-23  
 **Companion:** root `AGENTS.md`, milestone prompt, and `tools/codex/publish_milestone_pr.ps1`
 
 ## Purpose

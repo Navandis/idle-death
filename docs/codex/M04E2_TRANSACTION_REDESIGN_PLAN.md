@@ -1,26 +1,30 @@
 # M04E2 single-provenance transaction redesign plan
 
-**Status:** Approved architecture; M04E2T1 Merged/Passed; M04E2T2 implementation pull request open; verification partial
-**Date:** 2026-07-22  
-**Authority:** Accepted `DEC-0043`; Accepted `DEC-0044` for M04E2T2  
-**Current merged baseline:** M04E2T1 through PR #21 on schema version 3 / `prototype-content-r2`  
+**Status:** Approved architecture; M04E2T1 and M04E2T2 Merged/Passed; M04E2A2 planning active  
+**Date:** 2026-07-23  
+**Authority:** Accepted `DEC-0043`; accepted `DEC-0044`; carried-forward report semantics from superseded `DEC-0041`/`DEC-0042`  
+**Current merged baseline:** PR #22 merge commit `afd390e8338a198d76938eef5ddcf35718ec189c`, schema version 3 / `prototype-content-r2`  
 **Abandoned references:** PR #17 and PR #18, both closed unmerged
 
 ## Purpose
 
-This plan replaced the failed M04E2A1 result-validation approach with a single-provenance simulation transaction before report state. M04E2T1 has now realized and verified that prerequisite. The next planning boundary is M04E2T2: project final detached typed public run facts from the frozen transaction evidence and migrate current consumers without reopening candidate commit semantics.
+This plan replaced the failed post-hoc candidate/result reconciliation approach with one single-provenance simulation transaction, then finalized its public typed fact projection. Both replacement prerequisites are now merged and verified. The active next boundary is M04E2A2: authoritative report runtime state and schema-v4 persistence without report mutation.
 
 The central rule remains:
 
 > The same internal operation that changes the private candidate records the explanatory fact. Public results are projections of finalized journal facts, never independent commit inputs.
+
+A second rule now applies to report work:
+
+> M04E2A2 stores validated explanatory state only. It introduces no service that ingests, reads, snapshots, clears, or prunes that state.
 
 ## Active dependency sequence
 
 ```text
 M04E1
   -> M04E2T1 single-provenance simulation transaction       [Merged/Passed]
-  -> M04E2T2 finalized typed run facts                      [Approved]
-  -> M04E2A2 report state + schema v4
+  -> M04E2T2 finalized typed run facts                      [Merged/Passed]
+  -> M04E2A2 report state + schema v4                       [Approved]
   -> M04E2A3 live report ingestion
   -> M04E2A4 reads + snapshot + bounded history + evidence
   -> M04E2B atomic simulation/report coordinator + final M04 harness
@@ -29,8 +33,6 @@ M04E1
 ## Branch, task, and pull-request workflow
 
 Every active slice starts from current `main` in a new Codex desktop task and milestone-specific feature branch.
-
-The approved task flow is:
 
 ```text
 synchronize main
@@ -43,97 +45,129 @@ synchronize main
 -> stop without merge
 ```
 
-Use [Codex desktop workflow](CODEX_DESKTOP_WORKFLOW.md) and `tools/codex/publish_milestone_pr.ps1`. Only the owner may merge, close, delete the branch, force-push, or replace the PR. Later corrections in the same Codex task update the same branch and PR.
+Use [Codex desktop workflow](CODEX_DESKTOP_WORKFLOW.md) and `tools/codex/publish_milestone_pr.ps1`. Only the owner may merge, close, delete the branch, force-push, or replace the PR. Corrections update the same branch and PR.
 
 Formal review remains a GitHub `@codex review` action. Corrections remain in the Codex desktop implementation task.
 
-PR #17 and PR #18 may be inspected only for accepted review findings, black-box values, boundary cases, regression descriptions, and evidence of unsafe patterns. No production commit or file is cherry-picked or copied wholesale.
+PR #17 and PR #18 may be inspected only for accepted review findings, black-box values, malformed-save categories, boundary cases, and evidence of unsafe patterns. No production commit or file is cherry-picked or copied wholesale.
 
 ## M04E2T1 realized boundary
-
-### Principal transition
 
 ```text
 validated source + elapsed request
   -> private transaction candidate + journal
   -> candidate validation + journal freeze
-  -> journal-derived compatibility result
+  -> journal-derived result
   -> one live commit
 ```
 
-### Primary owners
+Primary responsibilities:
 
-- `SimulationEngine`: formulas, rate plans, segmentation, and bounded calculation inputs.
-- `SimulationTransaction`: private candidate, checked mutations, finalization, and one commit.
-- `SimulationFactJournal`: ordered bounded non-persisted facts.
+- `SimulationEngine`: formulas, rate plans, segmentation, and bounded calculation inputs;
+- `SimulationTransaction`: private candidate, checked mutations, finalization, and one commit;
+- `SimulationFactJournal`: ordered bounded non-persisted facts;
 - `SimulationRunContext`: immutable historical operation/loadout context.
-
-### Completion record
 
 M04E2T1 merged through PR #21 from final head `a4d8056cb8771e84e1948fc5e59939c46a13003c` at merge commit `68364e0b417a6e7ebc63b50a386ac5d9f2c506bf`.
 
-Final exact-head owner evidence:
+Final exact-head evidence passed 165 full tests, 61 focused tests, all 12 markers, import, negative-root behavior, cleanup, and artifact audit. `GATE-SINGLE-PROVENANCE-TRANSACTION` is satisfied.
+
+## M04E2T2 realized boundary
 
 ```text
-full suite before/after: 165/165 tests, 2,641 assertions
-focused M04C-M04E2T1: 61/61 tests, 1,136 assertions
+finalized run context + frozen fact journal
+  -> pure typed-fact projector
+  -> detached typed result/segments/channels/events
+  -> direct current-consumer passthrough
+```
+
+`SimulationResultProjector` is the public-fact projection owner. It receives no candidate/live `GameState` and cannot authorize commit. `SimulationTransaction` calls it only after candidate validation and journal freeze.
+
+The merged public fact family provides:
+
+- one global `SimulationResult` with four closed result kinds and exact run cursors;
+- typed `SimulationSegmentResult` historical facts;
+- typed `SimulationChannelDeltaResult` endpoints including period and backlog endpoints;
+- a closed event union for channel banking and Settlement;
+- pure self-validation, deep detachment, and value equality;
+- no raw public segment/channel dictionaries, generic payloads, nested engine result/event ownership, or simulation `change_summary`.
+
+M04E2T2 merged through PR #22 from final head `00bd7d1ce27817b508eb0aac1663d1de48353237` at merge commit `afd390e8338a198d76938eef5ddcf35718ec189c`.
+
+Final exact-head evidence passed:
+
+```text
+full suite before/after: 178/178 tests, 2,832 assertions
+focused M04C-M04E2T2: 74/74 tests, 1,291 assertions
 import: PASS
-12 exact trace markers: PASS
+15 exact trace markers: PASS
 missing-root negative trace: PASS
 cleanup and artifact audit: PASS
 failed steps: 0
 interactive checks: none
 ```
 
-The owner approved the slice-specific line-count exception. `SimulationEngine` decreased by 39 net lines while focused transaction, trace, and owner evidence accounted for most additions.
+Targeted and unrestricted reviews were clean after bounded corrections. The owner-approved scope exception applies only to M04E2T2. `GATE-FINALIZED-RUN-FACTS` is satisfied.
 
-`GATE-SINGLE-PROVENANCE-TRANSACTION` is satisfied.
-
-## M04E2T2 realized boundary in the open implementation PR
+## M04E2A2 planned boundary
 
 ### Principal transition
 
 ```text
-finalized run context + frozen fact journal
-  -> pure typed-fact projector
-  -> detached typed result/segments/channels/events
-  -> current consumer passthrough
+canonical runtime ReportState
+  -> schema-v4 primitive mapping
+  -> pure v3-to-v4 migration
+  -> atomic persistence and exact reconstruction
 ```
 
 ### Primary owner
 
-One `SimulationResultProjector` or equivalent is the public-fact projection owner. It receives no candidate or live `GameState`. `SimulationTransaction` remains the commit owner and calls the projector only after candidate validation and journal freeze.
+One report-state aggregate family rooted at `ReportState` becomes authoritative saved explanation inside `GameState`. The existing mapper/validator/migration/coordinator architecture persists it but does not own report behavior.
 
-### Public fact family
+### Included state
 
-Accepted `DEC-0044` defines and the open implementation PR realizes:
+- report cursor and next report/event sequences;
+- dropped-history count;
+- canonical live accumulator;
+- immutable report records;
+- component-based loadout identity;
+- Threshold/revision/lifecycle attribution slices;
+- generic inventory/Mastery maps;
+- channel endpoint summaries;
+- bounded common event detail.
 
-- one global typed `SimulationResult` with explicit result kind and run cursors;
-- typed `SimulationSegmentResult` historical facts;
-- typed `SimulationChannelDeltaResult` endpoints including rate period;
-- a closed event union for channel banking and Settlement;
-- pure structural validation and detached value equality;
-- removal of raw public result dictionaries, generic event payloads, and simulation `change_summary`.
+### Schema boundary
 
-Internal journal trace snapshots may remain primitive diagnostics. No raw public compatibility grammar remains after T2.
+M04E2A2 alone advances the writer from schema v3 to v4. It preserves codec `JSON_V1`, content `prototype-content-r2`, frozen v1/v2/v3 inputs, and all existing gameplay/envelope fields.
 
-### Consumer migration
-
-The slice migrates `SimulationEngine`, `SimulationTransaction`, `SimulationRunService`, `M04CDebugAdvance`, current unit/integration tests, affected traces, source audits, and persistence-exclusion checks.
+The pure v3-to-v4 migration creates canonical empty report state at the source simulation cursor and fabricates no historical report facts.
 
 ### Protected exclusions
 
-M04E2T2 does not change:
+M04E2A2 adds no:
 
-- candidate mutation or commit order;
-- formulas, rates, segmentation, event timing, or exact values;
-- schema version 3 or `prototype-content-r2`;
-- report state, schema v4, ingestion, reads, snapshot, or history;
-- UI, trusted time, tutorial, progression, Halls, support, analytics, or concurrency.
+- `ReportService` or report mutator;
+- committed-result ingestion or interval classification;
+- public report read model;
+- snapshot/clear/archive command;
+- history/event pruning mutation;
+- offline classification;
+- simulation/report atomic coordinator;
+- UI, trusted-time, tutorial, Hall, support, analytics, or concurrency behavior.
 
-## Report boundaries
+## Report follow-on boundaries
 
-M04E2A2, A3, A4, and B retain the report semantics carried from prior decisions. They remain blocked until M04E2T2 is Merged/Passed.
+### M04E2A3
+
+Consumes finalized committed typed facts into live report state with an explicit cursor-idempotent interval table and checked aggregation. It adds no public reads, snapshots, or retention mutation.
+
+### M04E2A4
+
+Adds detached report reads, snapshot semantics, offline-only classification, bounded event/history pruning, and final report evidence.
+
+### M04E2B
+
+Coordinates committed simulation and report ingestion on one candidate and commits live state once, then supplies the final M04 harness.
 
 ## Review workflow
 
@@ -148,32 +182,31 @@ For each slice:
 7. evidence validation and owner-controlled merge;
 8. documentation closure to Merged/Passed.
 
-## M04E2T2 stop conditions
+## M04E2A2 stop conditions
 
 Return to planning when any occurs:
 
 ```text
 more than 2 targeted review rounds produce new P1/P2 findings
 more than 6 material findings
-more than 30 non-documentation source/test files
-more than approximately 1,450 non-documentation code/test lines
+more than 34 non-documentation source/test files
+more than approximately 1,650 non-documentation code/test lines
 another authoritative aggregate or schema transition is required
-a third cross-layer seam or second primary projection owner is required
-candidate mutation or commit semantics must change
-raw and typed public grammars cannot be removed in one bounded migration
+a third cross-layer seam is required
+report ingestion/read/snapshot/pruning behavior becomes necessary
+frozen v1/v2/v3 fixture bytes must change
+simulation/result behavior must change
 full suite is red at review request
 ```
 
 ## Current action
 
-Review the open M04E2T2 implementation pull request and run the exact-head owner package after final GitHub review:
+Review and approve the M04E2A2 planning package and Draft v0.1 prompt:
 
 ```text
-accepted DEC-0044
-docs/codex/M04E2T2_PLANNING.md
-docs/codex/milestone-prompts/M04E2T2-finalized-typed-run-facts.md
+docs/codex/M04E2A2_PLANNING.md
+docs/codex/milestone-prompts/M04E2A2-report-state-schema-v4-persistence.md
 docs/codex/CODEX_DESKTOP_WORKFLOW.md
-tools/test/owner/run_m04e2t2_owner_verification.ps1
 ```
 
-Do not mark M04E2T2 Merged/Passed until final review and exact-head owner verification are complete.
+Implementation remains blocked until the owner explicitly approves the prompt and satisfies `GATE-REPORT-SCHEMA` and `GATE-SLICE-SCOPE`.

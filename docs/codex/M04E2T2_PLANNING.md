@@ -1,230 +1,120 @@
-# M04E2T2 finalized typed run-facts planning
+# M04E2T2 finalized typed run-facts planning — completed record
 
-**Status:** Approved  
-**Date:** 2026-07-22  
-**Planning inspection baseline:** `main` at `c2cb7c1b4013b5d7c257f2ab513a70117c9de0d3` after M04E2T1 closure documentation  
-**Prerequisite:** M04E2T1 Merged/Passed through PR #21  
+**Status:** Implemented, Merged, and Passed  
+**Date:** 2026-07-23  
+**Planning baseline:** `main` at `4e261a9b641e9bec92f091762209224cc371d60e` after M04E2T1 closure  
+**Final implementation head:** `00bd7d1ce27817b508eb0aac1663d1de48353237`  
+**Merge commit:** `afd390e8338a198d76938eef5ddcf35718ec189c`  
 **Decision:** Accepted `DEC-0044`  
-**Prompt:** `docs/codex/milestone-prompts/M04E2T2-finalized-typed-run-facts.md` Approved v0.1
+**Executed prompt:** `docs/codex/milestone-prompts/M04E2T2-finalized-typed-run-facts.md` v0.1
 
-## Purpose
+## Purpose and outcome
 
-M04E2T2 turns the trustworthy internal facts established by M04E2T1 into one final detached public result contract. It replaces the current raw public segment/channel dictionaries and generic event payload dictionaries, migrates every current consumer, and leaves candidate mutation and commit ownership untouched.
+M04E2T2 converted the trustworthy internal facts established by M04E2T1 into one final detached public result contract. It removed the raw public segment/channel dictionaries, generic event payload dictionaries, nested engine result/event ownership, and simulation `change_summary`, while preserving the T1 candidate/journal/commit boundary.
 
-This is a representation/projection slice, not a simulation rewrite and not a report implementation.
-
-## Baseline findings
-
-Current merged behavior has:
-
-- a private transaction candidate and immutable run context;
-- a bounded journal with `TIMELINE`, `CORE_SEGMENT`, `CHANNEL_SEGMENT`, and `SETTLEMENT` facts;
-- candidate validation before journal freeze;
-- one final source `copy_from`;
-- nested `SimulationEngine.SimulationResult` and `SimulationEvent` classes;
-- raw segment dictionaries;
-- raw channel-delta dictionaries;
-- generic event payload dictionaries;
-- a journal-derived simulation `change_summary`;
-- `SimulationRunService` and `M04CDebugAdvance` typed against the nested result;
-- no report state and schema version 3.
-
-The current public representation is safe as a temporary journal projection, but it is not the durable typed fact boundary required by delayed report ingestion.
-
-## Protected invariants
-
-- Candidate mutation and fact provenance remain exactly as implemented in M04E2T1.
-- `SimulationEngine` remains formula/segmentation owner.
-- `SimulationTransaction` remains private-candidate/finalization/commit owner.
-- Public facts never enter `commit_to()` and never authorize state.
-- Online, offline-fixture, debug, and forecast paths continue to use one engine.
-- Exact one-hour, eight-hour, Settlement, channel, chunking, rate-context, mode, and forecast outcomes remain unchanged.
-- Historical identity is component-based and captured at run time.
-- Schema remains version 3; content remains `prototype-content-r2`.
-- No report state, migration, report service, UI, trusted time, or concurrency is added.
-
-## Proposed class and file layout
-
-The implementation may adjust exact file names during the required pre-edit inspection, but responsibilities remain separated:
+The implemented public family is:
 
 ```text
-src/simulation/results/simulation_result.gd
-src/simulation/results/simulation_segment_result.gd
-src/simulation/results/simulation_channel_delta_result.gd
-src/simulation/results/simulation_event.gd
-src/simulation/results/simulation_channel_banked_event.gd
-src/simulation/results/simulation_threshold_settled_event.gd
-src/simulation/results/simulation_result_projector.gd
+SimulationResult
+SimulationSegmentResult
+SimulationChannelDeltaResult
+SimulationEvent
+SimulationChannelBankedEvent
+SimulationThresholdSettledEvent
+SimulationResultProjector
 ```
 
-These are global typed `RefCounted` classes. The result classes own no gameplay state and expose no mutation API. The projector is pure.
+The pure projector consumes only detached run context and a frozen fact journal. It receives no live/candidate `GameState`, report state, clock, file, scene, platform service, or caller-authored commit authority.
 
-`SimulationTransaction` calls the projector after candidate validation and journal freeze. `SimulationEngine` returns the global result. `SimulationRunService` and debug adapters pass the typed result through.
+## Realized contract
 
-## Result-shape matrix
-
-| Kind | Success | Requested | Committed | Segments | Events | Cursor rule |
-|---|---:|---:|---:|---|---|---|
-| `FAILURE` | false | may be negative or non-negative | 0 | empty | empty | baseline == result |
-| `ZERO_DURATION` | true | 0 | 0 | empty | empty | baseline == result |
-| `TIMELINE_ONLY` | true | positive | equals requested | empty | empty | result - baseline == committed |
-| `ACTIVE_REAPING` | true | positive | equals requested | non-empty | closed union | full contiguous interval |
-
-Positive success includes the validated content revision. Failure/zero shapes do not claim content validation when the current behavior returns before context creation.
-
-## Journal-to-public matrix
-
-| Internal evidence | Public projection |
-|---|---|
-| `SimulationRunContext` | result baseline/request/content and segment historical identity |
-| `TIMELINE` | result cursor and committed interval |
-| `CORE_SEGMENT` | one typed segment's timing, lifecycle, and core deltas |
-| `CHANNEL_SEGMENT` | one typed channel delta and optional channel-banked event |
-| `SETTLEMENT` | one typed Settlement event and lifecycle sequence validation |
-| journal order | stable segment/event order |
-
-Candidate `GameState` is intentionally absent from this matrix.
-
-## Consumer-input matrix
-
-| Consumer | Required T2 input |
-|---|---|
-| `SimulationEngine` caller | global typed result envelope |
-| `SimulationRunService` | exact typed result passthrough plus existing mode/projection metadata |
-| `M04CDebugAdvance` | global typed result |
-| M04C tests/trace | typed segment/core facts and events |
-| M04D2 tests/trace | typed channel endpoints and channel events |
-| M04D3 tests/trace | historical component identity and unchanged outcomes |
-| M04E1 tests/trace | typed forecast/commit/mode equality |
-| M04E2T1 tests/trace | projector remains downstream of frozen journal and candidate commit seam remains absent |
-| persistence tests | absence of all result/fact artifacts |
-| future M04E2A3 | self-contained interval, attribution, core, channel, and closed event facts |
-
-No current consumer requires simulation `change_summary` after direct migration.
-
-## Closed event grammar
-
-### Channel banked
-
-One `SimulationChannelBankedEvent` exists for each segment/channel delta with positive `banked_units_delta`. It is absent for progress-only deltas. Its typed fields agree with the owning channel delta and segment lifecycle. Its time is the owning segment end.
-
-### Threshold settled
-
-One `SimulationThresholdSettledEvent` exists if and only if the run transitions `OVERDUE -> SETTLED`. It belongs to the ending Overdue segment and retains boundary persistent-return and backlog/lifecycle endpoints.
-
-### Common order and ownership
+The four result kinds are:
 
 ```text
-occurred_simulation_msec
-priority
-subject_id
-source_id
+FAILURE
+ZERO_DURATION
+TIMELINE_ONLY
+ACTIVE_REAPING
 ```
 
-Every event has an explicit zero-based `segment_index`. Time membership remains:
+Typed segments retain complete historical Threshold, assignment revision, Form, Writ, ordered Retinue, lifecycle, timing, core, backlog-endpoint, and channel facts. Typed channel deltas retain channel/item identity, period, progress/carry endpoints, and total-banked endpoints. The closed event union contains only current channel-banked and Threshold-settled event subtypes.
+
+Every current engine, transaction, run-service, debug, test, trace, source-audit, and persistence-exclusion consumer migrated directly. No parallel raw public grammar remains.
+
+## Protected behavior
+
+The implementation preserved:
+
+- one-hour and eight-hour exact production values;
+- Settlement segmentation, priority, and event ownership;
+- progress-only and multiple-whole channel behavior;
+- regular/irregular chunk gameplay equality;
+- forecast/committed-clone typed equality;
+- foreground/offline-fixture/debug equality;
+- M04E2T1 failure atomicity;
+- schema version 3 and content revision `prototype-content-r2`;
+- non-persistence of simulation result/context/journal/projector artifacts.
+
+It added no report state, schema version 4, ingestion, report reads, snapshot/history behavior, UI, trusted time, or concurrency.
+
+## Review and correction record
+
+Targeted review findings addressed malformed Settlement cardinality, selected Retinue order, active-context fact completeness, exact-boundary Settlement self-validation, spurious Settlement rejection, and owner-trace constructor correctness. Named regressions were added.
+
+The final targeted and unrestricted current-head Codex reviews were clean. All applicable review threads were resolved.
+
+## Final evidence
+
+Exact-head Windows verification detected `00bd7d1ce27817b508eb0aac1663d1de48353237` and passed:
 
 ```text
-segment.start_simulation_msec < event.occurred_simulation_msec
-    <= segment.end_simulation_msec
+Godot: 4.7.stable.official.5b4e0cb0f
+full GUT before/after: 178/178 tests, 2,832 assertions
+focused M04C-M04E2T2: 74/74 tests, 1,291 assertions
+import: PASS
+15 exact M04E2T2 trace markers: PASS
+missing-root negative trace: PASS
+cleanup and cleanup-absence proof: PASS
+artifact audit: PASS
+failed steps: 0
+interactive checks: none
 ```
 
-## Structural validation boundary
+## Scope outcome
 
-Public facts support pure validation so later consumers can reject malformed detached objects. The validator checks only:
-
-- closed result shape;
-- numeric and ID domains;
-- segment index/timing/contiguity;
-- stable historical identity;
-- lifecycle sequence;
-- channel uniqueness/order/endpoints;
-- event subtype/order/ownership/cardinality;
-- deep detachment and typed child classes.
-
-It does not receive candidate state, compare candidate fields, reproduce rates, or decide whether live state may commit.
-
-## Compatibility removal
-
-The implementation removes the transitional public API in one slice:
-
-- no raw public segment dictionaries;
-- no raw public channel-delta dictionaries;
-- no generic public event payload dictionary;
-- no simulation `change_summary`;
-- no nested `SimulationEngine.SimulationResult`/`SimulationEvent` ownership.
-
-Internal journal trace snapshots may remain dictionaries. Unrelated domain-service summaries remain untouched.
-
-## Test and evidence plan
-
-Add:
+Final implementation scope was:
 
 ```text
-tests/unit/m04e2t2/
-tests/integration/m04e2t2/
-tools/test/m04e2t2/m04e2t2_finalized_facts_trace.gd
-tools/test/owner/run_m04e2t2_owner_verification.ps1
+25 non-documentation/non-UID files
+1,742 additions
+282 deletions
+1,460 net additions
 ```
 
-Migrate applicable M04C/M04D2/M04D3/M04E1/M04E2T1 tests and traces directly. Do not keep raw compatibility assertions as a second API.
+The net line delta exceeded the approximate 1,450 planning threshold by 10 lines while remaining below the file-count stop threshold. The owner approved a bounded exception for M04E2T2 only because the excess consisted of the approved typed family, edge-case regressions, trace evidence, owner runner, and removal/migration of the transitional grammar. No new authority, schema transition, report state, later subsystem, or gameplay formula owner entered the slice.
 
-The trace emits the 15 exact markers defined in `TESTING_AND_VALIDATION.md` and the prompt. The Windows package requires detected Git head equality when `-CommitSha` is supplied.
-
-## Scope assessment
-
-| Item | Draft assessment |
-|---|---|
-| Primary owner | One typed-fact projector/family |
-| Principal transition | Frozen context+journal -> detached typed public facts |
-| Authoritative state | None |
-| Schema/content change | None |
-| Cross-layer seams | 2 |
-| Risk dimensions | 3 |
-| Expected non-doc files | 14–26 |
-| Expected code/test delta | 700–1,250 lines |
-| Stop threshold | 30 files or approximately 1,450 lines |
-| Platform/native behavior | None |
-| Interactive checks | None |
-
-Stop before editing if inspection shows another authoritative owner, schema transition, candidate mutation change, third seam, or an unavoidable parallel public grammar.
-
-## Review plan
-
-Targeted review focuses on:
-
-1. typed field completeness and detachment;
-2. frozen-journal-only projection with no candidate input;
-3. exact result shapes and full interval coverage;
-4. closed event subtype/cardinality/segment ownership;
-5. historical attribution and equal-output distinction;
-6. removal of raw public grammar and simulation summary;
-7. current consumer migration and equality;
-8. persistence exclusion and later-slice scope.
-
-After a clean targeted audit, run one unrestricted review. Stop under the project rule if more than two targeted rounds produce new P1/P2 findings or more than six material findings.
-
-## Codex desktop delivery
-
-The approved prompt will require:
+## Gate result
 
 ```text
-base: main
-feature branch: codex/implement-m04e2t2
-PR target: main
-PR title: M04E2T2: Add finalized typed simulation run facts
-```
-
-After commit and local verification, Codex uses `tools/codex/publish_milestone_pr.ps1`, reports the PR URL/head, and stops. It never merges, auto-merges, closes, deletes, force-pushes, or pushes to main.
-
-## Approval checklist
-
-Before implementation, the owner must confirm:
-
-```text
-DEC-0044: Accepted
-M04E2T2 definition: Approved
-M04E2T2 prompt: Approved v0.1 or later
 GATE-FINALIZED-RUN-FACTS: Satisfied
-GATE-SLICE-SCOPE: Satisfied
-Codex desktop workflow: Approved
+M04E2T2 GATE-SLICE-SCOPE: Satisfied by recorded owner exception
+Implementation: Merged
+Verification: Passed
 ```
+
+## Current action
+
+M04E2T2 is closed. Do not re-execute its prompt or continue its implementation branch as a basis for report state.
+
+The active next planning boundary is:
+
+```text
+M04E2A2 — Report runtime state and schema-v4 persistence
+```
+
+Use:
+
+- `docs/codex/M04E2A2_PLANNING.md`;
+- `docs/codex/milestone-prompts/M04E2A2-report-state-schema-v4-persistence.md` after explicit owner approval;
+- `docs/codex/CODEX_DESKTOP_WORKFLOW.md`;
+- `tools/codex/publish_milestone_pr.ps1`.

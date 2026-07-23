@@ -2,7 +2,7 @@
 
 **Prompt version:** v0.1  
 **Prompt date:** 2026-07-22  
-**Prompt status:** Approved 
+**Prompt status:** Implemented — Merged/Passed; historical prompt, do not re-execute 
 **Work item type:** Implementation slice  
 **Parent conceptual epics:** M04 / M04E / M04E2  
 **Milestone definition:** `docs/codex/MILESTONES.md`  
@@ -13,11 +13,27 @@
 **Approved PR title:** `M04E2T2: Add finalized typed simulation run facts`  
 **Repository prompt path:** `docs/codex/milestone-prompts/M04E2T2-finalized-typed-run-facts.md`
 
-> This prompt authorizes a public-result representation and current-consumer migration only. It does not authorize candidate mutation or commit redesign, report state, schema version 4, report ingestion/reads/history, UI, trusted time, concurrency, or M04E2B.
+> This prompt authorized the finalized typed public run-fact migration and is retained as executed historical provenance. M04E2T2 merged and passed through PR #22. Do not re-execute this prompt or continue its implementation branch for M04E2A2.
 
-## Approval gate
+## Completion record
 
-Do not begin implementation until the project owner changes the prompt status to Approved and confirms:
+```text
+PR: #22
+Final head: 00bd7d1ce27817b508eb0aac1663d1de48353237
+Merge commit: afd390e8338a198d76938eef5ddcf35718ec189c
+Targeted review: clean
+Unrestricted review: clean
+Owner verification: PASS
+Full suite: 178/178 tests, 2,832 assertions
+Focused suite: 74/74 tests, 1,291 assertions
+Trace markers: 15/15
+```
+
+The recorded owner scope exception applies only to M04E2T2. The active next boundary is M04E2A2.
+
+## Historical approval gate
+
+Before implementation, the project owner approved the following gate:
 
 ```text
 DEC-0044: Accepted

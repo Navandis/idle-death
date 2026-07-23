@@ -3,8 +3,8 @@
 **Document role:** Canonical prototype data, runtime-state, ID, and serialization contracts  
 **Repository path:** `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`  
 **Document status:** Approved architecture contract  
-**Revision:** 25  
-**Last updated:** 2026-07-22
+**Revision:** 26  
+**Last updated:** 2026-07-23
 
 ## 1. Purpose
 
@@ -2671,7 +2671,7 @@ mode: StringName
 requested_elapsed_msec: int
 baseline_simulation_time_msec: int
 result_simulation_time_msec: int
-simulation_result: SimulationEngine.SimulationResult or null
+simulation_result: SimulationResult or null
 projected_state: GameState or null
 ```
 
@@ -2686,15 +2686,17 @@ Rules:
 
 Final Windows evidence passed `153/153` full tests and `2,522` assertions before and after the trace, `9/9` focused tests and `295` assertions, all fifteen markers, import, cleanup, cleanup proof, and artifact audit.
 
-## Approved M04E2 transaction and proposed typed run-fact contracts
+## Realized M04E2 transaction and typed run-fact contracts
 
-Accepted `DEC-0043` supersedes the M04E2A1 implementation packaging in `DEC-0042` while carrying forward the report semantics of `DEC-0041` and `DEC-0042`. M04E2T1 is Merged/Passed. Accepted `DEC-0044` defines the exact M04E2T2 public contract; its implementation is on the open M04E2T2 pull request and remains non-persisted until later report slices.
+Accepted `DEC-0043` supersedes the failed M04E2A1 implementation packaging while carrying forward report semantics. Accepted `DEC-0044` defines the final typed public run-fact contract.
 
 The active sequence is:
 
 ```text
 M04E2T1 -> M04E2T2 -> M04E2A2 -> M04E2A3 -> M04E2A4 -> M04E2B
 ```
+
+M04E2T1 and M04E2T2 are Merged/Passed. M04E2A2 is the active planning boundary.
 
 ## Realized M04E2T1 single-provenance transaction contract
 
@@ -2715,7 +2717,7 @@ initial_lifecycle_state
 content_revision
 ```
 
-The journal fact kinds are runtime-only:
+Journal fact kinds are runtime-only:
 
 ```text
 TIMELINE
@@ -2724,17 +2726,15 @@ CHANNEL_SEGMENT
 SETTLEMENT
 ```
 
-Each transaction operation validates before values and ranges before writing candidate fields, then records its fact from the same before/after endpoints. Candidate validation precedes journal freeze. Active core facts cover the complete requested interval. The source changes through one final `copy_from` only.
+Each transaction operation validates ranges before writing candidate fields and records its fact from the same before/after endpoints. Candidate validation precedes journal freeze. Active core facts cover the requested interval. The source changes through one final `copy_from` only.
 
-The current temporary public compatibility result is generated from the finalized journal. The context, candidate, transaction, journal, result, events, and forecast projection never serialize.
+M04E2T1 merged through PR #21 at final head `a4d8056cb8771e84e1948fc5e59939c46a13003c` and merge commit `68364e0b417a6e7ebc63b50a386ac5d9f2c506bf`.
 
-M04E2T1 merged through PR #21 at final head `a4d8056cb8771e84e1948fc5e59939c46a13003c` and merge commit `68364e0b417a6e7ebc63b50a386ac5d9f2c506bf`. Exact-head Windows evidence passed `165/165` full tests, `61/61` focused tests, all twelve trace markers, import, negative-root behavior, cleanup, and artifact audit.
-
-## M04E2T2 finalized typed run-fact contract
+## Realized M04E2T2 finalized typed run-fact contract
 
 ### Result kinds and envelope
 
-The global non-persisted result uses these stable kinds:
+The global non-persisted result uses:
 
 ```text
 FAILURE
@@ -2743,7 +2743,7 @@ TIMELINE_ONLY
 ACTIVE_REAPING
 ```
 
-Proposed fields:
+Fields:
 
 ```text
 result_kind: StringName
@@ -2759,16 +2759,7 @@ segments: Array[SimulationSegmentResult]
 events: Array[SimulationEvent]
 ```
 
-Shape rules:
-
-| Kind | Required shape |
-|---|---|
-| `FAILURE` | `success == false`; stable non-empty error code; committed elapsed `0`; no segments/events; baseline equals result cursor; no committed fact authority |
-| `ZERO_DURATION` | `success == true`; requested and committed elapsed `0`; baseline equals result cursor; no segments/events |
-| `TIMELINE_ONLY` | positive requested/committed elapsed; result cursor minus baseline equals committed elapsed; no segments/events; exact validated content revision |
-| `ACTIVE_REAPING` | positive requested/committed elapsed; result cursor minus baseline equals committed elapsed; non-empty contiguous typed segments; closed typed events only |
-
-A failed result may retain a negative requested duration when that request caused failure. Failure and zero-duration results do not imply a validated content revision; positive successful results do.
+Failure and zero-duration results carry no committed segment/event authority. Positive timeline-only results carry exact interval timing and no segments/events. Positive active results cover the complete interval with contiguous typed segments and a closed event union.
 
 ### `SimulationSegmentResult`
 
@@ -2793,21 +2784,7 @@ completed_cycles_delta: int
 channel_deltas: Array[SimulationChannelDeltaResult]
 ```
 
-Rules:
-
-- segment indexes are zero-based, contiguous, and match array order;
-- IDs are non-empty for active facts;
-- assignment revision is positive;
-- ordered Retinue IDs are detached, non-empty when present, unique, and preserve selected order;
-- lifecycle is `OVERDUE` or `SETTLED`;
-- start is before end and elapsed equals end minus start using checked arithmetic;
-- all deltas are non-negative;
-- remaining backlog endpoints are non-negative, non-increasing, and their difference equals `backlog_reduced`;
-- an `OVERDUE` segment begins with positive backlog; a `SETTLED` segment has zero backlog endpoints;
-- channel deltas are unique and canonically ordered by channel ID;
-- one run keeps exact Threshold/assignment/Form/Writ/Retinue identity across segments;
-- under the current resolver, valid lifecycle sequences are one `OVERDUE`, one `SETTLED`, or `OVERDUE` followed by `SETTLED`;
-- first start equals result baseline, final end equals result cursor, and segments cover the entire positive active interval without gap or overlap.
+Segments preserve selected ordered Retinue identity, exact historical component attribution, checked interval coverage, non-negative core facts, and explicit backlog endpoints. Under the current resolver, valid lifecycle shapes are one Overdue segment, one Settled segment, or Overdue followed by Settled.
 
 ### `SimulationChannelDeltaResult`
 
@@ -2824,111 +2801,43 @@ total_banked_units_before: int
 total_banked_units_after: int
 ```
 
-Rules:
+The period travels with the carry. Progress/carry endpoints are normalized, totals are monotonic, and banked delta equals total-end minus total-start.
 
-- IDs are non-empty;
-- period is positive;
-- progress endpoints are in `[0, FixedPoint.SCALE)`;
-- carry endpoints are in `[0, rate_period_msec)`;
-- totals are non-negative and monotonic;
-- banked delta equals total after minus total before using checked arithmetic;
-- progress-only changes with zero banked units remain representable;
-- no fractional inventory is created or implied;
-- records are detached and compared by value.
+### Closed event union
 
-Internal journal inventory endpoints remain available for T1 mutation provenance but are not duplicated as public report authority.
-
-### Closed `SimulationEvent` family
-
-Common read-only fields:
+Common fields:
 
 ```text
-event_type: StringName
-occurred_simulation_msec: int
-priority: int
-segment_index: int
-subject_id: StringName
-source_id: StringName
-reportable: bool
-tutorial_relevant: bool
-```
-
-Allowed concrete types:
-
-#### `SimulationChannelBankedEvent`
-
-```text
-event_type = OUTPUT_CHANNEL_BANKED
-output_item_id: StringName
-quantity: int
-lifecycle_state: StringName
-total_banked_units_after: int
-progress_subunits_after: int
-```
-
-The event is owned by the referenced segment, occurs at its end, uses the channel as source, and exists exactly once for each positive-banking segment/channel delta. No event exists for a progress-only delta.
-
-#### `SimulationThresholdSettledEvent`
-
-```text
-event_type = THRESHOLD_SETTLED
-persistent_returns_total: int
-remaining_backlog_before: int
-remaining_backlog_after: int
-lifecycle_before: StringName
-lifecycle_after: StringName
-```
-
-The event occurs exactly once at the end of the `OVERDUE` segment that transitions to `SETTLED`. Its source is `SIMULATION_ENGINE`, backlog after is zero, and lifecycle is exactly `OVERDUE -> SETTLED`.
-
-No generic public payload dictionary, unknown event type, or arbitrary event subclass is valid. Stable order remains:
-
-```text
+event_type
 occurred_simulation_msec
 priority
+segment_index
 subject_id
 source_id
+reportable
+tutorial_relevant
 ```
 
-Event ownership remains start-exclusive/end-inclusive and is also made explicit by `segment_index`.
-
-### Projection and validation boundary
-
-One pure `SimulationResultProjector` or equivalent receives only:
+Valid current subtypes:
 
 ```text
-finalized detached SimulationRunContext
-frozen SimulationFactJournal
+SimulationChannelBankedEvent
+SimulationThresholdSettledEvent
 ```
 
-It receives no live or candidate `GameState` and performs no mutation or gameplay calculation. It maps journal facts to the typed family, runs pure local/run-level structural validation, and returns detached facts.
+Channel events carry output item, positive quantity, lifecycle, total-banked-after, and progress-after. Settlement events carry persistent-return total, backlog before/after, and exact `OVERDUE -> SETTLED` lifecycle. Event ownership is explicit, ordering is deterministic, and no raw generic payload dictionary is valid.
 
-Structural validation covers result shape, field domains, timing, identity continuity, ordering, event cardinality, and journal-to-public projection integrity. It does not compare against candidate state and does not authorize commit.
+### Projection and validation
 
-### Compatibility removal and consumer migration
+`SimulationResultProjector` receives only finalized detached `SimulationRunContext` and frozen `SimulationFactJournal`. It receives no live or candidate `GameState` and performs no gameplay mutation/calculation. It maps and structurally validates detached facts but never authorizes commit.
 
-M04E2T2 removes from the public simulation contract:
+### Compatibility removal and persistence exclusion
 
-```text
-raw Dictionary segments
-raw Dictionary channel deltas
-generic event payload Dictionary
-simulation change_summary
-nested SimulationEngine.SimulationResult and SimulationEvent type ownership
-```
+M04E2T2 removed raw public segment/channel dictionaries, generic public payloads, simulation `change_summary`, and nested engine result/event ownership. Internal bounded journal diagnostics may remain dictionaries.
 
-All current engine, run-service, debug, test, trace, and persistence-exclusion consumers migrate directly. Internal diagnostic journal snapshots may remain dictionaries because they are not the public result grammar.
+Schema remains 3 and content remains `prototype-content-r2` through M04E2T2. No result, segment, channel, event, projector, context, transaction, journal, wrapper, or forecast object serializes.
 
-### Persistence exclusion
-
-M04E2T2 retains:
-
-```text
-save schema = 3
-content revision = prototype-content-r2
-```
-
-Do not serialize any result, segment, channel delta, event, projector, context, transaction, journal, validation object, mode wrapper, or forecast projection. Frozen v1/v2/v3 fixture bytes remain unchanged.
+M04E2T2 merged through PR #22 at final head `00bd7d1ce27817b508eb0aac1663d1de48353237` and merge commit `afd390e8338a198d76938eef5ddcf35718ec189c`. Final exact-head evidence passed 178 full tests, 74 focused tests, all 15 markers, import, cleanup, and artifact audit.
 
 ## Deferred report contracts
 
@@ -3237,7 +3146,7 @@ Pruning keeps newest records/details, preserves exact counts, and increments exp
 
 ## Approved deferred M04E2B atomic boundary
 
-After M04E2A1 through M04E2A4 are Merged/Passed, M04E2B may add:
+After M04E2T1, M04E2T2, and M04E2A2 through M04E2A4 are Merged/Passed, M04E2B may add:
 
 ```text
 clone live GameState

@@ -2,8 +2,8 @@
 
 **Document role:** Canonical test strategy, commands, fixture rules, and manual validation flows
 **Repository path:** `docs/codex/TESTING_AND_VALIDATION.md`
-**Document status:** Approved through M04E2T2 implementation boundary; owner verification remains pending final review
-**Validation revision:** 31
+**Document status:** Approved through M04E2T2; M04E2A2 validation plan Draft v0.1
+**Validation revision:** 32
 **Last updated:** 2026-07-23
 **Engine target:** Godot 4.7 standard build, GDScript only
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)  
@@ -46,7 +46,7 @@ M04D2 merged through PR #14 at merge commit `24228a078199d9728eb57e4e26c27447aa6
 
 M04D3 merged through PR #15 at merge commit `9fd8f98e3787f711f3d03c9de03d3615d531216a` from final head `5a5cafc6b640001fba86c7ea9531ae9daf43fcc3`. Linux/Codex focused coverage passed `35/35` tests and `592` assertions. Owner Windows verification passed the full suite before and after (`144/144`, `2,222` assertions), focused M04D3 (`18/18`, `254` assertions), import, all sixteen markers, cleanup, cleanup proof, and artifact audit with zero failed steps. Accepted `DEC-0040` decomposes M04E into approved forecast-only M04E1 and report-state M04E2.
 
-M04E1 merged through PR #16 at merge commit `03f05a3d78609a993cecab8b0077e5f7d7d55900` from final head `738e89c606dd9f1f9f0396334ea9d8587ff389f3`. Owner Windows verification passed the full suite before and after (`153/153`, `2,522` assertions), focused M04E1 (`9/9`, `295` assertions), explicit import, all fifteen markers, cleanup, cleanup proof, and artifact audit with zero failed steps. PR #17 and PR #18 later attempted M04E2 report/result foundations and were closed unmerged at terminal heads `5c87118045faa6f48f8ce50977a9bcdcfa967e57` and `602dec077f44338cdb4a2eabbd30d3989c877902`. Accepted `DEC-0043` established the replacement sequence; M04E2T1 is now complete and M04E2T2 finalized typed facts is the next planning boundary.
+M04E1 merged through PR #16 at merge commit `03f05a3d78609a993cecab8b0077e5f7d7d55900` from final head `738e89c606dd9f1f9f0396334ea9d8587ff389f3`. Owner Windows verification passed the full suite before and after (`153/153`, `2,522` assertions), focused M04E1 (`9/9`, `295` assertions), explicit import, all fifteen markers, cleanup, cleanup proof, and artifact audit with zero failed steps. PR #17 and PR #18 later attempted M04E2 report/result foundations and were closed unmerged at terminal heads `5c87118045faa6f48f8ce50977a9bcdcfa967e57` and `602dec077f44338cdb4a2eabbd30d3989c877902`. M04E2T1 and M04E2T2 subsequently merged and passed through PR #21 and PR #22. M04E2A2 report state/schema-v4 persistence is the active planning boundary.
 
 ## 2. Pinned test and platform dependencies
 
@@ -2114,77 +2114,33 @@ Final exact-head Windows evidence recorded:
 
 The final unrestricted Codex review was clean and every review thread was resolved. `GATE-SINGLE-PROVENANCE-TRANSACTION` is satisfied. The owner-approved scope exception applies only to M04E2T1.
 
-## 30. M04E2T2 finalized typed run-fact validation package
+## 30. M04E2T2 finalized typed run-fact completion record
 
-This package is the approved `DEC-0044` validation contract for the M04E2T2 prompt v0.1. The implementation pull request provides the focused automated suite, trace, and owner-verification entry point; exact-head owner execution remains a post-review merge gate.
+M04E2T2 merged through PR #22 from final head `00bd7d1ce27817b508eb0aac1663d1de48353237` at merge commit `afd390e8338a198d76938eef5ddcf35718ec189c`.
 
-M04E2T2 changes public result representation and current consumers while preserving simulation behavior, mutation provenance, schema version 3, and content revision `prototype-content-r2`.
+The realized slice replaced the transitional public simulation grammar with one global detached typed result family, one pure frozen-journal projector, typed historical segments and channel endpoints, and a closed current event union. It preserved M04E2T1 mutation/commit provenance, exact simulation behavior, schema version 3, and content revision `prototype-content-r2`.
 
-### 30.1 Focused commands
+### 30.1 Final review and owner evidence
 
-```bash
-./tools/test/run_gut.sh -- \
-  -gdir=res://tests/unit/m04c \
-  -gdir=res://tests/unit/m04d2 \
-  -gdir=res://tests/unit/m04d3 \
-  -gdir=res://tests/unit/m04e1 \
-  -gdir=res://tests/unit/m04e2t1 \
-  -gdir=res://tests/unit/m04e2t2 \
-  -gdir=res://tests/integration/m04e1 \
-  -gdir=res://tests/integration/m04e2t1 \
-  -gdir=res://tests/integration/m04e2t2
+Targeted findings were corrected with named regressions. Final targeted and unrestricted current-head Codex reviews were clean and all applicable review threads were resolved.
 
-./tools/test/run_gut.sh
+Exact-head Windows verification recorded:
 
-godot --headless --path . --import
-
-trace_root="$(mktemp -d)"
-godot --headless --path . \
-  -s res://tools/test/m04e2t2/m04e2t2_finalized_facts_trace.gd \
-  -- --work-root "$trace_root"
-trace_exit=$?
-rm -rf "$trace_root"
-test ! -e "$trace_root"
-test "$trace_exit" -eq 0
-
-godot --headless --path . \
-  -s res://tools/test/m04e2t2/m04e2t2_finalized_facts_trace.gd
-test "$?" -ne 0
-
-git diff --check
-git status --short
+```text
+requested/detected head: 00bd7d1ce27817b508eb0aac1663d1de48353237
+Godot: 4.7.stable.official.5b4e0cb0f
+full GUT before/after: 178/178 tests, 2,832 assertions
+focused M04C-M04E2T2: 74/74 tests, 1,291 assertions
+import: PASS
+15 exact trace markers: PASS
+missing-root trace exit: 1, expected and passed
+cleanup and cleanup-absence proof: PASS
+artifact audit: PASS
+failed steps: 0
+interactive checks: none
 ```
 
-Run every existing M04C, M04D2, M04D3, M04E1, and M04E2T1 trace whose public-result assertions change. Existing markers remain exact unless the prompt explicitly replaces only representation-specific wording while preserving the behavior asserted.
-
-### 30.2 Required behavior groups
-
-1. global typed result envelope and closed result kinds;
-2. failure and zero-duration shapes carry no committed authority;
-3. positive timeline-only interval is exact and contains no segments/events;
-4. positive active result covers the full interval with one or two contiguous typed segments;
-5. exact historical Threshold/revision/Form/Writ/ordered-Retinue/lifecycle identity;
-6. detached Retinue arrays, channel arrays, event objects, and result copies;
-7. typed channel period/progress/carry/total endpoint domains;
-8. progress-only and multiple-whole banking remain representable;
-9. closed channel-banked event type, typed fields, ordering, owning segment, and cardinality;
-10. closed Settlement event type, boundary totals, owning segment, cardinality, and backlog-endpoint expectation;
-11. same-timestamp recall and redispatch do not rewrite retained facts;
-12. distinct equal-output component identities remain distinct;
-13. one-hour and eight-hour exact values unchanged;
-14. Settlement segmentation, event priority, and start-exclusive/end-inclusive ownership unchanged;
-15. regular/irregular chunk gameplay equivalence unchanged;
-16. forecast versus committed-clone typed fact equality;
-17. foreground/offline-fixture/debug typed fact equality;
-18. projector receives frozen context/journal evidence only and no candidate state;
-19. no public raw segment/channel dictionary, generic event payload dictionary, or simulation `change_summary` remains;
-20. current run/debug/test/trace consumers use typed values directly;
-21. schema-v3 production save/load and frozen fixture bytes unchanged;
-22. no result/event/projector/context/journal artifact serializes;
-23. no report/schema-v4/UI/trusted-time/tutorial/Hall/support/concurrency ownership enters the diff;
-24. actual file/line scope remains inside approved M04E2T2 guardrails.
-
-### 30.3 Required trace markers
+The final 15 markers were:
 
 ```text
 TRACE M04E2T2 typed_result_envelope=PASS
@@ -2204,14 +2160,187 @@ TRACE M04E2T2 raw_public_grammar_removed=PASS
 TRACE M04E2T2 schema_v3_no_result_artifacts=PASS
 ```
 
-Each marker is earned through real assertions. Source-text checks may supplement only the ownership/removal assertions.
+### 30.2 Scope result
 
-### 30.4 Owner Windows package
+Final non-documentation/non-`.uid` scope was 25 files and 1,460 net additions. The owner approved the 10-line-over-threshold exception for M04E2T2 only. The excess was required typed facts, edge-case regressions, trace, owner runner, and direct compatibility removal. No new authoritative state, schema transition, report subsystem, or formula owner entered the slice.
+
+`GATE-FINALIZED-RUN-FACTS` is satisfied. The M04E2T2 prompt is historical and must not be re-executed.
+
+## 31. M04E2A2 report-state and schema-v4 validation package
+
+This section is Draft v0.1 with the M04E2A2 planning package. It becomes executable only after explicit owner approval of the prompt, `GATE-REPORT-SCHEMA`, and `GATE-SLICE-SCOPE`.
+
+M04E2A2 changes authoritative runtime state and the save writer but adds no production report mutation. Validation must prove exact construction, clone/copy isolation, schema grammar, migration, persistence, and failure preservation.
+
+### 31.1 Focused commands
+
+```bash
+./tools/test/run_gut.sh -- \
+  -gdir=res://tests/unit/m04a \
+  -gdir=res://tests/unit/m04d1 \
+  -gdir=res://tests/unit/m04e2t1 \
+  -gdir=res://tests/unit/m04e2t2 \
+  -gdir=res://tests/unit/m04e2a2 \
+  -gdir=res://tests/unit/persistence \
+  -gdir=res://tests/integration/m04a \
+  -gdir=res://tests/integration/m04d1 \
+  -gdir=res://tests/integration/m04e2t1 \
+  -gdir=res://tests/integration/m04e2t2 \
+  -gdir=res://tests/integration/m04e2a2 \
+  -gdir=res://tests/integration/save_load
+
+./tools/test/run_gut.sh
+
+godot --headless --path . --import
+
+trace_root="$(mktemp -d)"
+godot --headless --path . \
+  -s res://tools/test/m04e2a2/m04e2a2_report_schema_trace.gd \
+  -- --work-root "$trace_root"
+trace_exit=$?
+rm -rf "$trace_root"
+test ! -e "$trace_root"
+test "$trace_exit" -eq 0
+
+godot --headless --path . \
+  -s res://tools/test/m04e2a2/m04e2a2_report_schema_trace.gd
+test "$?" -ne 0
+
+git diff --check
+git status --short
+```
+
+Also run affected M02, M04A, and M04D1 schema/migration traces and report exact marker results. Existing historical behavior remains valid even though the current writer advances to v4.
+
+### 31.2 Runtime-state behavior groups
+
+1. canonical empty `ReportState` at zero and nonzero gameplay cursors;
+2. report cursor may trail but never exceed gameplay cursor;
+3. positive next report/event sequences and non-negative counters;
+4. canonical empty live accumulator shape;
+5. valid fixture-populated live state and immutable history record;
+6. complete deep clone and `GameState.copy_from()` isolation;
+7. no alias between live/history/records/slices/loadouts/channels/events;
+8. strict report-history and recent-event sequence order/uniqueness;
+9. history limit 20 and recent-event limit 64;
+10. committed mode keys/counts and exact sum to run count;
+11. slice storage key equals threshold/revision/lifecycle identity;
+12. duplicate semantic slice identity under another key rejects;
+13. ordered Retinue identity remains selected order and rejects duplicates;
+14. Overdue and Settled slice identity remains separate;
+15. slice time/elapsed/core quantity domains use checked arithmetic;
+16. generic inventory and Mastery maps use valid canonical IDs and non-negative quantities;
+17. channel Threshold/channel/output relationship matches content;
+18. channel progress/carry/total/delta endpoints validate exactly;
+19. event sequence/type/priority/subject/source/window rules;
+20. report record reason/snapshot/window/sequence rules;
+21. null, missing, or wrong-class report children reject without mutation;
+22. no report mutator, query, snapshot, clear, or prune method exists in production.
+
+### 31.3 Schema and wire behavior groups
+
+1. explicit `SCHEMA_VERSION_V4 = 4` and current writer v4;
+2. v4 game-state keys equal v3 keys plus exactly `report_state`;
+3. codec remains `JSON_V1` and content remains `prototype-content-r2`;
+4. exact key allowlist at every report object level;
+5. every authoritative report integer uses canonical decimal-string wire encoding;
+6. IDs/enums map to strings and maps use canonical string keys;
+7. history/events preserve validated sequence order;
+8. ordered Retinue IDs preserve selected order;
+9. mapper enumerates every runtime field exactly once;
+10. populated runtime-to-snapshot-to-runtime value equality;
+11. deterministic JSON encode/decode bytes for equal snapshots;
+12. no result/context/transaction/journal/projector/read-model artifact serializes.
+
+### 31.4 Migration and compatibility groups
+
+1. frozen v1/v2/v3 validator behavior remains exact;
+2. frozen v1/v2/v3 fixture bytes remain unchanged;
+3. pure v3-to-v4 validates source before mutation;
+4. migration deep-copies source primitives;
+5. report/live cursors initialize to the source simulation cursor;
+6. next report/event sequences initialize to 1;
+7. zero counters, empty maps, empty events, and empty history initialize canonically;
+8. no retroactive report, gain, slice, run, or event is fabricated;
+9. all prior envelope/gameplay fields are byte/value preserved;
+10. sequential v1-to-v2-to-v3-to-v4 migration passes;
+11. persisted historical upgrade increments save revision once;
+12. runtime is exposed only after atomic upgrade persistence succeeds;
+13. valid current v4 load does not rewrite, rotate, or increment revision;
+14. unsupported future schema/content/codec does not overwrite valid data;
+15. populated v4 state round-trips through real file storage;
+16. failure injection leaves the previous valid primary/backup available.
+
+### 31.5 Malformed-state matrices
+
+The runtime and primitive matrices must mutate one field/path at a time and cover:
+
+- missing and extra keys;
+- wrong primitive/object types;
+- JSON numbers where integer strings are required;
+- malformed, non-canonical, and overflow integer strings;
+- negative/overflow scalar values;
+- cursor/window/elapsed contradictions;
+- sequence duplicates or disorder;
+- mode sum mismatch;
+- map key/nested identity mismatch;
+- duplicate semantic identity;
+- unknown/empty content IDs and enum tokens;
+- Retinue duplication without sorting valid selected order;
+- channel relationship, period, progress, carry, total, and delta errors;
+- event count/detail/order/window contradictions;
+- history/event retention overflow;
+- report-record snapshot contradictions;
+- child aliasing.
+
+A rejection must identify a stable path/category, expose no partial runtime, and overwrite no valid file.
+
+### 31.6 Field-propagation proof
+
+Every authoritative report field must be proven through:
+
+```text
+construct
+-> validate
+-> deep clone
+-> GameState copy_from
+-> runtime_to_snapshot
+-> schema validate
+-> JSON encode/decode
+-> snapshot_to_runtime
+-> canonical equality
+```
+
+Source-text mapping audits may supplement but cannot replace populated behavioral round trips.
+
+### 31.7 Required trace markers
+
+```text
+TRACE M04E2A2 empty_report_state_at_cursor=PASS
+TRACE M04E2A2 populated_report_state_contract=PASS
+TRACE M04E2A2 deep_clone_copy_isolation=PASS
+TRACE M04E2A2 schema_v4_exact_keys=PASS
+TRACE M04E2A2 canonical_int64_wire=PASS
+TRACE M04E2A2 v3_to_v4_prospective_cursor=PASS
+TRACE M04E2A2 sequential_v1_v2_v3_v4=PASS
+TRACE M04E2A2 frozen_v1_v2_v3_unchanged=PASS
+TRACE M04E2A2 populated_v4_round_trip=PASS
+TRACE M04E2A2 current_v4_no_rewrite=PASS
+TRACE M04E2A2 malformed_report_matrix_rejected=PASS
+TRACE M04E2A2 content_relationship_validation=PASS
+TRACE M04E2A2 upgrade_failure_preserves_source=PASS
+TRACE M04E2A2 no_report_ingestion_or_reads=PASS
+TRACE M04E2A2 schema_v4_content_r2=PASS
+```
+
+Each marker is earned through real assertions. The trace uses an isolated existing `--work-root`, writes no ordinary user save, and exits nonzero when the root is absent.
+
+### 31.8 Owner Windows package
 
 Codex creates:
 
 ```text
-tools/test/owner/run_m04e2t2_owner_verification.ps1
+tools/test/owner/run_m04e2a2_owner_verification.ps1
 ```
 
 Required order:
@@ -2219,9 +2348,9 @@ Required order:
 ```text
 environment + requested SHA + mandatory detected Git head match
 full GUT before
-focused M04C/M04D2/M04D3/M04E1/M04E2T1/M04E2T2
+focused persistence/M04A/M04D1/M04E2T1/M04E2T2/M04E2A2 suites
 explicit import
-real M04E2T2 trace
+real isolated M04E2A2 trace
 15-marker verification
 missing-root negative trace
 cleanup in finally
@@ -2231,36 +2360,19 @@ full GUT after
 zero-failure summary
 ```
 
-Run with execution-policy bypass. No interactive checklist is required.
+Use execution-policy bypass. No interactive checklist is required.
 
-### 30.5 Review gates
+### 31.9 Review gates
 
 Before final owner verification:
 
-1. Codex desktop completes an implementation-readiness/evidence pass and the full suite is green;
-2. one targeted GitHub `@codex review` audits typed completeness, projector provenance, closed event grammar, detachment, consumer migration, and persistence exclusion;
-3. bounded corrections receive named regressions and update the same PR branch;
-4. repeat the same targeted audit only when needed and within the stop rule;
-5. one final unrestricted current-head GitHub review is clean;
-6. any code change invalidates the reviewed head and requires the applicable review again.
+1. complete a Codex desktop readiness/evidence pass;
+2. confirm exact runtime/wire/migration/malformed/propagation matrices;
+3. run the complete suite;
+4. submit one targeted report-state/schema/migration audit;
+5. apply bounded corrections with named regressions on the same PR branch;
+6. repeat the same targeted review only within the stop rule;
+7. obtain one clean unrestricted current-head review;
+8. run the exact-head Windows package once.
 
-### 30.6 PR #22 readiness evidence
-
-The bounded readiness regression suite is in `tests/unit/m04e2t2/test_simulation_result_facts.gd`:
-
-- `test_four_result_shapes_and_typed_child_arrays`
-- `test_failure_cursor_provenance_and_zero_duration_prevalidation_order`
-- `test_result_kind_and_envelope_malformed_combinations_reject`
-- `test_context_and_frozen_journal_snapshots_are_detached`
-- `test_detachment_and_value_equality_ignore_refcounted_identity`
-- `test_historical_identity_survives_same_timestamp_reconfiguration`
-- `test_channel_endpoints_period_and_progress_only_are_self_interpretable`
-- `test_closed_events_have_exact_fields_order_and_boundary_ownership`
-- `test_event_subtype_fields_and_settlement_cardinality_reject_mismatches`
-- `test_structural_validation_rejects_gap_duplicate_channel_and_endpoint_mismatch`
-- `test_event_order_ownership_priority_and_signed_cursor_boundary`
-- `test_projector_requires_frozen_journal_and_preserves_timeline_shape`
-
-The persistence exclusion test remains `test_typed_result_and_projector_artifacts_never_enter_schema_v3_save` in `tests/integration/m04e2t2/test_finalized_facts_persistence_exclusion.gd`. The current focused matrix passes 74 tests with 1,291 assertions; the full suite passes 178 tests with 2,832 assertions. Exact-head owner Windows verification remains pending final GitHub review.
-
-Stop and return to planning when more than two targeted rounds produce new P1/P2 findings, more than six material findings are discovered, the approved file/line guardrail is crossed, another owner/aggregate/schema/seam is required, or candidate mutation/commit behavior must change.
+Stop and return to planning when more than two targeted rounds produce new P1/P2 findings, more than six material findings are discovered, more than 34 non-documentation files or approximately 1,650 code/test lines are required, another owner/schema/seam appears, frozen historical fixtures must change, or report-service behavior becomes necessary.

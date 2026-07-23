@@ -157,6 +157,20 @@ The final exact-head owner package passed `165/165` full tests and `2,641` asser
 
 This successful replacement does not rehabilitate PR #17 or PR #18 production code. Their defect findings remain useful, but their implementations remain prohibited reuse. M04E2T2 now projects typed public facts from the successful T1 journal rather than validating a separately mutated candidate.
 
+## Replacement validation outcome — M04E2T2
+
+M04E2T2 completed the second successful replacement prerequisite.
+
+PR #22 merged from final head `00bd7d1ce27817b508eb0aac1663d1de48353237` at merge commit `afd390e8338a198d76938eef5ddcf35718ec189c`. The implementation added one global detached typed result family, pure projection from frozen transaction evidence, complete historical segment/channel facts, and a closed event union. It removed the raw public result grammar and migrated every current consumer without changing candidate mutation, formulas, commit order, schema version 3, or content revision.
+
+Targeted review findings identified real boundary defects in Settlement cardinality, selected Retinue order, active-context fact completeness, self-validation, and owner-trace construction. Each was corrected with named regressions. Final targeted and unrestricted reviews were clean.
+
+The exact-head owner package passed `178/178` full tests and `2,832` assertions before and after, `74/74` focused tests and `1,291` assertions, import, all fifteen markers, missing-root failure behavior, cleanup, and artifact audit.
+
+The owner approved a T2-only scope exception for a final 1,460 net non-documentation/non-`.uid` line delta, 10 lines above the approximate planning threshold. No new authority, schema transition, report subsystem, or formula owner entered the slice.
+
+This outcome does not rehabilitate PR #17 or PR #18. M04E2A2 starts from merged `main`, uses the successful typed facts only as a future ingestion prerequisite, and must not copy the failed report-state or `ReportService` implementation wholesale.
+
 ## Review-process lesson
 
 A review must audit the primary risk boundary, but repeated clean-up reviews are not an implementation strategy. The stop rule remains mandatory:

@@ -3,8 +3,8 @@
 **Document role:** Durable record of approved and proposed design and architecture decisions  
 **Repository path:** `docs/codex/DECISIONS.md`  
 **Document status:** Approved architecture and active decision record  
-**Revision:** 29  
-**Last updated:** 2026-07-22
+**Revision:** 30  
+**Last updated:** 2026-07-23
 
 ## 1. How to use this file
 
@@ -3389,14 +3389,15 @@ Results and their child facts remain detached, non-authoritative, and non-persis
 ## 3. Current approval state
 
 - `DEC-0001` through `DEC-0040` and `DEC-0043` through `DEC-0044` are Accepted.
-- `DEC-0041` is Superseded; its report semantics remain carried forward.
-- `DEC-0042` is Superseded by `DEC-0043`; its PR #17 reset record and report-slice lessons remain historical context, while its typed-result-first implementation packaging is retired.
-- M04A through M04D3, M04E1, and M04E2T1 are implemented, verified, and merged.
+- `DEC-0041` is Superseded; its report authority, attribution, schema-v4, idempotency, snapshot, and retention semantics remain carried forward.
+- `DEC-0042` is Superseded by `DEC-0043`; its failed-branch record and report-slice lessons remain historical context.
+- M04A through M04D3, M04E1, M04E2T1, and M04E2T2 are implemented, verified, and merged.
 - M04E2T1 merged through PR #21 from final head `a4d8056cb8771e84e1948fc5e59939c46a13003c` at merge commit `68364e0b417a6e7ebc63b50a386ac5d9f2c506bf`.
-- `GATE-SINGLE-PROVENANCE-TRANSACTION` and the owner-approved M04E2T1 scope exception are satisfied.
+- M04E2T2 merged through PR #22 from final head `00bd7d1ce27817b508eb0aac1663d1de48353237` at merge commit `afd390e8338a198d76938eef5ddcf35718ec189c`.
+- `GATE-SINGLE-PROVENANCE-TRANSACTION` and `GATE-FINALIZED-RUN-FACTS` are satisfied. Their recorded owner scope exceptions apply only to their completed slices.
 - PR #17 and PR #18 remain closed unmerged forensic references; M04E2A1 remains Superseded/Failed.
 - The active M04E2 sequence is M04E2T1 -> M04E2T2 -> M04E2A2 -> M04E2A3 -> M04E2A4 -> M04E2B.
-- M04E2T2 has an accepted exact contract under `DEC-0044`, an approved v0.1 prompt, and an implementation pull request open on its milestone branch.
-- `GATE-FINALIZED-RUN-FACTS` and the M04E2T2 `GATE-SLICE-SCOPE` are satisfied for implementation; merge and owner verification remain pending.
-- M04E2A2, M04E2A3, M04E2A4, and M04E2B remain blocked on their preceding active slices and fresh prompt/scope reviews.
+- M04E2A2 has an approved milestone boundary and a Draft v0.1 planning package/prompt. No new decision is proposed because its exact report-state/schema semantics are already carried forward in maintained contracts.
+- `GATE-REPORT-SCHEMA` and the M04E2A2 `GATE-SLICE-SCOPE` remain pending explicit owner approval of the planning package and prompt.
+- M04E2A3, M04E2A4, and M04E2B remain blocked on their preceding slices and fresh prompt/scope reviews.
 - Future changes preserve decision IDs for wording clarifications and create a new decision when semantics, ownership, compatibility, implementation packaging, or security posture changes.

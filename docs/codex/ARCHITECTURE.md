@@ -3,8 +3,8 @@
 **Document role:** Maintained implementation architecture for the 0-90 minute prototype  
 **Repository path:** `docs/codex/ARCHITECTURE.md`  
 **Document status:** Approved architecture  
-**Architecture revision:** 23  
-**Last updated:** 2026-07-22  
+**Architecture revision:** 24  
+**Last updated:** 2026-07-23  
 **Engine target:** Godot 4.7, GDScript only  
 **Primary design context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md) and [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md)
 
@@ -1739,18 +1739,18 @@ The realized implementation lives at `src/simulation/simulation_run_service.gd` 
 
 Final owner Windows evidence passed `153/153` full tests and `2,522` assertions before and after the trace, `9/9` focused M04E1 tests and `295` assertions, explicit import, all fifteen markers, cleanup, cleanup proof, and artifact audit with zero failed steps.
 
-## M04E2 failed attempts, realized transaction boundary, and typed-fact plan
+## M04E2 failed attempts and realized replacement prerequisites
 
-PR #17 and PR #18 are closed unmerged and are not production-code sources. Their terminal heads and review histories are recorded in [M04E2 implementation postmortem](M04E2_IMPLEMENTATION_POSTMORTEM.md).
+PR #17 and PR #18 are closed unmerged and are not production-code sources. Their terminal heads, review findings, and prohibited patterns are recorded in [M04E2 implementation postmortem](M04E2_IMPLEMENTATION_POSTMORTEM.md).
 
-Accepted `DEC-0043` supersedes the implementation packaging in `DEC-0042` while preserving the non-claim report semantics carried from `DEC-0041`.
+Accepted `DEC-0043` supersedes the implementation packaging in `DEC-0042` while preserving the non-claim report semantics carried from `DEC-0041`. Accepted `DEC-0044` finalizes the typed public run-fact boundary.
 
 The active sequence is:
 
 ```text
 M04E2T1 single-provenance simulation transaction  [Merged/Passed]
-  -> M04E2T2 finalized typed run facts             [Approved]
-    -> M04E2A2 report state + schema v4
+  -> M04E2T2 finalized typed run facts             [Merged/Passed]
+    -> M04E2A2 report state + schema v4             [Approved]
       -> M04E2A3 live report ingestion
         -> M04E2A4 reads + snapshot + bounded history + evidence
           -> M04E2B atomic simulation/report coordinator + final M04 harness
@@ -1760,45 +1760,23 @@ M04E2A1 is historical and Superseded. No direct M04E2 or M04E2A implementation p
 
 ## Realized M04E2T1 single-provenance simulation transaction
 
-### Implemented flow
-
 ```text
 SimulationEngine.resolve_elapsed(source, elapsed)
   -> validate source and request
   -> capture immutable SimulationRunContext
-  -> create SimulationTransaction with one private deep-cloned candidate
-  -> calculate one bounded segment/boundary plan
-  -> transaction applies mutation and records journal fact from the same endpoints
-  -> repeat until the requested interval is fully represented
-  -> transaction.finalize()
-       -> validate complete candidate GameState
-       -> validate and freeze SimulationFactJournal
-       -> derive current compatibility result from frozen facts
+  -> create SimulationTransaction with one private candidate
+  -> transaction applies checked mutation and records the same-endpoint fact
+  -> validate complete candidate
+  -> validate and freeze SimulationFactJournal
+  -> project result from finalized evidence
   -> source.copy_from(private_candidate) once
-  -> return detached result
 ```
 
-`SimulationEngine` remains the formula and segmentation owner. `SimulationTransaction` owns candidate mutation provenance and finalization. `SimulationFactJournal` is bounded runtime evidence, not a save model, report history, replay stream, or general event bus.
+`SimulationEngine` remains the formula and segmentation owner. `SimulationTransaction` owns candidate mutation, finalization, and one commit. `SimulationFactJournal` is bounded runtime evidence rather than save state, report history, replay, or a project event bus.
 
-### Realized collaborators
+M04E2T1 merged through PR #21 from final head `a4d8056cb8771e84e1948fc5e59939c46a13003c` at merge commit `68364e0b417a6e7ebc63b50a386ac5d9f2c506bf`. Exact-head owner evidence passed 165 full tests, 61 focused tests, all 12 markers, import, negative-root behavior, cleanup, and artifact audit.
 
-`SimulationRunContext` captures the baseline cursor, requested elapsed interval, active-operation marker, Threshold, assignment revision, Form, Writ, ordered Retinues, initial lifecycle, and content revision once before mutation.
-
-`SimulationTransaction` owns the private candidate, context, journal, checked mutation operations, one-way finalization, and one final commit. It exposes no arbitrary caller-supplied candidate/result commit seam.
-
-`SimulationFactJournal` records successful timeline, core-segment, channel-segment, and Settlement operations in deterministic order. Active core facts must cover the full requested interval. Settlement facts retain boundary-time totals. Finalization freezes the journal.
-
-### M04E2T1 completion
-
-M04E2T1 merged through PR #21 from final head `a4d8056cb8771e84e1948fc5e59939c46a13003c` at merge commit `68364e0b417a6e7ebc63b50a386ac5d9f2c506bf`. The exact-head owner package passed `165/165` full tests and `2,641` assertions before and after, `61/61` focused tests and `1,136` assertions, import, all twelve markers, the required missing-root failure, cleanup, cleanup proof, and artifact audit with zero failed steps.
-
-The realized public boundary remains intentionally temporary: nested `SimulationEngine.SimulationResult`, raw segment/channel dictionaries, typed events with generic payload dictionaries, and journal-derived `change_summary` are preserved only until M04E2T2.
-
-## M04E2T2 finalized typed run-fact boundary
-
-Accepted `DEC-0044` defines M04E2T2. The implementation changes public representation and current consumers only. It does not change candidate mutation, formulas, segmentation, transaction operations, or commit order.
-
-### Principal transition
+## Realized M04E2T2 finalized typed run-fact boundary
 
 ```text
 finalized SimulationRunContext + frozen SimulationFactJournal
@@ -1809,122 +1787,37 @@ finalized SimulationRunContext + frozen SimulationFactJournal
        -> closed typed SimulationEvent union
 ```
 
-The projector receives no live or candidate `GameState`. Public facts are observations of a transaction already proven by T1 provenance. They are never submitted back into `commit_to()` and never authorize a candidate.
+The projector receives no live or candidate `GameState`, report state, clock, file, scene, platform service, or caller-authored commit authority. Public facts never enter `commit_to()`.
 
-### Public result envelope
+The realized global result envelope has the closed kinds `FAILURE`, `ZERO_DURATION`, `TIMELINE_ONLY`, and `ACTIVE_REAPING`, exact request/commit and baseline/result timing, detached typed segments/channels/events, complete value equality, and pure self-validation.
 
-The proposed global result envelope contains:
+Segments retain historical Threshold, assignment revision, Form, Writ, ordered Retinue, lifecycle, timing, core, backlog endpoint, and channel facts. Channel facts retain channel/item identity, rate period, progress/carry endpoints, and total-banked endpoints. The current closed event union contains `SimulationChannelBankedEvent` and `SimulationThresholdSettledEvent` only.
 
-```text
-result_kind: FAILURE | ZERO_DURATION | TIMELINE_ONLY | ACTIVE_REAPING
-success: bool
-error_code: StringName
-developer_details: String
-requested_elapsed_msec: int
-committed_elapsed_msec: int
-baseline_simulation_time_msec: int
-result_simulation_time_msec: int
-content_revision: String
-segments: Array[SimulationSegmentResult]
-events: Array[SimulationEvent]
-```
+Raw public segment/channel dictionaries, generic event payload dictionaries, nested engine result/event ownership, and simulation `change_summary` are removed. Current engine, transaction, run-service, debug, test, trace, and persistence consumers use typed facts directly.
 
-Positive results carry exact baseline/result cursors. Failure and zero-duration shapes carry no committed segment/event authority. A positive timeline-only result has no segments or events. A positive active result has one or two contiguous segments under the current one-active-Reaping resolver.
+M04E2T2 merged through PR #22 from final head `00bd7d1ce27817b508eb0aac1663d1de48353237` at merge commit `afd390e8338a198d76938eef5ddcf35718ec189c`. Exact-head owner evidence passed 178 full tests, 74 focused tests, all 15 markers, import, negative-root behavior, cleanup, and artifact audit. Final targeted and unrestricted reviews were clean.
 
-### Typed segment facts
+## Planned M04E2A2 report-state/schema boundary
 
-Each segment carries:
+M04E2A2 adds one authoritative report-state family inside `GameState` and advances the current writer from schema version 3 to version 4.
 
 ```text
-segment_index
-threshold_id
-assignment_revision
-form_id
-writ_id
-ordered_retinue_ids
-lifecycle_state
-start_simulation_msec
-end_simulation_msec
-elapsed_msec
-returned_souls_delta
-backlog_reduced
-essence_delta
-mastery_delta_subunits
-completed_cycles_delta
-channel_deltas
+ReportState
+  -> live ReportAccumulatorState
+  -> immutable ReportRecord[]
+  -> ReportAttributionSlice
+       -> ReportLoadoutIdentity
+       -> ReportChannelSummary
+  -> ReportEventRecord[]
 ```
 
-Historical component identity comes from the captured context and journal. It is not reconstructed from mutable current `GameState` after the run.
+The report aggregate stores already-applied explanatory state only. It cannot grant or remove rewards, change simulation, require a claim, read clocks, or reconstruct historical identity from current mutable state.
 
-### Typed channel facts
+The version-4 writer keeps codec `JSON_V1`, content revision `prototype-content-r2`, canonical decimal-string integers, and all existing envelope/gameplay fields. The pure `v3 -> v4` migration creates canonical empty report state at the source simulation cursor and fabricates no historical report, gain, run, slice, or event.
 
-Each channel delta carries:
+A report cursor may trail gameplay simulation time until M04E2A3. M04E2A2 validates and persists fixture-populated state but adds no `ReportService`, ingestion, read model, snapshot, clear, archive, pruning, offline classification, or simulation/report coordinator.
 
-```text
-channel_id
-output_item_id
-banked_units_delta
-progress_subunits_before
-progress_subunits_after
-rate_period_msec
-rate_carry_units_before
-rate_carry_units_after
-total_banked_units_before
-total_banked_units_after
-```
-
-The period travels with the carry so a detached record remains locally interpretable. Internal candidate inventory endpoints may remain journal-only and are not separate public authority.
-
-### Closed event union
-
-The public event family has a common typed envelope:
-
-```text
-event_type
-occurred_simulation_msec
-priority
-segment_index
-subject_id
-source_id
-reportable
-tutorial_relevant
-```
-
-Only these current subtypes are valid:
-
-```text
-SimulationChannelBankedEvent
-SimulationThresholdSettledEvent
-```
-
-Channel banking events carry typed output item, quantity, lifecycle, total-banked-after, and progress-after values. Settlement events carry typed persistent-return total, backlog before/after, and lifecycle before/after values. An arbitrary payload dictionary or unknown event type is not part of the public contract.
-
-The owning segment index is explicit. Stable sorting remains occurred time, priority, subject ID, source ID. Start-exclusive/end-inclusive ownership remains protected.
-
-### Structural validation without candidate reconciliation
-
-Local and run-level validation checks field domains, detachment, result shape, contiguous timing, stable historical identity, event ordering/cardinality, and fact consistency. It does not receive or compare a candidate `GameState`. T1 already guarantees mutation/fact provenance; T2 must not recreate PR #18's post-hoc candidate/result validator.
-
-### Consumer migration
-
-M04E2T2 migrates:
-
-- `SimulationEngine` return types and stable event constants;
-- `SimulationTransaction` finalized-result storage and projection;
-- `SimulationRunService` passthrough typing;
-- `M04CDebugAdvance` return typing;
-- M04C, M04D2, M04D3, M04E1, and M04E2T1 tests/traces that consume public results;
-- persistence-exclusion and source-ownership checks.
-
-Internal diagnostic journal snapshots may remain primitive dictionaries. The removal applies to the public simulation result grammar, not to bounded internal trace evidence.
-
-### Compatibility removal
-
-M04E2T2 removes the public raw segment/channel arrays, generic public event payload dictionaries, and simulation `change_summary`. It does not keep a parallel raw-result API. Unrelated domain-service summaries are outside this slice.
-
-### Persistence and scope
-
-Schema version 3 and content revision `prototype-content-r2` remain current. Result, event, segment, channel, projection, context, transaction, and journal objects remain non-persisted. No report state or schema version 4 enters this slice.
+The planning and prompt boundary is maintained in [M04E2A2 planning](M04E2A2_PLANNING.md). Implementation remains blocked pending explicit owner approval of `GATE-REPORT-SCHEMA`, `GATE-SLICE-SCOPE`, and the Draft v0.1 prompt.
 
 ## Deferred report boundaries
 
