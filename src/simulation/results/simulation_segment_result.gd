@@ -31,6 +31,10 @@ var returned_souls_delta: int:
 	get: return _returned_souls_delta
 var backlog_reduced: int:
 	get: return _backlog_reduced
+var remaining_backlog_before: int:
+	get: return _remaining_backlog_before
+var remaining_backlog_after: int:
+	get: return _remaining_backlog_after
 var essence_delta: int:
 	get: return _essence_delta
 var mastery_delta_subunits: int:
@@ -56,6 +60,8 @@ var _end_simulation_msec: int
 var _elapsed_msec: int
 var _returned_souls_delta: int
 var _backlog_reduced: int
+var _remaining_backlog_before: int
+var _remaining_backlog_after: int
 var _essence_delta: int
 var _mastery_delta_subunits: int
 var _completed_cycles_delta: int
@@ -74,6 +80,8 @@ func _init(
 	elapsed_value: int,
 	returned_souls_value: int,
 	backlog_reduced_value: int,
+	remaining_backlog_before_value: int,
+	remaining_backlog_after_value: int,
 	essence_value: int,
 	mastery_value: int,
 	cycles_value: int,
@@ -91,6 +99,8 @@ func _init(
 	_elapsed_msec = elapsed_value
 	_returned_souls_delta = returned_souls_value
 	_backlog_reduced = backlog_reduced_value
+	_remaining_backlog_before = remaining_backlog_before_value
+	_remaining_backlog_after = remaining_backlog_after_value
 	_essence_delta = essence_value
 	_mastery_delta_subunits = mastery_value
 	_completed_cycles_delta = cycles_value
@@ -112,6 +122,8 @@ func detached_copy() -> SimulationSegmentResult:
 		_elapsed_msec,
 		_returned_souls_delta,
 		_backlog_reduced,
+		_remaining_backlog_before,
+		_remaining_backlog_after,
 		_essence_delta,
 		_mastery_delta_subunits,
 		_completed_cycles_delta,
@@ -126,6 +138,7 @@ func value_equals(other: SimulationSegmentResult) -> bool:
 		or _lifecycle_state != other.lifecycle_state or _start_simulation_msec != other.start_simulation_msec \
 		or _end_simulation_msec != other.end_simulation_msec or _elapsed_msec != other.elapsed_msec \
 		or _returned_souls_delta != other.returned_souls_delta or _backlog_reduced != other.backlog_reduced \
+		or _remaining_backlog_before != other.remaining_backlog_before or _remaining_backlog_after != other.remaining_backlog_after \
 		or _essence_delta != other.essence_delta or _mastery_delta_subunits != other.mastery_delta_subunits \
 		or _completed_cycles_delta != other.completed_cycles_delta:
 		return false

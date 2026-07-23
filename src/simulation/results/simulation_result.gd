@@ -30,10 +30,6 @@ var result_simulation_time_msec: int:
 	get: return _result_simulation_time_msec
 var content_revision: String:
 	get: return _content_revision
-## True when finalized run evidence requires one Settlement event in this result.
-## This is detached explanatory metadata, not gameplay authority.
-var settlement_event_required: bool:
-	get: return _settlement_event_required
 var segments: Array[SimulationSegmentResult]:
 	get:
 		var detached: Array[SimulationSegmentResult] = []
@@ -56,7 +52,6 @@ var _committed_elapsed_msec: int
 var _baseline_simulation_time_msec: int
 var _result_simulation_time_msec: int
 var _content_revision: String
-var _settlement_event_required: bool
 var _segments: Array[SimulationSegmentResult] = []
 var _events: Array[SimulationEvent] = []
 
@@ -71,8 +66,7 @@ func _init(
 	result_time_value: int,
 	content_value: String,
 	segment_values: Array[SimulationSegmentResult] = [],
-	event_values: Array[SimulationEvent] = [],
-	settlement_required_value: bool = false
+	event_values: Array[SimulationEvent] = []
 ) -> void:
 	_result_kind = kind_value
 	_success = success_value
@@ -83,7 +77,6 @@ func _init(
 	_baseline_simulation_time_msec = baseline_value
 	_result_simulation_time_msec = result_time_value
 	_content_revision = content_value
-	_settlement_event_required = settlement_required_value
 	for segment in segment_values:
 		_segments.append(segment.detached_copy())
 	for event in event_values:
@@ -98,8 +91,8 @@ static func zero_duration(cursor: int = 0) -> SimulationResult:
 static func timeline_only(requested: int, baseline: int, result_time: int, content: String) -> SimulationResult:
 	return SimulationResult.new(KIND_TIMELINE_ONLY, true, &"", "", requested, requested, baseline, result_time, content)
 
-static func active_reaping(requested: int, baseline: int, result_time: int, content: String, segment_values: Array[SimulationSegmentResult], event_values: Array[SimulationEvent], settlement_required: bool = false) -> SimulationResult:
-	return SimulationResult.new(KIND_ACTIVE_REAPING, true, &"", "", requested, requested, baseline, result_time, content, segment_values, event_values, settlement_required)
+static func active_reaping(requested: int, baseline: int, result_time: int, content: String, segment_values: Array[SimulationSegmentResult], event_values: Array[SimulationEvent]) -> SimulationResult:
+	return SimulationResult.new(KIND_ACTIVE_REAPING, true, &"", "", requested, requested, baseline, result_time, content, segment_values, event_values)
 
 ## Returns a deeply detached envelope and all typed child facts.
 func detached_copy() -> SimulationResult:
@@ -114,8 +107,7 @@ func detached_copy() -> SimulationResult:
 		_result_simulation_time_msec,
 		_content_revision,
 		_segments,
-		_events,
-		_settlement_event_required
+		_events
 	)
 
 ## Compares the complete public value without comparing RefCounted identity.
@@ -124,8 +116,7 @@ func value_equals(other: SimulationResult) -> bool:
 		or _error_code != other.error_code or _developer_details != other.developer_details \
 		or _requested_elapsed_msec != other.requested_elapsed_msec or _committed_elapsed_msec != other.committed_elapsed_msec \
 		or _baseline_simulation_time_msec != other.baseline_simulation_time_msec \
-		or _result_simulation_time_msec != other.result_simulation_time_msec or _content_revision != other.content_revision \
-		or _settlement_event_required != other.settlement_event_required:
+		or _result_simulation_time_msec != other.result_simulation_time_msec or _content_revision != other.content_revision:
 		return false
 	var other_segments := other.segments
 	var other_events := other.events

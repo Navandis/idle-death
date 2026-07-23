@@ -2785,6 +2785,8 @@ end_simulation_msec: int
 elapsed_msec: int
 returned_souls_delta: int
 backlog_reduced: int
+remaining_backlog_before: int
+remaining_backlog_after: int
 essence_delta: int
 mastery_delta_subunits: int
 completed_cycles_delta: int
@@ -2800,6 +2802,8 @@ Rules:
 - lifecycle is `OVERDUE` or `SETTLED`;
 - start is before end and elapsed equals end minus start using checked arithmetic;
 - all deltas are non-negative;
+- remaining backlog endpoints are non-negative, non-increasing, and their difference equals `backlog_reduced`;
+- an `OVERDUE` segment begins with positive backlog; a `SETTLED` segment has zero backlog endpoints;
 - channel deltas are unique and canonically ordered by channel ID;
 - one run keeps exact Threshold/assignment/Form/Writ/Retinue identity across segments;
 - under the current resolver, valid lifecycle sequences are one `OVERDUE`, one `SETTLED`, or `OVERDUE` followed by `SETTLED`;

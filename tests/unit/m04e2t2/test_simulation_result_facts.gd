@@ -213,9 +213,8 @@ func test_event_subtype_fields_and_settlement_cardinality_reject_mismatches() ->
 	var exact_boundary := _engine().resolve_elapsed(_state(1), 870)
 	assert_eq(exact_boundary.segments.size(), 1)
 	assert_eq(exact_boundary.events.size(), 1)
-	assert_true(exact_boundary.settlement_event_required)
 	assert_true(SimulationResultProjector.validate(exact_boundary).ok)
-	var exact_boundary_without_event := SimulationResult.active_reaping(exact_boundary.requested_elapsed_msec, exact_boundary.baseline_simulation_time_msec, exact_boundary.result_simulation_time_msec, exact_boundary.content_revision, exact_boundary.segments, [], true)
+	var exact_boundary_without_event := SimulationResult.active_reaping(exact_boundary.requested_elapsed_msec, exact_boundary.baseline_simulation_time_msec, exact_boundary.result_simulation_time_msec, exact_boundary.content_revision, exact_boundary.segments, [])
 	assert_false(SimulationResultProjector.validate(exact_boundary_without_event).ok)
 	var bad_returns := SimulationThresholdSettledEvent.new(settlement.occurred_simulation_msec, settlement.segment_index, settlement.subject_id, -1, settlement.remaining_backlog_before, settlement.remaining_backlog_after, settlement.lifecycle_before, settlement.lifecycle_after)
 	var bad_returns_result := SimulationResult.active_reaping(settlement_result.requested_elapsed_msec, settlement_result.baseline_simulation_time_msec, settlement_result.result_simulation_time_msec, settlement_result.content_revision, settlement_result.segments, [bad_returns])
@@ -225,8 +224,8 @@ func test_event_subtype_fields_and_settlement_cardinality_reject_mismatches() ->
 	var duplicate_settlement: Array[SimulationEvent] = [settlement, settlement]
 	var duplicate_result := SimulationResult.active_reaping(settlement_result.requested_elapsed_msec, settlement_result.baseline_simulation_time_msec, settlement_result.result_simulation_time_msec, settlement_result.content_revision, settlement_result.segments, duplicate_settlement)
 	assert_false(SimulationResultProjector.validate(duplicate_result).ok)
-	var spurious_segment := SimulationSegmentResult.new(0, &"THR_TEST", 1, &"FORM_TEST", &"WRIT_TEST", [], &"OVERDUE", 0, 1000, 1000, 1, 1, 0, 0, 0, [])
-	var spurious_settlement := SimulationThresholdSettledEvent.new(1000, 0, &"THR_TEST", 0, 0, 0, &"OVERDUE", &"SETTLED")
+	var spurious_segment := SimulationSegmentResult.new(0, &"THR_TEST", 1, &"FORM_TEST", &"WRIT_TEST", [], &"OVERDUE", 0, 1000, 1000, 1, 1, 2, 1, 0, 0, 0, [])
+	var spurious_settlement := SimulationThresholdSettledEvent.new(1000, 0, &"THR_TEST", 0, 2, 0, &"OVERDUE", &"SETTLED")
 	var spurious_result := SimulationResult.active_reaping(1000, 0, 1000, ContentRegistry.CURRENT_REVISION, [spurious_segment], [spurious_settlement])
 	assert_false(SimulationResultProjector.validate(spurious_result).ok)
 	var incomplete := _engine().resolve_elapsed(_state(1000000), 1000)
@@ -273,42 +272,42 @@ func test_structural_validation_rejects_gap_duplicate_channel_and_endpoint_misma
 	for invalid_channel in invalid_channels:
 		assert_false(SimulationResultProjector.validate(_active_with_channel(invalid_channel)).ok)
 
-	var duplicate_retinues := SimulationSegmentResult.new(0, &"THR_TEST", 1, &"FORM_TEST", &"WRIT_TEST", [&"RET_A", &"RET_A"], &"OVERDUE", 0, 1000, 1000, 0, 0, 0, 0, 0, [])
+	var duplicate_retinues := SimulationSegmentResult.new(0, &"THR_TEST", 1, &"FORM_TEST", &"WRIT_TEST", [&"RET_A", &"RET_A"], &"OVERDUE", 0, 1000, 1000, 0, 0, 1, 1, 0, 0, 0, [])
 	var duplicate_result := SimulationResult.active_reaping(1000, 0, 1000, ContentRegistry.CURRENT_REVISION, [duplicate_retinues], [])
 	assert_false(SimulationResultProjector.validate(duplicate_result).ok)
-	var selected_order := SimulationSegmentResult.new(0, &"THR_TEST", 1, &"FORM_TEST", &"WRIT_TEST", [&"RET_B", &"RET_A"], &"OVERDUE", 0, 1000, 1000, 0, 0, 0, 0, 0, [])
+	var selected_order := SimulationSegmentResult.new(0, &"THR_TEST", 1, &"FORM_TEST", &"WRIT_TEST", [&"RET_B", &"RET_A"], &"OVERDUE", 0, 1000, 1000, 0, 0, 1, 1, 0, 0, 0, [])
 	var selected_order_result := SimulationResult.active_reaping(1000, 0, 1000, ContentRegistry.CURRENT_REVISION, [selected_order], [])
 	assert_true(SimulationResultProjector.validate(selected_order_result).ok)
 	var bad_index := _segment(1, 0, 1000, null)
 	assert_false(SimulationResultProjector.validate(SimulationResult.active_reaping(1000, 0, 1000, ContentRegistry.CURRENT_REVISION, [bad_index], [])).ok)
-	var bad_elapsed := SimulationSegmentResult.new(0, &"THR_TEST", 1, &"FORM_TEST", &"WRIT_TEST", [], &"OVERDUE", 0, 1000, 999, 0, 0, 0, 0, 0, [])
+	var bad_elapsed := SimulationSegmentResult.new(0, &"THR_TEST", 1, &"FORM_TEST", &"WRIT_TEST", [], &"OVERDUE", 0, 1000, 999, 0, 0, 1, 1, 0, 0, 0, [])
 	assert_false(SimulationResultProjector.validate(SimulationResult.active_reaping(1000, 0, 1000, ContentRegistry.CURRENT_REVISION, [bad_elapsed], [])).ok)
 	var overlap := _segment(0, 0, 1000, null)
 	var overlap_next := _segment(1, 999, 1001, null)
 	assert_false(SimulationResultProjector.validate(SimulationResult.active_reaping(1001, 0, 1001, ContentRegistry.CURRENT_REVISION, [overlap, overlap_next], [])).ok)
-	var unsupported_lifecycle := SimulationSegmentResult.new(0, &"THR_TEST", 1, &"FORM_TEST", &"WRIT_TEST", [], &"BROKEN", 0, 1000, 1000, 0, 0, 0, 0, 0, [])
+	var unsupported_lifecycle := SimulationSegmentResult.new(0, &"THR_TEST", 1, &"FORM_TEST", &"WRIT_TEST", [], &"BROKEN", 0, 1000, 1000, 0, 0, 1, 1, 0, 0, 0, [])
 	assert_false(SimulationResultProjector.validate(SimulationResult.active_reaping(1000, 0, 1000, ContentRegistry.CURRENT_REVISION, [unsupported_lifecycle], [])).ok)
 
 func test_event_order_ownership_priority_and_signed_cursor_boundary() -> void:
 	var channel_a := SimulationChannelDeltaResult.new(&"CHANNEL_A", &"SOUL_A", 1, 0, 0, 1000, 0, 0, 0, 1)
 	var channel_b := SimulationChannelDeltaResult.new(&"CHANNEL_B", &"SOUL_B", 1, 0, 0, 1000, 0, 0, 0, 1)
 	var channel_multi := SimulationChannelDeltaResult.new(&"CHANNEL_MULTI", &"SOUL_MULTI", 3, 0, 0, 1000, 0, 0, 0, 3)
-	var segment := SimulationSegmentResult.new(0, &"THR_TEST", 1, &"FORM_TEST", &"WRIT_TEST", [], &"OVERDUE", 0, 1000, 1000, 1, 1, 0, 0, 0, [channel_a, channel_b])
+	var segment := SimulationSegmentResult.new(0, &"THR_TEST", 1, &"FORM_TEST", &"WRIT_TEST", [], &"OVERDUE", 0, 1000, 1000, 1, 1, 1, 0, 0, 0, 0, [channel_a, channel_b])
 	var bank_a := SimulationChannelBankedEvent.new(1000, 0, &"THR_TEST", &"CHANNEL_A", &"SOUL_A", 1, &"OVERDUE", 1, 0)
 	var bank_b := SimulationChannelBankedEvent.new(1000, 0, &"THR_TEST", &"CHANNEL_B", &"SOUL_B", 1, &"OVERDUE", 1, 0)
-	var settlement := SimulationThresholdSettledEvent.new(1000, 0, &"THR_TEST", 0, 1, 0, &"OVERDUE", &"SETTLED")
+	var settlement := SimulationThresholdSettledEvent.new(1000, 0, &"THR_TEST", 0, 0, 0, &"OVERDUE", &"SETTLED")
 	var ordered: Array[SimulationEvent] = [bank_a, bank_b, settlement]
-	var ordered_result := SimulationResult.active_reaping(1000, 0, 1000, ContentRegistry.CURRENT_REVISION, [segment], ordered, true)
+	var ordered_result := SimulationResult.active_reaping(1000, 0, 1000, ContentRegistry.CURRENT_REVISION, [segment], ordered)
 	assert_true(SimulationResultProjector.validate(ordered_result).ok)
 	var reversed: Array[SimulationEvent] = [bank_b, bank_a, settlement]
-	assert_false(SimulationResultProjector.validate(SimulationResult.active_reaping(1000, 0, 1000, ContentRegistry.CURRENT_REVISION, [segment], reversed, true)).ok)
+	assert_false(SimulationResultProjector.validate(SimulationResult.active_reaping(1000, 0, 1000, ContentRegistry.CURRENT_REVISION, [segment], reversed)).ok)
 	var early_bank := SimulationChannelBankedEvent.new(0, 0, &"THR_TEST", &"CHANNEL_A", &"SOUL_A", 1, &"OVERDUE", 1, 0)
-	assert_false(SimulationResultProjector.validate(SimulationResult.active_reaping(1000, 0, 1000, ContentRegistry.CURRENT_REVISION, [segment], [early_bank, bank_b, settlement], true)).ok)
+	assert_false(SimulationResultProjector.validate(SimulationResult.active_reaping(1000, 0, 1000, ContentRegistry.CURRENT_REVISION, [segment], [early_bank, bank_b, settlement])).ok)
 	var max_cursor := FixedPoint.INT64_MAX
-	var edge_segment := SimulationSegmentResult.new(0, &"THR_TEST", 1, &"FORM_TEST", &"WRIT_TEST", [], &"OVERDUE", max_cursor - 1000, max_cursor, 1000, 0, 0, 0, 0, 0, [channel_a])
+	var edge_segment := SimulationSegmentResult.new(0, &"THR_TEST", 1, &"FORM_TEST", &"WRIT_TEST", [], &"OVERDUE", max_cursor - 1000, max_cursor, 1000, 0, 0, 1, 1, 0, 0, 0, [channel_a])
 	var edge_event := SimulationChannelBankedEvent.new(max_cursor, 0, &"THR_TEST", &"CHANNEL_A", &"SOUL_A", 1, &"OVERDUE", 1, 0)
 	assert_true(SimulationResultProjector.validate(SimulationResult.active_reaping(1000, max_cursor - 1000, max_cursor, ContentRegistry.CURRENT_REVISION, [edge_segment], [edge_event])).ok)
-	var multi_segment := SimulationSegmentResult.new(0, &"THR_TEST", 1, &"FORM_TEST", &"WRIT_TEST", [], &"OVERDUE", 0, 1000, 1000, 0, 0, 0, 0, 0, [channel_multi])
+	var multi_segment := SimulationSegmentResult.new(0, &"THR_TEST", 1, &"FORM_TEST", &"WRIT_TEST", [], &"OVERDUE", 0, 1000, 1000, 0, 0, 1, 1, 0, 0, 0, [channel_multi])
 	var multi_event := SimulationChannelBankedEvent.new(1000, 0, &"THR_TEST", &"CHANNEL_MULTI", &"SOUL_MULTI", 3, &"OVERDUE", 3, 0)
 	assert_true(SimulationResultProjector.validate(SimulationResult.active_reaping(1000, 0, 1000, ContentRegistry.CURRENT_REVISION, [multi_segment], [multi_event])).ok)
 
@@ -334,7 +333,7 @@ func test_projector_requires_frozen_journal_and_preserves_timeline_shape() -> vo
 func _segment(index: int, start: int, end: int, channel: SimulationChannelDeltaResult) -> SimulationSegmentResult:
 	var channels: Array[SimulationChannelDeltaResult] = []
 	if channel != null: channels.append(channel)
-	return SimulationSegmentResult.new(index, &"THR_TEST", 1, &"FORM_TEST", &"WRIT_TEST", [], &"OVERDUE", start, end, end - start, 1, 0, 0, 0, 0, channels)
+	return SimulationSegmentResult.new(index, &"THR_TEST", 1, &"FORM_TEST", &"WRIT_TEST", [], &"OVERDUE", start, end, end - start, 1, 0, 1, 1, 0, 0, 0, channels)
 
 func _active_with_channel(channel: SimulationChannelDeltaResult) -> SimulationResult:
 	var segment := _segment(0, 0, 1000, channel)

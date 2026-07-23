@@ -72,6 +72,8 @@ static func project(context: SimulationRunContext, journal: SimulationFactJourna
 			int(core.elapsed_msec),
 			int(core.returned_souls_delta),
 			-int(core.backlog_delta),
+			int(core.remaining_backlog_before),
+			int(core.remaining_backlog_after),
 			int(core.Essence_delta),
 			int(core.Mastery_delta_subunits),
 			int(core.completed_cycles_delta),
@@ -105,7 +107,7 @@ static func project(context: SimulationRunContext, journal: SimulationFactJourna
 			int(channel.progress_subunits_after)
 		))
 	events.sort_custom(_event_less)
-	var result := SimulationResult.active_reaping(context.requested_elapsed_msec, context.baseline_simulation_time_msec, result_time, context.content_revision, segments, events, not settlement_facts.is_empty())
+	var result := SimulationResult.active_reaping(context.requested_elapsed_msec, context.baseline_simulation_time_msec, result_time, context.content_revision, segments, events)
 	var validation := validate(result)
 	if not validation.ok: return validation
 	return {"ok": true, "result": result}
@@ -114,15 +116,15 @@ static func validate(result: SimulationResult) -> Dictionary:
 	if result == null: return _failure("Result is null.")
 	match result.result_kind:
 		SimulationResult.KIND_FAILURE:
-			if result.success or str(result.error_code).is_empty() or result.committed_elapsed_msec != 0 or not result.segments.is_empty() or not result.events.is_empty() or result.baseline_simulation_time_msec != result.result_simulation_time_msec or result.settlement_event_required:
+			if result.success or str(result.error_code).is_empty() or result.committed_elapsed_msec != 0 or not result.segments.is_empty() or not result.events.is_empty() or result.baseline_simulation_time_msec != result.result_simulation_time_msec:
 				return _failure("Failure result shape is invalid.")
 			return {"ok": true}
 		SimulationResult.KIND_ZERO_DURATION:
-			if not result.success or result.requested_elapsed_msec != 0 or result.committed_elapsed_msec != 0 or not result.segments.is_empty() or not result.events.is_empty() or result.baseline_simulation_time_msec != result.result_simulation_time_msec or result.settlement_event_required:
+			if not result.success or result.requested_elapsed_msec != 0 or result.committed_elapsed_msec != 0 or not result.segments.is_empty() or not result.events.is_empty() or result.baseline_simulation_time_msec != result.result_simulation_time_msec:
 				return _failure("Zero-duration result shape is invalid.")
 			return {"ok": true}
 		SimulationResult.KIND_TIMELINE_ONLY:
-			if not _valid_positive_envelope(result) or not result.segments.is_empty() or not result.events.is_empty() or result.settlement_event_required: return _failure("Timeline-only result shape is invalid.")
+			if not _valid_positive_envelope(result) or not result.segments.is_empty() or not result.events.is_empty(): return _failure("Timeline-only result shape is invalid.")
 			return {"ok": true}
 		SimulationResult.KIND_ACTIVE_REAPING:
 			if not _valid_positive_envelope(result) or result.segments.is_empty(): return _failure("Active result envelope is invalid.")
@@ -146,7 +148,9 @@ static func _validate_active(result: SimulationResult) -> Dictionary:
 		if segment.end_simulation_msec > result.result_simulation_time_msec: return _failure("Segment exceeds result cursor.")
 		if not _checked_add(total_elapsed, segment.elapsed_msec).ok: return _failure("Segment elapsed aggregation overflow.")
 		total_elapsed += segment.elapsed_msec
-		if segment.returned_souls_delta < 0 or segment.backlog_reduced < 0 or segment.essence_delta < 0 or segment.mastery_delta_subunits < 0 or segment.completed_cycles_delta < 0: return _failure("Segment delta is negative.")
+		if segment.returned_souls_delta < 0 or segment.backlog_reduced < 0 or segment.remaining_backlog_before < 0 or segment.remaining_backlog_after < 0 or segment.remaining_backlog_after > segment.remaining_backlog_before or segment.remaining_backlog_before - segment.remaining_backlog_after != segment.backlog_reduced or segment.essence_delta < 0 or segment.mastery_delta_subunits < 0 or segment.completed_cycles_delta < 0: return _failure("Segment delta is negative or backlog endpoints are invalid.")
+		if segment.lifecycle_state == &"OVERDUE" and segment.remaining_backlog_before <= 0: return _failure("Overdue segment must begin with positive backlog.")
+		if segment.lifecycle_state == &"SETTLED" and (segment.remaining_backlog_before != 0 or segment.remaining_backlog_after != 0): return _failure("Settled segment must have zero backlog endpoints.")
 		var identity := "%s|%s|%s|%s|%s" % [segment.threshold_id, segment.assignment_revision, segment.form_id, segment.writ_id, segment.ordered_retinue_ids]
 		if index == 0: expected_identity["value"] = identity
 		elif expected_identity.value != identity: return _failure("Historical segment identity changed within a run.")
@@ -201,14 +205,20 @@ static func _validate_events(result: SimulationResult) -> Dictionary:
 		else:
 			var settle_event: SimulationThresholdSettledEvent = event
 			settlement_count += 1
-			if settle_event.event_type != SimulationEvent.EVENT_THRESHOLD_SETTLED or settle_event.priority != SimulationEvent.EVENT_PRIORITY_LIFECYCLE or not settle_event.reportable or not settle_event.tutorial_relevant or settle_event.subject_id != owner.threshold_id or settle_event.source_id != SimulationEvent.SIMULATION_ENGINE_SOURCE or settle_event.lifecycle_before != &"OVERDUE" or settle_event.lifecycle_after != &"SETTLED" or settle_event.persistent_returns_total < 0 or settle_event.remaining_backlog_before < 0 or settle_event.remaining_backlog_after != 0 or settle_event.remaining_backlog_before < settle_event.remaining_backlog_after or owner.backlog_reduced <= 0 or settle_event.occurred_simulation_msec != owner.end_simulation_msec or owner.lifecycle_state != &"OVERDUE": return _failure("Settlement event is invalid.")
-	# A two-segment OVERDUE -> SETTLED sequence proves that Settlement evidence
-	# is required even when a detached caller has no journal metadata. An exact
-	# boundary has one OVERDUE segment, so its typed Settlement event is the
-	# self-contained evidence that the event is expected. No caller flag is
-	# needed to validate either form.
-	var lifecycle_requires_settlement := segments.size() == 2 and segments[0].lifecycle_state == &"OVERDUE" and segments[1].lifecycle_state == &"SETTLED"
-	var settlement_required := result.settlement_event_required or lifecycle_requires_settlement
+			# The transaction records this lifecycle event after the core segment has
+			# already reached zero backlog. The event's before/after endpoints
+			# therefore match the segment's post-production backlog endpoint, not
+			# the segment's original backlog before production began.
+			if settle_event.event_type != SimulationEvent.EVENT_THRESHOLD_SETTLED or settle_event.priority != SimulationEvent.EVENT_PRIORITY_LIFECYCLE or not settle_event.reportable or not settle_event.tutorial_relevant or settle_event.subject_id != owner.threshold_id or settle_event.source_id != SimulationEvent.SIMULATION_ENGINE_SOURCE or settle_event.lifecycle_before != &"OVERDUE" or settle_event.lifecycle_after != &"SETTLED" or settle_event.persistent_returns_total < 0 or settle_event.remaining_backlog_before < 0 or settle_event.remaining_backlog_after != 0 or settle_event.remaining_backlog_before < settle_event.remaining_backlog_after or owner.backlog_reduced <= 0 or settle_event.remaining_backlog_before != owner.remaining_backlog_after or settle_event.remaining_backlog_after != owner.remaining_backlog_after or settle_event.occurred_simulation_msec != owner.end_simulation_msec or owner.lifecycle_state != &"OVERDUE": return _failure("Settlement event is invalid.")
+	# The public result remains self-contained: an Overdue segment whose typed
+	# backlog endpoint reaches zero proves that the resolver crossed Settlement.
+	# This avoids trusting a caller-authored flag that is not part of the journal
+	# or segment facts.
+	var settlement_required := false
+	for segment in segments:
+		if segment.lifecycle_state == &"OVERDUE" and segment.remaining_backlog_after == 0:
+			settlement_required = true
+			break
 	if actual_banks.size() != expected_banks.size() or settlement_count != (1 if settlement_required else 0): return _failure("Event cardinality does not match segment facts.")
 	return {"ok": true}
 

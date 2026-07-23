@@ -108,8 +108,6 @@ func apply_core_segment(values: Dictionary) -> Dictionary:
 	var fact := values.duplicate(true)
 	fact.erase("persistent_returns_before")
 	fact.erase("persistent_returns_after")
-	fact.erase("remaining_backlog_before")
-	fact.erase("remaining_backlog_after")
 	fact.erase("essence_before")
 	fact.erase("essence_after")
 	fact.erase("mastery_before")
