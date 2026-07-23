@@ -3,7 +3,7 @@
 **Document role:** Canonical test strategy, commands, fixture rules, and manual validation flows
 **Repository path:** `docs/codex/TESTING_AND_VALIDATION.md`
 **Document status:** Approved through M04E2T2 implementation boundary; owner verification remains pending final review
-**Validation revision:** 30
+**Validation revision:** 31
 **Last updated:** 2026-07-23
 **Engine target:** Godot 4.7 standard build, GDScript only
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)  
@@ -2243,5 +2243,24 @@ Before final owner verification:
 4. repeat the same targeted audit only when needed and within the stop rule;
 5. one final unrestricted current-head GitHub review is clean;
 6. any code change invalidates the reviewed head and requires the applicable review again.
+
+### 30.6 PR #22 readiness evidence
+
+The bounded readiness regression suite is in `tests/unit/m04e2t2/test_simulation_result_facts.gd`:
+
+- `test_four_result_shapes_and_typed_child_arrays`
+- `test_failure_cursor_provenance_and_zero_duration_prevalidation_order`
+- `test_result_kind_and_envelope_malformed_combinations_reject`
+- `test_context_and_frozen_journal_snapshots_are_detached`
+- `test_detachment_and_value_equality_ignore_refcounted_identity`
+- `test_historical_identity_survives_same_timestamp_reconfiguration`
+- `test_channel_endpoints_period_and_progress_only_are_self_interpretable`
+- `test_closed_events_have_exact_fields_order_and_boundary_ownership`
+- `test_event_subtype_fields_and_settlement_cardinality_reject_mismatches`
+- `test_structural_validation_rejects_gap_duplicate_channel_and_endpoint_mismatch`
+- `test_event_order_ownership_priority_and_signed_cursor_boundary`
+- `test_projector_requires_frozen_journal_and_preserves_timeline_shape`
+
+The persistence exclusion test remains `test_typed_result_and_projector_artifacts_never_enter_schema_v3_save` in `tests/integration/m04e2t2/test_finalized_facts_persistence_exclusion.gd`. The current focused matrix passes 74 tests with 1,282 assertions; the full suite passes 178 tests with 2,823 assertions. Exact-head owner Windows verification remains pending final GitHub review.
 
 Stop and return to planning when more than two targeted rounds produce new P1/P2 findings, more than six material findings are discovered, the approved file/line guardrail is crossed, another owner/aggregate/schema/seam is required, or candidate mutation/commit behavior must change.

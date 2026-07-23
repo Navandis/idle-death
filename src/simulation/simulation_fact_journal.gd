@@ -14,16 +14,22 @@ const KIND_CORE_SEGMENT := &"CORE_SEGMENT"
 const KIND_CHANNEL_SEGMENT := &"CHANNEL_SEGMENT"
 const KIND_SETTLEMENT := &"SETTLEMENT"
 
-var requested_elapsed_msec: int
-var baseline_simulation_time_msec: int
-var max_fact_count: int
+var requested_elapsed_msec: int:
+	get: return _requested_elapsed_msec
+var baseline_simulation_time_msec: int:
+	get: return _baseline_simulation_time_msec
+var max_fact_count: int:
+	get: return _max_fact_count
+var _requested_elapsed_msec: int
+var _baseline_simulation_time_msec: int
+var _max_fact_count: int
 var _facts: Array[Dictionary] = []
 var _frozen := false
 
 func _init(baseline_time: int, requested_elapsed: int, fact_limit: int = 512) -> void:
-	baseline_simulation_time_msec = baseline_time
-	requested_elapsed_msec = requested_elapsed
-	max_fact_count = fact_limit
+	_baseline_simulation_time_msec = baseline_time
+	_requested_elapsed_msec = requested_elapsed
+	_max_fact_count = fact_limit
 
 func record_timeline(before_time: int, after_time: int) -> Dictionary:
 	if not _can_append(): return _failure("Journal is frozen or full.")

@@ -18,4 +18,4 @@ func advance_msec(state: GameState, elapsed_msec: int) -> SimulationResult:
 	var run_result := run_service.run_committed(state, elapsed_msec, SimulationRunService.MODE_DEBUG)
 	if run_result.simulation_result != null:
 		return run_result.simulation_result
-	return SimulationResult.failure(run_result.error_code, elapsed_msec, run_result.developer_details)
+	return SimulationResult.failure(run_result.error_code, elapsed_msec, run_result.developer_details, 0 if state == null else state.simulation_time_msec)
