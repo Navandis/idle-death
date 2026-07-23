@@ -85,9 +85,9 @@ func _run() -> void:
 	var half_result := SimulationEngine.new(half_registry).resolve_elapsed(half, 2000)
 	_assert(half_result.success, "half fixture resolves")
 	_assert(half_result.segments.size() == 2, "half fixture segments")
-	_assert(half_result.segments[0].elapsed_msec == 870 and half_result.segments[0].lifecycle == "OVERDUE", "half overdue segment")
+	_assert(half_result.segments[0].elapsed_msec == 870 and half_result.segments[0].lifecycle_state == "OVERDUE", "half overdue segment")
 	_assert(half_result.segments[0].channel_deltas[0].progress_subunits_after == 870000, "half overdue channel arithmetic")
-	_assert(half_result.segments[1].elapsed_msec == 1130 and half_result.segments[1].lifecycle == "SETTLED", "half settled segment")
+	_assert(half_result.segments[1].elapsed_msec == 1130 and half_result.segments[1].lifecycle_state == "SETTLED", "half settled segment")
 	_assert(half_result.segments[1].channel_deltas[0].banked_units_delta == 1, "half settled bank")
 	var half_acq: GameState.ThresholdAcquisitionState = half.thresholds[&"THR_GLOAMWOOD"].channel_acquisition[&"CHANNEL_GLOAMWOOD_SOLDIER_SOULS"]
 	_assert(half.inventory.entries[&"SOUL_CALLING_SOLDIER"].total == 1 and half_acq.progress_subunits == 435000 and half_acq.rate_carry_units == 0, "half final acquisition")
@@ -101,13 +101,13 @@ func _run() -> void:
 	_earn(MARKERS[9])
 	var bank_events := []
 	for event in g8_result.events:
-		if event.event_type == SimulationEngine.EVENT_OUTPUT_CHANNEL_BANKED:
+		if event.event_type == SimulationEvent.EVENT_OUTPUT_CHANNEL_BANKED:
 			bank_events.append(event)
 	_assert(bank_events.size() == 2, "two aggregate bank events")
-	_assert(bank_events[0].occurred_simulation_msec == 8 * HOUR and bank_events[0].priority == SimulationEngine.EVENT_PRIORITY_CHANNEL_GAIN, "bank event time priority")
-	_assert(bank_events[0].source_id == &"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS" and bank_events[0].payload.quantity == 1, "scribe event first")
-	_assert(bank_events[1].source_id == &"CHANNEL_GLOAMWOOD_SOLDIER_SOULS" and bank_events[1].payload.quantity == 96, "soldier aggregate event")
-	_assert(bank_events[0].payload.lifecycle_state == "OVERDUE" and bank_events[1].reportable and bank_events[1].tutorial_relevant, "bank payload flags")
+	_assert(bank_events[0].occurred_simulation_msec == 8 * HOUR and bank_events[0].priority == SimulationEvent.EVENT_PRIORITY_CHANNEL_GAIN, "bank event time priority")
+	_assert(bank_events[0].source_id == &"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS" and bank_events[0].quantity == 1, "scribe event first")
+	_assert(bank_events[1].source_id == &"CHANNEL_GLOAMWOOD_SOLDIER_SOULS" and bank_events[1].quantity == 96, "soldier aggregate event")
+	_assert(bank_events[0].lifecycle_state == "OVERDUE" and bank_events[1].reportable and bank_events[1].tutorial_relevant, "bank payload flags")
 	_earn(MARKERS[10])
 	var files := SaveFileSet.new(_save_root.path_join("roundtrip"), "save")
 	var service := SaveService.new(FileSaveStorage.new(), files)

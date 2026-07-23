@@ -2,9 +2,9 @@
 
 **Document role:** Canonical test strategy, commands, fixture rules, and manual validation flows
 **Repository path:** `docs/codex/TESTING_AND_VALIDATION.md`
-**Document status:** Approved through M04E2T1; M04E2T2 validation plan Draft v0.1 under proposed DEC-0044
-**Validation revision:** 29
-**Last updated:** 2026-07-22
+**Document status:** Approved through M04E2T2 implementation boundary; owner verification remains pending final review
+**Validation revision:** 31
+**Last updated:** 2026-07-23
 **Engine target:** Godot 4.7 standard build, GDScript only
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)  
 **Owner evidence companion:** [OWNER_VERIFICATION_WORKFLOW.md](OWNER_VERIFICATION_WORKFLOW.md)
@@ -2114,9 +2114,9 @@ Final exact-head Windows evidence recorded:
 
 The final unrestricted Codex review was clean and every review thread was resolved. `GATE-SINGLE-PROVENANCE-TRANSACTION` is satisfied. The owner-approved scope exception applies only to M04E2T1.
 
-## 30. Proposed M04E2T2 finalized typed run-fact validation package
+## 30. M04E2T2 finalized typed run-fact validation package
 
-This package is Draft with proposed `DEC-0044` and the M04E2T2 prompt v0.1. It becomes executable only after explicit owner approval.
+This package is the approved `DEC-0044` validation contract for the M04E2T2 prompt v0.1. The implementation pull request provides the focused automated suite, trace, and owner-verification entry point; exact-head owner execution remains a post-review merge gate.
 
 M04E2T2 changes public result representation and current consumers while preserving simulation behavior, mutation provenance, schema version 3, and content revision `prototype-content-r2`.
 
@@ -2168,7 +2168,7 @@ Run every existing M04C, M04D2, M04D3, M04E1, and M04E2T1 trace whose public-res
 7. typed channel period/progress/carry/total endpoint domains;
 8. progress-only and multiple-whole banking remain representable;
 9. closed channel-banked event type, typed fields, ordering, owning segment, and cardinality;
-10. closed Settlement event type, boundary totals, owning segment, and cardinality;
+10. closed Settlement event type, boundary totals, owning segment, cardinality, and backlog-endpoint expectation;
 11. same-timestamp recall and redispatch do not rewrite retained facts;
 12. distinct equal-output component identities remain distinct;
 13. one-hour and eight-hour exact values unchanged;
@@ -2243,5 +2243,24 @@ Before final owner verification:
 4. repeat the same targeted audit only when needed and within the stop rule;
 5. one final unrestricted current-head GitHub review is clean;
 6. any code change invalidates the reviewed head and requires the applicable review again.
+
+### 30.6 PR #22 readiness evidence
+
+The bounded readiness regression suite is in `tests/unit/m04e2t2/test_simulation_result_facts.gd`:
+
+- `test_four_result_shapes_and_typed_child_arrays`
+- `test_failure_cursor_provenance_and_zero_duration_prevalidation_order`
+- `test_result_kind_and_envelope_malformed_combinations_reject`
+- `test_context_and_frozen_journal_snapshots_are_detached`
+- `test_detachment_and_value_equality_ignore_refcounted_identity`
+- `test_historical_identity_survives_same_timestamp_reconfiguration`
+- `test_channel_endpoints_period_and_progress_only_are_self_interpretable`
+- `test_closed_events_have_exact_fields_order_and_boundary_ownership`
+- `test_event_subtype_fields_and_settlement_cardinality_reject_mismatches`
+- `test_structural_validation_rejects_gap_duplicate_channel_and_endpoint_mismatch`
+- `test_event_order_ownership_priority_and_signed_cursor_boundary`
+- `test_projector_requires_frozen_journal_and_preserves_timeline_shape`
+
+The persistence exclusion test remains `test_typed_result_and_projector_artifacts_never_enter_schema_v3_save` in `tests/integration/m04e2t2/test_finalized_facts_persistence_exclusion.gd`. The current focused matrix passes 74 tests with 1,291 assertions; the full suite passes 178 tests with 2,832 assertions. Exact-head owner Windows verification remains pending final GitHub review.
 
 Stop and return to planning when more than two targeted rounds produce new P1/P2 findings, more than six material findings are discovered, the approved file/line guardrail is crossed, another owner/aggregate/schema/seam is required, or candidate mutation/commit behavior must change.

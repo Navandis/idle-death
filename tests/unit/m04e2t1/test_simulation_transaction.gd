@@ -41,7 +41,7 @@ func _canonical(state: GameState) -> Dictionary:
 func test_active_context_is_captured_once_and_facts_share_core_provenance() -> void:
 	var state := _state()
 	var trace := _engine().resolve_elapsed_with_trace(state, HOUR)
-	var result: SimulationEngine.SimulationResult = trace.result
+	var result: SimulationResult = trace.result
 	assert_true(result.success, result.developer_details)
 	var transaction: Dictionary = trace.transaction
 	var context: Dictionary = transaction.context
@@ -59,9 +59,9 @@ func test_active_context_is_captured_once_and_facts_share_core_provenance() -> v
 	assert_eq(facts[0].kind, SimulationFactJournal.KIND_CORE_SEGMENT)
 	var core: Dictionary = facts[0]
 	assert_eq(core.returned_souls_delta, result.segments[0].returned_souls_delta)
-	assert_eq(core.backlog_delta, result.segments[0].backlog_delta)
-	assert_eq(core.Essence_delta, result.segments[0].Essence_delta)
-	assert_eq(core.Mastery_delta_subunits, result.segments[0].Mastery_delta_subunits)
+	assert_eq(-core.backlog_delta, result.segments[0].backlog_reduced)
+	assert_eq(core.Essence_delta, result.segments[0].essence_delta)
+	assert_eq(core.Mastery_delta_subunits, result.segments[0].mastery_delta_subunits)
 	assert_eq(core.completed_cycles_delta, result.segments[0].completed_cycles_delta)
 	assert_true(transaction.journal_frozen)
 	assert_eq(transaction.state, SimulationTransaction.STATE_COMMITTED)
@@ -96,28 +96,28 @@ func test_channel_fact_and_event_share_channel_endpoints() -> void:
 			channel_fact = fact
 			break
 	assert_false(channel_fact.is_empty())
-	var delta: Dictionary = trace.result.segments[0].channel_deltas[0]
+	var delta: SimulationChannelDeltaResult = trace.result.segments[0].channel_deltas[0]
 	assert_eq(channel_fact.progress_subunits_before, delta.progress_subunits_before)
 	assert_eq(channel_fact.progress_subunits_after, delta.progress_subunits_after)
 	assert_eq(channel_fact.total_banked_units_after, delta.total_banked_units_after)
-	var bank_event: SimulationEngine.SimulationEvent = trace.result.events[0]
-	assert_eq(bank_event.event_type, SimulationEngine.EVENT_OUTPUT_CHANNEL_BANKED)
-	assert_eq(bank_event.payload.quantity, channel_fact.banked_units_delta)
-	assert_eq(bank_event.payload.total_banked_units, channel_fact.total_banked_units_after)
+	var bank_event: SimulationChannelBankedEvent = trace.result.events[0]
+	assert_eq(bank_event.event_type, SimulationEvent.EVENT_OUTPUT_CHANNEL_BANKED)
+	assert_eq(bank_event.quantity, channel_fact.banked_units_delta)
+	assert_eq(bank_event.total_banked_units_after, channel_fact.total_banked_units_after)
 
 func test_settlement_event_keeps_boundary_total_not_final_run_total() -> void:
 	var state := _state(1)
 	var trace := _engine().resolve_elapsed_with_trace(state, 10000)
 	assert_true(trace.result.success, trace.result.developer_details)
 	assert_eq(trace.result.events.size(), 1)
-	var settlement: SimulationEngine.SimulationEvent = trace.result.events[0]
-	assert_eq(settlement.event_type, SimulationEngine.EVENT_THRESHOLD_SETTLED)
+	var settlement: SimulationThresholdSettledEvent = trace.result.events[0]
+	assert_eq(settlement.event_type, SimulationEvent.EVENT_THRESHOLD_SETTLED)
 	assert_eq(settlement.occurred_simulation_msec, 870)
 	var settlement_fact: Dictionary = {}
 	for fact in trace.transaction.facts:
 		if fact.kind == SimulationFactJournal.KIND_SETTLEMENT:
 			settlement_fact = fact
-	assert_eq(settlement.payload.persistent_returns_total, settlement_fact.persistent_returns_total)
+	assert_eq(settlement.persistent_returns_total, settlement_fact.persistent_returns_total)
 	assert_eq(settlement_fact.persistent_returns_total, 1)
 	assert_eq(state.thresholds[&"THR_GLOAMWOOD"].persistent_returns_total, 3)
 
@@ -136,16 +136,17 @@ func test_partial_channel_failure_preserves_complete_live_state() -> void:
 	assert_eq(result.committed_elapsed_msec, 0)
 	assert_true(result.segments.is_empty())
 	assert_true(result.events.is_empty())
-	assert_true(result.change_summary.is_empty())
 	assert_eq(_canonical(state), before)
 
-func test_timeline_only_transaction_and_summary_are_journal_derived() -> void:
+func test_timeline_only_transaction_is_journal_derived() -> void:
 	var state := _state(100, false)
 	var trace := _engine().resolve_elapsed_with_trace(state, 1234)
 	assert_true(trace.result.success, trace.result.developer_details)
 	assert_eq(trace.result.segments, [])
 	assert_eq(trace.result.events, [])
-	assert_eq(trace.result.change_summary, {"simulation_time_delta_msec": 1234})
+	assert_eq(trace.result.result_kind, SimulationResult.KIND_TIMELINE_ONLY)
+	assert_eq(trace.result.committed_elapsed_msec, 1234)
+	assert_eq(trace.result.result_simulation_time_msec - trace.result.baseline_simulation_time_msec, 1234)
 	assert_eq(trace.transaction.facts[0].before_time, 0)
 	assert_eq(trace.transaction.facts[0].after_time, 1234)
 

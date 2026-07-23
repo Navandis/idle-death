@@ -1794,9 +1794,9 @@ M04E2T1 merged through PR #21 from final head `a4d8056cb8771e84e1948fc5e59939c46
 
 The realized public boundary remains intentionally temporary: nested `SimulationEngine.SimulationResult`, raw segment/channel dictionaries, typed events with generic payload dictionaries, and journal-derived `change_summary` are preserved only until M04E2T2.
 
-## Proposed M04E2T2 finalized typed run-fact boundary
+## M04E2T2 finalized typed run-fact boundary
 
-Proposed `DEC-0044` defines M04E2T2. It changes public representation and current consumers only. It does not change candidate mutation, formulas, segmentation, transaction operations, or commit order.
+Accepted `DEC-0044` defines M04E2T2. The implementation changes public representation and current consumers only. It does not change candidate mutation, formulas, segmentation, transaction operations, or commit order.
 
 ### Principal transition
 

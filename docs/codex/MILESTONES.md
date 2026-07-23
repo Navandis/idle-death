@@ -47,7 +47,7 @@ After M04E2T1 completion:
 - PR #18 attempted M04E2A1 and was closed without merge at head `602dec077f44338cdb4a2eabbd30d3989c877902` after repeated targeted reviews continued to identify P1/P2 defects and the branch exceeded its approved line guardrail.
 - Accepted `DEC-0043` supersedes the implementation packaging in `DEC-0042` and requires a single-provenance simulation transaction before finalized typed run facts and report persistence.
 - M04E2T1 merged through PR #21 from final head `a4d8056cb8771e84e1948fc5e59939c46a13003c` at merge commit `68364e0b417a6e7ebc63b50a386ac5d9f2c506bf`; exact-head Windows verification passed `165/165` full tests, `61/61` focused tests, all twelve markers, import, negative-root behavior, cleanup, and artifact audit.
-- `GATE-SINGLE-PROVENANCE-TRANSACTION` is satisfied. Proposed `DEC-0044` and the Draft M04E2T2 prompt define the next approval boundary.
+- `GATE-SINGLE-PROVENANCE-TRANSACTION` is satisfied. Accepted `DEC-0044` and the approved M04E2T2 prompt define the current implementation boundary.
 - PR #17 and PR #18 are retained only as forensic review/finding references and are not cherry-pick or production-code sources.
 - The repository still has no authoritative report accumulator/history, atomic reported-run coordinator, application shell, trusted offline adapter, concurrent-Reaping resolver, or player-facing gameplay UI.
 - Existing dry-run assets and scene work are preserved unless a scoped milestone explicitly replaces or integrates them.
@@ -152,7 +152,7 @@ A conceptual epic uses `Prompt: Not applicable` and `Implementation: Not directl
 
 `GATE-CONTENT-CATALOG` was satisfied by M03. PR #7 merged on 2026-07-15 at merge commit `5e2b9b23878c9280f75b987cc9ad567d8980030d`; its final head was `971cdaa0fd46f641ec7409148e259d54f953d8c7`. Linux/Codex and owner Windows verification passed the full and focused suites, explicit import, semantic catalog trace, artifact audit, and Godot Inspector checklist.
 
-`GATE-SLICE-SCOPE` is mandatory for every post-M03 prompt. `GATE-GAMEPLAY-SCHEMA`, `GATE-REAPING-ASSIGNMENT`, `GATE-CORE-RESOLUTION`, `GATE-OUTPUT-ACCESS-SCHEMA`, `GATE-CHANNEL-ACCUMULATION`, `GATE-RATE-CONTEXT-CHANGE`, and `GATE-FORECAST-CLONE` are satisfied through approved M04E1 v0.2. `GATE-FORECAST-CLONE` is fully satisfied by M04E1 implementation and verification. `GATE-TYPED-SIMULATION-RESULT` is Superseded after failed PR #18. `GATE-SINGLE-PROVENANCE-TRANSACTION` is pending explicit M04E2T1 prompt approval. `GATE-FINALIZED-RUN-FACTS`, `GATE-REPORT-SCHEMA`, `GATE-REPORT-INGESTION`, `GATE-REPORT-READS-HISTORY`, and `GATE-ATOMIC-REPORTED-RUN` remain pending their preceding slices plus fresh scope reviews under accepted `DEC-0043`.
+`GATE-SLICE-SCOPE` is mandatory for every post-M03 prompt. `GATE-GAMEPLAY-SCHEMA`, `GATE-REAPING-ASSIGNMENT`, `GATE-CORE-RESOLUTION`, `GATE-OUTPUT-ACCESS-SCHEMA`, `GATE-CHANNEL-ACCUMULATION`, `GATE-RATE-CONTEXT-CHANGE`, and `GATE-FORECAST-CLONE` are satisfied through approved M04E1 v0.2. `GATE-FORECAST-CLONE` is fully satisfied by M04E1 implementation and verification. `GATE-TYPED-SIMULATION-RESULT` is Superseded after failed PR #18. `GATE-SINGLE-PROVENANCE-TRANSACTION` is satisfied by M04E2T1. `GATE-FINALIZED-RUN-FACTS` is satisfied for the M04E2T2 implementation boundary; `GATE-REPORT-SCHEMA`, `GATE-REPORT-INGESTION`, `GATE-REPORT-READS-HISTORY`, and `GATE-ATOMIC-REPORTED-RUN` remain pending their preceding slices plus fresh scope reviews under accepted `DEC-0043`.
 
 
 When trusted time is unavailable, the approved behavior is to grant no guessed closed-session progress, retain pending reconciliation, and continue monotonic foreground production. No milestone may introduce a local-device-time fallback.
@@ -1562,9 +1562,9 @@ The prompt and branch remain provenance only. Do not cherry-pick or copy product
 
 **Work item type:** Implementation slice  
 **Parent epic:** M04 / M04E / M04E2  
-**Definition status:** Approved boundary under accepted `DEC-0043`; exact contract proposed in `DEC-0044`  
+**Definition status:** Approved boundary under accepted `DEC-0043` and `DEC-0044`
 **Prompt status:** Approved  
-**Implementation status:** Not started  
+**Implementation status:** Pull request open on `codex/implement-m04e2t2`; merge pending
 **Verification status:** —  
 **Recommended Codex task size:** Medium; one typed-result projection and consumer-migration pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M04E2T2-finalized-typed-run-facts.md`
@@ -1576,7 +1576,7 @@ Replace the raw public segment/channel dictionaries and generic simulation-event
 #### Dependencies and gates
 
 - M04E2T1 Merged and Passed.
-- Proposed `DEC-0044` reviewed and explicitly Accepted.
+- Accepted `DEC-0044` reviewed and implementation is on the approved M04E2T2 branch.
 - M04E2T2 prompt approved as v0.1 or later.
 - `GATE-FINALIZED-RUN-FACTS` and `GATE-SLICE-SCOPE` satisfied.
 - A clean current `main` and a new Codex desktop task/feature branch/PR.

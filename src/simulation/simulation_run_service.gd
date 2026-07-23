@@ -84,9 +84,9 @@ class SimulationRunResult:
 	var requested_elapsed_msec: int = 0
 	var baseline_simulation_time_msec: int = 0
 	var result_simulation_time_msec: int = 0
-	var simulation_result: SimulationEngine.SimulationResult = null
+	var simulation_result: SimulationResult = null
 	var projected_state: GameState = null
-	func _init(success_value := false, mode_value: StringName = &"", error_value: StringName = &"", details := "", requested := 0, baseline_time := 0, result_time := 0, simulation_value: SimulationEngine.SimulationResult = null, projection: GameState = null) -> void:
+	func _init(success_value := false, mode_value: StringName = &"", error_value: StringName = &"", details := "", requested := 0, baseline_time := 0, result_time := 0, simulation_value: SimulationResult = null, projection: GameState = null) -> void:
 		success = success_value
 		mode = mode_value
 		error_code = error_value
@@ -98,5 +98,5 @@ class SimulationRunResult:
 		projected_state = projection
 	static func failure(mode: StringName, code: StringName, requested: int, baseline_time: int, details: String) -> SimulationRunResult:
 		return SimulationRunResult.new(false, mode, code, details, requested, baseline_time, baseline_time, null, null)
-	static func from_engine(mode: StringName, baseline_time: int, result_time: int, result: SimulationEngine.SimulationResult, projection: GameState) -> SimulationRunResult:
+	static func from_engine(mode: StringName, baseline_time: int, result_time: int, result: SimulationResult, projection: GameState) -> SimulationRunResult:
 		return SimulationRunResult.new(result.success, mode, result.error_code, result.developer_details, result.requested_elapsed_msec, baseline_time, result_time, result, projection)

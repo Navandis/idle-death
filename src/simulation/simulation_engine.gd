@@ -27,11 +27,6 @@ const ERR_UNSUPPORTED_MODIFIER := &"SIM_UNSUPPORTED_MODIFIER"
 const ERR_OVERFLOW := &"SIM_OVERFLOW"
 const ERR_ZERO_BOUNDARY := &"SIM_ZERO_BOUNDARY"
 
-const EVENT_THRESHOLD_SETTLED := &"THRESHOLD_SETTLED"
-const EVENT_OUTPUT_CHANNEL_BANKED := &"OUTPUT_CHANNEL_BANKED"
-const EVENT_PRIORITY_CHANNEL_GAIN := 100
-const EVENT_PRIORITY_LIFECYCLE := 200
-
 const FLOW_CORE_RETURNS_PROGRESS_SUBUNITS := CoreFlowKeys.RETURNS_PROGRESS
 const FLOW_CORE_RETURNS_RATE_CARRY_UNITS := CoreFlowKeys.RETURNS_CARRY
 const FLOW_CORE_ESSENCE_PROGRESS_SUBUNITS := CoreFlowKeys.ESSENCE_PROGRESS
@@ -60,32 +55,32 @@ func resolve_elapsed_with_trace(state: GameState, elapsed_msec: int) -> Dictiona
 
 func _resolve_elapsed_internal(state: GameState, elapsed_msec: int, trace_output: Dictionary) -> SimulationResult:
 	if elapsed_msec < 0:
-		return SimulationResult.failure(ERR_NEGATIVE_ELAPSED, elapsed_msec, "Elapsed milliseconds must be non-negative.")
+		return _failure_result(state, ERR_NEGATIVE_ELAPSED, elapsed_msec, "Elapsed milliseconds must be non-negative.")
 	if elapsed_msec == 0:
-		return SimulationResult.success_empty(elapsed_msec)
+		return SimulationResult.zero_duration(0 if state == null else state.simulation_time_msec)
 	var validation := GameStateValidator.validate(state, registry, true)
 	if not validation.ok:
-		return SimulationResult.failure(ERR_STATE_INVALID, elapsed_msec, str(validation))
+		return _failure_result(state, ERR_STATE_INVALID, elapsed_msec, str(validation))
 	var active_ids := _active_reaping_ids(state)
 	if active_ids.size() > 1:
-		return SimulationResult.failure(ERR_UNSUPPORTED_CONCURRENCY, elapsed_msec, "M04C supports at most one active Reaping.")
+		return _failure_result(state, ERR_UNSUPPORTED_CONCURRENCY, elapsed_msec, "M04C supports at most one active Reaping.")
 
 	var context := _capture_run_context(state, elapsed_msec, active_ids)
 	var transaction := SimulationTransaction.open(state, context, registry)
 	if active_ids.is_empty():
 		var timeline := transaction.advance_timeline()
 		if not timeline.ok:
-			return SimulationResult.failure(StringName(timeline.code), elapsed_msec, timeline.details)
+			return _failure_result(state, StringName(timeline.code), elapsed_msec, timeline.details)
 		return _finalize_and_commit(state, transaction, trace_output)
 
 	var active_id: StringName = active_ids[0]
 	var initial_snapshot := transaction.calculation_snapshot()
 	var reaping: GameState.ReapingState = initial_snapshot.reapings[active_id]
 	if not reaping.retinue_ids.is_empty():
-		return SimulationResult.failure(ERR_UNSUPPORTED_RETINUE, elapsed_msec, "Retinues are deferred until after M04C.")
+		return _failure_result(state, ERR_UNSUPPORTED_RETINUE, elapsed_msec, "Retinues are deferred until after M04C.")
 	var flow_check := _validate_core_flows(reaping)
 	if not flow_check.ok:
-		return SimulationResult.failure(StringName(flow_check.code), elapsed_msec, flow_check.details)
+		return _failure_result(state, StringName(flow_check.code), elapsed_msec, flow_check.details)
 
 	var cursor := context.baseline_simulation_time_msec
 	var remaining := elapsed_msec
@@ -93,7 +88,7 @@ func _resolve_elapsed_internal(state: GameState, elapsed_msec: int, trace_output
 	while remaining > 0:
 		transition_guard += 1
 		if transition_guard > 2:
-			return SimulationResult.failure(ERR_ZERO_BOUNDARY, elapsed_msec, "Exceeded bounded M04C settlement segmentation.")
+			return _failure_result(state, ERR_ZERO_BOUNDARY, elapsed_msec, "Exceeded bounded M04C settlement segmentation.")
 		var working := transaction.calculation_snapshot()
 		var working_reaping: GameState.ReapingState = working.reapings[active_id]
 		var threshold: GameState.ThresholdState = working.thresholds[active_id]
@@ -101,34 +96,34 @@ func _resolve_elapsed_internal(state: GameState, elapsed_msec: int, trace_output
 		var will_settle := false
 		if str(threshold.lifecycle_state) == "OVERDUE" and threshold.remaining_backlog > 0:
 			var boundary := _msec_to_next_return(working_reaping, active_id, threshold.remaining_backlog)
-			if not boundary.ok: return SimulationResult.failure(StringName(boundary.code), elapsed_msec, boundary.details)
-			if boundary.elapsed_msec <= 0: return SimulationResult.failure(ERR_ZERO_BOUNDARY, elapsed_msec, "Settlement boundary cannot advance time.")
+			if not boundary.ok: return _failure_result(state, StringName(boundary.code), elapsed_msec, boundary.details)
+			if boundary.elapsed_msec <= 0: return _failure_result(state, ERR_ZERO_BOUNDARY, elapsed_msec, "Settlement boundary cannot advance time.")
 			if boundary.elapsed_msec <= remaining:
 				segment_msec = boundary.elapsed_msec
 				will_settle = true
 		if cursor > FixedPoint.INT64_MAX - segment_msec:
-			return SimulationResult.failure(ERR_OVERFLOW, elapsed_msec, "simulation segment end")
+			return _failure_result(state, ERR_OVERFLOW, elapsed_msec, "simulation segment end")
 		var segment_end_msec := cursor + segment_msec
 		var core_plan := _calculate_core_segment(working, active_id, segment_msec, cursor, segment_end_msec, transaction.next_segment_index())
-		if not core_plan.ok: return SimulationResult.failure(StringName(core_plan.code), elapsed_msec, core_plan.details)
+		if not core_plan.ok: return _failure_result(state, StringName(core_plan.code), elapsed_msec, core_plan.details)
 		var applied_core := transaction.apply_core_segment(core_plan)
-		if not applied_core.ok: return SimulationResult.failure(StringName(applied_core.code), elapsed_msec, applied_core.details)
+		if not applied_core.ok: return _failure_result(state, StringName(applied_core.code), elapsed_msec, applied_core.details)
 		var channel_snapshot := transaction.calculation_snapshot()
 		var channels := _eligible_output_channels(channel_snapshot, active_id)
-		if not channels.ok: return SimulationResult.failure(StringName(channels.code), elapsed_msec, channels.details)
+		if not channels.ok: return _failure_result(state, StringName(channels.code), elapsed_msec, channels.details)
 		for channel in channels.channels:
 			channel_snapshot = transaction.calculation_snapshot()
 			var channel_plan := _calculate_channel_segment(channel_snapshot, active_id, channel, segment_msec, segment_end_msec, transaction.current_segment_index())
-			if not channel_plan.ok: return SimulationResult.failure(StringName(channel_plan.code), elapsed_msec, channel_plan.details)
+			if not channel_plan.ok: return _failure_result(state, StringName(channel_plan.code), elapsed_msec, channel_plan.details)
 			var applied_channel := transaction.apply_channel_segment(channel_plan)
-			if not applied_channel.ok: return SimulationResult.failure(StringName(applied_channel.code), elapsed_msec, applied_channel.details)
+			if not applied_channel.ok: return _failure_result(state, StringName(applied_channel.code), elapsed_msec, applied_channel.details)
 		cursor = segment_end_msec
 		remaining -= segment_msec
 		if will_settle:
 			var settled := transaction.apply_settlement_transition()
-			if not settled.ok: return SimulationResult.failure(StringName(settled.code), elapsed_msec, settled.details)
+			if not settled.ok: return _failure_result(state, StringName(settled.code), elapsed_msec, settled.details)
 	var timeline := transaction.advance_timeline()
-	if not timeline.ok: return SimulationResult.failure(StringName(timeline.code), elapsed_msec, timeline.details)
+	if not timeline.ok: return _failure_result(state, StringName(timeline.code), elapsed_msec, timeline.details)
 	return _finalize_and_commit(state, transaction, trace_output)
 
 func _capture_run_context(state: GameState, elapsed_msec: int, active_ids: Array[StringName]) -> SimulationRunContext:
@@ -142,13 +137,18 @@ func _capture_run_context(state: GameState, elapsed_msec: int, active_ids: Array
 func _finalize_and_commit(state: GameState, transaction: SimulationTransaction, trace_output: Dictionary = {}) -> SimulationResult:
 	var finalized := transaction.finalize()
 	if not finalized.ok:
-		return SimulationResult.failure(StringName(finalized.code), transaction.requested_elapsed_msec(), finalized.details)
+		return _failure_result(state, StringName(finalized.code), transaction.requested_elapsed_msec(), finalized.details)
 	var committed: Dictionary = transaction.commit_to(state)
 	if not committed.ok:
-		return SimulationResult.failure(StringName(committed.code), transaction.requested_elapsed_msec(), committed.details)
+		return _failure_result(state, StringName(committed.code), transaction.requested_elapsed_msec(), committed.details)
 	if trace_output != null:
 		trace_output["transaction"] = transaction.read_only_snapshot()
 	return committed.result
+
+func _failure_result(state: GameState, code: StringName, requested: int, details: String) -> SimulationResult:
+	# A failure never commits the candidate, so its result cursor is the source
+	# cursor even when the error occurs after private transaction work.
+	return SimulationResult.failure(code, requested, details, 0 if state == null else state.simulation_time_msec)
 
 func _calculate_core_segment(state: GameState, threshold_id: StringName, elapsed_msec: int, start_msec: int, end_msec: int, segment_index: int) -> Dictionary:
 	var threshold: GameState.ThresholdState = state.thresholds[threshold_id]
@@ -340,39 +340,3 @@ func _has_any(left: Array, right: Array) -> bool:
 
 func _fail(code: StringName, details: String) -> Dictionary:
 	return {"ok": false, "code": code, "details": details}
-
-class SimulationResult:
-	extends RefCounted
-	var success: bool
-	var error_code: StringName
-	var developer_details: String
-	var requested_elapsed_msec: int
-	var committed_elapsed_msec: int = 0
-	var change_summary: Dictionary = {}
-	var segments: Array = []
-	var events: Array = []
-	func _init(success_value := false, error_value: StringName = &"", details := "", requested := 0) -> void:
-		success = success_value; error_code = error_value; developer_details = details; requested_elapsed_msec = requested
-	static func failure(code: StringName, requested: int, details: String) -> SimulationResult:
-		return SimulationResult.new(false, code, details, requested)
-	static func success_empty(requested: int) -> SimulationResult:
-		var result := SimulationResult.new(true, OK, "", requested)
-		result.committed_elapsed_msec = 0
-		return result
-
-class SimulationEvent:
-	extends RefCounted
-	var event_type: StringName
-	var occurred_simulation_msec: int
-	var priority: int
-	var subject_id: StringName
-	var source_id: StringName
-	var payload: Dictionary
-	var reportable: bool
-	var tutorial_relevant: bool
-	func _init(type_value: StringName, occurred: int, priority_value: int, subject: StringName, source: StringName, payload_value: Dictionary) -> void:
-		event_type = type_value; occurred_simulation_msec = occurred; priority = priority_value; subject_id = subject; source_id = source; payload = payload_value; reportable = true; tutorial_relevant = true
-	static func threshold_settled(occurred: int, threshold_id: StringName, returns_total: int) -> SimulationEvent:
-		return SimulationEvent.new(EVENT_THRESHOLD_SETTLED, occurred, EVENT_PRIORITY_LIFECYCLE, threshold_id, &"SIMULATION_ENGINE", {"remaining_backlog": 0, "lifecycle_state": "SETTLED", "persistent_returns_total": returns_total})
-	static func output_channel_banked(occurred: int, threshold_id: StringName, channel_id: StringName, delta: Dictionary, lifecycle_state: String) -> SimulationEvent:
-		return SimulationEvent.new(EVENT_OUTPUT_CHANNEL_BANKED, occurred, EVENT_PRIORITY_CHANNEL_GAIN, threshold_id, channel_id, {"output_item_id": delta.output_item_id, "quantity": delta.banked_units_delta, "lifecycle_state": lifecycle_state, "total_banked_units": delta.total_banked_units_after, "progress_subunits_after": delta.progress_subunits_after})

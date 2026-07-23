@@ -67,7 +67,7 @@ func _marker(text: String, ok: bool) -> void:
 		print("TRACE M04C " + text.replace("PASS", "FAIL"))
 
 func _settlement_event_ok(result) -> bool:
-	return result.events.size() == 1 and result.events[0].event_type == SimulationEngine.EVENT_THRESHOLD_SETTLED and result.events[0].priority == SimulationEngine.EVENT_PRIORITY_LIFECYCLE and result.events[0].subject_id == &"THR_GLOAMWOOD" and result.events[0].source_id == &"SIMULATION_ENGINE" and result.events[0].reportable and result.events[0].tutorial_relevant
+	return result.events.size() == 1 and result.events[0].event_type == SimulationEvent.EVENT_THRESHOLD_SETTLED and result.events[0].priority == SimulationEvent.EVENT_PRIORITY_LIFECYCLE and result.events[0].subject_id == &"THR_GLOAMWOOD" and result.events[0].source_id == &"SIMULATION_ENGINE" and result.events[0].reportable and result.events[0].tutorial_relevant
 
 func _file_round_trip_ok(state: GameState) -> bool:
 	var files := SaveFileSet.new(_save_root.path_join("save"), "m04c_trace")

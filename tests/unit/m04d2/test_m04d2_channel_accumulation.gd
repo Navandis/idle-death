@@ -51,9 +51,9 @@ func test_gloamwood_exact_fixtures_and_result_contract() -> void:
 	assert_true(result.success, result.developer_details)
 	assert_eq(two.inventory.entries[&"SOUL_CALLING_SOLDIER"].total, 24)
 	assert_eq(two.thresholds[&"THR_GLOAMWOOD"].channel_acquisition[&"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS"].progress_subunits, 250000)
-	assert_eq(result.change_summary.channel_deltas.size(), 2)
-	assert_eq(result.events[0].event_type, SimulationEngine.EVENT_OUTPUT_CHANNEL_BANKED)
-	assert_eq(result.events[0].payload.quantity, 24)
+	assert_eq(result.segments[0].channel_deltas.size(), 2)
+	assert_eq(result.events[0].event_type, SimulationEvent.EVENT_OUTPUT_CHANNEL_BANKED)
+	assert_eq(result.events[0].quantity, 24)
 	var eight := _state()
 	_unlock_and_init(eight, [&"SOUL_CALLING_SOLDIER", &"SOUL_FORM_SCRIBE"])
 	assert_true(_engine().resolve_elapsed(eight, 8 * HOUR).success)
@@ -119,11 +119,11 @@ func test_channel_bank_after_settlement_uses_segment_end_cursor() -> void:
 	var result := _engine().resolve_elapsed(state, 871)
 	assert_true(result.success, result.developer_details)
 	assert_eq(result.events.size(), 2)
-	assert_eq(result.events[0].event_type, SimulationEngine.EVENT_THRESHOLD_SETTLED)
+	assert_eq(result.events[0].event_type, SimulationEvent.EVENT_THRESHOLD_SETTLED)
 	assert_eq(result.events[0].occurred_simulation_msec, 870)
-	assert_eq(result.events[1].event_type, SimulationEngine.EVENT_OUTPUT_CHANNEL_BANKED)
+	assert_eq(result.events[1].event_type, SimulationEvent.EVENT_OUTPUT_CHANNEL_BANKED)
 	assert_eq(result.events[1].occurred_simulation_msec, 871)
-	assert_eq(result.events[1].payload.lifecycle_state, "SETTLED")
+	assert_eq(result.events[1].lifecycle_state, "SETTLED")
 	assert_eq(state.inventory.entries[&"SOUL_CALLING_SOLDIER"].total, 1)
 
 func _canonical(state: GameState) -> Dictionary:
@@ -177,7 +177,7 @@ func test_eligibility_and_transaction_matrix() -> void:
 	assert_true(locked_result.success, locked_result.developer_details)
 	assert_false(locked.thresholds[&"THR_GLOAMWOOD"].channel_acquisition.has(&"CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS"))
 	assert_false(locked.inventory.entries.has(&"SOUL_FORM_SCRIBE"))
-	assert_eq(locked_result.change_summary.channel_deltas.size(), 1)
+	assert_eq(locked_result.segments[0].channel_deltas.size(), 1)
 	assert_eq(locked_result.events.size(), 1)
 
 	var missing := _state(&"THR_GLOAMWOOD", true, 1000000)
@@ -229,8 +229,8 @@ func test_accumulation_chunking_history_and_source_ownership_matrix() -> void:
 	var multi_result := _engine().resolve_elapsed(multi, 3 * HOUR)
 	assert_true(multi_result.success, multi_result.developer_details)
 	assert_eq(multi.inventory.entries[&"RES_PROVISIONS"].total, 360)
-	assert_eq(_events_of_type(multi_result, SimulationEngine.EVENT_OUTPUT_CHANNEL_BANKED).size(), 1)
-	assert_eq(_events_of_type(multi_result, SimulationEngine.EVENT_OUTPUT_CHANNEL_BANKED)[0].payload.quantity, 360)
+	assert_eq(_events_of_type(multi_result, SimulationEvent.EVENT_OUTPUT_CHANNEL_BANKED).size(), 1)
+	assert_eq(_events_of_type(multi_result, SimulationEvent.EVENT_OUTPUT_CHANNEL_BANKED)[0].quantity, 360)
 
 	var channels := _state()
 	_unlock_and_init(channels, [&"SOUL_CALLING_SOLDIER", &"SOUL_FORM_SCRIBE"])
@@ -265,10 +265,10 @@ func test_settlement_channel_specific_rates_and_event_ordering_contracts() -> vo
 	var boundary_result := _engine().resolve_elapsed(boundary, 870)
 	assert_true(boundary_result.success, boundary_result.developer_details)
 	assert_eq(boundary_result.events.size(), 2)
-	assert_eq(boundary_result.events[0].event_type, SimulationEngine.EVENT_OUTPUT_CHANNEL_BANKED)
+	assert_eq(boundary_result.events[0].event_type, SimulationEvent.EVENT_OUTPUT_CHANNEL_BANKED)
 	assert_eq(boundary_result.events[0].occurred_simulation_msec, 870)
-	assert_eq(boundary_result.events[0].priority, SimulationEngine.EVENT_PRIORITY_CHANNEL_GAIN)
-	assert_eq(boundary_result.events[1].event_type, SimulationEngine.EVENT_THRESHOLD_SETTLED)
+	assert_eq(boundary_result.events[0].priority, SimulationEvent.EVENT_PRIORITY_CHANNEL_GAIN)
+	assert_eq(boundary_result.events[1].event_type, SimulationEvent.EVENT_THRESHOLD_SETTLED)
 	assert_eq(boundary_result.events[1].occurred_simulation_msec, 870)
 
 	var same_time := _state()
@@ -279,20 +279,20 @@ func test_settlement_channel_specific_rates_and_event_ordering_contracts() -> vo
 	same_scribe.rate_carry_units = 28799999
 	var same_result := _engine().resolve_elapsed(same_time, 1)
 	assert_true(same_result.success, same_result.developer_details)
-	var bank_events := _events_of_type(same_result, SimulationEngine.EVENT_OUTPUT_CHANNEL_BANKED)
+	var bank_events := _events_of_type(same_result, SimulationEvent.EVENT_OUTPUT_CHANNEL_BANKED)
 	assert_eq(bank_events.size(), 2)
 	assert_eq(bank_events[0].subject_id, "THR_GLOAMWOOD")
 	assert_eq(bank_events[0].source_id, "CHANNEL_GLOAMWOOD_SCRIBE_FORM_SOULS")
 	assert_eq(bank_events[1].source_id, "CHANNEL_GLOAMWOOD_SOLDIER_SOULS")
 	for event in bank_events:
-		assert_eq(event.event_type, SimulationEngine.EVENT_OUTPUT_CHANNEL_BANKED)
+		assert_eq(event.event_type, SimulationEvent.EVENT_OUTPUT_CHANNEL_BANKED)
 		assert_eq(event.occurred_simulation_msec, 1)
-		assert_eq(event.priority, SimulationEngine.EVENT_PRIORITY_CHANNEL_GAIN)
+		assert_eq(event.priority, SimulationEvent.EVENT_PRIORITY_CHANNEL_GAIN)
 		assert_true(event.reportable)
 		assert_true(event.tutorial_relevant)
-		assert_true(event.payload.has("quantity"))
-		assert_true(event.payload.has("output_item_id"))
-		assert_true(event.payload.has("lifecycle_state"))
+		assert_gt(event.quantity, 0)
+		assert_ne(event.output_item_id, &"")
+		assert_ne(event.lifecycle_state, &"")
 
 	var half_registry := _copied_registry_with_channel(&"CHANNEL_GLOAMWOOD_SOLDIER_SOULS", 1.0, 1000, 0.5)
 	var half_engine := SimulationEngine.new(half_registry)
@@ -301,10 +301,10 @@ func test_settlement_channel_specific_rates_and_event_ordering_contracts() -> vo
 	var half_result := half_engine.resolve_elapsed(half_one, 2000)
 	assert_true(half_result.success, half_result.developer_details)
 	assert_eq(half_result.segments.size(), 2)
-	assert_eq(half_result.segments[0].lifecycle, "OVERDUE")
+	assert_eq(half_result.segments[0].lifecycle_state, "OVERDUE")
 	assert_eq(half_result.segments[0].elapsed_msec, 870)
 	assert_eq(half_result.segments[0].channel_deltas[0].progress_subunits_after, 870000)
-	assert_eq(half_result.segments[1].lifecycle, "SETTLED")
+	assert_eq(half_result.segments[1].lifecycle_state, "SETTLED")
 	assert_eq(half_result.segments[1].elapsed_msec, 1130)
 	assert_eq(half_result.segments[1].channel_deltas[0].banked_units_delta, 1)
 	var half_acq: GameState.ThresholdAcquisitionState = half_one.thresholds[&"THR_GLOAMWOOD"].channel_acquisition[&"CHANNEL_GLOAMWOOD_SOLDIER_SOULS"]
@@ -324,10 +324,9 @@ func test_inventory_delta_and_failure_matrix() -> void:
 	var progress_result := _engine().resolve_elapsed(progress_only, 2 * HOUR)
 	assert_true(progress_result.success, progress_result.developer_details)
 	assert_false(progress_only.inventory.entries.has(&"SOUL_FORM_SCRIBE"))
-	assert_eq(_events_of_type(progress_result, SimulationEngine.EVENT_OUTPUT_CHANNEL_BANKED).size(), 0)
-	var delta: Dictionary = progress_result.change_summary.channel_deltas[0]
-	for field in ["channel_id", "output_item_id", "banked_units_delta", "progress_subunits_before", "progress_subunits_after", "rate_carry_units_before", "rate_carry_units_after", "total_banked_units_before", "total_banked_units_after"]:
-		assert_true(delta.has(field), field)
+	assert_eq(_events_of_type(progress_result, SimulationEvent.EVENT_OUTPUT_CHANNEL_BANKED).size(), 0)
+	var delta: SimulationChannelDeltaResult = progress_result.segments[0].channel_deltas[0]
+	assert_gt(delta.rate_period_msec, 0)
 	assert_eq(delta.banked_units_delta, 0)
 
 	var reserved := _state()
@@ -366,19 +365,18 @@ func _copied_registry_with_channel(channel_id: StringName, amount_per_period: fl
 			break
 	return ContentRegistry.build(catalog)
 
-func _events_of_type(result: SimulationEngine.SimulationResult, event_type: String) -> Array:
+func _events_of_type(result: SimulationResult, event_type: StringName) -> Array:
 	var found := []
 	for event in result.events:
 		if event.event_type == event_type:
 			found.append(event)
 	return found
 
-func _assert_failure_no_mutation(result: SimulationEngine.SimulationResult, expected_code: String, before: Dictionary, state: GameState) -> void:
+func _assert_failure_no_mutation(result: SimulationResult, expected_code: String, before: Dictionary, state: GameState) -> void:
 	assert_false(result.success, result.developer_details)
 	assert_eq(result.error_code, expected_code)
 	assert_eq(result.committed_elapsed_msec, 0)
 	assert_eq(result.segments, [])
 	assert_eq(result.events, [])
-	assert_true(result.change_summary.is_empty())
 	assert_ne(result.developer_details, "")
 	assert_eq(_canonical(state), before)
