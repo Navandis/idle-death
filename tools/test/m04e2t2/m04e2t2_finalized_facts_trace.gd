@@ -122,8 +122,8 @@ func _run() -> bool:
 	if not _assert(retained.assignment_revision == 11 and retained.form_id == &"FORM_MAN_AT_ARMS", "same timestamp attribution"): return false
 	_pass("same_timestamp_attribution")
 
-	var first := SimulationSegmentResult.new(0, &"THR_GLOAMWOOD", 1, &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD", [], &"OVERDUE", 0, 1000, 1000, 1, 0, 0, 0, 0, [])
-	var second := SimulationSegmentResult.new(0, &"THR_GLOAMWOOD", 1, &"FORM_SCRIBE", &"WRIT_STANDARD", [], &"OVERDUE", 0, 1000, 1000, 1, 0, 0, 0, 0, [])
+	var first := SimulationSegmentResult.new(0, &"THR_GLOAMWOOD", 1, &"FORM_MAN_AT_ARMS", &"WRIT_STANDARD", [], &"OVERDUE", 0, 1000, 1000, 1, 0, 1, 1, 0, 0, 0, [])
+	var second := SimulationSegmentResult.new(0, &"THR_GLOAMWOOD", 1, &"FORM_SCRIBE", &"WRIT_STANDARD", [], &"OVERDUE", 0, 1000, 1000, 1, 0, 1, 1, 0, 0, 0, [])
 	if not _assert(not first.value_equals(second), "equal output identity distinct"): return false
 	_pass("equal_output_identity_distinct")
 
