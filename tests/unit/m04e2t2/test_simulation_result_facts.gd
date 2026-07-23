@@ -222,6 +222,10 @@ func test_event_subtype_fields_and_settlement_cardinality_reject_mismatches() ->
 	var duplicate_settlement: Array[SimulationEvent] = [settlement, settlement]
 	var duplicate_result := SimulationResult.active_reaping(settlement_result.requested_elapsed_msec, settlement_result.baseline_simulation_time_msec, settlement_result.result_simulation_time_msec, settlement_result.content_revision, settlement_result.segments, duplicate_settlement)
 	assert_false(SimulationResultProjector.validate(duplicate_result).ok)
+	var spurious_segment := _segment(0, 0, 1000, null)
+	var spurious_settlement := SimulationThresholdSettledEvent.new(1000, 0, &"THR_TEST", 0, 1, 0, &"OVERDUE", &"SETTLED")
+	var spurious_result := SimulationResult.active_reaping(1000, 0, 1000, ContentRegistry.CURRENT_REVISION, [spurious_segment], [spurious_settlement])
+	assert_false(SimulationResultProjector.validate(spurious_result).ok)
 	var incomplete := _engine().resolve_elapsed(_state(1000000), 1000)
 	assert_true(incomplete.events.is_empty())
 	assert_true(SimulationResultProjector.validate(incomplete).ok)
@@ -286,7 +290,7 @@ func test_event_order_ownership_priority_and_signed_cursor_boundary() -> void:
 	var channel_a := SimulationChannelDeltaResult.new(&"CHANNEL_A", &"SOUL_A", 1, 0, 0, 1000, 0, 0, 0, 1)
 	var channel_b := SimulationChannelDeltaResult.new(&"CHANNEL_B", &"SOUL_B", 1, 0, 0, 1000, 0, 0, 0, 1)
 	var channel_multi := SimulationChannelDeltaResult.new(&"CHANNEL_MULTI", &"SOUL_MULTI", 3, 0, 0, 1000, 0, 0, 0, 3)
-	var segment := SimulationSegmentResult.new(0, &"THR_TEST", 1, &"FORM_TEST", &"WRIT_TEST", [], &"OVERDUE", 0, 1000, 1000, 0, 0, 0, 0, 0, [channel_a, channel_b])
+	var segment := SimulationSegmentResult.new(0, &"THR_TEST", 1, &"FORM_TEST", &"WRIT_TEST", [], &"OVERDUE", 0, 1000, 1000, 1, 1, 0, 0, 0, [channel_a, channel_b])
 	var bank_a := SimulationChannelBankedEvent.new(1000, 0, &"THR_TEST", &"CHANNEL_A", &"SOUL_A", 1, &"OVERDUE", 1, 0)
 	var bank_b := SimulationChannelBankedEvent.new(1000, 0, &"THR_TEST", &"CHANNEL_B", &"SOUL_B", 1, &"OVERDUE", 1, 0)
 	var settlement := SimulationThresholdSettledEvent.new(1000, 0, &"THR_TEST", 0, 1, 0, &"OVERDUE", &"SETTLED")
@@ -318,6 +322,11 @@ func test_projector_requires_frozen_journal_and_preserves_timeline_shape() -> vo
 	assert_eq(projected.result.result_simulation_time_msec, 1259)
 	var invalid_context := SimulationRunContext.new(-1, 1234, false, &"", 0, &"", &"", [], &"", ContentRegistry.CURRENT_REVISION)
 	assert_false(SimulationResultProjector.project(invalid_context, journal).ok)
+	var active_context := SimulationRunContext.new(25, 1234, true, &"THR_TEST", 4, &"FORM_TEST", &"WRIT_TEST", [], &"OVERDUE", ContentRegistry.CURRENT_REVISION)
+	var active_journal := SimulationFactJournal.new(25, 1234)
+	assert_true(active_journal.record_timeline(25, 1259).ok)
+	assert_true(active_journal.freeze().ok)
+	assert_false(SimulationResultProjector.project(active_context, active_journal).ok)
 
 func _segment(index: int, start: int, end: int, channel: SimulationChannelDeltaResult) -> SimulationSegmentResult:
 	var channels: Array[SimulationChannelDeltaResult] = []

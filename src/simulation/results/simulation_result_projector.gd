@@ -30,6 +30,8 @@ static func project(context: SimulationRunContext, journal: SimulationFactJourna
 	if timeline.is_empty(): return _failure("Projection requires one timeline fact.")
 	var result_time := int(timeline.get("after_time", context.baseline_simulation_time_msec))
 	if core_facts.is_empty():
+		if context.has_active_reaping:
+			return _failure("Active projection requires core segment facts.")
 		var timeline_result := SimulationResult.timeline_only(context.requested_elapsed_msec, context.baseline_simulation_time_msec, result_time, context.content_revision)
 		var timeline_validation := validate(timeline_result)
 		if not timeline_validation.ok: return timeline_validation
@@ -199,7 +201,7 @@ static func _validate_events(result: SimulationResult) -> Dictionary:
 		else:
 			var settle_event: SimulationThresholdSettledEvent = event
 			settlement_count += 1
-			if settle_event.event_type != SimulationEvent.EVENT_THRESHOLD_SETTLED or settle_event.priority != SimulationEvent.EVENT_PRIORITY_LIFECYCLE or not settle_event.reportable or not settle_event.tutorial_relevant or settle_event.subject_id != owner.threshold_id or settle_event.source_id != SimulationEvent.SIMULATION_ENGINE_SOURCE or settle_event.lifecycle_before != &"OVERDUE" or settle_event.lifecycle_after != &"SETTLED" or settle_event.persistent_returns_total < 0 or settle_event.remaining_backlog_before < 0 or settle_event.remaining_backlog_after != 0 or settle_event.remaining_backlog_before < settle_event.remaining_backlog_after or settle_event.occurred_simulation_msec != owner.end_simulation_msec or owner.lifecycle_state != &"OVERDUE": return _failure("Settlement event is invalid.")
+			if settle_event.event_type != SimulationEvent.EVENT_THRESHOLD_SETTLED or settle_event.priority != SimulationEvent.EVENT_PRIORITY_LIFECYCLE or not settle_event.reportable or not settle_event.tutorial_relevant or settle_event.subject_id != owner.threshold_id or settle_event.source_id != SimulationEvent.SIMULATION_ENGINE_SOURCE or settle_event.lifecycle_before != &"OVERDUE" or settle_event.lifecycle_after != &"SETTLED" or settle_event.persistent_returns_total < 0 or settle_event.remaining_backlog_before < 0 or settle_event.remaining_backlog_after != 0 or settle_event.remaining_backlog_before < settle_event.remaining_backlog_after or owner.backlog_reduced <= 0 or settle_event.occurred_simulation_msec != owner.end_simulation_msec or owner.lifecycle_state != &"OVERDUE": return _failure("Settlement event is invalid.")
 	# A two-segment OVERDUE -> SETTLED sequence proves that Settlement evidence
 	# is required even when a detached caller has no journal metadata. An exact
 	# boundary has one OVERDUE segment, so its typed Settlement event is the
