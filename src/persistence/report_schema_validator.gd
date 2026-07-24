@@ -83,6 +83,8 @@ static func _validate_accumulator(data: Variant, expected_end: int, live_window:
 		if mode_total > INT64_MAX - count.value: return _err(ERR_RANGE, path + ".committed_mode_counts")
 		mode_total += count.value
 	if mode_total != run_count.value: return _err(ERR_CROSS_FIELD, path + ".committed_mode_counts")
+	if run_count.value == 0 and (omitted.value > 0 or not data.attribution_slices.is_empty() or not data.event_type_counts.is_empty() or not data.recent_events.is_empty()):
+		return _err(ERR_CROSS_FIELD, path + ".ingested_run_count")
 	for key in data.attribution_slices.keys():
 		if typeof(key) != TYPE_STRING or key.is_empty(): return _err(ERR_TYPE, path + ".attribution_slices")
 		result = _validate_slice(data.attribution_slices[key], key, start.value, end.value, path + ".attribution_slices." + key); if not result.ok: return result

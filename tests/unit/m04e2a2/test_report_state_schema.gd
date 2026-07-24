@@ -168,6 +168,10 @@ func test_global_report_and_event_sequence_matrix() -> void:
 	var omitted_event_overcount := _report_runtime()
 	omitted_event_overcount.report_state.live.omitted_event_count = 0
 	_assert_runtime_failure(omitted_event_overcount, "report_state.live.event_type_counts", "omitted event count overcount")
+	var missing_run_provenance := _report_runtime()
+	missing_run_provenance.report_state.live.ingested_run_count = 0
+	missing_run_provenance.report_state.live.committed_mode_counts = {}
+	_assert_runtime_failure(missing_run_provenance, "report_state.live.ingested_run_count", "report detail without run provenance")
 	var overlapping_live_window := _report_runtime()
 	overlapping_live_window.report_state.live.window_started_simulation_msec = 2500
 	_assert_runtime_failure(overlapping_live_window, "report_state.live.window_started_simulation_msec", "live window overlaps history")
@@ -206,6 +210,8 @@ func test_parent_child_temporal_containment_matrix() -> void:
 	overflow_adjacent.report_state.live.window_ended_simulation_msec = FixedPoint.INT64_MAX
 	var overflow_slice := ReportAttributionSlice.new(&"THR_GLOAMWOOD", 1, &"OVERDUE", ReportLoadoutIdentity.new(&"FORM_SCRIBE", &"WRIT_EMERGENCY_FIRST_RETURN"), FixedPoint.INT64_MAX - 1, FixedPoint.INT64_MAX, FixedPoint.INT64_MAX)
 	overflow_adjacent.report_state.live.attribution_slices[overflow_slice.canonical_identity_key()] = overflow_slice
+	overflow_adjacent.report_state.live.ingested_run_count = 1
+	overflow_adjacent.report_state.live.committed_mode_counts[&"FOREGROUND_SUPPLIED"] = 1
 	_assert_runtime_failure(overflow_adjacent, "report_state.live.attribution_slices.THR_GLOAMWOOD|1|OVERDUE.elapsed_msec", "overflow-safe difference")
 
 func test_immutable_value_objects_and_alias_families() -> void:
@@ -368,7 +374,7 @@ func test_primitive_mutation_matrix_rejects_before_runtime_exposure() -> void:
 			var candidate := snapshot.duplicate(true)
 			_set_primitive_field(candidate, field_name, malformed_value)
 			_assert_primitive_failure(candidate, "%s=%s" % [field_name, str(malformed_value)])
-	for case_name in ["empty_form_id", "empty_item_id", "empty_channel_id", "empty_event_source", "slice_key_mismatch", "channel_key_mismatch", "duplicate_retinues", "duplicate_history_sequence", "unsorted_event_sequence", "next_report_bound", "next_event_bound", "slice_before_parent", "slice_after_parent", "slice_elapsed_mismatch", "channel_elapsed_bound", "mode_sum", "channel_total_delta", "event_priority", "event_window", "event_time_order", "record_window_end", "overlapping_live_window", "omitted_event_undercount", "omitted_event_overcount", "empty_live_contradiction"]:
+	for case_name in ["empty_form_id", "empty_item_id", "empty_channel_id", "empty_event_source", "slice_key_mismatch", "channel_key_mismatch", "duplicate_retinues", "duplicate_history_sequence", "unsorted_event_sequence", "next_report_bound", "next_event_bound", "slice_before_parent", "slice_after_parent", "slice_elapsed_mismatch", "channel_elapsed_bound", "mode_sum", "channel_total_delta", "event_priority", "event_window", "event_time_order", "record_window_end", "overlapping_live_window", "omitted_event_undercount", "omitted_event_overcount", "missing_run_provenance", "empty_live_contradiction"]:
 		var candidate := snapshot.duplicate(true)
 		_apply_primitive_case(candidate, case_name)
 		_assert_primitive_failure(candidate, case_name)
@@ -455,6 +461,7 @@ func _apply_primitive_case(snapshot: Dictionary, case_name: String) -> void:
 		"overlapping_live_window": live.window_started_simulation_msec = "2500"
 		"omitted_event_undercount": live.omitted_event_count = "2"
 		"omitted_event_overcount": live.omitted_event_count = "0"
+		"missing_run_provenance": live.ingested_run_count = "0"; live.committed_mode_counts = {}
 		"empty_live_contradiction":
 			live.attribution_slices = {}
 			live.committed_mode_counts = {}

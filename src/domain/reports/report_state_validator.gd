@@ -86,6 +86,8 @@ static func _validate_accumulator(accumulator: ReportAccumulatorState, owning_cu
 		if mode_total > INT64_MAX - count: return _err(ERR_RANGE, path + ".committed_mode_counts")
 		mode_total += count
 	if mode_total != accumulator.ingested_run_count: return _err(ERR_CROSS_FIELD, path + ".committed_mode_counts")
+	if accumulator.ingested_run_count == 0 and (accumulator.omitted_event_count > 0 or not accumulator.attribution_slices.is_empty() or not accumulator.event_type_counts.is_empty() or not accumulator.recent_events.is_empty()):
+		return _err(ERR_CROSS_FIELD, path + ".ingested_run_count")
 	var slice_keys := {}
 	for raw_key in accumulator.attribution_slices.keys():
 		var key := str(raw_key)
