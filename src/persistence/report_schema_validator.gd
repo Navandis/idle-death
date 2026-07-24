@@ -106,7 +106,10 @@ static func _validate_accumulator(data: Variant, expected_end: int, live_window:
 	for key in retained_counts.keys():
 		if not data.event_type_counts.has(key) or int(data.event_type_counts[key]) < retained_counts[key]: return _err(ERR_CROSS_FIELD, path + ".event_type_counts." + key)
 	if omitted.value > INT64_MAX - data.recent_events.size(): return _err(ERR_RANGE, path + ".omitted_event_count")
-	if event_count_total != omitted.value + data.recent_events.size(): return _err(ERR_CROSS_FIELD, path + ".event_type_counts")
+	var consumed_event_count: int = omitted.value + data.recent_events.size()
+	if event_count_total != consumed_event_count: return _err(ERR_CROSS_FIELD, path + ".event_type_counts")
+	if previous_event_sequence > INT64_MAX - omitted.value: return _err(ERR_RANGE, path + ".omitted_event_count")
+	if last_event_sequence < previous_event_sequence + omitted.value: last_event_sequence = previous_event_sequence + omitted.value
 	return {"ok": true, "code": OK, "end_time": end.value, "event_sequence": last_event_sequence, "event_order": last_event_order}
 
 static func _validate_slice(data: Variant, expected_key: String, owning_window_start: int, owning_window_end: int, path: String) -> Dictionary:
