@@ -121,7 +121,7 @@ static func _validate_accumulator(accumulator: ReportAccumulatorState, owning_cu
 		var stored_count = accumulator.event_type_counts.get(StringName(event_type), accumulator.event_type_counts.get(event_type, 0))
 		if stored_count < retained_counts[event_type]: return _err(ERR_CROSS_FIELD, path + ".event_type_counts.%s" % event_type)
 	if accumulator.omitted_event_count > INT64_MAX - accumulator.recent_events.size(): return _err(ERR_RANGE, path + ".omitted_event_count")
-	if event_count_total < accumulator.omitted_event_count + accumulator.recent_events.size(): return _err(ERR_CROSS_FIELD, path + ".event_type_counts")
+	if event_count_total != accumulator.omitted_event_count + accumulator.recent_events.size(): return _err(ERR_CROSS_FIELD, path + ".event_type_counts")
 	return {"ok": true, "code": OK, "event_sequence": last_event_sequence, "event_order": last_event_order}
 
 static func _validate_slice(slice: ReportAttributionSlice, expected_key: String, owning_window_start: int, owning_window_end: int, registry: ContentRegistry, path: String) -> Dictionary:

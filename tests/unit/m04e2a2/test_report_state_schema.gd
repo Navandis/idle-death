@@ -165,6 +165,9 @@ func test_global_report_and_event_sequence_matrix() -> void:
 	var omitted_event_undercount := _report_runtime()
 	omitted_event_undercount.report_state.live.omitted_event_count = 2
 	_assert_runtime_failure(omitted_event_undercount, "report_state.live.event_type_counts", "omitted event count undercount")
+	var omitted_event_overcount := _report_runtime()
+	omitted_event_overcount.report_state.live.omitted_event_count = 0
+	_assert_runtime_failure(omitted_event_overcount, "report_state.live.event_type_counts", "omitted event count overcount")
 	var overlapping_live_window := _report_runtime()
 	overlapping_live_window.report_state.live.window_started_simulation_msec = 2500
 	_assert_runtime_failure(overlapping_live_window, "report_state.live.window_started_simulation_msec", "live window overlaps history")
@@ -365,7 +368,7 @@ func test_primitive_mutation_matrix_rejects_before_runtime_exposure() -> void:
 			var candidate := snapshot.duplicate(true)
 			_set_primitive_field(candidate, field_name, malformed_value)
 			_assert_primitive_failure(candidate, "%s=%s" % [field_name, str(malformed_value)])
-	for case_name in ["empty_form_id", "empty_item_id", "empty_channel_id", "empty_event_source", "slice_key_mismatch", "channel_key_mismatch", "duplicate_retinues", "duplicate_history_sequence", "unsorted_event_sequence", "next_report_bound", "next_event_bound", "slice_before_parent", "slice_after_parent", "slice_elapsed_mismatch", "channel_elapsed_bound", "mode_sum", "channel_total_delta", "event_priority", "event_window", "event_time_order", "record_window_end", "overlapping_live_window", "omitted_event_undercount", "empty_live_contradiction"]:
+	for case_name in ["empty_form_id", "empty_item_id", "empty_channel_id", "empty_event_source", "slice_key_mismatch", "channel_key_mismatch", "duplicate_retinues", "duplicate_history_sequence", "unsorted_event_sequence", "next_report_bound", "next_event_bound", "slice_before_parent", "slice_after_parent", "slice_elapsed_mismatch", "channel_elapsed_bound", "mode_sum", "channel_total_delta", "event_priority", "event_window", "event_time_order", "record_window_end", "overlapping_live_window", "omitted_event_undercount", "omitted_event_overcount", "empty_live_contradiction"]:
 		var candidate := snapshot.duplicate(true)
 		_apply_primitive_case(candidate, case_name)
 		_assert_primitive_failure(candidate, case_name)
@@ -451,6 +454,7 @@ func _apply_primitive_case(snapshot: Dictionary, case_name: String) -> void:
 		"record_window_end": record.snapshot_simulation_msec = "3000"; record.window.window_ended_simulation_msec = "2999"
 		"overlapping_live_window": live.window_started_simulation_msec = "2500"
 		"omitted_event_undercount": live.omitted_event_count = "2"
+		"omitted_event_overcount": live.omitted_event_count = "0"
 		"empty_live_contradiction":
 			live.attribution_slices = {}
 			live.committed_mode_counts = {}
