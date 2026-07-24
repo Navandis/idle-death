@@ -208,7 +208,7 @@ func test_equal_output_and_a_b_a_identity_order() -> void:
 	assert_true(a.value_equals(a_again))
 
 func test_runtime_malformed_reference_and_domain_matrix() -> void:
-	var cases := ["null_live", "wrong_history_child", "negative_cursor", "invalid_mode", "mode_sum", "slice_key_alias", "invalid_threshold", "invalid_form", "invalid_writ", "invalid_retinue", "duplicate_retinue", "invalid_item", "invalid_mastery_form", "invalid_channel", "invalid_output", "invalid_lifecycle", "invalid_event_type", "invalid_priority", "invalid_event_subject", "invalid_event_source", "event_outside_window", "history_limit"]
+	var cases := ["null_live", "wrong_history_child", "negative_cursor", "invalid_mode", "mode_sum", "slice_key_alias", "invalid_threshold", "invalid_form", "invalid_writ", "invalid_retinue", "duplicate_retinue", "invalid_item", "invalid_mastery_form", "invalid_channel", "invalid_output", "invalid_lifecycle", "invalid_event_type", "invalid_priority", "invalid_event_subject", "invalid_event_source", "event_outside_window", "event_time_order", "history_limit"]
 	for case_name in cases:
 		var state := _report_runtime()
 		_apply_runtime_case(state, case_name)
@@ -225,6 +225,14 @@ func test_runtime_malformed_cases_do_not_mutate_source() -> void:
 		assert_false(GameStateValidator.validate(candidate, _registry()).ok, case_name)
 		var after: Dictionary = SaveSchemaMapper.runtime_to_snapshot(source, TimeAuthorityState.new(), 32, ContentRegistry.CURRENT_REVISION).game_state
 		assert_eq(after, before, case_name)
+
+func test_primitive_report_collection_type_matrix_rejects_before_runtime_exposure() -> void:
+	var snapshot := _read(POPULATED_FIXTURE)
+	for field in ["committed_mode_counts", "attribution_slices", "event_type_counts", "recent_events"]:
+		for malformed_value in [null, true, 1]:
+			var candidate: Dictionary = snapshot.duplicate(true)
+			candidate.game_state.report_state.live[field] = malformed_value
+			_assert_primitive_failure(candidate, "%s=%s" % [field, str(malformed_value)])
 
 func _report_runtime() -> GameState:
 	return SaveSchemaMapper.snapshot_to_runtime(_read(POPULATED_FIXTURE)).game_state
@@ -298,6 +306,7 @@ func _apply_runtime_case(state: GameState, case_name: String) -> void:
 		"invalid_event_subject": state.report_state.live.recent_events[0] = ReportEventRecord.new(4, &"THRESHOLD_SETTLED", 4500, 200, &"THR_UNKNOWN", &"SIMULATION_ENGINE")
 		"invalid_event_source": state.report_state.live.recent_events[0] = ReportEventRecord.new(4, &"THRESHOLD_SETTLED", 4500, 200, &"THR_GLOAMWOOD", &"SOURCE_UNKNOWN")
 		"event_outside_window": state.report_state.live.recent_events[0] = ReportEventRecord.new(4, &"THRESHOLD_SETTLED", 3000, 200, &"THR_GLOAMWOOD", &"SIMULATION_ENGINE")
+		"event_time_order": state.report_state.live.recent_events.append(ReportEventRecord.new(5, &"THRESHOLD_SETTLED", 4000, 200, &"THR_GLOAMWOOD", &"SIMULATION_ENGINE"))
 		"history_limit":
 			for index in range(ReportState.REPORT_HISTORY_LIMIT):
 				state.report_state.history.append(state.report_state.history[0].deep_clone())
@@ -321,7 +330,7 @@ func test_primitive_mutation_matrix_rejects_before_runtime_exposure() -> void:
 			var candidate := snapshot.duplicate(true)
 			_set_primitive_field(candidate, field_name, malformed_value)
 			_assert_primitive_failure(candidate, "%s=%s" % [field_name, str(malformed_value)])
-	for case_name in ["empty_form_id", "empty_item_id", "empty_channel_id", "empty_event_source", "slice_key_mismatch", "channel_key_mismatch", "duplicate_retinues", "duplicate_history_sequence", "unsorted_event_sequence", "next_report_bound", "next_event_bound", "slice_before_parent", "slice_after_parent", "slice_elapsed_mismatch", "channel_elapsed_bound", "mode_sum", "channel_total_delta", "event_priority", "event_window", "record_window_end", "empty_live_contradiction"]:
+	for case_name in ["empty_form_id", "empty_item_id", "empty_channel_id", "empty_event_source", "slice_key_mismatch", "channel_key_mismatch", "duplicate_retinues", "duplicate_history_sequence", "unsorted_event_sequence", "next_report_bound", "next_event_bound", "slice_before_parent", "slice_after_parent", "slice_elapsed_mismatch", "channel_elapsed_bound", "mode_sum", "channel_total_delta", "event_priority", "event_window", "event_time_order", "record_window_end", "empty_live_contradiction"]:
 		var candidate := snapshot.duplicate(true)
 		_apply_primitive_case(candidate, case_name)
 		_assert_primitive_failure(candidate, case_name)
@@ -399,6 +408,11 @@ func _apply_primitive_case(snapshot: Dictionary, case_name: String) -> void:
 		"channel_total_delta": channel.total_banked_units_end = "7"
 		"event_priority": event.priority = "100"
 		"event_window": event.occurred_simulation_msec = "3000"
+		"event_time_order":
+			var reordered: Dictionary = event.duplicate(true)
+			reordered.event_sequence = "5"
+			reordered.occurred_simulation_msec = "4000"
+			live.recent_events.append(reordered)
 		"record_window_end": record.snapshot_simulation_msec = "3000"; record.window.window_ended_simulation_msec = "2999"
 		"empty_live_contradiction":
 			live.attribution_slices = {}
