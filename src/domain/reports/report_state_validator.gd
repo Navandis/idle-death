@@ -46,7 +46,7 @@ static func validate(report_state: ReportState, gameplay_cursor_msec: int, regis
 		previous_event_order = result.event_order
 	if report_state.next_report_sequence <= previous_report_sequence: return _err(ERR_CROSS_FIELD, "report_state.next_report_sequence")
 	if report_state.live == null or not report_state.live is ReportAccumulatorState: return _err(ERR_TYPE, "report_state.live")
-	result = _validate_accumulator(report_state.live, report_state.ingested_through_simulation_msec, true, previous_event_sequence, previous_event_order, seen_event_sequences, registry, "report_state.live")
+	result = _validate_accumulator(report_state.live, report_state.ingested_through_simulation_msec, true, previous_snapshot_time, previous_event_sequence, previous_event_order, seen_event_sequences, registry, "report_state.live")
 	if not result.ok: return result
 	if report_state.next_event_sequence <= result.event_sequence: return _err(ERR_CROSS_FIELD, "report_state.next_event_sequence")
 	return {"ok": true, "code": OK}
@@ -60,14 +60,14 @@ static func _validate_record(record: ReportRecord, report_cursor: int, previous_
 	var window: Variant = record._window_for_validation()
 	if window == null or not window is ReportAccumulatorState: return _err(ERR_TYPE, path + ".window")
 	if window.window_ended_simulation_msec != record.snapshot_simulation_msec: return _err(ERR_CROSS_FIELD, path + ".window.window_ended_simulation_msec")
-	result = _validate_accumulator(window, record.snapshot_simulation_msec, false, previous_event_sequence, previous_event_order, seen_event_sequences, registry, path + ".window")
+	result = _validate_accumulator(window, record.snapshot_simulation_msec, false, previous_snapshot_time, previous_event_sequence, previous_event_order, seen_event_sequences, registry, path + ".window")
 	if not result.ok: return result
 	return {"ok": true, "code": OK, "report_sequence": record.report_sequence, "snapshot_time": record.snapshot_simulation_msec, "event_sequence": result.event_sequence, "event_order": result.event_order}
 
-static func _validate_accumulator(accumulator: ReportAccumulatorState, owning_cursor: int, live_window: bool, previous_event_sequence: int, previous_event_order: Array, seen_event_sequences: Dictionary, registry: ContentRegistry, path: String) -> Dictionary:
+static func _validate_accumulator(accumulator: ReportAccumulatorState, owning_cursor: int, live_window: bool, previous_window_end: int, previous_event_sequence: int, previous_event_order: Array, seen_event_sequences: Dictionary, registry: ContentRegistry, path: String) -> Dictionary:
 	var result := _nonnegative(accumulator.window_started_simulation_msec, path + ".window_started_simulation_msec"); if not result.ok: return result
 	result = _nonnegative(accumulator.window_ended_simulation_msec, path + ".window_ended_simulation_msec"); if not result.ok: return result
-	if accumulator.window_started_simulation_msec > accumulator.window_ended_simulation_msec: return _err(ERR_CROSS_FIELD, path + ".window")
+	if accumulator.window_started_simulation_msec < previous_window_end or accumulator.window_started_simulation_msec > accumulator.window_ended_simulation_msec: return _err(ERR_CROSS_FIELD, path + ".window_started_simulation_msec")
 	if live_window and accumulator.window_ended_simulation_msec != owning_cursor: return _err(ERR_CROSS_FIELD, path + ".window_ended_simulation_msec")
 	result = _nonnegative(accumulator.ingested_run_count, path + ".ingested_run_count"); if not result.ok: return result
 	result = _nonnegative(accumulator.omitted_event_count, path + ".omitted_event_count"); if not result.ok: return result
@@ -95,11 +95,15 @@ static func _validate_accumulator(accumulator: ReportAccumulatorState, owning_cu
 		if slice == null or not slice is ReportAttributionSlice: return _err(ERR_TYPE, path + ".attribution_slices.%s" % key)
 		result = _validate_slice(slice, key, accumulator.window_started_simulation_msec, accumulator.window_ended_simulation_msec, registry, path + ".attribution_slices.%s" % key); if not result.ok: return result
 	var event_count_keys := {}
+	var event_count_total := 0
 	for raw_type in accumulator.event_type_counts.keys():
 		var event_type := str(raw_type)
 		if event_count_keys.has(event_type) or not APPROVED_EVENT_TYPES.has(event_type): return _err(ERR_RANGE, path + ".event_type_counts")
 		event_count_keys[event_type] = true
-		result = _nonnegative(accumulator.event_type_counts[raw_type], path + ".event_type_counts.%s" % event_type); if not result.ok: return result
+		var count = accumulator.event_type_counts[raw_type]
+		result = _nonnegative(count, path + ".event_type_counts.%s" % event_type); if not result.ok: return result
+		if event_count_total > INT64_MAX - count: return _err(ERR_RANGE, path + ".event_type_counts")
+		event_count_total += count
 	if accumulator.recent_events.size() > ReportState.REPORT_RECENT_EVENT_LIMIT: return _err(ERR_RANGE, path + ".recent_events")
 	var last_event_sequence := previous_event_sequence
 	var last_event_order := previous_event_order
@@ -116,6 +120,8 @@ static func _validate_accumulator(accumulator: ReportAccumulatorState, owning_cu
 		if not accumulator.event_type_counts.has(StringName(event_type)) and not accumulator.event_type_counts.has(event_type): return _err(ERR_CROSS_FIELD, path + ".event_type_counts.%s" % event_type)
 		var stored_count = accumulator.event_type_counts.get(StringName(event_type), accumulator.event_type_counts.get(event_type, 0))
 		if stored_count < retained_counts[event_type]: return _err(ERR_CROSS_FIELD, path + ".event_type_counts.%s" % event_type)
+	if accumulator.omitted_event_count > INT64_MAX - accumulator.recent_events.size(): return _err(ERR_RANGE, path + ".omitted_event_count")
+	if event_count_total < accumulator.omitted_event_count + accumulator.recent_events.size(): return _err(ERR_CROSS_FIELD, path + ".event_type_counts")
 	return {"ok": true, "code": OK, "event_sequence": last_event_sequence, "event_order": last_event_order}
 
 static func _validate_slice(slice: ReportAttributionSlice, expected_key: String, owning_window_start: int, owning_window_end: int, registry: ContentRegistry, path: String) -> Dictionary:

@@ -162,6 +162,20 @@ func test_global_report_and_event_sequence_matrix() -> void:
 	var next_event_low := _report_runtime()
 	next_event_low.report_state.next_event_sequence = 4
 	_assert_runtime_failure(next_event_low, "report_state.next_event_sequence", "next event sequence bound")
+	var omitted_event_undercount := _report_runtime()
+	omitted_event_undercount.report_state.live.omitted_event_count = 2
+	_assert_runtime_failure(omitted_event_undercount, "report_state.live.event_type_counts", "omitted event count undercount")
+	var overlapping_live_window := _report_runtime()
+	overlapping_live_window.report_state.live.window_started_simulation_msec = 2500
+	_assert_runtime_failure(overlapping_live_window, "report_state.live.window_started_simulation_msec", "live window overlaps history")
+	var overlapping_history_window := _report_runtime()
+	var overlap_window := ReportAccumulatorState.new(3500)
+	overlap_window.window_started_simulation_msec = 2500
+	overlap_window.ingested_run_count = 1
+	overlap_window.committed_mode_counts[&"FOREGROUND_SUPPLIED"] = 1
+	overlapping_history_window.report_state.history.append(ReportRecord.new(5, &"SYSTEM_BOUNDARY", 3500, overlap_window))
+	overlapping_history_window.report_state.next_report_sequence = 6
+	_assert_runtime_failure(overlapping_history_window, "report_state.history.1.window.window_started_simulation_msec", "history window overlaps prior record")
 	var maximum_empty := GameState.new(0)
 	maximum_empty.report_state.next_report_sequence = FixedPoint.INT64_MAX
 	maximum_empty.report_state.next_event_sequence = FixedPoint.INT64_MAX
@@ -351,7 +365,7 @@ func test_primitive_mutation_matrix_rejects_before_runtime_exposure() -> void:
 			var candidate := snapshot.duplicate(true)
 			_set_primitive_field(candidate, field_name, malformed_value)
 			_assert_primitive_failure(candidate, "%s=%s" % [field_name, str(malformed_value)])
-	for case_name in ["empty_form_id", "empty_item_id", "empty_channel_id", "empty_event_source", "slice_key_mismatch", "channel_key_mismatch", "duplicate_retinues", "duplicate_history_sequence", "unsorted_event_sequence", "next_report_bound", "next_event_bound", "slice_before_parent", "slice_after_parent", "slice_elapsed_mismatch", "channel_elapsed_bound", "mode_sum", "channel_total_delta", "event_priority", "event_window", "event_time_order", "record_window_end", "empty_live_contradiction"]:
+	for case_name in ["empty_form_id", "empty_item_id", "empty_channel_id", "empty_event_source", "slice_key_mismatch", "channel_key_mismatch", "duplicate_retinues", "duplicate_history_sequence", "unsorted_event_sequence", "next_report_bound", "next_event_bound", "slice_before_parent", "slice_after_parent", "slice_elapsed_mismatch", "channel_elapsed_bound", "mode_sum", "channel_total_delta", "event_priority", "event_window", "event_time_order", "record_window_end", "overlapping_live_window", "omitted_event_undercount", "empty_live_contradiction"]:
 		var candidate := snapshot.duplicate(true)
 		_apply_primitive_case(candidate, case_name)
 		_assert_primitive_failure(candidate, case_name)
@@ -435,6 +449,8 @@ func _apply_primitive_case(snapshot: Dictionary, case_name: String) -> void:
 			reordered.occurred_simulation_msec = "4000"
 			live.recent_events.append(reordered)
 		"record_window_end": record.snapshot_simulation_msec = "3000"; record.window.window_ended_simulation_msec = "2999"
+		"overlapping_live_window": live.window_started_simulation_msec = "2500"
+		"omitted_event_undercount": live.omitted_event_count = "2"
 		"empty_live_contradiction":
 			live.attribution_slices = {}
 			live.committed_mode_counts = {}

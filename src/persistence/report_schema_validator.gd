@@ -42,7 +42,7 @@ static func validate(data: Variant, gameplay_cursor_msec: int) -> Dictionary:
 	if cursor.value < 0 or data.next_report_sequence == null: return _err(ERR_RANGE, "report_state.next_report_sequence")
 	var next_report := _positive_integer(data, "next_report_sequence", "report_state.next_report_sequence"); if not next_report.ok: return next_report
 	if next_report.value <= previous_report_sequence: return _err(ERR_CROSS_FIELD, "report_state.next_report_sequence")
-	result = _validate_accumulator(data.live, cursor.value, true, previous_event_sequence, previous_event_order, seen_event_sequences, "report_state.live"); if not result.ok: return result
+	result = _validate_accumulator(data.live, cursor.value, true, previous_snapshot_time, previous_event_sequence, previous_event_order, seen_event_sequences, "report_state.live"); if not result.ok: return result
 	var next_event := _positive_integer(data, "next_event_sequence", "report_state.next_event_sequence"); if not next_event.ok: return next_event
 	if next_event.value <= result.event_sequence: return _err(ERR_CROSS_FIELD, "report_state.next_event_sequence")
 	return {"ok": true, "code": OK, "cursor": cursor.value}
@@ -56,16 +56,16 @@ static func _validate_record(data: Variant, report_cursor: int, previous_sequenc
 	if not REASONS.has(reason.value): return _err(ERR_RANGE, path + ".snapshot_reason")
 	var snapshot_time := _integer(data, "snapshot_simulation_msec", path + ".snapshot_simulation_msec"); if not snapshot_time.ok: return snapshot_time
 	if snapshot_time.value < previous_snapshot_time or snapshot_time.value > report_cursor: return _err(ERR_CROSS_FIELD, path + ".snapshot_simulation_msec")
-	result = _validate_accumulator(data.window, snapshot_time.value, false, previous_event_sequence, previous_event_order, seen_event_sequences, path + ".window"); if not result.ok: return result
+	result = _validate_accumulator(data.window, snapshot_time.value, false, previous_snapshot_time, previous_event_sequence, previous_event_order, seen_event_sequences, path + ".window"); if not result.ok: return result
 	if result.end_time != snapshot_time.value: return _err(ERR_CROSS_FIELD, path + ".window.window_ended_simulation_msec")
 	return {"ok": true, "code": OK, "sequence": sequence.value, "snapshot_time": snapshot_time.value, "event_sequence": result.event_sequence, "event_order": result.event_order}
 
-static func _validate_accumulator(data: Variant, expected_end: int, live_window: bool, previous_event_sequence: int, previous_event_order: Array, seen_event_sequences: Dictionary, path: String) -> Dictionary:
+static func _validate_accumulator(data: Variant, expected_end: int, live_window: bool, previous_window_end: int, previous_event_sequence: int, previous_event_order: Array, seen_event_sequences: Dictionary, path: String) -> Dictionary:
 	if typeof(data) != TYPE_DICTIONARY: return _err(ERR_TYPE, path)
 	var result := _require(data, ["attribution_slices", "committed_mode_counts", "event_type_counts", "ingested_run_count", "omitted_event_count", "recent_events", "window_ended_simulation_msec", "window_started_simulation_msec"], path); if not result.ok: return result
 	var start := _integer(data, "window_started_simulation_msec", path + ".window_started_simulation_msec"); if not start.ok: return start
 	var end := _integer(data, "window_ended_simulation_msec", path + ".window_ended_simulation_msec"); if not end.ok: return end
-	if start.value > end.value or (live_window and end.value != expected_end): return _err(ERR_CROSS_FIELD, path + ".window")
+	if start.value < previous_window_end or start.value > end.value or (live_window and end.value != expected_end): return _err(ERR_CROSS_FIELD, path + ".window_started_simulation_msec")
 	var run_count := _integer(data, "ingested_run_count", path + ".ingested_run_count"); if not run_count.ok: return run_count
 	var omitted := _integer(data, "omitted_event_count", path + ".omitted_event_count"); if not omitted.ok: return omitted
 	if typeof(data.committed_mode_counts) != TYPE_DICTIONARY: return _err(ERR_TYPE, path + ".committed_mode_counts")
@@ -86,9 +86,12 @@ static func _validate_accumulator(data: Variant, expected_end: int, live_window:
 	for key in data.attribution_slices.keys():
 		if typeof(key) != TYPE_STRING or key.is_empty(): return _err(ERR_TYPE, path + ".attribution_slices")
 		result = _validate_slice(data.attribution_slices[key], key, start.value, end.value, path + ".attribution_slices." + key); if not result.ok: return result
+	var event_count_total := 0
 	for key in data.event_type_counts.keys():
 		if typeof(key) != TYPE_STRING or not EVENT_TYPES.has(key): return _err(ERR_RANGE, path + ".event_type_counts")
 		result = _integer_value(data.event_type_counts[key], path + ".event_type_counts." + key); if not result.ok: return result
+		if event_count_total > INT64_MAX - result.value: return _err(ERR_RANGE, path + ".event_type_counts")
+		event_count_total += result.value
 	if data.recent_events.size() > ReportState.REPORT_RECENT_EVENT_LIMIT: return _err(ERR_RANGE, path + ".recent_events")
 	var last_event_sequence := previous_event_sequence
 	var last_event_order := previous_event_order
@@ -100,6 +103,8 @@ static func _validate_accumulator(data: Variant, expected_end: int, live_window:
 		retained_counts[result.event_type] = int(retained_counts.get(result.event_type, 0)) + 1
 	for key in retained_counts.keys():
 		if not data.event_type_counts.has(key) or int(data.event_type_counts[key]) < retained_counts[key]: return _err(ERR_CROSS_FIELD, path + ".event_type_counts." + key)
+	if omitted.value > INT64_MAX - data.recent_events.size(): return _err(ERR_RANGE, path + ".omitted_event_count")
+	if event_count_total < omitted.value + data.recent_events.size(): return _err(ERR_CROSS_FIELD, path + ".event_type_counts")
 	return {"ok": true, "code": OK, "end_time": end.value, "event_sequence": last_event_sequence, "event_order": last_event_order}
 
 static func _validate_slice(data: Variant, expected_key: String, owning_window_start: int, owning_window_end: int, path: String) -> Dictionary:
