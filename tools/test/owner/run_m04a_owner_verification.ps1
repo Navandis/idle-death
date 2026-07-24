@@ -136,7 +136,7 @@ function Invoke-TraceMarkerVerification {
         "TRACE M04A typed_state_and_clone=PASS",
         "TRACE M04A v2_round_trip=PASS",
         "TRACE M04A v1_upgrade_preserved_authority=PASS",
-        "TRACE M04A file_primary_schema=2_save_revision=13",
+        "TRACE M04A file_primary_schema=4_save_revision=13",
         "TRACE M04A file_backup_schema=1_save_revision=12",
         "TRACE M04A no_repeat_rewrite=PASS"
     )

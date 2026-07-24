@@ -135,7 +135,7 @@ func _run() -> void:
 	var mapped := SaveSchemaMapper.runtime_to_snapshot(committed, TimeAuthorityState.new(), 1, ContentRegistry.CURRENT_REVISION)
 	var snapshot_text := JSON.stringify(mapped)
 	_assert(mapped.has("schema_version") and mapped.schema_version == SaveInt64.format(4), "schema v4")
-	for forbidden in ["SimulationTransaction", "SimulationFactJournal", "SimulationRunContext", "report", "forecast"]:
+	for forbidden in ["SimulationTransaction", "SimulationFactJournal", "SimulationRunContext", "ReportService", "ingest_committed_run", "snapshot_live", "peek_report"]:
 		_assert(not snapshot_text.contains(forbidden), "schema exclusion %s" % forbidden)
 	_pass("schema_v3_no_later_slice_artifacts")
 

@@ -7,20 +7,44 @@ extends RefCounted
 ## objects, and simulation result references are deliberately excluded. The
 ## event time is a simulation millisecond and is validated against its window.
 
-var event_sequence: int
-var event_type: StringName
-var occurred_simulation_msec: int
-var priority: int
-var subject_id: StringName
-var source_id: StringName
+var _event_sequence: int
+var _event_type: StringName
+var _occurred_simulation_msec: int
+var _priority: int
+var _subject_id: StringName
+var _source_id: StringName
+
+var event_sequence: int:
+	get:
+		return _event_sequence
+
+var event_type: StringName:
+	get:
+		return _event_type
+
+var occurred_simulation_msec: int:
+	get:
+		return _occurred_simulation_msec
+
+var priority: int:
+	get:
+		return _priority
+
+var subject_id: StringName:
+	get:
+		return _subject_id
+
+var source_id: StringName:
+	get:
+		return _source_id
 
 func _init(sequence_value: int = 0, type_value: StringName = &"", occurred_value: int = 0, priority_value: int = 0, subject_value: StringName = &"", source_value: StringName = &"") -> void:
-	event_sequence = sequence_value
-	event_type = type_value
-	occurred_simulation_msec = occurred_value
-	priority = priority_value
-	subject_id = subject_value
-	source_id = source_value
+	_event_sequence = sequence_value
+	_event_type = type_value
+	_occurred_simulation_msec = occurred_value
+	_priority = priority_value
+	_subject_id = subject_value
+	_source_id = source_value
 
 func deep_clone() -> ReportEventRecord:
 	return ReportEventRecord.new(event_sequence, event_type, occurred_simulation_msec, priority, subject_id, source_id)

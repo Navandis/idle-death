@@ -29,30 +29,39 @@ static func validate(report_state: ReportState, gameplay_cursor_msec: int, regis
 	result = _positive(report_state.next_report_sequence, "report_state.next_report_sequence"); if not result.ok: return result
 	result = _positive(report_state.next_event_sequence, "report_state.next_event_sequence"); if not result.ok: return result
 	result = _nonnegative(report_state.dropped_history_count, "report_state.dropped_history_count"); if not result.ok: return result
-	if report_state.live == null or not report_state.live is ReportAccumulatorState: return _err(ERR_TYPE, "report_state.live")
-	result = _validate_accumulator(report_state.live, report_state.ingested_through_simulation_msec, true, registry, "report_state.live")
-	if not result.ok: return result
 	if report_state.history.size() > ReportState.REPORT_HISTORY_LIMIT: return _err(ERR_RANGE, "report_state.history")
-	var previous_sequence := 0
+	var previous_report_sequence := 0
+	var previous_snapshot_time := 0
+	var previous_event_sequence := 0
+	var seen_event_sequences := {}
 	for index in range(report_state.history.size()):
 		var record = report_state.history[index]
 		if record == null or not record is ReportRecord: return _err(ERR_TYPE, "report_state.history.%d" % index)
-		result = _validate_record(record, report_state.ingested_through_simulation_msec, previous_sequence, registry, "report_state.history.%d" % index)
+		result = _validate_record(record, report_state.ingested_through_simulation_msec, previous_report_sequence, previous_snapshot_time, previous_event_sequence, seen_event_sequences, registry, "report_state.history.%d" % index)
 		if not result.ok: return result
-		previous_sequence = record.report_sequence
+		previous_report_sequence = result.report_sequence
+		previous_snapshot_time = result.snapshot_time
+		previous_event_sequence = result.event_sequence
+	if report_state.next_report_sequence <= previous_report_sequence: return _err(ERR_CROSS_FIELD, "report_state.next_report_sequence")
+	if report_state.live == null or not report_state.live is ReportAccumulatorState: return _err(ERR_TYPE, "report_state.live")
+	result = _validate_accumulator(report_state.live, report_state.ingested_through_simulation_msec, true, previous_event_sequence, seen_event_sequences, registry, "report_state.live")
+	if not result.ok: return result
+	if report_state.next_event_sequence <= result.event_sequence: return _err(ERR_CROSS_FIELD, "report_state.next_event_sequence")
 	return {"ok": true, "code": OK}
 
-static func _validate_record(record: ReportRecord, report_cursor: int, previous_sequence: int, registry: ContentRegistry, path: String) -> Dictionary:
+static func _validate_record(record: ReportRecord, report_cursor: int, previous_sequence: int, previous_snapshot_time: int, previous_event_sequence: int, seen_event_sequences: Dictionary, registry: ContentRegistry, path: String) -> Dictionary:
 	var result := _positive(record.report_sequence, path + ".report_sequence"); if not result.ok: return result
 	if record.report_sequence <= previous_sequence: return _err(ERR_CROSS_FIELD, path + ".report_sequence")
 	if not APPROVED_REASONS.has(str(record.snapshot_reason)): return _err(ERR_RANGE, path + ".snapshot_reason")
 	result = _nonnegative(record.snapshot_simulation_msec, path + ".snapshot_simulation_msec"); if not result.ok: return result
-	if record.snapshot_simulation_msec > report_cursor: return _err(ERR_CROSS_FIELD, path + ".snapshot_simulation_msec")
+	if record.snapshot_simulation_msec < previous_snapshot_time or record.snapshot_simulation_msec > report_cursor: return _err(ERR_CROSS_FIELD, path + ".snapshot_simulation_msec")
 	if record.window == null or not record.window is ReportAccumulatorState: return _err(ERR_TYPE, path + ".window")
 	if record.window.window_ended_simulation_msec != record.snapshot_simulation_msec: return _err(ERR_CROSS_FIELD, path + ".window.window_ended_simulation_msec")
-	return _validate_accumulator(record.window, report_cursor, false, registry, path + ".window")
+	result = _validate_accumulator(record.window, record.snapshot_simulation_msec, false, previous_event_sequence, seen_event_sequences, registry, path + ".window")
+	if not result.ok: return result
+	return {"ok": true, "code": OK, "report_sequence": record.report_sequence, "snapshot_time": record.snapshot_simulation_msec, "event_sequence": result.event_sequence}
 
-static func _validate_accumulator(accumulator: ReportAccumulatorState, owning_cursor: int, live_window: bool, registry: ContentRegistry, path: String) -> Dictionary:
+static func _validate_accumulator(accumulator: ReportAccumulatorState, owning_cursor: int, live_window: bool, previous_event_sequence: int, seen_event_sequences: Dictionary, registry: ContentRegistry, path: String) -> Dictionary:
 	var result := _nonnegative(accumulator.window_started_simulation_msec, path + ".window_started_simulation_msec"); if not result.ok: return result
 	result = _nonnegative(accumulator.window_ended_simulation_msec, path + ".window_ended_simulation_msec"); if not result.ok: return result
 	if accumulator.window_started_simulation_msec > accumulator.window_ended_simulation_msec: return _err(ERR_CROSS_FIELD, path + ".window")
@@ -81,7 +90,7 @@ static func _validate_accumulator(accumulator: ReportAccumulatorState, owning_cu
 		slice_keys[key] = true
 		var slice = accumulator.attribution_slices[raw_key]
 		if slice == null or not slice is ReportAttributionSlice: return _err(ERR_TYPE, path + ".attribution_slices.%s" % key)
-		result = _validate_slice(slice, key, registry, path + ".attribution_slices.%s" % key); if not result.ok: return result
+		result = _validate_slice(slice, key, accumulator.window_started_simulation_msec, accumulator.window_ended_simulation_msec, registry, path + ".attribution_slices.%s" % key); if not result.ok: return result
 	var event_count_keys := {}
 	for raw_type in accumulator.event_type_counts.keys():
 		var event_type := str(raw_type)
@@ -89,22 +98,22 @@ static func _validate_accumulator(accumulator: ReportAccumulatorState, owning_cu
 		event_count_keys[event_type] = true
 		result = _nonnegative(accumulator.event_type_counts[raw_type], path + ".event_type_counts.%s" % event_type); if not result.ok: return result
 	if accumulator.recent_events.size() > ReportState.REPORT_RECENT_EVENT_LIMIT: return _err(ERR_RANGE, path + ".recent_events")
-	var previous_event_sequence := 0
+	var last_event_sequence := previous_event_sequence
 	var retained_counts := {}
 	for index in range(accumulator.recent_events.size()):
 		var event = accumulator.recent_events[index]
 		if event == null or not event is ReportEventRecord: return _err(ERR_TYPE, path + ".recent_events.%d" % index)
-		result = _validate_event(event, accumulator.window_started_simulation_msec, accumulator.window_ended_simulation_msec, previous_event_sequence, registry, path + ".recent_events.%d" % index); if not result.ok: return result
-		previous_event_sequence = event.event_sequence
+		result = _validate_event(event, accumulator.window_started_simulation_msec, accumulator.window_ended_simulation_msec, last_event_sequence, seen_event_sequences, registry, path + ".recent_events.%d" % index); if not result.ok: return result
+		last_event_sequence = event.event_sequence
 		var event_type := str(event.event_type)
 		retained_counts[event_type] = int(retained_counts.get(event_type, 0)) + 1
 	for event_type in retained_counts.keys():
 		if not accumulator.event_type_counts.has(StringName(event_type)) and not accumulator.event_type_counts.has(event_type): return _err(ERR_CROSS_FIELD, path + ".event_type_counts.%s" % event_type)
 		var stored_count = accumulator.event_type_counts.get(StringName(event_type), accumulator.event_type_counts.get(event_type, 0))
 		if stored_count < retained_counts[event_type]: return _err(ERR_CROSS_FIELD, path + ".event_type_counts.%s" % event_type)
-	return {"ok": true, "code": OK}
+	return {"ok": true, "code": OK, "event_sequence": last_event_sequence}
 
-static func _validate_slice(slice: ReportAttributionSlice, expected_key: String, registry: ContentRegistry, path: String) -> Dictionary:
+static func _validate_slice(slice: ReportAttributionSlice, expected_key: String, owning_window_start: int, owning_window_end: int, registry: ContentRegistry, path: String) -> Dictionary:
 	if slice.canonical_identity_key() != expected_key: return _err(ERR_CROSS_FIELD, path)
 	var result := _positive(slice.assignment_revision, path + ".assignment_revision"); if not result.ok: return result
 	if not APPROVED_LIFECYCLES.has(str(slice.lifecycle_state)): return _err(ERR_RANGE, path + ".lifecycle_state")
@@ -112,9 +121,9 @@ static func _validate_slice(slice: ReportAttributionSlice, expected_key: String,
 	result = _validate_loadout(slice.loadout_identity, registry, path + ".loadout_identity"); if not result.ok: return result
 	result = _nonnegative(slice.window_started_simulation_msec, path + ".window_started_simulation_msec"); if not result.ok: return result
 	result = _nonnegative(slice.window_ended_simulation_msec, path + ".window_ended_simulation_msec"); if not result.ok: return result
-	if slice.window_started_simulation_msec > slice.window_ended_simulation_msec: return _err(ERR_CROSS_FIELD, path + ".window")
+	if slice.window_started_simulation_msec < owning_window_start or slice.window_ended_simulation_msec > owning_window_end or slice.window_started_simulation_msec > slice.window_ended_simulation_msec: return _err(ERR_CROSS_FIELD, path + ".window")
 	result = _nonnegative(slice.elapsed_msec, path + ".elapsed_msec"); if not result.ok: return result
-	if slice.window_ended_simulation_msec - slice.window_started_simulation_msec != slice.elapsed_msec: return _err(ERR_CROSS_FIELD, path + ".elapsed_msec")
+	if not _difference_matches(slice.window_started_simulation_msec, slice.window_ended_simulation_msec, slice.elapsed_msec): return _err(ERR_CROSS_FIELD, path + ".elapsed_msec")
 	for field in ["returned_souls_delta", "backlog_reduced", "completed_cycles_delta"]:
 		result = _nonnegative(slice[field], path + "." + field); if not result.ok: return result
 	result = _validate_quantity_map(slice.inventory_gains_by_item_id, registry, "item", path + ".inventory_gains_by_item_id"); if not result.ok: return result
@@ -126,7 +135,7 @@ static func _validate_slice(slice: ReportAttributionSlice, expected_key: String,
 		channel_keys[channel_id] = true
 		var summary = slice.channel_summaries_by_channel_id[raw_channel_id]
 		if summary == null or not summary is ReportChannelSummary: return _err(ERR_TYPE, path + ".channel_summaries_by_channel_id.%s" % channel_id)
-		result = _validate_channel(summary, str(slice.threshold_id), channel_id, registry, path + ".channel_summaries_by_channel_id.%s" % channel_id); if not result.ok: return result
+		result = _validate_channel(summary, str(slice.threshold_id), channel_id, slice.elapsed_msec, registry, path + ".channel_summaries_by_channel_id.%s" % channel_id); if not result.ok: return result
 	return {"ok": true, "code": OK}
 
 static func _validate_loadout(loadout: ReportLoadoutIdentity, registry: ContentRegistry, path: String) -> Dictionary:
@@ -151,15 +160,16 @@ static func _validate_quantity_map(values: Dictionary, registry: ContentRegistry
 		result = _nonnegative(values[raw_id], path + ".%s" % id); if not result.ok: return result
 	return {"ok": true, "code": OK}
 
-static func _validate_channel(summary: ReportChannelSummary, expected_threshold: String, expected_channel: String, registry: ContentRegistry, path: String) -> Dictionary:
+static func _validate_channel(summary: ReportChannelSummary, expected_threshold: String, expected_channel: String, owning_slice_elapsed: int, registry: ContentRegistry, path: String) -> Dictionary:
 	if str(summary.threshold_id) != expected_threshold or str(summary.channel_id) != expected_channel: return _err(ERR_CROSS_FIELD, path)
 	var relation := _channel_relationship(registry, expected_channel, expected_threshold, path); if not relation.ok: return relation
 	if str(summary.output_item_id) != str(relation.channel.output_item_id): return _err(ERR_CROSS_FIELD, path + ".output_item_id")
 	var result := _nonnegative(summary.elapsed_msec, path + ".elapsed_msec"); if not result.ok: return result
+	if summary.elapsed_msec > owning_slice_elapsed: return _err(ERR_CROSS_FIELD, path + ".elapsed_msec")
 	result = _nonnegative(summary.banked_units_delta, path + ".banked_units_delta"); if not result.ok: return result
 	for field in ["total_banked_units_start", "total_banked_units_end"]:
 		result = _nonnegative(summary[field], path + "." + field); if not result.ok: return result
-	if summary.total_banked_units_end < summary.total_banked_units_start or summary.total_banked_units_end - summary.total_banked_units_start != summary.banked_units_delta: return _err(ERR_CROSS_FIELD, path + ".banked_units_delta")
+	if summary.total_banked_units_end < summary.total_banked_units_start or not _difference_matches(summary.total_banked_units_start, summary.total_banked_units_end, summary.banked_units_delta): return _err(ERR_CROSS_FIELD, path + ".banked_units_delta")
 	for field in ["progress_subunits_start", "progress_subunits_end"]:
 		if summary[field] < 0 or summary[field] >= FixedPoint.SCALE: return _err(ERR_RANGE, path + "." + field)
 	var period := int(relation.channel.rate.period_msec)
@@ -167,9 +177,10 @@ static func _validate_channel(summary: ReportChannelSummary, expected_threshold:
 		if summary[field] < 0 or summary[field] >= period: return _err(ERR_RANGE, path + "." + field)
 	return {"ok": true, "code": OK}
 
-static func _validate_event(event: ReportEventRecord, window_start: int, window_end: int, previous_sequence: int, registry: ContentRegistry, path: String) -> Dictionary:
+static func _validate_event(event: ReportEventRecord, window_start: int, window_end: int, previous_sequence: int, seen_event_sequences: Dictionary, registry: ContentRegistry, path: String) -> Dictionary:
 	var result := _positive(event.event_sequence, path + ".event_sequence"); if not result.ok: return result
-	if event.event_sequence <= previous_sequence: return _err(ERR_CROSS_FIELD, path + ".event_sequence")
+	if event.event_sequence <= previous_sequence or seen_event_sequences.has(event.event_sequence): return _err(ERR_CROSS_FIELD, path + ".event_sequence")
+	seen_event_sequences[event.event_sequence] = true
 	var event_type := str(event.event_type)
 	if not APPROVED_EVENT_TYPES.has(event_type): return _err(ERR_RANGE, path + ".event_type")
 	result = _nonnegative(event.occurred_simulation_msec, path + ".occurred_simulation_msec"); if not result.ok: return result
@@ -207,6 +218,11 @@ static func _positive(value: Variant, path: String) -> Dictionary:
 	if not result.ok: return result
 	if value <= 0: return _err(ERR_RANGE, path)
 	return {"ok": true, "code": OK}
+
+static func _difference_matches(start: int, end: int, expected: int) -> bool:
+	if start < 0 or end < start or expected < 0 or expected > INT64_MAX: return false
+	if start > INT64_MAX - expected: return false
+	return start + expected == end
 
 static func _err(code: String, field_path: String) -> Dictionary:
 	return {"ok": false, "code": code, "field_path": field_path}

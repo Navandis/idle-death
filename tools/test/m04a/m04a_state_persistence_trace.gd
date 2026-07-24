@@ -25,9 +25,15 @@ func _init() -> void:
 	var runtime := SaveSchemaMapper.snapshot_to_runtime(representative)
 	if not runtime.ok:
 		_fail("representative_runtime", runtime)
+	# The historical v2 fixture predates current output-access completeness. Normalize
+	# only the fixture's current-valid state before exercising the v4 persistence path;
+	# the migration assertions below still load the original v1 bytes unchanged.
+	runtime.game_state.progression = GameState.ProgressionState.new(runtime.game_state.progression.command_tether_capacity, [&"SOUL_CALLING_SOLDIER"])
 	var domain := GameStateValidator.validate(runtime.game_state, registry)
 	if not domain.ok:
 		_fail("representative_domain", domain)
+	if not runtime.game_state.report_state.value_equals(ReportState.empty_at_cursor(runtime.game_state.simulation_time_msec)):
+		_fail("representative_report_state", {"ok": false})
 	_assert_clone_isolated(runtime.game_state)
 	print("TRACE M04A typed_state_and_clone=PASS")
 	var save := coordinator.save_runtime(runtime.game_state, runtime.time_authority_state, 30)
@@ -43,7 +49,7 @@ func _init() -> void:
 	var upgraded := coordinator.load_runtime()
 	if not upgraded.ok or upgraded.save_revision != 13:
 		_fail("upgrade", upgraded)
-	_assert_disk_revision(files.primary_path, "2", "13", storage, "upgraded_primary")
+	_assert_disk_revision(files.primary_path, "4", "13", storage, "upgraded_primary")
 	_assert_disk_revision(files.backup_path, "1", "12", storage, "historical_backup")
 	var primary := _decode_path(storage, files.primary_path)
 	if primary.content_revision != v1.content_revision or primary.time_authority != v1.time_authority or primary.metadata != v1.metadata or primary.last_offline_resolution_id != v1.last_offline_resolution_id:
@@ -60,7 +66,7 @@ func _init() -> void:
 		_fail("primary_rewritten", {"ok": false})
 	if storage.read_bytes(files.backup_path).bytes != backup_bytes_before:
 		_fail("backup_rotated", {"ok": false})
-	print("TRACE M04A file_primary_schema=2_save_revision=13")
+	print("TRACE M04A file_primary_schema=4_save_revision=13")
 	print("TRACE M04A file_backup_schema=1_save_revision=12")
 	print("TRACE M04A no_repeat_rewrite=PASS")
 	quit(0)
@@ -118,6 +124,8 @@ func _assert_runtime_equal(expected: GameState, actual: GameState, label: String
 		_fail(label, {"field": "reapings"})
 	if actual.progression.command_tether_capacity != expected.progression.command_tether_capacity:
 		_fail(label, {"field": "progression"})
+	if not actual.report_state.value_equals(expected.report_state):
+		_fail(label, {"field": "report_state"})
 
 func _assert_disk_revision(path: String, expected_schema: String, expected_revision: String, storage: SaveStorage, label: String) -> void:
 	if not storage.exists(path):

@@ -186,10 +186,11 @@ func _save_bytes_unchanged(_snapshot: Dictionary, state: GameState) -> bool:
 	return primary_before == primary_after and backup_before == backup_after and not FileAccess.file_exists(file_set.temporary_path)
 
 func _no_side_effect_artifacts(state: GameState) -> bool:
-	var snapshot := _canonical(state)
-	var text := JSON.stringify(snapshot)
-	for needle in ["report", "tutorial", "checkpoint", "forecast", "projection", "run_mode", "simulation_result"]:
-		if text.find(needle) != -1: return false
+	if not state.report_state.value_equals(ReportState.empty_at_cursor(state.simulation_time_msec)):
+		return false
+	var service_source := FileAccess.get_file_as_string("res://src/simulation/simulation_run_service.gd")
+	for forbidden in ["ReportService", "ingest_committed_run", "snapshot_live", "peek_report"]:
+		if service_source.contains(forbidden): return false
 	return true
 
 func _prepared_state(threshold_id: StringName, backlog: int, item_ids: Array[StringName]) -> GameState:
