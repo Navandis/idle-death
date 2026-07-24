@@ -57,9 +57,10 @@ static func _validate_record(record: ReportRecord, report_cursor: int, previous_
 	if not APPROVED_REASONS.has(str(record.snapshot_reason)): return _err(ERR_RANGE, path + ".snapshot_reason")
 	result = _nonnegative(record.snapshot_simulation_msec, path + ".snapshot_simulation_msec"); if not result.ok: return result
 	if record.snapshot_simulation_msec < previous_snapshot_time or record.snapshot_simulation_msec > report_cursor: return _err(ERR_CROSS_FIELD, path + ".snapshot_simulation_msec")
-	if record.window == null or not record.window is ReportAccumulatorState: return _err(ERR_TYPE, path + ".window")
-	if record.window.window_ended_simulation_msec != record.snapshot_simulation_msec: return _err(ERR_CROSS_FIELD, path + ".window.window_ended_simulation_msec")
-	result = _validate_accumulator(record.window, record.snapshot_simulation_msec, false, previous_event_sequence, previous_event_order, seen_event_sequences, registry, path + ".window")
+	var window: Variant = record._window_for_validation()
+	if window == null or not window is ReportAccumulatorState: return _err(ERR_TYPE, path + ".window")
+	if window.window_ended_simulation_msec != record.snapshot_simulation_msec: return _err(ERR_CROSS_FIELD, path + ".window.window_ended_simulation_msec")
+	result = _validate_accumulator(window, record.snapshot_simulation_msec, false, previous_event_sequence, previous_event_order, seen_event_sequences, registry, path + ".window")
 	if not result.ok: return result
 	return {"ok": true, "code": OK, "report_sequence": record.report_sequence, "snapshot_time": record.snapshot_simulation_msec, "event_sequence": result.event_sequence, "event_order": result.event_order}
 
@@ -202,6 +203,7 @@ static func _validate_event(event: ReportEventRecord, window_start: int, window_
 static func _channel_relationship(registry: ContentRegistry, channel_id: String, threshold_id: String, path: String) -> Dictionary:
 	var channel_result := _content(registry, channel_id, "channel", path + ".channel_id"); if not channel_result.ok: return channel_result
 	var channel: Dictionary = channel_result.record
+	var output_item_result := _content(registry, str(channel.output_item_id), "item", path + ".output_item_id"); if not output_item_result.ok: return output_item_result
 	if str(channel.source_threshold_id) != threshold_id: return _err(ERR_CONTENT, path + ".threshold_id")
 	if not channel.rate is Dictionary or int(channel.rate.period_msec) <= 0: return _err(ERR_CONTENT, path + ".channel_id")
 	var threshold_result := _content(registry, threshold_id, "threshold", path + ".threshold_id"); if not threshold_result.ok: return threshold_result
@@ -211,7 +213,7 @@ static func _channel_relationship(registry: ContentRegistry, channel_id: String,
 static func _content(registry: ContentRegistry, id: String, expected_type: String, path: String) -> Dictionary:
 	if id.is_empty(): return _err(ERR_CONTENT, path)
 	var result := registry.get_record(id)
-	if not result.ok or result.record.type != expected_type: return _err(ERR_CONTENT, path)
+	if not result.ok or result.record.type != expected_type or not result.record.enabled: return _err(ERR_CONTENT, path)
 	return result
 
 static func _nonnegative(value: Variant, path: String) -> Dictionary:

@@ -85,6 +85,27 @@ func test_runtime_validator_rejects_cross_field_and_content_malformed_state() ->
 	state.report_state.history[0] = ReportRecord.new(4, &"SYSTEM_BOUNDARY", 3000, bad_window)
 	assert_false(ReportStateValidator.validate(state.report_state, state.simulation_time_msec, _registry()).ok)
 
+func test_runtime_validator_rejects_malformed_record_window_before_clone() -> void:
+	var runtime := _report_runtime()
+	var record: ReportRecord = runtime.report_state.history[0]
+	record._window = null
+	var result := ReportStateValidator.validate(runtime.report_state, runtime.simulation_time_msec, _registry())
+	assert_false(result.ok)
+	assert_eq(result.field_path, "report_state.history.0.window")
+
+func test_runtime_validator_rejects_disabled_content_references() -> void:
+	for disabled_id in ["FORM_SCRIBE", "WRIT_EMERGENCY_FIRST_RETURN", "RET_SOLDIER_COMPANY", "THR_GLOAMWOOD", "SOUL_CALLING_SOLDIER", "CHANNEL_GLOAMWOOD_SOLDIER_SOULS"]:
+		var runtime := _report_runtime()
+		var registry := _registry()
+		# The registry is the normalized content boundary. Toggling one copied
+		# record lets this test exercise disabled-ID rejection without mutating
+		# authored Resources or introducing a test-only content catalog.
+		registry._records[disabled_id]["enabled"] = false
+		if disabled_id == "SOUL_CALLING_SOLDIER":
+			runtime.report_state.live.attribution_slices["THR_GLOAMWOOD|8|OVERDUE"].inventory_gains_by_item_id.clear()
+		var result := ReportStateValidator.validate(runtime.report_state, runtime.simulation_time_msec, registry)
+		assert_false(result.ok, disabled_id)
+
 func test_schema_v4_exact_keys_and_canonical_integer_mutations_reject() -> void:
 	var snapshot := _read(POPULATED_FIXTURE)
 	assert_eq(SaveSchemaValidator.validate_current(snapshot).code, SaveSchemaValidator.OK)

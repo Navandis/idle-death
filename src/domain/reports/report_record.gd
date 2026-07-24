@@ -28,6 +28,15 @@ var window: ReportAccumulatorState:
 	get:
 		return _window.deep_clone()
 
+func _window_for_validation() -> Variant:
+	## Borrow the private child only for structural validation.
+	##
+	## The normal `window` getter deliberately returns a detached clone. A
+	## validator must first prove that the private child is a valid accumulator;
+	## otherwise calling that getter on malformed state would execute
+	## `deep_clone()` on null or a wrong-class data and raise a script error.
+	return _window
+
 func _init(sequence_value: int = 0, reason_value: StringName = &"", snapshot_value: int = 0, window_value: ReportAccumulatorState = null) -> void:
 	_report_sequence = sequence_value
 	_snapshot_reason = reason_value
