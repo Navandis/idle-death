@@ -1,0 +1,116 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+inheritance: false
+language: "en-US"
+early_access: false
+
+tone_instructions: >-
+  Be concise, objective, and evidence-based. Prioritize correctness,
+  regressions, determinism, save/load integrity, requirement violations,
+  and missing tests. Avoid style-only or speculative comments unless they
+  create material risk.
+
+reviews:
+  profile: "chill"
+  request_changes_workflow: false
+
+  high_level_summary: false
+  review_status: true
+  review_details: false
+  review_progress: true
+  fail_commit_status: false
+
+  collapse_walkthrough: true
+  changed_files_summary: true
+  sequence_diagrams: false
+  estimate_code_review_effort: true
+  assess_linked_issues: true
+  related_issues: false
+  related_prs: false
+
+  suggested_labels: false
+  auto_apply_labels: false
+  suggested_reviewers: false
+  auto_assign_reviewers: false
+
+  in_progress_fortune: false
+  poem: false
+  enable_prompt_for_ai_agents: false
+  abort_on_close: true
+
+  slop_detection:
+    enabled: false
+
+  path_filters:
+    - "!**/*.uid"
+
+  auto_review:
+    enabled: false
+    auto_incremental_review: false
+    auto_pause_after_reviewed_commits: 0
+    drafts: false
+    labels:
+      - "coderabbit-review"
+    ignore_title_keywords:
+      - "WIP"
+      - "DO NOT REVIEW"
+      - "DRAFT"
+
+  finishing_touches:
+    docstrings:
+      enabled: false
+    unit_tests:
+      enabled: false
+    simplify:
+      enabled: false
+    autofix:
+      enabled: false
+    fix_ci:
+      enabled: false
+    resolve_merge_conflict:
+      enabled: false
+
+chat:
+  art: false
+  allow_non_org_members: false
+  auto_reply: false
+  integrations:
+    jira:
+      usage: "disabled"
+    linear:
+      usage: "disabled"
+
+knowledge_base:
+  web_search:
+    enabled: true
+
+  code_guidelines:
+    enabled: true
+
+  learnings:
+    scope: "local"
+    approval_delay: 30
+
+  issues:
+    scope: "local"
+
+  pull_requests:
+    scope: "local"
+
+  mcp:
+    usage: "disabled"
+
+  automatic_repository_linking: false
+
+issue_enrichment:
+  auto_enrich:
+    enabled: false
+
+  planning:
+    enabled: false
+
+  auto_planning:
+    enabled: false
+
+  labeling:
+    auto_apply_labels: false
