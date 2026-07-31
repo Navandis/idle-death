@@ -65,3 +65,9 @@ jobs:
         run: |
           set -euo pipefail
           bash tools/test/run_gut.sh --godot-bin "$GODOT_BIN"
+
+      - name: Run main-scene smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --path . --quit-after 5
