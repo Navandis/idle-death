@@ -1,0 +1,67 @@
+name: Death Idle CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  godot-gut:
+    name: Godot import and GUT
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Godot 4.7-stable
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          archive="$RUNNER_TEMP/Godot_v4.7-stable_linux.x86_64.zip"
+          install_dir="$RUNNER_TEMP/godot-4.7-stable"
+          godot_bin="$install_dir/Godot_v4.7-stable_linux.x86_64"
+
+          curl \
+            --fail \
+            --location \
+            --silent \
+            --show-error \
+            --retry 3 \
+            --retry-all-errors \
+            --connect-timeout 30 \
+            --max-time 300 \
+            --output "$archive" \
+            "https://github.com/godotengine/godot-builds/releases/download/4.7-stable/Godot_v4.7-stable_linux.x86_64.zip"
+
+          (
+            cd "$RUNNER_TEMP"
+            sha256sum \
+              --check \
+              --strict \
+              "$GITHUB_WORKSPACE/tools/ci/godot-4.7-stable-linux-x86_64.sha256"
+          )
+
+          mkdir -p "$install_dir"
+          unzip -q "$archive" -d "$install_dir"
+          test -f "$godot_bin"
+          chmod +x "$godot_bin"
+          test -x "$godot_bin"
+          "$godot_bin" --version
+          printf 'GODOT_BIN=%s\n' "$godot_bin" >> "$GITHUB_ENV"
+
+      - name: Run Godot import and GUT
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash tools/test/run_gut.sh --godot-bin "$GODOT_BIN"
