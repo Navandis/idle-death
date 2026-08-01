@@ -19,6 +19,17 @@ function Assert-Rejected {
     param([string]$Name, [scriptblock]$Action)
     try { & $Action; Add-TestFailure $Name 'accepted unexpectedly.' } catch { $script:rejectionCount++ }
 }
+function Assert-ConstructorRejected {
+    param([string]$Name, [scriptblock]$Action)
+    try { & $Action; Add-TestFailure $Name 'accepted unexpectedly.' }
+    catch {
+        if (-not ($_.Exception -is [System.Management.Automation.ParameterBindingException])) {
+            Add-TestFailure $Name 'rejected after parameter binding.'
+        } else {
+            $script:rejectionCount++
+        }
+    }
+}
 function Assert-Accepted {
     param([string]$Name, [scriptblock]$Action)
     try { & $Action; $script:acceptanceCount++ } catch { Add-TestFailure $Name $_.Exception.Message }
@@ -89,6 +100,32 @@ foreach ($family in @('ghp_','gho_','ghu_','ghs_','ghr_','github_pat_')) {
     Assert-Rejected "credential-like error text $family" { $d = Copy-Document $fail; $d.queries[0].error = "embedded/$($family)synthetic"; Test-WorkflowStateContract $d | Out-Null }
 }
 Assert-Rejected 'scalar where array required' { $d = Copy-Document $pass; $d.workspace.status_entries = 'not-an-array'; Test-WorkflowStateContract $d | Out-Null }
+
+Assert-ConstructorRejected 'query constructor rejects GitHub' {
+    New-WorkflowStateQueryRecord -Scope GitHub -Name 'synthetic_query_github' -Ok $false -ExitCode 0 -ErrorText 'synthetic' | Out-Null
+}
+Assert-ConstructorRejected 'query constructor rejects LOCAL' {
+    New-WorkflowStateQueryRecord -Scope LOCAL -Name 'synthetic_query_local' -Ok $false -ExitCode 0 -ErrorText 'synthetic' | Out-Null
+}
+Assert-ConstructorRejected 'fail-envelope constructor rejects Local' {
+    New-WorkflowStateFailEnvelope -FailureScope Local -FailureName 'synthetic_failure_local' -ExitCode -7 -ErrorText 'synthetic' | Out-Null
+}
+
+foreach ($scope in @('local', 'github', 'invariant', 'schema')) {
+    Assert-Accepted "query constructor accepts exact scope $scope" {
+        $record = New-WorkflowStateQueryRecord -Scope $scope -Name "synthetic_query_$scope" -Ok $false -ExitCode -7 -ErrorText 'synthetic'
+        Assert-True ($record.scope -ceq $scope) "query constructor changed exact scope $scope"
+        Assert-True ($record.exit_code -eq -7) "query constructor changed negative exit code for $scope"
+    }
+}
+foreach ($scope in @('local', 'invariant', 'schema')) {
+    Assert-Accepted "fail-envelope constructor accepts exact scope $scope" {
+        $envelope = New-WorkflowStateFailEnvelope -FailureScope $scope -FailureName "synthetic_failure_$scope" -ExitCode -7 -ErrorText 'synthetic'
+        Test-WorkflowStateContract $envelope | Out-Null
+        Assert-True ($envelope.queries[0].scope -ceq $scope) "fail envelope changed exact scope $scope"
+        Assert-True ($envelope.queries[0].exit_code -eq -7) "fail envelope changed negative exit code for $scope"
+    }
+}
 
 try {
     $negative = New-WorkflowStateQueryRecord -Scope local -Name 'negative_exit' -Ok $false -ExitCode -1073741819 -ErrorText 'synthetic'

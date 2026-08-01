@@ -13,7 +13,7 @@ function Get-WorkflowStateSanitizedError {
 }
 
 function New-WorkflowStateQueryRecord {
-    param([Parameter(Mandatory = $true)][ValidateSet('local','github','invariant','schema')][string]$Scope, [Parameter(Mandatory = $true)][string]$Name, [Parameter(Mandatory = $true)][bool]$Ok, [AllowNull()][Nullable[Int64]]$ExitCode, [AllowNull()][string]$ErrorText)
+    param([Parameter(Mandatory = $true)][ValidateSet('local','github','invariant','schema', IgnoreCase = $false)][string]$Scope, [Parameter(Mandatory = $true)][string]$Name, [Parameter(Mandatory = $true)][bool]$Ok, [AllowNull()][Nullable[Int64]]$ExitCode, [AllowNull()][string]$ErrorText)
     if ([string]::IsNullOrWhiteSpace($Name)) { throw 'Query name must not be empty.' }
     if ($null -ne $ExitCode -and (($ExitCode -lt -2147483648) -or ($ExitCode -gt 2147483647))) { throw 'Query exit code must fit signed Int32.' }
     if ($Ok -and $null -ne $ErrorText) { throw 'A successful query cannot have an error.' }
@@ -22,7 +22,7 @@ function New-WorkflowStateQueryRecord {
 }
 
 function New-WorkflowStateFailEnvelope {
-    param([Parameter(Mandatory = $true)][ValidateSet('local','invariant','schema')][string]$FailureScope, [Parameter(Mandatory = $true)][string]$FailureName, [AllowNull()][Nullable[Int64]]$ExitCode = -1, [AllowNull()][string]$ErrorText = 'Unspecified failure.')
+    param([Parameter(Mandatory = $true)][ValidateSet('local','invariant','schema', IgnoreCase = $false)][string]$FailureScope, [Parameter(Mandatory = $true)][string]$FailureName, [AllowNull()][Nullable[Int64]]$ExitCode = -1, [AllowNull()][string]$ErrorText = 'Unspecified failure.')
     $query = New-WorkflowStateQueryRecord -Scope $FailureScope -Name $FailureName -Ok $false -ExitCode $ExitCode -ErrorText $ErrorText
     $document = [pscustomobject][ordered]@{
         schema_version = 1; tool = 'verify_workflow_state'; generated_at_utc = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ss.fffZ', [Globalization.CultureInfo]::InvariantCulture); result = 'fail'
