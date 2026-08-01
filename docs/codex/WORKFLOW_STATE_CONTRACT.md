@@ -8,7 +8,7 @@ Future local-Git and GitHub collectors provide evidence; a CLI composes it into 
 
 ## Vocabulary
 
-Every document has `schema_version: 1`, `tool: "verify_workflow_state"`, a UTC RFC3339 generation timestamp, `result`, `repository`, `tools`, `workspace`, `github`, and `queries`. Objects reject unknown fields and every declared field is present. Unavailable scalars are `null`; collection fields remain arrays.
+Every document has `schema_version: 1`, `tool: "verify_workflow_state"`, a UTC RFC3339 generation timestamp, `result`, `repository`, `tools`, `workspace`, `github`, and `queries`. Objects reject unknown fields and every declared field is present. Schema-owned property names and fixed values are ordinal case-sensitive. Unavailable scalars are `null`; collection fields remain arrays.
 
 `result` is `pass`, `partial`, or `fail`. SHA values are `null` or lowercase 40-character hexadecimal values. Repository origin URLs are the normalized, sorted, duplicate-free `https://github.com/Navandis/idle-death` value. A query records its explicit owner scope (`local`, `github`, `invariant`, or `schema`), name, Boolean outcome, signed native exit code, and safe error.
 
@@ -22,11 +22,13 @@ Exit codes retain the full signed Int32 range. Windows native crashes can surfac
 
 Errors collapse whitespace, are bounded to 512 characters, and replace credential-like material—authorization, bearer, token, `hosts.yml`, `gho_`, and `github_pat_` forms—with `Sensitive error details redacted.` No collector or caller should place credentials in errors.
 
+`generated_at_utc` accepts only canonical UTC RFC3339: `YYYY-MM-DDTHH:mm:ssZ` or `YYYY-MM-DDTHH:mm:ss.f` through `YYYY-MM-DDTHH:mm:ss.fffffffZ`, with uppercase `T` and `Z` and invariant valid calendar and clock values. Credential redaction recognizes the case-insensitive GitHub token families `ghp_`, `gho_`, `ghu_`, `ghs_`, `ghr_`, and `github_pat_` wherever they appear in an error value.
+
 ## Schema and semantic authority
 
 [workflow-state.schema.json](../../tools/codex/workflow-state.schema.json) is Draft 2020-12 and supplies exact object shapes, nullability, formats, signed exit-code bounds, uniqueness where JSON Schema can express it, and conditional policies for result/query, pull-request/count, branch/remote-feature-SHA, and query outcome/error relationships.
 
-`Test-WorkflowStateContract` is authoritative for a trust decision. Semantic-only invariants are: review-item array/count equality; unresolved-thread recounting; unique review-thread IDs; duplicate query scope/name pairs; sorted labels; sorted normalized origin arrays; and pass/partial local-state completeness. Parsing the schema alone is not sufficient.
+`Test-WorkflowStateContract` is authoritative for a trust decision. Semantic-only invariants are: review-item array/count equality; unresolved-thread recounting; ordinally unique review-thread IDs; ordinally unique query scope/name pairs; ordinally unique (but not sorted) workspace `status_entries` and `staged_paths`; sorted labels; sorted normalized origin arrays; and pass/partial local-state completeness. Case-distinct free-form identifiers remain distinct unless the public contract says otherwise. Parsing the schema alone is not sufficient.
 
 | Invariant owner | Examples |
 | --- | --- |

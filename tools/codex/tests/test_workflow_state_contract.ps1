@@ -10,6 +10,7 @@ $testRoot = Split-Path -Parent $PSScriptRoot
 $fixtureRoot = Join-Path $PSScriptRoot 'fixtures'
 $failures = New-Object System.Collections.Generic.List[string]
 $validCount = 0
+$acceptanceCount = 0
 $rejectionCount = 0
 
 function Add-TestFailure { param([string]$Name, [string]$Message) $script:failures.Add("${Name}: $Message") }
@@ -18,8 +19,20 @@ function Assert-Rejected {
     param([string]$Name, [scriptblock]$Action)
     try { & $Action; Add-TestFailure $Name 'accepted unexpectedly.' } catch { $script:rejectionCount++ }
 }
+function Assert-Accepted {
+    param([string]$Name, [scriptblock]$Action)
+    try { & $Action; $script:acceptanceCount++ } catch { Add-TestFailure $Name $_.Exception.Message }
+}
 function Copy-Document { param($Document) return ($Document | ConvertTo-Json -Depth 20 | ConvertFrom-Json) }
 function Get-Fixture { param([string]$Name) return (Get-Content -Raw (Join-Path $fixtureRoot $Name) | ConvertFrom-Json) }
+function Rename-DocumentProperty {
+    param($Object, [string]$From, [string]$To)
+    $matches = @($Object.PSObject.Properties | Where-Object { [string]::Equals($_.Name, $From, [System.StringComparison]::Ordinal) })
+    if ($matches.Count -ne 1) { throw "Synthetic document does not contain exactly one $From property." }
+    $value = $matches[0].Value
+    $Object.PSObject.Properties.Remove($From)
+    $Object | Add-Member -NotePropertyName $To -NotePropertyValue $value
+}
 function New-TestPullRequest {
     return [pscustomobject][ordered]@{ number = 1; url = 'https://example.test/pr/1'; state = 'OPEN'; draft = $false; mergeable = $true; base_ref = 'main'; head_ref = 'codex/synthetic'; head_sha = '0123456789abcdef0123456789abcdef01234567'; author = 'synthetic'; labels = @('alpha'); auto_merge = $false }
 }
@@ -41,6 +54,19 @@ Assert-Rejected 'unknown field fixture' { Test-WorkflowStateContract (Get-Fixtur
 $pass = Get-Fixture 'workflow-state-pass-valid.json'
 $partial = Get-Fixture 'workflow-state-partial-valid.json'
 $fail = Get-Fixture 'workflow-state-fail-valid.json'
+Assert-Rejected 'root key wrong casing Tool' { $d = Copy-Document $pass; Rename-DocumentProperty $d 'tool' 'Tool'; Test-WorkflowStateContract $d | Out-Null }
+Assert-Rejected 'nested key wrong casing Status_entries' { $d = Copy-Document $pass; Rename-DocumentProperty $d.workspace 'status_entries' 'Status_entries'; Test-WorkflowStateContract $d | Out-Null }
+Assert-Rejected 'result wrong casing PASS' { $d = Copy-Document $pass; $d.result = 'PASS'; Test-WorkflowStateContract $d | Out-Null }
+Assert-Rejected 'query scope wrong casing GitHub' { $d = Copy-Document $fail; $d.queries[0].scope = 'GitHub'; Test-WorkflowStateContract $d | Out-Null }
+Assert-Rejected 'timestamp space separator' { $d = Copy-Document $pass; $d.generated_at_utc = '2026-08-01 12:00:00Z'; Test-WorkflowStateContract $d | Out-Null }
+Assert-Rejected 'timestamp timezone offset' { $d = Copy-Document $pass; $d.generated_at_utc = '2026-08-01T12:00:00+00:00'; Test-WorkflowStateContract $d | Out-Null }
+Assert-Rejected 'timestamp invalid calendar value' { $d = Copy-Document $pass; $d.generated_at_utc = '2026-02-29T12:00:00Z'; Test-WorkflowStateContract $d | Out-Null }
+Assert-Rejected 'duplicate status entries' { $d = Copy-Document $pass; $d.workspace.status_entries = @('synthetic','synthetic'); Test-WorkflowStateContract $d | Out-Null }
+Assert-Rejected 'duplicate staged paths' { $d = Copy-Document $pass; $d.workspace.staged_paths = @('synthetic','synthetic'); Test-WorkflowStateContract $d | Out-Null }
+Assert-Accepted 'timestamp without fractional seconds' { $d = Copy-Document $pass; $d.generated_at_utc = '2026-08-01T12:00:00Z'; Test-WorkflowStateContract $d | Out-Null }
+Assert-Accepted 'timestamp with seven fractional digits' { $d = Copy-Document $pass; $d.generated_at_utc = '2026-08-01T12:00:00.1234567Z'; Test-WorkflowStateContract $d | Out-Null }
+Assert-Accepted 'case-distinct query names are unique' { $d = Copy-Document $pass; $d.queries = @($d.queries[0], [pscustomobject][ordered]@{ scope = 'local'; name = 'Status'; ok = $true; exit_code = 0; error = $null }); Test-WorkflowStateContract $d | Out-Null }
+Assert-Accepted 'case-distinct review-thread IDs are unique' { $d = Copy-Document $pass; $d.github.review_threads.total_count = 2; $d.github.review_threads.items = @((New-TestThread 'thread-1'),(New-TestThread 'Thread-1')); Test-WorkflowStateContract $d | Out-Null }
 Assert-Rejected 'exit code below Int32 minimum' { $d = Copy-Document $fail; $d.queries[0].exit_code = [Int64]-2147483649; Test-WorkflowStateContract $d | Out-Null }
 Assert-Rejected 'exit code above Int32 maximum' { $d = Copy-Document $fail; $d.queries[0].exit_code = [Int64]2147483648; Test-WorkflowStateContract $d | Out-Null }
 Assert-Rejected 'pass with failed query' { $d = Copy-Document $pass; $d.queries[0].ok = $false; $d.queries[0].error = 'synthetic'; Test-WorkflowStateContract $d | Out-Null }
@@ -59,7 +85,9 @@ Assert-Rejected 'duplicate query scope/name pair' { $d = Copy-Document $pass; $d
 Assert-Rejected 'unsorted labels' { $d = Copy-Document $pass; $d.github.pull_request = New-TestPullRequest; $d.github.matching_pr_count = 1; $d.github.pull_request.labels = @('zeta','alpha'); Test-WorkflowStateContract $d | Out-Null }
 Assert-Rejected 'duplicate origin fetch URLs' { $d = Copy-Document $pass; $d.repository.origin_fetch_urls = @('https://github.com/Navandis/idle-death','https://github.com/Navandis/idle-death'); Test-WorkflowStateContract $d | Out-Null }
 Assert-Rejected 'duplicate origin push URLs' { $d = Copy-Document $pass; $d.repository.origin_push_urls = @('https://github.com/Navandis/idle-death','https://github.com/Navandis/idle-death'); Test-WorkflowStateContract $d | Out-Null }
-Assert-Rejected 'credential-like error text' { $d = Copy-Document $fail; $d.queries[0].error = 'Bearer gho_example'; Test-WorkflowStateContract $d | Out-Null }
+foreach ($family in @('ghp_','gho_','ghu_','ghs_','ghr_','github_pat_')) {
+    Assert-Rejected "credential-like error text $family" { $d = Copy-Document $fail; $d.queries[0].error = "embedded/$($family)synthetic"; Test-WorkflowStateContract $d | Out-Null }
+}
 Assert-Rejected 'scalar where array required' { $d = Copy-Document $pass; $d.workspace.status_entries = 'not-an-array'; Test-WorkflowStateContract $d | Out-Null }
 
 try {
@@ -69,8 +97,10 @@ try {
     Test-WorkflowStateContract $envelope | Out-Null
     $roundTrip = (ConvertTo-WorkflowStateJson $envelope) | ConvertFrom-Json
     Assert-True ($roundTrip.queries[0].exit_code -eq -1073741819) 'negative exit code did not survive JSON round trip'
-    $safe = Get-WorkflowStateSanitizedError "line one`r`nBearer gho_example"
-    Assert-True ($safe -eq 'Sensitive error details redacted.') 'sanitizer did not redact credential-like input'
+    foreach ($family in @('ghp_','gho_','ghu_','ghs_','ghr_','github_pat_')) {
+        $safe = Get-WorkflowStateSanitizedError "line one`r`nhttps://synthetic:$($family)synthetic@example.test"
+        Assert-True ($safe -eq 'Sensitive error details redacted.') "sanitizer did not redact $family material"
+    }
     $oneLine = ConvertTo-WorkflowStateJson $envelope
     Assert-True ($oneLine -notmatch "[\r\n]") 'serialized JSON was not one line'
     $emergency = Get-WorkflowStateEmergencyFailJson
@@ -78,6 +108,6 @@ try {
     Test-WorkflowStateContract ($emergency | ConvertFrom-Json) | Out-Null
 } catch { Add-TestFailure 'envelope and emergency behavior' $_.Exception.Message }
 
-if ($failures.Count -gt 0) { Write-Output ("FAIL valid={0} rejected={1} failures={2}" -f $validCount, $rejectionCount, ($failures -join ' | ')); exit 1 }
-Write-Output ("PASS valid={0} rejected={1} signed_exit=PASS sanitizer=PASS envelope=PASS emergency=PASS schema_conditionals=6" -f $validCount, $rejectionCount)
+if ($failures.Count -gt 0) { Write-Output ("FAIL valid={0} accepted={1} rejected={2} failures={3}" -f $validCount, $acceptanceCount, $rejectionCount, ($failures -join ' | ')); exit 1 }
+Write-Output ("PASS valid={0} accepted={1} rejected={2} signed_exit=PASS sanitizer=PASS envelope=PASS emergency=PASS schema_conditionals=6" -f $validCount, $acceptanceCount, $rejectionCount)
 exit 0
