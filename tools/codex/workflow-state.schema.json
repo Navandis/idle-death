@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Navandis/idle-death/tools/codex/workflow-state.schema.json",
+  "title": "Death Idle workflow-state evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "tool", "generated_at_utc", "result", "repository", "tools", "workspace", "github", "queries"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "tool": {"const": "verify_workflow_state"},
+    "generated_at_utc": {"type": "string", "format": "date-time"},
+    "result": {"enum": ["pass", "partial", "fail"]},
+    "repository": {"$ref": "#/$defs/repository"},
+    "tools": {"$ref": "#/$defs/tools"},
+    "workspace": {"$ref": "#/$defs/workspace"},
+    "github": {"$ref": "#/$defs/github"},
+    "queries": {"type": "array", "items": {"$ref": "#/$defs/query"}}
+  },
+  "allOf": [
+    {"if": {"properties": {"result": {"const": "pass"}}}, "then": {"properties": {"queries": {"not": {"contains": {"properties": {"ok": {"const": false}}, "required": ["ok"]}}}}}},
+    {"if": {"properties": {"result": {"const": "partial"}}}, "then": {"properties": {"queries": {"allOf": [{"contains": {"properties": {"scope": {"const": "github"}, "ok": {"const": false}}, "required": ["scope", "ok"]}}, {"not": {"contains": {"properties": {"ok": {"const": false}, "scope": {"not": {"const": "github"}}}, "required": ["scope", "ok"]}}}]}}}},
+    {"if": {"properties": {"result": {"const": "fail"}}}, "then": {"properties": {"queries": {"contains": {"properties": {"ok": {"const": false}, "scope": {"enum": ["local", "invariant", "schema"]}}, "required": ["scope", "ok"]}}}}}
+  ],
+  "$defs": {
+    "nullableString": {"type": ["string", "null"]},
+    "sha": {"type": ["string", "null"], "pattern": "^[0-9a-f]{40}$"},
+    "uri": {"type": ["string", "null"], "format": "uri"},
+    "stringArray": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "repository": {
+      "type": "object", "additionalProperties": false,
+      "required": ["root", "full_name", "remote_name", "origin_fetch_urls", "origin_push_urls", "branch", "head", "origin_main", "remote_main", "upstream", "remote_feature_sha"],
+      "properties": {
+        "root": {"$ref": "#/$defs/nullableString"}, "full_name": {"const": "Navandis/idle-death"}, "remote_name": {"const": "origin"},
+        "origin_fetch_urls": {"type": "array", "items": {"const": "https://github.com/Navandis/idle-death"}, "uniqueItems": true},
+        "origin_push_urls": {"type": "array", "items": {"const": "https://github.com/Navandis/idle-death"}, "uniqueItems": true},
+        "branch": {"$ref": "#/$defs/nullableString"}, "head": {"$ref": "#/$defs/sha"}, "origin_main": {"$ref": "#/$defs/sha"}, "remote_main": {"$ref": "#/$defs/sha"}, "upstream": {"$ref": "#/$defs/nullableString"}, "remote_feature_sha": {"$ref": "#/$defs/sha"}
+      },
+      "allOf": [{"if": {"properties": {"branch": {"const": "main"}}}, "then": {"properties": {"remote_feature_sha": {"type": "null"}}}}]
+    },
+    "tools": {"type": "object", "additionalProperties": false, "required": ["git_path", "git_version", "gh_path", "gh_version"], "properties": {"git_path": {"$ref": "#/$defs/nullableString"}, "git_version": {"$ref": "#/$defs/nullableString"}, "gh_path": {"$ref": "#/$defs/nullableString"}, "gh_version": {"$ref": "#/$defs/nullableString"}}},
+    "workspace": {"type": "object", "additionalProperties": false, "required": ["status_entries", "staged_paths", "publish_request_present", "index_lock_path", "index_lock_present"], "properties": {"status_entries": {"$ref": "#/$defs/stringArray"}, "staged_paths": {"$ref": "#/$defs/stringArray"}, "publish_request_present": {"type": "boolean"}, "index_lock_path": {"$ref": "#/$defs/nullableString"}, "index_lock_present": {"type": "boolean"}}},
+    "pullRequest": {"type": "object", "additionalProperties": false, "required": ["number", "url", "state", "draft", "mergeable", "base_ref", "head_ref", "head_sha", "author", "labels", "auto_merge"], "properties": {"number": {"type": ["integer", "null"], "minimum": 1}, "url": {"$ref": "#/$defs/uri"}, "state": {"$ref": "#/$defs/nullableString"}, "draft": {"type": ["boolean", "null"]}, "mergeable": {"type": ["boolean", "null"]}, "base_ref": {"$ref": "#/$defs/nullableString"}, "head_ref": {"$ref": "#/$defs/nullableString"}, "head_sha": {"$ref": "#/$defs/sha"}, "author": {"$ref": "#/$defs/nullableString"}, "labels": {"$ref": "#/$defs/stringArray"}, "auto_merge": {"type": ["boolean", "null"]}}},
+    "checkRun": {"type": "object", "additionalProperties": false, "required": ["id", "name", "status", "conclusion", "app_id", "app_name", "app_slug", "details_url"], "properties": {"id": {"type": ["integer", "null"]}, "name": {"$ref": "#/$defs/nullableString"}, "status": {"$ref": "#/$defs/nullableString"}, "conclusion": {"$ref": "#/$defs/nullableString"}, "app_id": {"type": ["integer", "null"]}, "app_name": {"$ref": "#/$defs/nullableString"}, "app_slug": {"$ref": "#/$defs/nullableString"}, "details_url": {"$ref": "#/$defs/uri"}}},
+    "workflowRun": {"type": "object", "additionalProperties": false, "required": ["id", "name", "number", "attempt", "event", "status", "conclusion", "head_branch", "head_sha", "url"], "properties": {"id": {"type": ["integer", "null"]}, "name": {"$ref": "#/$defs/nullableString"}, "number": {"type": ["integer", "null"]}, "attempt": {"type": ["integer", "null"]}, "event": {"$ref": "#/$defs/nullableString"}, "status": {"$ref": "#/$defs/nullableString"}, "conclusion": {"$ref": "#/$defs/nullableString"}, "head_branch": {"$ref": "#/$defs/nullableString"}, "head_sha": {"$ref": "#/$defs/sha"}, "url": {"$ref": "#/$defs/uri"}}},
+    "reviewThread": {"type": "object", "additionalProperties": false, "required": ["id", "is_resolved", "is_outdated", "path", "line"], "properties": {"id": {"type": "string", "minLength": 1}, "is_resolved": {"type": "boolean"}, "is_outdated": {"type": "boolean"}, "path": {"$ref": "#/$defs/nullableString"}, "line": {"type": ["integer", "null"], "minimum": 1}}},
+    "github": {
+      "type": "object", "additionalProperties": false, "required": ["login", "matching_pr_count", "pull_request", "check_runs", "workflow_runs", "review_threads"],
+      "properties": {"login": {"$ref": "#/$defs/nullableString"}, "matching_pr_count": {"type": "integer", "minimum": 0, "maximum": 1}, "pull_request": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/pullRequest"}]}, "check_runs": {"type": "array", "items": {"$ref": "#/$defs/checkRun"}}, "workflow_runs": {"type": "array", "items": {"$ref": "#/$defs/workflowRun"}}, "review_threads": {"type": "object", "additionalProperties": false, "required": ["total_count", "unresolved_count", "items"], "properties": {"total_count": {"type": "integer", "minimum": 0}, "unresolved_count": {"type": "integer", "minimum": 0}, "items": {"type": "array", "items": {"$ref": "#/$defs/reviewThread"}}}}},
+      "allOf": [{"if": {"properties": {"pull_request": {"type": "null"}}}, "then": {"properties": {"matching_pr_count": {"const": 0}}}, "else": {"properties": {"matching_pr_count": {"const": 1}}}}]
+    },
+    "query": {"type": "object", "additionalProperties": false, "required": ["scope", "name", "ok", "exit_code", "error"], "properties": {"scope": {"enum": ["local", "github", "invariant", "schema"]}, "name": {"type": "string", "minLength": 1}, "ok": {"type": "boolean"}, "exit_code": {"type": ["integer", "null"], "minimum": -2147483648, "maximum": 2147483647}, "error": {"type": ["string", "null"], "minLength": 1, "maxLength": 512}}, "allOf": [{"if": {"properties": {"ok": {"const": true}}}, "then": {"properties": {"error": {"type": "null"}}}, "else": {"properties": {"error": {"type": "string", "minLength": 1, "maxLength": 512}}}}]}
+  }
+}
