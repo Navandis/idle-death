@@ -38,6 +38,10 @@ Run the dependency-free offline verification on Windows with:
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\tools\codex\tests\test_workflow_state_primitives.ps1"
 ```
 
-The test uses synthetic values, validates both `PSCustomObject` and a `StringComparer.Ordinal` dictionary, covers the scalar one-item-array bypass matrix, and statically inspects the production library for process, output, filesystem, console, and environment-write behavior.
+Before dot-sourcing the production library, the test parses it and applies a narrow load-safety guard. The guard rejects exit statements, executable top-level statements, external or dynamically selected commands, dot-sourcing, member-assignment targets, namespace imports, type definitions, and file redirection. It permits only direct calls between functions defined in that same source.
+
+Every successful public `Assert-*` function is checked for zero success-stream output. Existing behavioral cases also check representative caller-owned `PSCustomObject` values and nested arrays, ordinal dictionary entries, ordinal-unique arrays, and sorted-unique arrays for non-mutation. The advertised behavioral totals are equality-asserted before the PASS line.
+
+This test is not a general-purpose .NET purity analyzer and does not mechanically prove the absence of every possible process, filesystem, network, environment, credential, or other .NET side effect. Broader production purity remains an explicit requirement enforced by source review and may later receive a separately owned analyzer.
 
 10E1B will compose these primitives into the public workflow-state document contract and JSON Schema. 10E1C will compose them into constructors and guaranteed envelopes. Neither later responsibility is implemented here.

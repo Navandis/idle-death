@@ -6,8 +6,6 @@ $script:acceptance_count = 0
 $script:rejection_count = 0
 $script:sensitive_count = 0
 $script:bypass_count = 0
-$script:purity_acceptance_count = 0
-$script:purity_rejection_count = 0
 
 function Test-Accepts {
     param([string]$Name, [scriptblock]$Action)
@@ -58,13 +56,11 @@ function Test-Sensitive {
     $script:sensitive_count += 1
 }
 
-function Test-ProductionPuritySource {
+function Test-ProductionLoadSafety {
     <#
-    Parses candidate production source without invoking it. The candidate is
-    accepted only when every structural primitive used by the current library
-    has an exact, literal policy entry below. This fail-closed oracle is test
-    infrastructure: it owns no production behavior and never evaluates the
-    candidate source it inspects.
+    Parses production source without executing it and permits only a
+    function-library load surface. This is deliberately not a general-purpose
+    .NET purity analyzer; source review retains that broader responsibility.
     #>
     param([string]$Source)
 
@@ -72,288 +68,119 @@ function Test-ProductionPuritySource {
     $parse_errors = $null
     $ast = [System.Management.Automation.Language.Parser]::ParseInput($Source, [ref]$tokens, [ref]$parse_errors)
     if ($parse_errors.Count -ne 0) {
-        throw 'Purity failed: source contains parser errors.'
+        throw 'Load safety failed: source contains parser errors.'
     }
 
-    $policy = Get-ProductionPurityPolicy
+    # Dot-sourcing is the first execution boundary. Only definitions may occur
+    # at root scope, so no top-level expression can run during the later load.
+    foreach ($statement in $ast.EndBlock.Statements) {
+        if ($statement -isnot [System.Management.Automation.Language.FunctionDefinitionAst]) {
+            throw "Load safety failed: top-level executable statement '$($statement.Extent.Text)' is not a function definition."
+        }
+    }
 
-    # Commands are safe only when they resolve to a function defined by this
-    # exact source. This excludes cmdlets, aliases, native commands, dot
-    # sourcing, and dynamic invocation without relying on command-name lists.
+    foreach ($rule in @(
+            @{ Name = 'exit statement'; Type = [System.Management.Automation.Language.ExitStatementAst] },
+            @{ Name = 'using statement'; Type = [System.Management.Automation.Language.UsingStatementAst] },
+            @{ Name = 'type definition'; Type = [System.Management.Automation.Language.TypeDefinitionAst] },
+            @{ Name = 'file redirection'; Type = [System.Management.Automation.Language.FileRedirectionAst] }
+        )) {
+        if ($ast.FindAll({ param($node) $node -is $rule.Type }.GetNewClosure(), $true).Count -ne 0) {
+            throw "Load safety failed: $($rule.Name) is not allowed."
+        }
+    }
+
     $defined_function_names = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
-    $function_definitions = $ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] }, $true)
-    foreach ($definition in $function_definitions) {
+    foreach ($definition in $ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] }, $true)) {
         [void]$defined_function_names.Add($definition.Name)
     }
 
-    $commands = $ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.CommandAst] }, $true)
-    foreach ($command in $commands) {
+    foreach ($command in $ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.CommandAst] }, $true)) {
         $command_name = $command.GetCommandName()
-        if (($null -eq $command_name) -or (-not $defined_function_names.Contains($command_name))) {
-            throw "Purity failed: command '$($command.Extent.Text)' is not a locally defined function."
+        if (($command.InvocationOperator -eq [System.Management.Automation.Language.TokenKind]::Dot) -or
+            ($null -eq $command_name) -or
+            (-not $defined_function_names.Contains($command_name))) {
+            throw "Load safety failed: command '$($command.Extent.Text)' is not a direct call to a local function."
         }
     }
 
-    # Namespace imports change how short type names bind. Rejecting every
-    # import keeps later type checks deterministic and makes the policy fail
-    # closed if a side-effecting type is imported behind a harmless-looking name.
-    $namespace_imports = $ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.UsingStatementAst] }, $true)
-    if ($namespace_imports.Count -ne 0) {
-        throw 'Purity failed: using statements are not allowed.'
-    }
-
-    $type_definitions = $ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.TypeDefinitionAst] }, $true)
-    if ($type_definitions.Count -ne 0) {
-        throw 'Purity failed: type definitions are not allowed.'
-    }
-
-    # TypeExpressionAst covers member receivers and TypeConstraintAst covers
-    # declarations. Both must match the literal set so an unreviewed type
-    # cannot enter through a parameter contract or a static member receiver.
-    $type_nodes = $ast.FindAll({
-            param($node)
-            ($node -is [System.Management.Automation.Language.TypeExpressionAst]) -or
-            ($node -is [System.Management.Automation.Language.TypeConstraintAst])
-        }, $true)
-    foreach ($type_node in $type_nodes) {
-        if (-not $policy.TypeNames.Contains($type_node.TypeName.FullName)) {
-            throw "Purity failed: type '$($type_node.TypeName.FullName)' is not allowlisted."
-        }
-    }
-
-    # Variables can name ambient state even when they are not environment-drive
-    # variables. The literal local/parameter set therefore rejects all unknown
-    # automatic variables and every drive-qualified path before it can be read.
-    $variable_nodes = $ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.VariableExpressionAst] }, $true)
-    foreach ($variable_node in $variable_nodes) {
-        if ($variable_node.VariablePath.IsDriveQualified) {
-            throw "Purity failed: drive-qualified variable '$($variable_node.VariablePath.UserPath)' is not allowed."
-        }
-
-        if (-not $policy.VariableNames.Contains($variable_node.VariablePath.UserPath)) {
-            throw "Purity failed: variable '$($variable_node.VariablePath.UserPath)' is not allowlisted."
-        }
-    }
-
-    # File redirection mutates or reads files outside the primitive value contract.
-    $redirections = $ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.FileRedirectionAst] }, $true)
-    if ($redirections.Count -ne 0) {
-        throw 'Purity failed: file redirection is not allowed.'
-    }
-
-    # Member names are safe only with their intended static type or exact local
-    # receiver expression. A name-only rule would accidentally approve a new
-    # side effect such as Path.GetTempFileName or string.Intern.
-    $member_nodes = $ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.MemberExpressionAst] }, $true)
-    foreach ($member_node in $member_nodes) {
-        $fingerprint = Get-ProductionPurityMemberFingerprint -MemberExpression $member_node
-        $allowed_members = if ($member_node -is [System.Management.Automation.Language.InvokeMemberExpressionAst]) {
-            $policy.InvocationFingerprints
-        }
-        else {
-            $policy.AccessFingerprints
-        }
-
-        if (-not $allowed_members.Contains($fingerprint)) {
-            throw "Purity failed: member '$fingerprint' is not allowlisted."
+    # A member-expression target would mutate caller-owned objects while still
+    # looking like an ordinary property access in a parser-only inspection.
+    foreach ($assignment in $ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.AssignmentStatementAst] }, $true)) {
+        if ($assignment.Left.FindAll({ param($node) $node -is [System.Management.Automation.Language.MemberExpressionAst] }, $true).Count -ne 0) {
+            throw "Load safety failed: member assignment '$($assignment.Extent.Text)' is not allowed."
         }
     }
 }
 
-function Get-ProductionPurityMemberFingerprint {
-    <#
-    Produces an ordinal policy key for one member AST. Static members identify
-    their declared receiver type; instance members identify their exact local
-    expression. Dynamic member names and receiver expressions fail before a
-    policy lookup because they cannot be reviewed as stable capabilities.
-    #>
-    param([System.Management.Automation.Language.MemberExpressionAst]$MemberExpression)
-
-    if ($MemberExpression.Member -isnot [System.Management.Automation.Language.StringConstantExpressionAst]) {
-        throw 'Purity failed: dynamically selected member name is not allowed.'
-    }
-
-    $operation = if ($MemberExpression -is [System.Management.Automation.Language.InvokeMemberExpressionAst]) {
-        'invoke'
-    }
-    else {
-        'access'
-    }
-    $member_name = $MemberExpression.Member.Value
-    $receiver = $MemberExpression.Expression
-
-    if ($receiver -is [System.Management.Automation.Language.TypeExpressionAst]) {
-        return ('static|{0}|{1}|{2}' -f $operation, $receiver.TypeName.FullName, $member_name)
-    }
-
-    if ($receiver -is [System.Management.Automation.Language.VariableExpressionAst]) {
-        return ('instance|{0}|${1}|{2}' -f $operation, $receiver.VariablePath.UserPath, $member_name)
-    }
-
-    if ($receiver -is [System.Management.Automation.Language.MemberExpressionAst]) {
-        return ('instance|{0}|{1}|{2}' -f $operation, $receiver.Extent.Text, $member_name)
-    }
-
-    throw "Purity failed: member receiver '$($receiver.Extent.Text)' is not allowlisted."
-}
-
-function Get-ProductionPurityPolicy {
-    <#
-    Returns the complete, literal policy for the checked-in production library.
-    These lists are intentionally written by hand and never learned from the
-    candidate source. Reviewers can compare each entry to the production AST.
-    #>
-    $type_names = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
-    foreach ($type_name in @(
-            'bool', 'byte', 'DateTime', 'Int16', 'Int32', 'Int64', 'object',
-            'pscustomobject', 'ref', 'sbyte', 'string', 'switch', 'System.Array',
-            'System.Collections.Generic.HashSet[string]', 'System.Collections.Generic.List[string]',
-            'System.Collections.IDictionary', 'System.Globalization.CultureInfo',
-            'System.Globalization.DateTimeStyles', 'System.StringComparer',
-            'System.StringComparison', 'System.Text.RegularExpressions.Regex',
-            'System.Text.RegularExpressions.RegexOptions', 'System.Uri', 'System.UriKind',
-            'UInt16', 'UInt32', 'void'
-        )) {
-        [void]$type_names.Add($type_name)
-    }
-
-    $invocation_fingerprints = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
-    foreach ($fingerprint in @(
-            'static|invoke|DateTime|TryParseExact',
-            'static|invoke|string|CompareOrdinal',
-            'static|invoke|string|Equals',
-            'static|invoke|string|IsNullOrWhiteSpace',
-            'static|invoke|System.Collections.Generic.HashSet[string]|new',
-            'static|invoke|System.Collections.Generic.List[string]|new',
-            'static|invoke|System.Text.RegularExpressions.Regex|IsMatch',
-            'static|invoke|System.Uri|TryCreate',
-            'instance|invoke|$Value|Contains',
-            'instance|invoke|$Value|GetEnumerator',
-            'instance|invoke|$Value|GetType',
-            'instance|invoke|$Value|IndexOf',
-            'instance|invoke|$actual|Add',
-            'instance|invoke|$actual|Contains',
-            'instance|invoke|$candidate|GetType',
-            'instance|invoke|$expected|Add',
-            'instance|invoke|$name|GetType',
-            'instance|invoke|$names|Add',
-            'instance|invoke|$names|ToArray',
-            'instance|invoke|$seen|Add'
-        )) {
-        [void]$invocation_fingerprints.Add($fingerprint)
-    }
-
-    $access_fingerprints = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
-    foreach ($fingerprint in @(
-            'static|access|DateTime|MinValue',
-            'static|access|Int64|MaxValue',
-            'static|access|Int64|MinValue',
-            'static|access|System.Globalization.CultureInfo|InvariantCulture',
-            'static|access|System.Globalization.DateTimeStyles|None',
-            'static|access|System.StringComparer|Ordinal',
-            'static|access|System.StringComparison|Ordinal',
-            'static|access|System.StringComparison|OrdinalIgnoreCase',
-            'static|access|System.Text.RegularExpressions.RegexOptions|CultureInvariant',
-            'static|access|System.Text.RegularExpressions.RegexOptions|IgnoreCase',
-            'static|access|System.UriKind|Absolute',
-            'instance|access|$Value|Length',
-            'instance|access|$Value|PSObject',
-            'instance|access|$Value|Rank',
-            'instance|access|$Value.PSObject|Properties',
-            'instance|access|$Candidates|Length',
-            'instance|access|$Candidates|Rank',
-            'instance|access|$ExpectedNames|Rank',
-            'instance|access|$actual|Count',
-            'instance|access|$entry|Key',
-            'instance|access|$entry|Value',
-            'instance|access|$expected|Count',
-            'instance|access|$property|Name',
-            'instance|access|$property|Value'
-        )) {
-        [void]$access_fingerprints.Add($fingerprint)
-    }
-
-    $variable_names = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
-    foreach ($variable_name in @(
-            'accepted', 'actual', 'AllowNull', 'candidate', 'Candidates', 'entry',
-            'expected', 'ExpectedNames', 'false', 'format', 'grammar', 'has_previous',
-            'integer_value', 'item', 'Literal', 'match_count', 'matched_value', 'Maximum',
-            'Minimum', 'name', 'Name', 'names', 'null', 'options', 'parsed', 'prefix', 'previous',
-            'property', 'RequireNonEmpty', 'RequireNonWhitespace', 'seen', 'term_options',
-            'true', 'type', 'uri', 'Value'
-        )) {
-        [void]$variable_names.Add($variable_name)
-    }
-
-    return [pscustomobject]@{
-        TypeNames = $type_names
-        InvocationFingerprints = $invocation_fingerprints
-        AccessFingerprints = $access_fingerprints
-        VariableNames = $variable_names
-    }
-}
-
-function Test-ProductionPurity {
-    <# Reads the checked-in library and delegates all source analysis to the in-memory oracle. #>
-    param([string]$LibraryPath)
-
-    $source = [System.IO.File]::ReadAllText($LibraryPath)
-    Test-ProductionPuritySource -Source $source
-}
-
-function Test-PurityAccepts {
-    <# Records a source snippet that the parser-only purity oracle must accept. #>
-    param([string]$Name, [scriptblock]$Action)
+function Test-LoadSafetyAccepts {
+    <# Runs a parser-only positive control without changing behavioral totals. #>
+    param([string]$Name, [string]$Source)
 
     try {
-        & $Action
+        Test-ProductionLoadSafety -Source $Source
     }
     catch {
-        throw "Purity acceptance failed: $Name. $($_.Exception.Message)"
+        throw "Load-safety acceptance failed: $Name. $($_.Exception.Message)"
     }
-
-    $script:purity_acceptance_count += 1
 }
 
-function Test-PurityRejects {
-    <# Records a source snippet that must fail parsing policy without being executed. #>
+function Test-LoadSafetyRejects {
+    <# Runs a parser-only negative control; Source is never evaluated. #>
     param([string]$Name, [string]$Source)
 
     $rejected = $false
     try {
-        Test-ProductionPuritySource -Source $Source
+        Test-ProductionLoadSafety -Source $Source
     }
     catch {
         $rejected = $true
     }
 
     if (-not $rejected) {
-        throw "Purity rejection failed: $Name."
+        throw "Load-safety rejection failed: $Name."
+    }
+}
+
+function Test-AssertAcceptsNoOutput {
+    <#
+    Invokes one successful production Assert-* action, requires an empty
+    success stream, and records exactly one existing behavioral acceptance.
+    Thrown production errors intentionally propagate to fail the test.
+    #>
+    param([string]$Name, [scriptblock]$Action)
+
+    $output = @(& $Action)
+    if ($output.Count -ne 0) {
+        throw "Assert no-output failed: $Name emitted $($output.Count) success-stream object(s)."
     }
 
-    $script:purity_rejection_count += 1
+    $script:acceptance_count += 1
+}
+
+function Test-AssertNoOutputRejects {
+    <# Proves the test helper detects a synthetic success-stream leak. #>
+    param([string]$Name, [scriptblock]$Action)
+
+    $rejected = $false
+    try {
+        Test-AssertAcceptsNoOutput -Name $Name -Action $Action
+    }
+    catch {
+        $rejected = $true
+    }
+
+    if (-not $rejected) {
+        throw "Assert no-output negative control failed: $Name."
+    }
 }
 
 try {
-    # Validate the production source before it can be evaluated. This ordering
-    # prevents a future top-level side effect from running when the oracle
-    # rejects a new capability.
-    Test-PurityAccepts 'actual production primitive library before dot-sourcing' {
-        Test-ProductionPurity -LibraryPath $library_path
-    }
+    # Validate the production source before it can be evaluated. This blocks a
+    # future load-time statement or command surface before dot-sourcing occurs.
+    $production_source = [System.IO.File]::ReadAllText($library_path)
+    Test-LoadSafetyAccepts -Name 'actual production primitive library before dot-sourcing' -Source $production_source
     . $library_path
-
-    # The policy constructor contains only literal entries. These checks make
-    # its intended closed surface and reported counts explicit in the test run.
-    $purity_policy = Get-ProductionPurityPolicy
-    Assert-TestTrue -Condition ($purity_policy.TypeNames.Count -eq 27) -Name 'literal type allowlist count'
-    Assert-TestTrue -Condition ($purity_policy.InvocationFingerprints.Count -eq 20) -Name 'literal invocation allowlist count'
-    Assert-TestTrue -Condition ($purity_policy.AccessFingerprints.Count -eq 24) -Name 'literal property allowlist count'
-    Assert-TestTrue -Condition ($purity_policy.VariableNames.Count -eq 36) -Name 'literal variable allowlist count'
-    Assert-TestTrue -Condition (-not $purity_policy.TypeNames.Contains('System.IO.Path')) -Name 'Path excluded from literal type allowlist'
-    Assert-TestTrue -Condition (-not $purity_policy.InvocationFingerprints.Contains('static|invoke|string|Intern')) -Name 'string Intern excluded from literal invocation allowlist'
-    Assert-TestTrue -Condition (-not $purity_policy.AccessFingerprints.Contains('static|access|DateTime|Now')) -Name 'DateTime Now excluded from literal property allowlist'
-    Assert-TestTrue -Condition (-not $purity_policy.VariableNames.Contains('PWD')) -Name 'PWD excluded from literal variable allowlist'
 
     $object_value = [pscustomobject]@{
         Alpha = 'value'
@@ -364,15 +191,19 @@ try {
     }
     $dictionary_value = [System.Collections.Generic.Dictionary[string, object]]::new([System.StringComparer]::Ordinal)
     $dictionary_value.Add('Alpha', 'dictionary value')
+    $dictionary_value.Add('alpha', 'different dictionary value')
 
-    Test-Accepts 'exact PSCustomObject property retrieval' {
+    Test-AssertAcceptsNoOutput 'exact PSCustomObject property retrieval' {
         Assert-TestTrue -Condition ((Get-WorkflowStateExactProperty -Value $object_value -Name 'Alpha') -eq 'value') -Name 'PSCustomObject exact property'
         Assert-TestTrue -Condition ((Get-WorkflowStatePropertyNames -Value $object_value) -contains 'Alpha') -Name 'PSCustomObject property names'
         Assert-WorkflowStateExactKeys -Value $object_value -ExpectedNames @('Alpha', 'nullable', 'empty', 'one', 'many')
+        Assert-TestTrue -Condition (($object_value.Alpha -eq 'value') -and ($object_value.many.Length -eq 2) -and ($object_value.many[0] -eq 'first') -and ($object_value.many[1] -eq 'second')) -Name 'PSCustomObject and nested array remain unchanged'
     }
     Test-Accepts 'exact case-sensitive dictionary property retrieval' {
         Assert-TestTrue -Condition ((Get-WorkflowStateExactProperty -Value $dictionary_value -Name 'Alpha') -eq 'dictionary value') -Name 'dictionary exact property'
-        Assert-WorkflowStateExactKeys -Value $dictionary_value -ExpectedNames @('Alpha')
+        Assert-TestTrue -Condition ((Get-WorkflowStateExactProperty -Value $dictionary_value -Name 'alpha') -eq 'different dictionary value') -Name 'dictionary lower-case exact property'
+        Assert-WorkflowStateExactKeys -Value $dictionary_value -ExpectedNames @('Alpha', 'alpha')
+        Assert-TestTrue -Condition (($dictionary_value['Alpha'] -eq 'dictionary value') -and ($dictionary_value['alpha'] -eq 'different dictionary value')) -Name 'case-sensitive dictionary remains unchanged'
     }
     Test-Accepts 'present null property' {
         Assert-TestTrue -Condition ($null -eq (Get-WorkflowStateExactProperty -Value $object_value -Name 'nullable')) -Name 'present null'
@@ -390,33 +221,56 @@ try {
         Assert-TestTrue -Condition (($value -is [array]) -and ($value.Length -eq 2)) -Name 'many-item array preservation'
     }
 
-    Test-Accepts 'nullable scalar string' { Assert-WorkflowStateScalarString -Value $null -AllowNull }
+    Test-AssertAcceptsNoOutput 'nullable scalar string' { Assert-WorkflowStateScalarString -Value $null -AllowNull }
     Test-Accepts 'nonempty scalar string' { Assert-WorkflowStateScalarString -Value 'valid' -RequireNonEmpty -RequireNonWhitespace }
-    Test-Accepts 'exact literal string' { Assert-WorkflowStateLiteralString -Value 'Literal' -Literal 'Literal' }
+    Test-AssertAcceptsNoOutput 'exact literal string' { Assert-WorkflowStateLiteralString -Value 'Literal' -Literal 'Literal' }
     foreach ($member in @('Alpha', 'Beta')) {
-        Test-Accepts "exact enum member $member" { Assert-WorkflowStateEnumString -Value $member -Candidates @('Alpha', 'Beta') }
+        if ($member -eq 'Alpha') {
+            Test-AssertAcceptsNoOutput "exact enum member $member" { Assert-WorkflowStateEnumString -Value $member -Candidates @('Alpha', 'Beta') }
+        }
+        else {
+            Test-Accepts "exact enum member $member" { Assert-WorkflowStateEnumString -Value $member -Candidates @('Alpha', 'Beta') }
+        }
     }
     Test-Accepts 'ordinal member rejects non-string by returning false' {
         Assert-TestTrue -Condition (-not (Test-WorkflowStateOrdinalMember -Value @( 'Alpha' ) -Candidates @('Alpha'))) -Name 'ordinal member array false'
     }
-    Test-Accepts 'true Boolean' { Assert-WorkflowStateBoolean -Value $true }
+    Test-AssertAcceptsNoOutput 'true Boolean' { Assert-WorkflowStateBoolean -Value $true }
     Test-Accepts 'false Boolean' { Assert-WorkflowStateBoolean -Value $false }
     foreach ($integer in @([sbyte]7, [byte]7, [Int16]7, [UInt16]7, [Int32]7, [UInt32]7, [Int64]7)) {
-        Test-Accepts "supported integral type $($integer.GetType().Name)" { Assert-WorkflowStateInteger -Value $integer }
+        if ($integer -is [sbyte]) {
+            Test-AssertAcceptsNoOutput "supported integral type $($integer.GetType().Name)" { Assert-WorkflowStateInteger -Value $integer }
+        }
+        else {
+            Test-Accepts "supported integral type $($integer.GetType().Name)" { Assert-WorkflowStateInteger -Value $integer }
+        }
     }
     Test-Accepts 'negative native exit value' { Assert-WorkflowStateInteger -Value ([Int32]-1073741819) }
-    Test-Accepts 'empty rank-one array' { Assert-WorkflowStateArray -Value @() }
+    Test-AssertAcceptsNoOutput 'empty rank-one array' { Assert-WorkflowStateArray -Value @() }
     Test-Accepts 'one-item rank-one array' { Assert-WorkflowStateArray -Value @('item') }
     Test-Accepts 'many-item rank-one array' { Assert-WorkflowStateArray -Value @('first', 'second') }
-    Test-Accepts 'absolute HTTPS URI' { Assert-WorkflowStateAbsoluteUri -Value 'https://example.test/path' }
-    Test-Accepts 'lowercase SHA' { Assert-WorkflowStateSha -Value '0123456789abcdef0123456789abcdef01234567' }
+    Test-AssertAcceptsNoOutput 'absolute HTTPS URI' { Assert-WorkflowStateAbsoluteUri -Value 'https://example.test/path' }
+    Test-AssertAcceptsNoOutput 'lowercase SHA' { Assert-WorkflowStateSha -Value '0123456789abcdef0123456789abcdef01234567' }
     Test-Accepts 'nullable SHA' { Assert-WorkflowStateSha -Value $null -AllowNull }
     foreach ($timestamp in @('2024-01-02T03:04:05Z', '2024-01-02T03:04:05.1Z', '2024-01-02T03:04:05.1234567Z', '2024-02-29T03:04:05Z')) {
-        Test-Accepts "canonical timestamp $timestamp" { Assert-WorkflowStateCanonicalUtcTimestamp -Value $timestamp }
+        if ($timestamp -eq '2024-01-02T03:04:05Z') {
+            Test-AssertAcceptsNoOutput "canonical timestamp $timestamp" { Assert-WorkflowStateCanonicalUtcTimestamp -Value $timestamp }
+        }
+        else {
+            Test-Accepts "canonical timestamp $timestamp" { Assert-WorkflowStateCanonicalUtcTimestamp -Value $timestamp }
+        }
     }
-    Test-Accepts 'unsorted ordinal unique strings' { Assert-WorkflowStateOrdinalUniqueStrings -Value @('Zulu', 'Alpha') }
+    Test-AssertAcceptsNoOutput 'unsorted ordinal unique strings' {
+        $caller_value = @('Zulu', 'Alpha')
+        Assert-WorkflowStateOrdinalUniqueStrings -Value $caller_value
+        Assert-TestTrue -Condition (($caller_value.Length -eq 2) -and ($caller_value[0] -eq 'Zulu') -and ($caller_value[1] -eq 'Alpha')) -Name 'ordinal-unique input remains unchanged'
+    }
     Test-Accepts 'case-distinct ordinal unique strings' { Assert-WorkflowStateOrdinalUniqueStrings -Value @('Alpha', 'alpha') }
-    Test-Accepts 'correctly sorted ordinal strings' { Assert-WorkflowStateSortedUniqueStrings -Value @('Alpha', 'Zulu', 'alpha') }
+    Test-AssertAcceptsNoOutput 'correctly sorted ordinal strings' {
+        $caller_value = @('Alpha', 'Zulu', 'alpha')
+        Assert-WorkflowStateSortedUniqueStrings -Value $caller_value
+        Assert-TestTrue -Condition (($caller_value.Length -eq 3) -and ($caller_value[0] -eq 'Alpha') -and ($caller_value[1] -eq 'Zulu') -and ($caller_value[2] -eq 'alpha')) -Name 'sorted-unique input remains unchanged'
+    }
     Test-Sensitive -Name 'ordinary diagnostic is not sensitive' -Value 'offline query returned no workflow records' -Expected $false
     Test-Sensitive -Name 'null diagnostic is not sensitive' -Value $null -Expected $false
 
@@ -500,69 +354,33 @@ try {
     Test-Sensitive -Name 'standalone token text' -Value 'token value' -Expected $true
     Test-Sensitive -Name 'hosts.yml indicator' -Value 'hosts.yml could not be read' -Expected $true
 
-    # These sources are parsed only. They prove that the test-only purity oracle
-    # rejects side effects and accepts the library's narrow, pure .NET surface.
-    Test-PurityAccepts 'local function calling local function' {
-        Test-ProductionPuritySource -Source "function Invoke-Local { return }`nfunction Invoke-Caller { Invoke-Local }"
-    }
-    Test-PurityAccepts 'string Equals' { Test-ProductionPuritySource -Source "[string]::Equals('a', 'a')" }
-    Test-PurityAccepts 'generic List constructor' { Test-ProductionPuritySource -Source '[System.Collections.Generic.List[string]]::new()' }
-    Test-PurityAccepts 'Regex IsMatch' { Test-ProductionPuritySource -Source "[System.Text.RegularExpressions.Regex]::IsMatch('a', 'a')" }
-    Test-PurityAccepts 'StringComparer Ordinal property' { Test-ProductionPuritySource -Source '[System.StringComparer]::Ordinal' }
-    Test-PurityAccepts 'CultureInfo InvariantCulture property' { Test-ProductionPuritySource -Source '[System.Globalization.CultureInfo]::InvariantCulture' }
-    Test-PurityAccepts 'Int64 MinValue property' { Test-ProductionPuritySource -Source '[Int64]::MinValue' }
-    Test-PurityAccepts 'DateTime MinValue property' { Test-ProductionPuritySource -Source '[DateTime]::MinValue' }
-    Test-PurityAccepts 'UriKind Absolute property' { Test-ProductionPuritySource -Source '[System.UriKind]::Absolute' }
-
-    foreach ($purity_rejection in @(
-            @{ Name = 'dynamic command invocation'; Source = '& $cmd' },
-            @{ Name = 'literal dynamic git invocation'; Source = "& 'git' status" },
-            @{ Name = 'git command'; Source = 'git status' },
-            @{ Name = 'gh command'; Source = 'gh api user' },
-            @{ Name = 'curl alias'; Source = 'curl https://example.test' },
-            @{ Name = 'wget alias'; Source = 'wget https://example.test' },
-            @{ Name = 'iwr alias'; Source = 'iwr https://example.test' },
-            @{ Name = 'irm alias'; Source = 'irm https://example.test' },
-            @{ Name = 'whoami command'; Source = 'whoami' },
-            @{ Name = 'Console shorthand'; Source = "[Console]::WriteLine('x')" },
-            @{ Name = 'System.Console'; Source = "[System.Console]::WriteLine('x')" },
-            @{ Name = 'IO.File shorthand'; Source = "[IO.File]::WriteAllText('x', 'y')" },
-            @{ Name = 'System.IO.File'; Source = "[System.IO.File]::ReadAllText('x')" },
-            @{ Name = 'Diagnostics.Process shorthand'; Source = "[Diagnostics.Process]::Start('x')" },
-            @{ Name = 'System.Diagnostics.Process'; Source = "[System.Diagnostics.Process]::Start('x')" },
-            @{ Name = 'Environment shorthand'; Source = "[Environment]::GetEnvironmentVariable('TEMP')" },
-            @{ Name = 'Net.WebClient shorthand'; Source = '[Net.WebClient]::new()' },
-            @{ Name = 'System.Net.NetworkCredential'; Source = "[System.Net.NetworkCredential]::new('u', 'p')" },
-            @{ Name = 'namespace import'; Source = "using namespace System.IO`n[File]::WriteAllText('x', 'y')" },
-            @{ Name = 'environment variable read'; Source = '$env:TEMP' },
-            @{ Name = 'file redirection'; Source = "'x' > output.txt" },
-            @{ Name = 'Write-Information command'; Source = "Write-Information 'x'" },
-            @{ Name = 'unknown receiver denied member'; Source = '$value.DownloadString()' },
-            @{ Name = 'allowlist self-check unknown type Path temporary-file creation'; Source = '[System.IO.Path]::GetTempFileName()' },
-            @{ Name = 'Path temporary-directory lookup'; Source = '[System.IO.Path]::GetTempPath()' },
-            @{ Name = 'Path static property'; Source = '[System.IO.Path]::DirectorySeparatorChar' },
-            @{ Name = 'Dns host-address lookup'; Source = "[System.Net.Dns]::GetHostAddresses('example.test')" },
-            @{ Name = 'Assembly LoadFrom'; Source = "[System.Reflection.Assembly]::LoadFrom('example.dll')" },
-            @{ Name = 'allowlist self-check unknown static property DateTime Now'; Source = '[DateTime]::Now' },
-            @{ Name = 'DateTime UtcNow'; Source = '[DateTime]::UtcNow' },
-            @{ Name = 'CultureInfo CurrentCulture'; Source = '[System.Globalization.CultureInfo]::CurrentCulture' },
-            @{ Name = 'StringComparer CurrentCulture'; Source = '[System.StringComparer]::CurrentCulture' },
-            @{ Name = 'allowlist self-check unknown static invocation string Intern'; Source = "[string]::Intern('x')" },
-            @{ Name = 'PWD ambient variable'; Source = '$PWD' },
-            @{ Name = 'HOME ambient variable'; Source = '$HOME' },
-            @{ Name = 'PID ambient variable'; Source = '$PID' },
-            @{ Name = 'PSVersionTable ambient variable'; Source = '$PSVersionTable' },
-            @{ Name = 'ExecutionContext ambient variable'; Source = '$ExecutionContext' },
-            @{ Name = 'Path type constraint'; Source = 'param([System.IO.Path]$Value)' },
-            @{ Name = 'unapproved member on approved local receiver'; Source = '$Value.ToString()' },
-            @{ Name = 'class type definition'; Source = 'class Example {}' },
-            @{ Name = 'unknown static property on approved type'; Source = '[DateTime]::Today' },
-            @{ Name = 'unknown static invocation on approved type'; Source = "[string]::Concat('x', 'y')" }
+    # Synthetic controls are parsed only. They specifically protect the
+    # dot-source boundary and avoid claiming to analyze arbitrary .NET members.
+    Test-LoadSafetyAccepts -Name 'local function calling local function' -Source "function Invoke-Local { return }`nfunction Invoke-Caller { Invoke-Local }"
+    Test-LoadSafetyAccepts -Name 'ordinary local-variable assignment' -Source 'function Set-Local { $value = $null }'
+    foreach ($load_safety_rejection in @(
+            @{ Name = 'top-level exit'; Source = 'exit 0' },
+            @{ Name = 'exit inside function'; Source = 'function Stop-Local { exit 0 }' },
+            @{ Name = 'member assignment'; Source = 'function Set-Property { $property.Value = $null }' },
+            @{ Name = 'external command'; Source = 'function Invoke-External { Get-ChildItem }' },
+            @{ Name = 'dynamically selected command'; Source = 'function Invoke-Dynamic { & $command }' },
+            @{ Name = 'dot sourcing'; Source = 'function Import-Other { . ./other.ps1 }' },
+            @{ Name = 'top-level expression'; Source = '$value = $null' },
+            @{ Name = 'namespace import'; Source = "using namespace System.IO`nfunction Invoke-Local { return }" },
+            @{ Name = 'type definition'; Source = 'class Example {}' },
+            @{ Name = 'file redirection'; Source = "function Write-File { 'x' > output.txt }" }
         )) {
-        Test-PurityRejects -Name $purity_rejection.Name -Source $purity_rejection.Source
+        Test-LoadSafetyRejects -Name $load_safety_rejection.Name -Source $load_safety_rejection.Source
     }
 
-    [Console]::WriteLine("PASS workflow_state_primitives acceptance=$script:acceptance_count rejection=$script:rejection_count sensitive=$script:sensitive_count bypass=$script:bypass_count purity_acceptance=$script:purity_acceptance_count purity_rejection=$script:purity_rejection_count allowed_types=$($purity_policy.TypeNames.Count) allowed_invocations=$($purity_policy.InvocationFingerprints.Count) allowed_properties=$($purity_policy.AccessFingerprints.Count) allowed_variables=$($purity_policy.VariableNames.Count) purity=PASS")
+    Test-AssertNoOutputRejects -Name 'synthetic success-stream leak' -Action { [pscustomobject]@{ leaked = $true } }
+
+    Assert-TestTrue -Condition ($script:acceptance_count -eq 35) -Name 'acceptance count'
+    Assert-TestTrue -Condition ($script:rejection_count -eq 61) -Name 'rejection count'
+    Assert-TestTrue -Condition ($script:sensitive_count -eq 24) -Name 'sensitive count'
+    Assert-TestTrue -Condition ($script:bypass_count -eq 5) -Name 'bypass count'
+
+    [Console]::WriteLine("PASS workflow_state_primitives acceptance=$script:acceptance_count rejection=$script:rejection_count sensitive=$script:sensitive_count bypass=$script:bypass_count load_safety=PASS assert_no_output=PASS mutation=PASS")
     exit 0
 }
 catch {
