@@ -71,6 +71,20 @@ function Test-ProductionLoadSafety {
         throw 'Load safety failed: source contains parser errors.'
     }
 
+    # Root named blocks execute while the library is dot-sourced. The
+    # production library is a function-only surface, so reject every root
+    # block other than EndBlock before inspecting its statements.
+    foreach ($root_block in @(
+            @{ Name = 'parameter block'; Value = $ast.ParamBlock },
+            @{ Name = 'dynamicparam block'; Value = $ast.DynamicParamBlock },
+            @{ Name = 'begin block'; Value = $ast.BeginBlock },
+            @{ Name = 'process block'; Value = $ast.ProcessBlock }
+        )) {
+        if ($null -ne $root_block.Value) {
+            throw "Load safety failed: root $($root_block.Name) is not allowed."
+        }
+    }
+
     # Dot-sourcing is the first execution boundary. Only definitions may occur
     # at root scope, so no top-level expression can run during the later load.
     foreach ($statement in $ast.EndBlock.Statements) {
@@ -358,7 +372,13 @@ try {
     # dot-source boundary and avoid claiming to analyze arbitrary .NET members.
     Test-LoadSafetyAccepts -Name 'local function calling local function' -Source "function Invoke-Local { return }`nfunction Invoke-Caller { Invoke-Local }"
     Test-LoadSafetyAccepts -Name 'ordinary local-variable assignment' -Source 'function Set-Local { $value = $null }'
+    Test-LoadSafetyAccepts -Name 'function-local parameter block' -Source 'function Invoke-Local { param([string]$Value) return }'
     foreach ($load_safety_rejection in @(
+            @{ Name = 'empty root parameter block'; Source = "param()`nfunction Invoke-Local { return }" },
+            @{ Name = 'root parameter executable default'; Source = "param(`$x = [Console]::WriteLine('load-time output'))`nfunction Invoke-Local { return }" },
+            @{ Name = 'root dynamicparam block'; Source = "dynamicparam { 1 }`nend { function Invoke-Local { return } }" },
+            @{ Name = 'root begin block'; Source = "begin { `$null = `$null }`nend { function Invoke-Local { return } }" },
+            @{ Name = 'root process block'; Source = "process { `$null = `$null }`nend { function Invoke-Local { return } }" },
             @{ Name = 'top-level exit'; Source = 'exit 0' },
             @{ Name = 'exit inside function'; Source = 'function Stop-Local { exit 0 }' },
             @{ Name = 'member assignment'; Source = 'function Set-Property { $property.Value = $null }' },
