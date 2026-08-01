@@ -1,7 +1,6 @@
 param()
 
 $library_path = Join-Path $PSScriptRoot '..\workflow_state_primitives.ps1'
-. $library_path
 
 $script:acceptance_count = 0
 $script:rejection_count = 0
@@ -61,10 +60,11 @@ function Test-Sensitive {
 
 function Test-ProductionPuritySource {
     <#
-    Parses source without invoking it and rejects constructs that would let the
-    structural-primitive library observe, mutate, or execute outside input
-    validation. This is intentionally a closed-world policy: a production
-    library may call only a function that it defines in the same source text.
+    Parses candidate production source without invoking it. The candidate is
+    accepted only when every structural primitive used by the current library
+    has an exact, literal policy entry below. This fail-closed oracle is test
+    infrastructure: it owns no production behavior and never evaluates the
+    candidate source it inspects.
     #>
     param([string]$Source)
 
@@ -74,6 +74,8 @@ function Test-ProductionPuritySource {
     if ($parse_errors.Count -ne 0) {
         throw 'Purity failed: source contains parser errors.'
     }
+
+    $policy = Get-ProductionPurityPolicy
 
     # Commands are safe only when they resolve to a function defined by this
     # exact source. This excludes cmdlets, aliases, native commands, dot
@@ -100,78 +102,194 @@ function Test-ProductionPuritySource {
         throw 'Purity failed: using statements are not allowed.'
     }
 
-    $forbidden_type_names = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
-    foreach ($type_name in @(
-            'Console', 'System.Console',
-            'IO.File', 'System.IO.File',
-            'IO.Directory', 'System.IO.Directory',
-            'IO.FileInfo', 'System.IO.FileInfo',
-            'IO.DirectoryInfo', 'System.IO.DirectoryInfo',
-            'IO.FileStream', 'System.IO.FileStream',
-            'IO.StreamReader', 'System.IO.StreamReader',
-            'IO.StreamWriter', 'System.IO.StreamWriter',
-            'Diagnostics.Process', 'System.Diagnostics.Process',
-            'Environment', 'System.Environment',
-            'Net.WebClient', 'System.Net.WebClient',
-            'Net.Http.HttpClient', 'System.Net.Http.HttpClient',
-            'Net.NetworkCredential', 'System.Net.NetworkCredential',
-            'Management.Automation.PSCredential', 'System.Management.Automation.PSCredential',
-            'Microsoft.Win32.Registry', 'Microsoft.Win32.RegistryKey'
-        )) {
-        [void]$forbidden_type_names.Add($type_name)
+    $type_definitions = $ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.TypeDefinitionAst] }, $true)
+    if ($type_definitions.Count -ne 0) {
+        throw 'Purity failed: type definitions are not allowed.'
     }
 
-    # TypeExpressionAst covers member receivers such as [IO.File]. TypeConstraintAst
-    # covers declarations such as param([IO.File]$Value); both must obey the
-    # same policy so a forbidden type cannot enter through a parameter contract.
+    # TypeExpressionAst covers member receivers and TypeConstraintAst covers
+    # declarations. Both must match the literal set so an unreviewed type
+    # cannot enter through a parameter contract or a static member receiver.
     $type_nodes = $ast.FindAll({
             param($node)
             ($node -is [System.Management.Automation.Language.TypeExpressionAst]) -or
             ($node -is [System.Management.Automation.Language.TypeConstraintAst])
         }, $true)
     foreach ($type_node in $type_nodes) {
-        if ($forbidden_type_names.Contains($type_node.TypeName.FullName)) {
-            throw "Purity failed: forbidden type '$($type_node.TypeName.FullName)'."
+        if (-not $policy.TypeNames.Contains($type_node.TypeName.FullName)) {
+            throw "Purity failed: type '$($type_node.TypeName.FullName)' is not allowlisted."
         }
     }
 
-    # Environment variables are ambient process state, including reads. File
-    # redirection mutates or reads files outside the primitive value contract.
+    # Variables can name ambient state even when they are not environment-drive
+    # variables. The literal local/parameter set therefore rejects all unknown
+    # automatic variables and every drive-qualified path before it can be read.
     $variable_nodes = $ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.VariableExpressionAst] }, $true)
     foreach ($variable_node in $variable_nodes) {
-        if ($variable_node.VariablePath.UserPath -match '^(?i:env):') {
-            throw "Purity failed: environment variable '$($variable_node.VariablePath.UserPath)' is not allowed."
+        if ($variable_node.VariablePath.IsDriveQualified) {
+            throw "Purity failed: drive-qualified variable '$($variable_node.VariablePath.UserPath)' is not allowed."
+        }
+
+        if (-not $policy.VariableNames.Contains($variable_node.VariablePath.UserPath)) {
+            throw "Purity failed: variable '$($variable_node.VariablePath.UserPath)' is not allowlisted."
         }
     }
+
+    # File redirection mutates or reads files outside the primitive value contract.
     $redirections = $ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.FileRedirectionAst] }, $true)
     if ($redirections.Count -ne 0) {
         throw 'Purity failed: file redirection is not allowed.'
     }
 
-    # Static calls on approved types remain valid (for example [string]::Equals).
-    # Reject a side-effecting name on either a dynamic receiver or an otherwise
-    # unknown static type. This is AST-based, so comments and string literals
-    # cannot trigger it.
-    $forbidden_member_names = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
-    foreach ($member_name in @(
-            'Write', 'WriteLine', 'WriteAllText', 'WriteAllBytes', 'AppendAllText',
-            'Delete', 'Move', 'Copy', 'Create', 'CreateDirectory', 'OpenWrite',
-            'CreateText', 'AppendText', 'Start', 'SetEnvironmentVariable',
-            'DownloadString', 'DownloadFile', 'UploadString', 'Send', 'SendAsync',
-            'Invoke', 'InvokeMember', 'CreateInstance'
-        )) {
-        [void]$forbidden_member_names.Add($member_name)
-    }
-    $member_invocations = $ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.InvokeMemberExpressionAst] }, $true)
-    foreach ($member_invocation in $member_invocations) {
-        if ($member_invocation.Member -is [System.Management.Automation.Language.StringConstantExpressionAst]) {
-            if ($forbidden_member_names.Contains($member_invocation.Member.Value)) {
-                throw "Purity failed: forbidden member '$($member_invocation.Member.Value)' on an unknown receiver."
-            }
+    # Member names are safe only with their intended static type or exact local
+    # receiver expression. A name-only rule would accidentally approve a new
+    # side effect such as Path.GetTempFileName or string.Intern.
+    $member_nodes = $ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.MemberExpressionAst] }, $true)
+    foreach ($member_node in $member_nodes) {
+        $fingerprint = Get-ProductionPurityMemberFingerprint -MemberExpression $member_node
+        $allowed_members = if ($member_node -is [System.Management.Automation.Language.InvokeMemberExpressionAst]) {
+            $policy.InvocationFingerprints
         }
         else {
-            throw 'Purity failed: dynamically selected member name is not allowed.'
+            $policy.AccessFingerprints
         }
+
+        if (-not $allowed_members.Contains($fingerprint)) {
+            throw "Purity failed: member '$fingerprint' is not allowlisted."
+        }
+    }
+}
+
+function Get-ProductionPurityMemberFingerprint {
+    <#
+    Produces an ordinal policy key for one member AST. Static members identify
+    their declared receiver type; instance members identify their exact local
+    expression. Dynamic member names and receiver expressions fail before a
+    policy lookup because they cannot be reviewed as stable capabilities.
+    #>
+    param([System.Management.Automation.Language.MemberExpressionAst]$MemberExpression)
+
+    if ($MemberExpression.Member -isnot [System.Management.Automation.Language.StringConstantExpressionAst]) {
+        throw 'Purity failed: dynamically selected member name is not allowed.'
+    }
+
+    $operation = if ($MemberExpression -is [System.Management.Automation.Language.InvokeMemberExpressionAst]) {
+        'invoke'
+    }
+    else {
+        'access'
+    }
+    $member_name = $MemberExpression.Member.Value
+    $receiver = $MemberExpression.Expression
+
+    if ($receiver -is [System.Management.Automation.Language.TypeExpressionAst]) {
+        return ('static|{0}|{1}|{2}' -f $operation, $receiver.TypeName.FullName, $member_name)
+    }
+
+    if ($receiver -is [System.Management.Automation.Language.VariableExpressionAst]) {
+        return ('instance|{0}|${1}|{2}' -f $operation, $receiver.VariablePath.UserPath, $member_name)
+    }
+
+    if ($receiver -is [System.Management.Automation.Language.MemberExpressionAst]) {
+        return ('instance|{0}|{1}|{2}' -f $operation, $receiver.Extent.Text, $member_name)
+    }
+
+    throw "Purity failed: member receiver '$($receiver.Extent.Text)' is not allowlisted."
+}
+
+function Get-ProductionPurityPolicy {
+    <#
+    Returns the complete, literal policy for the checked-in production library.
+    These lists are intentionally written by hand and never learned from the
+    candidate source. Reviewers can compare each entry to the production AST.
+    #>
+    $type_names = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+    foreach ($type_name in @(
+            'bool', 'byte', 'DateTime', 'Int16', 'Int32', 'Int64', 'object',
+            'pscustomobject', 'ref', 'sbyte', 'string', 'switch', 'System.Array',
+            'System.Collections.Generic.HashSet[string]', 'System.Collections.Generic.List[string]',
+            'System.Collections.IDictionary', 'System.Globalization.CultureInfo',
+            'System.Globalization.DateTimeStyles', 'System.StringComparer',
+            'System.StringComparison', 'System.Text.RegularExpressions.Regex',
+            'System.Text.RegularExpressions.RegexOptions', 'System.Uri', 'System.UriKind',
+            'UInt16', 'UInt32', 'void'
+        )) {
+        [void]$type_names.Add($type_name)
+    }
+
+    $invocation_fingerprints = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+    foreach ($fingerprint in @(
+            'static|invoke|DateTime|TryParseExact',
+            'static|invoke|string|CompareOrdinal',
+            'static|invoke|string|Equals',
+            'static|invoke|string|IsNullOrWhiteSpace',
+            'static|invoke|System.Collections.Generic.HashSet[string]|new',
+            'static|invoke|System.Collections.Generic.List[string]|new',
+            'static|invoke|System.Text.RegularExpressions.Regex|IsMatch',
+            'static|invoke|System.Uri|TryCreate',
+            'instance|invoke|$Value|Contains',
+            'instance|invoke|$Value|GetEnumerator',
+            'instance|invoke|$Value|GetType',
+            'instance|invoke|$Value|IndexOf',
+            'instance|invoke|$actual|Add',
+            'instance|invoke|$actual|Contains',
+            'instance|invoke|$candidate|GetType',
+            'instance|invoke|$expected|Add',
+            'instance|invoke|$name|GetType',
+            'instance|invoke|$names|Add',
+            'instance|invoke|$names|ToArray',
+            'instance|invoke|$seen|Add'
+        )) {
+        [void]$invocation_fingerprints.Add($fingerprint)
+    }
+
+    $access_fingerprints = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+    foreach ($fingerprint in @(
+            'static|access|DateTime|MinValue',
+            'static|access|Int64|MaxValue',
+            'static|access|Int64|MinValue',
+            'static|access|System.Globalization.CultureInfo|InvariantCulture',
+            'static|access|System.Globalization.DateTimeStyles|None',
+            'static|access|System.StringComparer|Ordinal',
+            'static|access|System.StringComparison|Ordinal',
+            'static|access|System.StringComparison|OrdinalIgnoreCase',
+            'static|access|System.Text.RegularExpressions.RegexOptions|CultureInvariant',
+            'static|access|System.Text.RegularExpressions.RegexOptions|IgnoreCase',
+            'static|access|System.UriKind|Absolute',
+            'instance|access|$Value|Length',
+            'instance|access|$Value|PSObject',
+            'instance|access|$Value|Rank',
+            'instance|access|$Value.PSObject|Properties',
+            'instance|access|$Candidates|Length',
+            'instance|access|$Candidates|Rank',
+            'instance|access|$ExpectedNames|Rank',
+            'instance|access|$actual|Count',
+            'instance|access|$entry|Key',
+            'instance|access|$entry|Value',
+            'instance|access|$expected|Count',
+            'instance|access|$property|Name',
+            'instance|access|$property|Value'
+        )) {
+        [void]$access_fingerprints.Add($fingerprint)
+    }
+
+    $variable_names = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+    foreach ($variable_name in @(
+            'accepted', 'actual', 'AllowNull', 'candidate', 'Candidates', 'entry',
+            'expected', 'ExpectedNames', 'false', 'format', 'grammar', 'has_previous',
+            'integer_value', 'item', 'Literal', 'match_count', 'matched_value', 'Maximum',
+            'Minimum', 'name', 'Name', 'names', 'null', 'options', 'parsed', 'prefix', 'previous',
+            'property', 'RequireNonEmpty', 'RequireNonWhitespace', 'seen', 'term_options',
+            'true', 'type', 'uri', 'Value'
+        )) {
+        [void]$variable_names.Add($variable_name)
+    }
+
+    return [pscustomobject]@{
+        TypeNames = $type_names
+        InvocationFingerprints = $invocation_fingerprints
+        AccessFingerprints = $access_fingerprints
+        VariableNames = $variable_names
     }
 }
 
@@ -217,6 +335,26 @@ function Test-PurityRejects {
 }
 
 try {
+    # Validate the production source before it can be evaluated. This ordering
+    # prevents a future top-level side effect from running when the oracle
+    # rejects a new capability.
+    Test-PurityAccepts 'actual production primitive library before dot-sourcing' {
+        Test-ProductionPurity -LibraryPath $library_path
+    }
+    . $library_path
+
+    # The policy constructor contains only literal entries. These checks make
+    # its intended closed surface and reported counts explicit in the test run.
+    $purity_policy = Get-ProductionPurityPolicy
+    Assert-TestTrue -Condition ($purity_policy.TypeNames.Count -eq 27) -Name 'literal type allowlist count'
+    Assert-TestTrue -Condition ($purity_policy.InvocationFingerprints.Count -eq 20) -Name 'literal invocation allowlist count'
+    Assert-TestTrue -Condition ($purity_policy.AccessFingerprints.Count -eq 24) -Name 'literal property allowlist count'
+    Assert-TestTrue -Condition ($purity_policy.VariableNames.Count -eq 36) -Name 'literal variable allowlist count'
+    Assert-TestTrue -Condition (-not $purity_policy.TypeNames.Contains('System.IO.Path')) -Name 'Path excluded from literal type allowlist'
+    Assert-TestTrue -Condition (-not $purity_policy.InvocationFingerprints.Contains('static|invoke|string|Intern')) -Name 'string Intern excluded from literal invocation allowlist'
+    Assert-TestTrue -Condition (-not $purity_policy.AccessFingerprints.Contains('static|access|DateTime|Now')) -Name 'DateTime Now excluded from literal property allowlist'
+    Assert-TestTrue -Condition (-not $purity_policy.VariableNames.Contains('PWD')) -Name 'PWD excluded from literal variable allowlist'
+
     $object_value = [pscustomobject]@{
         Alpha = 'value'
         nullable = $null
@@ -364,13 +502,17 @@ try {
 
     # These sources are parsed only. They prove that the test-only purity oracle
     # rejects side effects and accepts the library's narrow, pure .NET surface.
-    Test-PurityAccepts 'actual production primitive library' { Test-ProductionPurity -LibraryPath $library_path }
     Test-PurityAccepts 'local function calling local function' {
         Test-ProductionPuritySource -Source "function Invoke-Local { return }`nfunction Invoke-Caller { Invoke-Local }"
     }
     Test-PurityAccepts 'string Equals' { Test-ProductionPuritySource -Source "[string]::Equals('a', 'a')" }
     Test-PurityAccepts 'generic List constructor' { Test-ProductionPuritySource -Source '[System.Collections.Generic.List[string]]::new()' }
     Test-PurityAccepts 'Regex IsMatch' { Test-ProductionPuritySource -Source "[System.Text.RegularExpressions.Regex]::IsMatch('a', 'a')" }
+    Test-PurityAccepts 'StringComparer Ordinal property' { Test-ProductionPuritySource -Source '[System.StringComparer]::Ordinal' }
+    Test-PurityAccepts 'CultureInfo InvariantCulture property' { Test-ProductionPuritySource -Source '[System.Globalization.CultureInfo]::InvariantCulture' }
+    Test-PurityAccepts 'Int64 MinValue property' { Test-ProductionPuritySource -Source '[Int64]::MinValue' }
+    Test-PurityAccepts 'DateTime MinValue property' { Test-ProductionPuritySource -Source '[DateTime]::MinValue' }
+    Test-PurityAccepts 'UriKind Absolute property' { Test-ProductionPuritySource -Source '[System.UriKind]::Absolute' }
 
     foreach ($purity_rejection in @(
             @{ Name = 'dynamic command invocation'; Source = '& $cmd' },
@@ -395,12 +537,32 @@ try {
             @{ Name = 'environment variable read'; Source = '$env:TEMP' },
             @{ Name = 'file redirection'; Source = "'x' > output.txt" },
             @{ Name = 'Write-Information command'; Source = "Write-Information 'x'" },
-            @{ Name = 'unknown receiver denied member'; Source = '$value.DownloadString()' }
+            @{ Name = 'unknown receiver denied member'; Source = '$value.DownloadString()' },
+            @{ Name = 'allowlist self-check unknown type Path temporary-file creation'; Source = '[System.IO.Path]::GetTempFileName()' },
+            @{ Name = 'Path temporary-directory lookup'; Source = '[System.IO.Path]::GetTempPath()' },
+            @{ Name = 'Path static property'; Source = '[System.IO.Path]::DirectorySeparatorChar' },
+            @{ Name = 'Dns host-address lookup'; Source = "[System.Net.Dns]::GetHostAddresses('example.test')" },
+            @{ Name = 'Assembly LoadFrom'; Source = "[System.Reflection.Assembly]::LoadFrom('example.dll')" },
+            @{ Name = 'allowlist self-check unknown static property DateTime Now'; Source = '[DateTime]::Now' },
+            @{ Name = 'DateTime UtcNow'; Source = '[DateTime]::UtcNow' },
+            @{ Name = 'CultureInfo CurrentCulture'; Source = '[System.Globalization.CultureInfo]::CurrentCulture' },
+            @{ Name = 'StringComparer CurrentCulture'; Source = '[System.StringComparer]::CurrentCulture' },
+            @{ Name = 'allowlist self-check unknown static invocation string Intern'; Source = "[string]::Intern('x')" },
+            @{ Name = 'PWD ambient variable'; Source = '$PWD' },
+            @{ Name = 'HOME ambient variable'; Source = '$HOME' },
+            @{ Name = 'PID ambient variable'; Source = '$PID' },
+            @{ Name = 'PSVersionTable ambient variable'; Source = '$PSVersionTable' },
+            @{ Name = 'ExecutionContext ambient variable'; Source = '$ExecutionContext' },
+            @{ Name = 'Path type constraint'; Source = 'param([System.IO.Path]$Value)' },
+            @{ Name = 'unapproved member on approved local receiver'; Source = '$Value.ToString()' },
+            @{ Name = 'class type definition'; Source = 'class Example {}' },
+            @{ Name = 'unknown static property on approved type'; Source = '[DateTime]::Today' },
+            @{ Name = 'unknown static invocation on approved type'; Source = "[string]::Concat('x', 'y')" }
         )) {
         Test-PurityRejects -Name $purity_rejection.Name -Source $purity_rejection.Source
     }
 
-    [Console]::WriteLine("PASS workflow_state_primitives acceptance=$script:acceptance_count rejection=$script:rejection_count sensitive=$script:sensitive_count bypass=$script:bypass_count purity_acceptance=$script:purity_acceptance_count purity_rejection=$script:purity_rejection_count purity=PASS")
+    [Console]::WriteLine("PASS workflow_state_primitives acceptance=$script:acceptance_count rejection=$script:rejection_count sensitive=$script:sensitive_count bypass=$script:bypass_count purity_acceptance=$script:purity_acceptance_count purity_rejection=$script:purity_rejection_count allowed_types=$($purity_policy.TypeNames.Count) allowed_invocations=$($purity_policy.InvocationFingerprints.Count) allowed_properties=$($purity_policy.AccessFingerprints.Count) allowed_variables=$($purity_policy.VariableNames.Count) purity=PASS")
     exit 0
 }
 catch {
