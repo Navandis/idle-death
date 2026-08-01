@@ -7,6 +7,8 @@ $script:acceptance_count = 0
 $script:rejection_count = 0
 $script:sensitive_count = 0
 $script:bypass_count = 0
+$script:purity_acceptance_count = 0
+$script:purity_rejection_count = 0
 
 function Test-Accepts {
     param([string]$Name, [scriptblock]$Action)
@@ -57,37 +59,161 @@ function Test-Sensitive {
     $script:sensitive_count += 1
 }
 
-function Test-ProductionPurity {
-    param([string]$LibraryPath)
+function Test-ProductionPuritySource {
+    <#
+    Parses source without invoking it and rejects constructs that would let the
+    structural-primitive library observe, mutate, or execute outside input
+    validation. This is intentionally a closed-world policy: a production
+    library may call only a function that it defines in the same source text.
+    #>
+    param([string]$Source)
 
     $tokens = $null
     $parse_errors = $null
-    $ast = [System.Management.Automation.Language.Parser]::ParseFile($LibraryPath, [ref]$tokens, [ref]$parse_errors)
-    Assert-TestTrue -Condition ($parse_errors.Count -eq 0) -Name 'library parser validation'
+    $ast = [System.Management.Automation.Language.Parser]::ParseInput($Source, [ref]$tokens, [ref]$parse_errors)
+    if ($parse_errors.Count -ne 0) {
+        throw 'Purity failed: source contains parser errors.'
+    }
 
-    $forbidden_commands = @(
-        'git', 'gh', 'Start-Process', 'Invoke-Expression', 'Invoke-WebRequest',
-        'Invoke-RestMethod', 'Write-Host', 'Write-Output', 'Write-Error', 'Write-Warning'
-    )
+    # Commands are safe only when they resolve to a function defined by this
+    # exact source. This excludes cmdlets, aliases, native commands, dot
+    # sourcing, and dynamic invocation without relying on command-name lists.
+    $defined_function_names = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    $function_definitions = $ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] }, $true)
+    foreach ($definition in $function_definitions) {
+        [void]$defined_function_names.Add($definition.Name)
+    }
+
     $commands = $ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.CommandAst] }, $true)
     foreach ($command in $commands) {
         $command_name = $command.GetCommandName()
-        if (($null -ne $command_name) -and ($forbidden_commands -contains $command_name)) {
-            throw "Purity failed: forbidden command '$command_name'."
+        if (($null -eq $command_name) -or (-not $defined_function_names.Contains($command_name))) {
+            throw "Purity failed: command '$($command.Extent.Text)' is not a locally defined function."
         }
     }
 
-    $source = [System.IO.File]::ReadAllText($LibraryPath)
-    $forbidden_patterns = @(
-        '(?im)\$env:[A-Za-z_][A-Za-z0-9_]*\s*=',
-        '(?im)\[System\.IO\.(File|Directory|FileInfo|DirectoryInfo)\]',
-        '(?im)\[System\.Console\]'
-    )
-    foreach ($pattern in $forbidden_patterns) {
-        if ([System.Text.RegularExpressions.Regex]::IsMatch($source, $pattern)) {
-            throw 'Purity failed: forbidden direct side-effect pattern.'
+    # Namespace imports change how short type names bind. Rejecting every
+    # import keeps later type checks deterministic and makes the policy fail
+    # closed if a side-effecting type is imported behind a harmless-looking name.
+    $namespace_imports = $ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.UsingStatementAst] }, $true)
+    if ($namespace_imports.Count -ne 0) {
+        throw 'Purity failed: using statements are not allowed.'
+    }
+
+    $forbidden_type_names = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($type_name in @(
+            'Console', 'System.Console',
+            'IO.File', 'System.IO.File',
+            'IO.Directory', 'System.IO.Directory',
+            'IO.FileInfo', 'System.IO.FileInfo',
+            'IO.DirectoryInfo', 'System.IO.DirectoryInfo',
+            'IO.FileStream', 'System.IO.FileStream',
+            'IO.StreamReader', 'System.IO.StreamReader',
+            'IO.StreamWriter', 'System.IO.StreamWriter',
+            'Diagnostics.Process', 'System.Diagnostics.Process',
+            'Environment', 'System.Environment',
+            'Net.WebClient', 'System.Net.WebClient',
+            'Net.Http.HttpClient', 'System.Net.Http.HttpClient',
+            'Net.NetworkCredential', 'System.Net.NetworkCredential',
+            'Management.Automation.PSCredential', 'System.Management.Automation.PSCredential',
+            'Microsoft.Win32.Registry', 'Microsoft.Win32.RegistryKey'
+        )) {
+        [void]$forbidden_type_names.Add($type_name)
+    }
+
+    # TypeExpressionAst covers member receivers such as [IO.File]. TypeConstraintAst
+    # covers declarations such as param([IO.File]$Value); both must obey the
+    # same policy so a forbidden type cannot enter through a parameter contract.
+    $type_nodes = $ast.FindAll({
+            param($node)
+            ($node -is [System.Management.Automation.Language.TypeExpressionAst]) -or
+            ($node -is [System.Management.Automation.Language.TypeConstraintAst])
+        }, $true)
+    foreach ($type_node in $type_nodes) {
+        if ($forbidden_type_names.Contains($type_node.TypeName.FullName)) {
+            throw "Purity failed: forbidden type '$($type_node.TypeName.FullName)'."
         }
     }
+
+    # Environment variables are ambient process state, including reads. File
+    # redirection mutates or reads files outside the primitive value contract.
+    $variable_nodes = $ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.VariableExpressionAst] }, $true)
+    foreach ($variable_node in $variable_nodes) {
+        if ($variable_node.VariablePath.UserPath -match '^(?i:env):') {
+            throw "Purity failed: environment variable '$($variable_node.VariablePath.UserPath)' is not allowed."
+        }
+    }
+    $redirections = $ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.FileRedirectionAst] }, $true)
+    if ($redirections.Count -ne 0) {
+        throw 'Purity failed: file redirection is not allowed.'
+    }
+
+    # Static calls on approved types remain valid (for example [string]::Equals).
+    # Reject a side-effecting name on either a dynamic receiver or an otherwise
+    # unknown static type. This is AST-based, so comments and string literals
+    # cannot trigger it.
+    $forbidden_member_names = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($member_name in @(
+            'Write', 'WriteLine', 'WriteAllText', 'WriteAllBytes', 'AppendAllText',
+            'Delete', 'Move', 'Copy', 'Create', 'CreateDirectory', 'OpenWrite',
+            'CreateText', 'AppendText', 'Start', 'SetEnvironmentVariable',
+            'DownloadString', 'DownloadFile', 'UploadString', 'Send', 'SendAsync',
+            'Invoke', 'InvokeMember', 'CreateInstance'
+        )) {
+        [void]$forbidden_member_names.Add($member_name)
+    }
+    $member_invocations = $ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.InvokeMemberExpressionAst] }, $true)
+    foreach ($member_invocation in $member_invocations) {
+        if ($member_invocation.Member -is [System.Management.Automation.Language.StringConstantExpressionAst]) {
+            if ($forbidden_member_names.Contains($member_invocation.Member.Value)) {
+                throw "Purity failed: forbidden member '$($member_invocation.Member.Value)' on an unknown receiver."
+            }
+        }
+        else {
+            throw 'Purity failed: dynamically selected member name is not allowed.'
+        }
+    }
+}
+
+function Test-ProductionPurity {
+    <# Reads the checked-in library and delegates all source analysis to the in-memory oracle. #>
+    param([string]$LibraryPath)
+
+    $source = [System.IO.File]::ReadAllText($LibraryPath)
+    Test-ProductionPuritySource -Source $source
+}
+
+function Test-PurityAccepts {
+    <# Records a source snippet that the parser-only purity oracle must accept. #>
+    param([string]$Name, [scriptblock]$Action)
+
+    try {
+        & $Action
+    }
+    catch {
+        throw "Purity acceptance failed: $Name. $($_.Exception.Message)"
+    }
+
+    $script:purity_acceptance_count += 1
+}
+
+function Test-PurityRejects {
+    <# Records a source snippet that must fail parsing policy without being executed. #>
+    param([string]$Name, [string]$Source)
+
+    $rejected = $false
+    try {
+        Test-ProductionPuritySource -Source $Source
+    }
+    catch {
+        $rejected = $true
+    }
+
+    if (-not $rejected) {
+        throw "Purity rejection failed: $Name."
+    }
+
+    $script:purity_rejection_count += 1
 }
 
 try {
@@ -236,8 +362,45 @@ try {
     Test-Sensitive -Name 'standalone token text' -Value 'token value' -Expected $true
     Test-Sensitive -Name 'hosts.yml indicator' -Value 'hosts.yml could not be read' -Expected $true
 
-    Test-ProductionPurity -LibraryPath $library_path
-    [Console]::WriteLine("PASS workflow_state_primitives acceptance=$script:acceptance_count rejection=$script:rejection_count sensitive=$script:sensitive_count bypass=$script:bypass_count purity=PASS")
+    # These sources are parsed only. They prove that the test-only purity oracle
+    # rejects side effects and accepts the library's narrow, pure .NET surface.
+    Test-PurityAccepts 'actual production primitive library' { Test-ProductionPurity -LibraryPath $library_path }
+    Test-PurityAccepts 'local function calling local function' {
+        Test-ProductionPuritySource -Source "function Invoke-Local { return }`nfunction Invoke-Caller { Invoke-Local }"
+    }
+    Test-PurityAccepts 'string Equals' { Test-ProductionPuritySource -Source "[string]::Equals('a', 'a')" }
+    Test-PurityAccepts 'generic List constructor' { Test-ProductionPuritySource -Source '[System.Collections.Generic.List[string]]::new()' }
+    Test-PurityAccepts 'Regex IsMatch' { Test-ProductionPuritySource -Source "[System.Text.RegularExpressions.Regex]::IsMatch('a', 'a')" }
+
+    foreach ($purity_rejection in @(
+            @{ Name = 'dynamic command invocation'; Source = '& $cmd' },
+            @{ Name = 'literal dynamic git invocation'; Source = "& 'git' status" },
+            @{ Name = 'git command'; Source = 'git status' },
+            @{ Name = 'gh command'; Source = 'gh api user' },
+            @{ Name = 'curl alias'; Source = 'curl https://example.test' },
+            @{ Name = 'wget alias'; Source = 'wget https://example.test' },
+            @{ Name = 'iwr alias'; Source = 'iwr https://example.test' },
+            @{ Name = 'irm alias'; Source = 'irm https://example.test' },
+            @{ Name = 'whoami command'; Source = 'whoami' },
+            @{ Name = 'Console shorthand'; Source = "[Console]::WriteLine('x')" },
+            @{ Name = 'System.Console'; Source = "[System.Console]::WriteLine('x')" },
+            @{ Name = 'IO.File shorthand'; Source = "[IO.File]::WriteAllText('x', 'y')" },
+            @{ Name = 'System.IO.File'; Source = "[System.IO.File]::ReadAllText('x')" },
+            @{ Name = 'Diagnostics.Process shorthand'; Source = "[Diagnostics.Process]::Start('x')" },
+            @{ Name = 'System.Diagnostics.Process'; Source = "[System.Diagnostics.Process]::Start('x')" },
+            @{ Name = 'Environment shorthand'; Source = "[Environment]::GetEnvironmentVariable('TEMP')" },
+            @{ Name = 'Net.WebClient shorthand'; Source = '[Net.WebClient]::new()' },
+            @{ Name = 'System.Net.NetworkCredential'; Source = "[System.Net.NetworkCredential]::new('u', 'p')" },
+            @{ Name = 'namespace import'; Source = "using namespace System.IO`n[File]::WriteAllText('x', 'y')" },
+            @{ Name = 'environment variable read'; Source = '$env:TEMP' },
+            @{ Name = 'file redirection'; Source = "'x' > output.txt" },
+            @{ Name = 'Write-Information command'; Source = "Write-Information 'x'" },
+            @{ Name = 'unknown receiver denied member'; Source = '$value.DownloadString()' }
+        )) {
+        Test-PurityRejects -Name $purity_rejection.Name -Source $purity_rejection.Source
+    }
+
+    [Console]::WriteLine("PASS workflow_state_primitives acceptance=$script:acceptance_count rejection=$script:rejection_count sensitive=$script:sensitive_count bypass=$script:bypass_count purity_acceptance=$script:purity_acceptance_count purity_rejection=$script:purity_rejection_count purity=PASS")
     exit 0
 }
 catch {
