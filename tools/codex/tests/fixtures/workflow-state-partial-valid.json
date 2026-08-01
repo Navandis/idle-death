@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "tool": "verify_workflow_state",
+  "generated_at_utc": "2026-08-01T12:00:00.0000000Z",
+  "result": "partial",
+  "repository": {"root": "C:\\synthetic\\idle-death", "full_name": "Navandis/idle-death", "origin_url": "https://github.com/Navandis/idle-death", "branch": "codex/example", "head": "3333333333333333333333333333333333333333", "origin_main": "1111111111111111111111111111111111111111", "remote_main": null, "upstream": null, "remote_feature_sha": null},
+  "tools": {"git_path": "git.exe", "git_version": "git version 2.50.0", "gh_path": "gh.exe", "gh_version": "gh version 2.80.0"},
+  "workspace": {"status_entries": [], "staged_paths": [], "publish_request_present": false, "index_lock_present": false},
+  "github": {"login": "navandis-automation", "matching_pr_count": 0, "pull_request": null, "check_runs": [], "workflow_runs": [], "review_threads": {"total_count": 0, "unresolved_count": 0, "items": []}},
+  "queries": [{"name": "github.remote_main", "ok": false, "exit_code": 1, "error": "GitHub query failed (exit code 1)."}, {"name": "local.head", "ok": true, "exit_code": 0, "error": null}]
+}
