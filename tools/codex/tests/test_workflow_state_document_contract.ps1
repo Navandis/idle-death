@@ -130,7 +130,15 @@ try {
     $representative = New-Fixture 'workflow-state-pass-valid.json'
     Assert-NoOutput -Name 'representative mutation proof' -Document $representative
     $after = $representative | ConvertTo-Json -Depth 20
-    Assert-TestTrue -Condition ((ConvertFrom-Json $before | ConvertTo-Json -Depth 20) -eq $after) -Name 'successful assertion does not mutate input'
+    $before_snapshot = ConvertFrom-Json $before | ConvertTo-Json -Depth 20
+    Assert-TestTrue -Condition ([string]::Equals($before_snapshot, $after, [System.StringComparison]::Ordinal)) -Name 'successful assertion does not mutate input'
+
+    $case_only_baseline = New-Fixture 'workflow-state-pass-valid.json'
+    $case_only_baseline_snapshot = $case_only_baseline | ConvertTo-Json -Depth 20
+    $case_only_mutation = New-Fixture 'workflow-state-pass-valid.json'
+    $case_only_mutation.github.pull_request.state = 'open'
+    $case_only_mutation_snapshot = $case_only_mutation | ConvertTo-Json -Depth 20
+    Assert-TestTrue -Condition (-not [string]::Equals($case_only_baseline_snapshot, $case_only_mutation_snapshot, [System.StringComparison]::Ordinal)) -Name 'ordinal mutation proof detects case-only change'
 
     Assert-TestTrue -Condition ($script:valid_count -eq 3) -Name 'exact valid fixture count'
     Assert-TestTrue -Condition ($script:acceptance_count -eq 5) -Name 'exact acceptance count'
