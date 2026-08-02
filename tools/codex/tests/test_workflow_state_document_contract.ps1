@@ -7,6 +7,7 @@ $fixture_directory = Join-Path $PSScriptRoot 'fixtures'
 $script:valid_count = 0
 $script:acceptance_count = 0
 $script:rejection_count = 0
+$script:schema_policy_mutation_count = 0
 
 function Assert-TestTrue {
     param([bool]$Condition, [string]$Name)
@@ -67,6 +68,84 @@ function Get-ConditionalCount {
     return $count
 }
 
+function Assert-ExactStringArray {
+    param([object]$Actual, [string[]]$Expected, [string]$Name)
+    $actual_values = @($Actual)
+    Assert-TestTrue -Condition ($actual_values.Count -eq $Expected.Count) -Name "$Name has the expected item count"
+    for ($index = 0; $index -lt $Expected.Count; $index += 1) {
+        Assert-TestTrue -Condition (($actual_values[$index] -is [string]) -and ($actual_values[$index] -ceq $Expected[$index])) -Name "$Name item $index matches exactly"
+    }
+}
+
+function Assert-WorkflowStateSchemaPolicies {
+    param([object]$Schema)
+
+    # The schema is parsed data here, rather than an executable validation
+    # engine. Inspect every predicate and consequence so a policy can neither
+    # disappear nor become a permissive placeholder without this test failing.
+    Assert-TestTrue -Condition ($Schema.allOf.Count -eq 3) -Name 'root owns exactly three result conditionals'
+    Assert-TestTrue -Condition ($Schema.'$defs'.repository.allOf.Count -eq 1) -Name 'repository owns exactly one conditional'
+    Assert-TestTrue -Condition ($Schema.'$defs'.github.allOf.Count -eq 1) -Name 'GitHub owns exactly one conditional'
+    Assert-TestTrue -Condition ($Schema.'$defs'.query.allOf.Count -eq 1) -Name 'query owns exactly one conditional'
+    Assert-TestTrue -Condition ((Get-ConditionalCount $Schema) -eq 6) -Name 'schema contains exactly six conditional-policy nodes'
+
+    $pass_policy = $Schema.allOf[0]
+    Assert-TestTrue -Condition ($pass_policy.if.properties.result.const -ceq 'pass') -Name 'pass predicate requires pass result'
+    Assert-TestTrue -Condition (($pass_policy.then.properties.queries.not.contains.properties.ok.const -is [bool]) -and ($pass_policy.then.properties.queries.not.contains.properties.ok.const -eq $false)) -Name 'pass rejects failed queries'
+    Assert-ExactStringArray -Actual $pass_policy.then.properties.queries.not.contains.required -Expected @('ok') -Name 'pass failed-query selector required fields'
+
+    $partial_policy = $Schema.allOf[1]
+    Assert-TestTrue -Condition ($partial_policy.if.properties.result.const -ceq 'partial') -Name 'partial predicate requires partial result'
+    $partial_positive = $partial_policy.then.properties.queries.contains
+    Assert-TestTrue -Condition ($partial_positive.properties.scope.const -ceq 'github') -Name 'partial requires a failed GitHub query'
+    Assert-TestTrue -Condition (($partial_positive.properties.ok.const -is [bool]) -and ($partial_positive.properties.ok.const -eq $false)) -Name 'partial GitHub query is failed'
+    Assert-ExactStringArray -Actual $partial_positive.required -Expected @('scope', 'ok') -Name 'partial positive selector required fields'
+    Assert-TestTrue -Condition ($partial_policy.then.properties.queries.allOf.Count -eq 1) -Name 'partial owns one non-GitHub exclusion branch'
+    $partial_exclusion = $partial_policy.then.properties.queries.allOf[0].not.contains
+    Assert-TestTrue -Condition ($partial_exclusion.properties.scope.not.const -ceq 'github') -Name 'partial excludes non-GitHub failed queries'
+    Assert-TestTrue -Condition (($partial_exclusion.properties.ok.const -is [bool]) -and ($partial_exclusion.properties.ok.const -eq $false)) -Name 'partial exclusion selects failed queries'
+    Assert-ExactStringArray -Actual $partial_exclusion.required -Expected @('scope', 'ok') -Name 'partial exclusion selector required fields'
+
+    $fail_policy = $Schema.allOf[2]
+    Assert-TestTrue -Condition ($fail_policy.if.properties.result.const -ceq 'fail') -Name 'fail predicate requires fail result'
+    $fail_query = $fail_policy.then.properties.queries.contains
+    Assert-ExactStringArray -Actual $fail_query.properties.scope.enum -Expected @('local', 'invariant', 'schema') -Name 'fail allowed failure scopes'
+    Assert-TestTrue -Condition (($fail_query.properties.ok.const -is [bool]) -and ($fail_query.properties.ok.const -eq $false)) -Name 'fail consequence requires a failed query'
+    Assert-ExactStringArray -Actual $fail_query.required -Expected @('scope', 'ok') -Name 'fail selector required fields'
+
+    $main_policy = $Schema.'$defs'.repository.allOf[0]
+    Assert-TestTrue -Condition ($main_policy.if.properties.branch.const -ceq 'main') -Name 'main predicate selects the main branch'
+    Assert-ExactStringArray -Actual $main_policy.if.required -Expected @('branch') -Name 'main predicate required fields'
+    Assert-TestTrue -Condition ($main_policy.then.properties.remote_feature_sha.type -ceq 'null') -Name 'main requires a null remote feature SHA'
+
+    $pull_request_policy = $Schema.'$defs'.github.allOf[0]
+    Assert-ExactStringArray -Actual $pull_request_policy.if.required -Expected @('pull_request') -Name 'pull-request predicate required fields'
+    Assert-TestTrue -Condition ($pull_request_policy.if.properties.pull_request.type -ceq 'null') -Name 'pull-request predicate selects null pull requests'
+    Assert-TestTrue -Condition (($pull_request_policy.then.properties.matching_pr_count.const -is [System.Int32]) -and ($pull_request_policy.then.properties.matching_pr_count.const -eq 0)) -Name 'null pull requests require count zero'
+    Assert-TestTrue -Condition (($pull_request_policy.else.properties.matching_pr_count.const -is [System.Int32]) -and ($pull_request_policy.else.properties.matching_pr_count.const -eq 1)) -Name 'identified pull requests require count one'
+
+    $query_policy = $Schema.'$defs'.query.allOf[0]
+    Assert-ExactStringArray -Actual $query_policy.if.required -Expected @('ok') -Name 'query predicate required fields'
+    Assert-TestTrue -Condition (($query_policy.if.properties.ok.const -is [bool]) -and ($query_policy.if.properties.ok.const -eq $true)) -Name 'query predicate selects successful queries'
+    Assert-TestTrue -Condition ($query_policy.then.properties.error.type -ceq 'null') -Name 'successful queries require null errors'
+    Assert-TestTrue -Condition ($query_policy.else.properties.error.type -ceq 'string') -Name 'failed queries require string errors'
+    Assert-TestTrue -Condition ($query_policy.else.properties.error.minLength -eq 1) -Name 'failed query errors require content'
+    Assert-TestTrue -Condition ($query_policy.else.properties.error.pattern -ceq '.*\S.*') -Name 'failed query errors require nonwhitespace content'
+}
+
+function Copy-WorkflowStateSchema {
+    param([object]$Schema)
+    return ($Schema | ConvertTo-Json -Depth 100 | ConvertFrom-Json)
+}
+
+function Test-SchemaPolicyRejects {
+    param([string]$Name, [scriptblock]$Action)
+    $rejected = $false
+    try { & $Action } catch { $rejected = $true }
+    if (-not $rejected) { throw "Schema-policy mutation was accepted: $Name." }
+    $script:schema_policy_mutation_count += 1
+}
+
 try {
     Test-Parser -Path $primitive_path
     Test-Parser -Path $contract_path
@@ -85,8 +164,13 @@ try {
     Assert-TestTrue -Condition ($schema.properties.generated_at_utc.pattern -eq '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]{1,7})?Z$') -Name 'canonical timestamp pattern'
     Assert-TestTrue -Condition (($schema.'$defs'.query.properties.exit_code.minimum -eq -2147483648) -and ($schema.'$defs'.query.properties.exit_code.maximum -eq 2147483647)) -Name 'signed Int32 query bounds'
     Assert-TestTrue -Condition ($schema.properties.queries.minItems -eq 1) -Name 'queries minimum item count'
-    Assert-TestTrue -Condition ((Get-ConditionalCount $schema) -eq 6) -Name 'six conditional-policy nodes'
-    Assert-TestTrue -Condition (($schema.allOf.Count -eq 3) -and ($schema.'$defs'.repository.allOf.Count -eq 1) -and ($schema.'$defs'.github.allOf.Count -eq 1) -and ($schema.'$defs'.query.allOf.Count -eq 1)) -Name 'conditional-policy owners'
+    Assert-WorkflowStateSchemaPolicies -Schema $schema
+    Test-SchemaPolicyRejects -Name 'pass consequence removed' -Action { $copy = Copy-WorkflowStateSchema $schema; $copy.allOf[0].then = [pscustomobject]@{}; Assert-WorkflowStateSchemaPolicies -Schema $copy }
+    Test-SchemaPolicyRejects -Name 'partial GitHub scope changed' -Action { $copy = Copy-WorkflowStateSchema $schema; $copy.allOf[1].then.properties.queries.contains.properties.scope.const = 'local'; Assert-WorkflowStateSchemaPolicies -Schema $copy }
+    Test-SchemaPolicyRejects -Name 'fail query success changed' -Action { $copy = Copy-WorkflowStateSchema $schema; $copy.allOf[2].then.properties.queries.contains.properties.ok.const = $true; Assert-WorkflowStateSchemaPolicies -Schema $copy }
+    Test-SchemaPolicyRejects -Name 'main remote feature SHA type changed' -Action { $copy = Copy-WorkflowStateSchema $schema; $copy.'$defs'.repository.allOf[0].then.properties.remote_feature_sha.type = 'string'; Assert-WorkflowStateSchemaPolicies -Schema $copy }
+    Test-SchemaPolicyRejects -Name 'null pull-request count changed' -Action { $copy = Copy-WorkflowStateSchema $schema; $copy.'$defs'.github.allOf[0].then.properties.matching_pr_count.const = 1; Assert-WorkflowStateSchemaPolicies -Schema $copy }
+    Test-SchemaPolicyRejects -Name 'successful query error type changed' -Action { $copy = Copy-WorkflowStateSchema $schema; $copy.'$defs'.query.allOf[0].then.properties.error.type = 'string'; Assert-WorkflowStateSchemaPolicies -Schema $copy }
     Assert-TestTrue -Condition (($schema.'$defs'.pull_request.properties.url.type -eq 'string') -and ($schema.'$defs'.pull_request.properties.head_sha.'$ref' -eq '#/$defs/sha') -and ($schema.'$defs'.pull_request.properties.number.minimum -eq 1)) -Name 'identifiable pull-request fields'
 
     $contract_source = [System.IO.File]::ReadAllText($contract_path)
@@ -120,8 +204,8 @@ try {
         Assert-TestTrue -Condition ($_.Exception.Message -match 'keys') -Name 'unknown-field fixture rejects only through exact keys'
     }
 
-    Test-Accepts -Name 'no-fraction canonical timestamp' -Action { Assert-NoOutput 'no-fraction timestamp' (New-Fixture 'workflow-state-pass-valid.json') }
-    Test-Accepts -Name 'seven-fraction canonical timestamp' -Action { Assert-NoOutput 'seven-fraction timestamp' (New-Fixture 'workflow-state-pass-valid.json') }
+    Test-Accepts -Name 'no-fraction canonical timestamp' -Action { $d = New-Fixture 'workflow-state-pass-valid.json'; $d.generated_at_utc = '2026-08-02T12:34:56Z'; Assert-NoOutput 'no-fraction timestamp' $d }
+    Test-Accepts -Name 'seven-fraction canonical timestamp' -Action { $d = New-Fixture 'workflow-state-pass-valid.json'; $d.generated_at_utc = '2026-08-02T12:34:56.1234567Z'; Assert-NoOutput 'seven-fraction timestamp' $d }
     Test-Accepts -Name 'case-distinct query names remain distinct' -Action { $d = New-Fixture 'workflow-state-pass-valid.json'; $d.queries[1].name = 'Status'; Assert-NoOutput 'case-distinct query names' $d }
     Test-Accepts -Name 'case-distinct thread IDs remain distinct' -Action { Assert-NoOutput 'case-distinct thread IDs' (New-Fixture 'workflow-state-pass-valid.json') }
     Test-Accepts -Name 'main permits null remote feature SHA' -Action { $d = New-Fixture 'workflow-state-fail-valid.json'; $d.repository.branch = 'main'; Assert-NoOutput 'main null remote feature SHA' $d }
@@ -172,7 +256,8 @@ try {
     Assert-TestTrue -Condition ($script:valid_count -eq 3) -Name 'exact valid fixture count'
     Assert-TestTrue -Condition ($script:acceptance_count -eq 5) -Name 'exact acceptance count'
     Assert-TestTrue -Condition ($script:rejection_count -eq 57) -Name 'exact rejection count'
-    Write-Output 'PASS workflow_state_document_contract valid=3 accepted=5 rejected=57 schema_shape=PASS primitive_composition=PASS assert_no_output=PASS mutation=PASS'
+    Assert-TestTrue -Condition ($script:schema_policy_mutation_count -eq 6) -Name 'exact schema-policy mutation rejection count'
+    Write-Output 'PASS workflow_state_document_contract valid=3 accepted=5 rejected=57 schema_conditionals=6 schema_policy_mutations=6 primitive_composition=PASS assert_no_output=PASS mutation=PASS'
 }
 catch {
     Write-Error $_.Exception.Message
