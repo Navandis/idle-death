@@ -1,0 +1,8 @@
+{
+  "schema_version": 1, "tool": "verify_workflow_state", "generated_at_utc": "2026-08-02T12:34:56.1Z", "result": "fail", "forbidden": true,
+  "repository": { "root": null, "full_name": "Navandis/idle-death", "remote_name": "origin", "origin_fetch_urls": [], "origin_push_urls": [], "branch": null, "head": null, "origin_main": null, "remote_main": null, "upstream": null, "remote_feature_sha": null },
+  "tools": { "git_path": null, "git_version": null, "gh_path": null, "gh_version": null },
+  "workspace": { "status_entries": [], "staged_paths": [], "publish_request_present": false, "index_lock_path": null, "index_lock_present": false },
+  "github": { "login": null, "matching_pr_count": 0, "pull_request": null, "check_runs": [], "workflow_runs": [], "review_threads": { "total_count": 0, "unresolved_count": 0, "items": [] } },
+  "queries": [{ "scope": "local", "name": "status", "ok": false, "exit_code": -2147483648, "error": "synthetic local failure" }]
+}
