@@ -103,6 +103,19 @@ try {
     Test-Rejects -Name 'partial local failure' -Action { $d = New-Fixture 'workflow-state-partial-valid.json'; $d.queries[0].ok = $false; $d.queries[0].error = 'synthetic'; Assert-WorkflowStateDocument $d }
     Test-Rejects -Name 'fail github-only failure' -Action { $d = New-Fixture 'workflow-state-partial-valid.json'; $d.result = 'fail'; Assert-WorkflowStateDocument $d }
     Test-Rejects -Name 'pull-request count contradiction' -Action { $d = New-Fixture 'workflow-state-pass-valid.json'; $d.github.matching_pr_count = 0; Assert-WorkflowStateDocument $d }
+    Test-Rejects -Name 'no pull request with review-thread evidence' -Action {
+        $d = New-Fixture 'workflow-state-fail-valid.json'
+        $d.github.review_threads.total_count = 1
+        $d.github.review_threads.unresolved_count = 0
+        $d.github.review_threads.items = [object[]]@([pscustomobject]@{
+            id = 'A'
+            is_resolved = $true
+            is_outdated = $false
+            path = $null
+            line = $null
+        })
+        Assert-WorkflowStateDocument $d
+    }
     Test-Rejects -Name 'main remote feature SHA' -Action { $d = New-Fixture 'workflow-state-pass-valid.json'; $d.repository.branch = 'main'; Assert-WorkflowStateDocument $d }
     Test-Rejects -Name 'malformed SHA' -Action { $d = New-Fixture 'workflow-state-fail-valid.json'; $d.repository.head = 'BAD'; Assert-WorkflowStateDocument $d }
     Test-Rejects -Name 'malformed URI' -Action { $d = New-Fixture 'workflow-state-pass-valid.json'; $d.github.pull_request.url = 'not uri'; Assert-WorkflowStateDocument $d }
@@ -126,24 +139,27 @@ try {
     foreach ($identity in @('url', 'state', 'base_ref', 'head_ref', 'head_sha', 'author')) { Test-Rejects -Name "pull-request null identity $identity" -Action { $d = New-Fixture 'workflow-state-pass-valid.json'; $d.github.pull_request.$identity = $null; Assert-WorkflowStateDocument $d } }
     Test-Rejects -Name 'pull-request malformed head SHA' -Action { $d = New-Fixture 'workflow-state-pass-valid.json'; $d.github.pull_request.head_sha = 'bad'; Assert-WorkflowStateDocument $d }
 
-    $before = Get-Content -Raw (Join-Path $fixture_directory 'workflow-state-pass-valid.json')
-    $representative = New-Fixture 'workflow-state-pass-valid.json'
-    Assert-NoOutput -Name 'representative mutation proof' -Document $representative
-    $after = $representative | ConvertTo-Json -Depth 20
-    $before_snapshot = ConvertFrom-Json $before | ConvertTo-Json -Depth 20
-    Assert-TestTrue -Condition ([string]::Equals($before_snapshot, $after, [System.StringComparison]::Ordinal)) -Name 'successful assertion does not mutate input'
+    foreach ($fixture_name in @('workflow-state-pass-valid.json', 'workflow-state-partial-valid.json', 'workflow-state-fail-valid.json')) {
+        $before = Get-Content -Raw (Join-Path $fixture_directory $fixture_name)
+        $candidate = New-Fixture $fixture_name
+        Assert-NoOutput -Name "$fixture_name mutation proof" -Document $candidate
+        $after = $candidate | ConvertTo-Json -Depth 20
+        $before_snapshot = ConvertFrom-Json $before | ConvertTo-Json -Depth 20
+        Assert-TestTrue -Condition ([string]::Equals($before_snapshot, $after, [System.StringComparison]::Ordinal)) -Name "$fixture_name successful assertion does not mutate input"
+    }
 
     $case_only_baseline = New-Fixture 'workflow-state-pass-valid.json'
     $case_only_baseline_snapshot = $case_only_baseline | ConvertTo-Json -Depth 20
     $case_only_mutation = New-Fixture 'workflow-state-pass-valid.json'
     $case_only_mutation.github.pull_request.state = 'open'
     $case_only_mutation_snapshot = $case_only_mutation | ConvertTo-Json -Depth 20
+    Assert-TestTrue -Condition ([string]::Equals($case_only_baseline_snapshot, $case_only_mutation_snapshot, [System.StringComparison]::OrdinalIgnoreCase)) -Name 'case-insensitive equality misses case-only mutation'
     Assert-TestTrue -Condition (-not [string]::Equals($case_only_baseline_snapshot, $case_only_mutation_snapshot, [System.StringComparison]::Ordinal)) -Name 'ordinal mutation proof detects case-only change'
 
     Assert-TestTrue -Condition ($script:valid_count -eq 3) -Name 'exact valid fixture count'
     Assert-TestTrue -Condition ($script:acceptance_count -eq 5) -Name 'exact acceptance count'
-    Assert-TestTrue -Condition ($script:rejection_count -eq 57) -Name 'exact rejection count'
-    Write-Output 'PASS workflow_state_document_contract valid=3 accepted=5 rejected=57 primitive_composition=PASS assert_no_output=PASS mutation=PASS query_identity=PASS'
+    Assert-TestTrue -Condition ($script:rejection_count -eq 58) -Name 'exact rejection count'
+    Write-Output 'PASS workflow_state_document_contract valid=3 accepted=5 rejected=58 primitive_composition=PASS assert_no_output=PASS mutation=PASS query_identity=PASS'
 }
 catch {
     Write-Error $_.Exception.Message

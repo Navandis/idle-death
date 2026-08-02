@@ -175,7 +175,16 @@ function Assert-WorkflowStateDocumentGitHub {
     $workflow_runs = Get-WorkflowStateDocumentProperty $Value 'workflow_runs'
     Assert-WorkflowStateArray -Value $workflow_runs
     foreach ($item in $workflow_runs) { Assert-WorkflowStateDocumentWorkflowRun -Value $item }
-    Assert-WorkflowStateDocumentReviewThreads -Value (Get-WorkflowStateDocumentProperty $Value 'review_threads')
+    $review_threads = Get-WorkflowStateDocumentProperty $Value 'review_threads'
+    Assert-WorkflowStateDocumentReviewThreads -Value $review_threads
+    if ($null -eq $pull_request) {
+        $review_total = Get-WorkflowStateDocumentProperty $review_threads 'total_count'
+        $review_unresolved = Get-WorkflowStateDocumentProperty $review_threads 'unresolved_count'
+        $review_items = Get-WorkflowStateDocumentProperty $review_threads 'items'
+        if (($review_total -ne 0) -or ($review_unresolved -ne 0) -or ($review_items.Length -ne 0)) {
+            throw 'Workflow-state null pull request requires empty review-thread evidence.'
+        }
+    }
 }
 
 function Assert-WorkflowStateDocumentQueries {
