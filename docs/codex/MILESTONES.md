@@ -834,7 +834,7 @@ Schema version 1 and its key spelling remain unchanged. New-save calls pass the 
 **Prompt status:** Not applicable — no direct epic prompt  
 **Implementation status:** Not directly executable  
 **Verification status:** —  
-**Approved final decomposition:** M04A → M04B → M04C → M04D1 → M04D2 → M04D3 → M04E1 → M04E2T1 → M04E2T2 → M04E2A2 → M04E2A3 → M04E2A4 → M04E2B
+**Historical predecessor decomposition (superseded by `DEC-0045`; non-executable):** M04A → M04B → M04C → M04D1 → M04D2 → M04D3 → M04E1 → M04E2T1 → M04E2T2 → M04E2A2 → M04E2A3 → M04E2A4 → M04E2B
 
 #### Purpose
 
@@ -1425,7 +1425,7 @@ Permit currently valid changed loadouts to redispatch without losing or reinterp
 **Prompt status:** Not applicable — no direct epic prompt  
 **Implementation status:** Not directly executable  
 **Verification status:** —  
-**Approved decomposition:** M04E1 → M04E2T1 → M04E2T2 → M04E2A2 → M04E2A3 → M04E2A4 → M04E2B
+**Historical predecessor decomposition (superseded by `DEC-0045`; non-executable):** M04E1 → M04E2T1 → M04E2T2 → M04E2A2 → M04E2A3 → M04E2A4 → M04E2B
 
 #### Purpose
 

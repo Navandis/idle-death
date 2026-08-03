@@ -114,9 +114,11 @@ The historical former next planning boundary was:
 M04E2A2 — Report runtime state and schema-v4 persistence
 ```
 
-Use:
+Historical references retained as evidence only, not as an execution checklist:
 
 - `docs/codex/M04E2A2_PLANNING.md`;
-- `docs/codex/milestone-prompts/M04E2A2-report-state-schema-v4-persistence.md` after explicit owner approval;
+- `docs/codex/milestone-prompts/M04E2A2-report-state-schema-v4-persistence.md`;
 - `docs/codex/CODEX_DESKTOP_WORKFLOW.md`;
 - `tools/codex/publish_milestone_pr.ps1`.
+
+Do not review, approve, publish, or execute the former M04E2A2 package from this historical record. Under `DEC-0045`, current routing is G3 planning for M04E2R1; no R1 implementation prompt is approved.

@@ -3366,6 +3366,8 @@ Results and their child facts remain detached, non-authoritative, and non-persis
 - Adding a future simulation event type requires an explicit typed subtype and contract review.
 - M04E2A2 remains the only next slice authorized to introduce report state and schema version 4.
 
+> **Current clarification under `DEC-0045`:** The preceding M04E2A2 next-slice authorization is superseded. M04E2A2, M04E2A3, and M04E2A4 are non-executable historical evidence; M04E2R1 is the next planning boundary and has no approved implementation prompt.
+
 ### Alternatives considered
 
 - **Retain dictionaries and document their keys:** rejected because delayed consumers need a durable typed contract and dictionary drift is difficult to audit.
