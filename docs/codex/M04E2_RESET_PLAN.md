@@ -2,8 +2,9 @@
 
 **Status:** Superseded  
 **Date:** 2026-07-23  
-**Superseded by:** Accepted `DEC-0043`, accepted `DEC-0044`, and [M04E2 transaction redesign plan](M04E2_TRANSACTION_REDESIGN_PLAN.md)  
-**Abandoned implementations:** PR #17 and PR #18, both closed unmerged
+**Last updated:** 2026-08-03
+**Superseded by:** Accepted `DEC-0043`, accepted `DEC-0044`, accepted `DEC-0045`, and [M04E2 transaction redesign plan](M04E2_TRANSACTION_REDESIGN_PLAN.md)
+**Forensic implementations:** PR #17, PR #18, and PR #23, all closed unmerged
 
 > **Current routing (2026-08-03):** `DEC-0045` makes M04E2A2/A3/A4 superseded and non-executable. M04E2R1 is the next planning boundary; no R1 implementation prompt is approved.
 
@@ -35,4 +36,4 @@ Use:
 - the former M04E2A2 plan/prompt as historical non-executable evidence only;
 - G3 planning for the future M04E2R1 boundary.
 
-Do not execute the superseded M04E2A1 prompt, re-execute completed T1/T2 prompts, continue PR #17/PR #18, or reuse their production implementation wholesale.
+Do not execute the superseded M04E2A1 prompt, re-execute completed T1/T2 prompts, continue PR #17, PR #18, or PR #23, or reuse any of the three production implementations wholesale.

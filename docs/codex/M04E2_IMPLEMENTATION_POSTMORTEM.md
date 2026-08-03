@@ -169,11 +169,11 @@ The exact-head owner package passed `178/178` full tests and `2,832` assertions 
 
 The owner approved a T2-only scope exception for a final 1,460 net non-documentation/non-`.uid` line delta, 10 lines above the approximate planning threshold. No new authority, schema transition, report subsystem, or formula owner entered the slice.
 
-This outcome does not rehabilitate PR #17 or PR #18. M04E2A2 starts from merged `main`, uses the successful typed facts only as a future ingestion prerequisite, and must not copy the failed report-state or `ReportService` implementation wholesale.
+This outcome does not rehabilitate PR #17 or PR #18. At the time of T2 closure, M04E2A2 was the planned follow-on and would have started from merged `main`, using the successful typed facts only as a future ingestion prerequisite. DEC-0045 later superseded that route after PR #23; M04E2R1 is now the next planning boundary. The former package must not be used to copy the failed report-state or `ReportService` implementation wholesale.
 
-## Review-process lesson
+## Historical PR #17/#18 review-process lesson (superseded by G0 convergence policy)
 
-A review must audit the primary risk boundary, but repeated clean-up reviews are not an implementation strategy. The stop rule remains mandatory:
+A review must audit the primary risk boundary, but repeated clean-up reviews are not an implementation strategy. At the time of PR #17 and PR #18, the branch used this historical threshold list:
 
 ```text
 more than 2 targeted rounds produce new P1/P2 findings
@@ -184,6 +184,10 @@ full suite red at review request
 ```
 
 When triggered, return to architecture planning rather than issuing another patch prompt.
+
+These numeric thresholds remain historical planning signals and do not automatically terminate a current pull request. The current controlling rule from the merged G0 convergence policy is: after two substantial correction rounds, pause for an explicit convergence assessment. Continue another bounded correction when remaining findings are local, understood, testable, and within the existing design. Stop, split, or redesign only when affirmative evidence indicates a systemic architecture, ownership, scope, or oracle problem. Round count alone is never dispositive.
+
+A new owner, schema, or seam; an untrustworthy oracle; repeated root-cause survival; uncontrolled scope growth; or a required red suite may independently justify a stop. PR #23 is the evidence-based architecture-stop example: its repeated transition, coverage, provenance, compaction, sequence-authority, and runtime/wire-parity failures demonstrated systemic ownership and sequencing problems.
 
 ## Attempt 3 — PR #23
 
