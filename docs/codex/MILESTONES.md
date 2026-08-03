@@ -167,13 +167,13 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 |---|---|---|---|---|---|---|
 | M04E2T1 | Single-provenance simulation transaction journal and commit boundary | Implementation slice | Approved | Approved | Merged | Passed |
 | M04E2T2 | Finalized typed run facts and current-consumer migration | Implementation slice | Approved | Approved | Merged | Passed |
-| M04E2A2 | Former report runtime state and schema-v4 persistence | Historical slice | Superseded | Superseded | Failed/rework required | PR #23 closed unmerged |
-| M04E2A3 | Former cursor-idempotent live report ingestion | Historical slice | Superseded | Not drafted | Non-executable | Historical only |
-| M04E2A4 | Former report reads, snapshot, bounded history, and final evidence | Historical slice | Superseded | Not drafted | Non-executable | Historical only |
-| M04E2R1 | Normalized live report ledger and committed-run ingestion | Planning boundary | Approved architecture | No approved prompt | Not started | Next planning boundary |
-| M04E2R2 | Snapshot, bounded history, retention, and detached reads | Future implementation slice | Approved architecture | Not drafted | Not started | Follows proven R1 |
-| M04E2P1 | GameState integration, schema-v4 migration, and persistence | Future implementation slice | Approved architecture | Not drafted | Not started | Follows proven R1/R2 |
-| M04E2B | Atomic simulation/report coordinator and final M04 harness | Future implementation slice | Approved architecture | Not drafted | Not started | Follows P1 |
+| M04E2A2 | Former report runtime state and schema-v4 persistence | Implementation slice | Superseded | Superseded | Rework required | Failed |
+| M04E2A3 | Former cursor-idempotent live report ingestion | Implementation slice | Superseded | Not drafted | Not directly executable | — |
+| M04E2A4 | Former report reads, snapshot, bounded history, and final evidence | Implementation slice | Superseded | Not drafted | Not directly executable | — |
+| M04E2R1 | Normalized live report ledger and committed-run ingestion | Implementation slice | Approved | Not drafted | Not started | — |
+| M04E2R2 | Snapshot, bounded history, retention, and detached reads | Implementation slice | Approved | Not drafted | Not started | — |
+| M04E2P1 | GameState integration, schema-v4 migration, and persistence | Implementation slice | Approved | Not drafted | Not started | — |
+| M04E2B | Atomic simulation/report coordinator and final M04 harness | Implementation slice | Approved | Not drafted | Not started | — |
 
 ### Historical prior status map (superseded by `DEC-0045`; non-executable)
 
@@ -1659,7 +1659,7 @@ The final slice used 25 non-documentation/non-`.uid` files and 1,460 net additio
 **Parent epic:** M04 / M04E / M04E2  
 **Definition status:** Superseded by `DEC-0045`
 **Prompt status:** Not applicable; non-executable historical record
-**Implementation status:** Non-executable
+**Implementation status:** Not directly executable
 **Verification status:** —  
 **Historical former decomposition:** M04E2A2 -> M04E2A3 -> M04E2A4
 
@@ -1678,9 +1678,9 @@ The former M04E2A sequence is never executable or completable; it is retained on
 **Work item type:** Implementation slice  
 **Parent epic:** M04 / M04E / M04E2 / M04E2A  
 **Definition status:** Superseded by `DEC-0045`; historical non-executable boundary
-**Prompt status:** Draft v0.1 — pending explicit owner approval  
-**Implementation status:** Not started  
-**Verification status:** —  
+**Prompt status:** Superseded
+**Implementation status:** Rework required
+**Verification status:** Failed
 **Recommended Codex task size:** Medium; one report-state/schema/migration/persistence pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M04E2A2-report-state-schema-v4-persistence.md`
 
@@ -1753,7 +1753,7 @@ A valid empty or fixture-populated report state can construct, validate, deep-cl
 **Parent epic:** M04 / M04E / M04E2 / M04E2A  
 **Definition status:** Superseded by `DEC-0045`; historical non-executable boundary
 **Prompt status:** Not drafted  
-**Implementation status:** Not started  
+**Implementation status:** Not directly executable
 **Verification status:** —  
 **Recommended Codex task size:** Small-medium; one temporal/checked-aggregation pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M04E2A3-live-report-ingestion.md`
@@ -1796,7 +1796,7 @@ A finalized committed interval is represented once in live report state or rejec
 **Parent epic:** M04 / M04E / M04E2 / M04E2A  
 **Definition status:** Superseded by `DEC-0045`; historical non-executable boundary
 **Prompt status:** Not drafted  
-**Implementation status:** Not started  
+**Implementation status:** Not directly executable
 **Verification status:** —  
 **Recommended Codex task size:** Small-medium; one read/snapshot/history/evidence pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M04E2A4-report-reads-snapshot-history-evidence.md`

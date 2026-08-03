@@ -3438,6 +3438,21 @@ One runtime validator is the semantic authority for implemented ledger relations
 - **Persist a reduced graph immediately:** rejected until R1 proves which facts are irreducible.
 - **Permit durable cursor lag until B:** rejected because non-persisted finalized facts cannot safely repair an omitted interval.
 
+### Affected documents
+
+- `docs/codex/DECISIONS.md`
+- `docs/codex/MILESTONES.md`
+- `docs/codex/ARCHITECTURE.md`
+- `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`
+- `docs/codex/TESTING_AND_VALIDATION.md`
+- `docs/codex/M04E2_IMPLEMENTATION_POSTMORTEM.md`
+- `docs/codex/M04E2A2_PLANNING.md`
+- `docs/codex/M04E2_TRANSACTION_REDESIGN_PLAN.md`
+- `docs/codex/M04E2_RESET_PLAN.md`
+- `docs/codex/M04E2T2_PLANNING.md`
+- `docs/codex/milestone-prompts/M04E2A2-report-state-schema-v4-persistence.md`
+- `docs/codex/milestone-prompts/M04E2T2-finalized-typed-run-facts.md`
+
 ## 3. Current approval state
 
 - `DEC-0001` through `DEC-0040`, `DEC-0043` through `DEC-0045` are Accepted.
@@ -3447,7 +3462,7 @@ One runtime validator is the semantic authority for implemented ledger relations
 - M04E2T1 merged through PR #21 from final head `a4d8056cb8771e84e1948fc5e59939c46a13003c` at merge commit `68364e0b417a6e7ebc63b50a386ac5d9f2c506bf`.
 - M04E2T2 merged through PR #22 from final head `00bd7d1ce27817b508eb0aac1663d1de48353237` at merge commit `afd390e8338a198d76938eef5ddcf35718ec189c`.
 - `GATE-SINGLE-PROVENANCE-TRANSACTION` and `GATE-FINALIZED-RUN-FACTS` are satisfied. Their recorded owner scope exceptions apply only to their completed slices.
-- PR #17, PR #18, and PR #23 remain closed unmerged forensic references; M04E2A1 and M04E2A2 through M04E2A4 are Superseded/Failed historical packaging.
+- PR #17, PR #18, and PR #23 remain closed unmerged forensic references; M04E2A1 and M04E2A2 are superseded failed/rework attempts, while M04E2A3 and M04E2A4 are superseded, never-implemented, non-executable historical slices.
 - The active M04E2 sequence is M04E2T1 -> M04E2T2 -> M04E2R1 -> M04E2R2 -> M04E2P1 -> M04E2B.
 - M04E2R1 is the next planning boundary and has no approved implementation prompt. `DEC-0045` supersedes the former A2/A3/A4 report gates.
 - Future changes preserve decision IDs for wording clarifications and create a new decision when semantics, ownership, compatibility, implementation packaging, or security posture changes.

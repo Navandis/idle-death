@@ -1,4 +1,4 @@
-# M04E2 implementation postmortem — PR #17 and PR #18
+# M04E2 implementation postmortem — PR #17, PR #18, and PR #23
 
 **Status:** Approved historical and engineering record  
 **Date:** 2026-08-03

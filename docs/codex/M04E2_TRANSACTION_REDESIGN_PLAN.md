@@ -2,7 +2,7 @@
 
 **Status:** Historical T1/T2 architecture; M04E2A2/A3/A4 superseded by `DEC-0045`; M04E2R1 is the next planning boundary
 **Date:** 2026-07-23  
-**Authority:** Accepted `DEC-0043`; accepted `DEC-0044`; carried-forward report semantics from superseded `DEC-0041`/`DEC-0042`  
+**Authority:** Accepted `DEC-0043`; accepted `DEC-0044`; accepted `DEC-0045`; carried-forward report semantics from superseded `DEC-0041`/`DEC-0042`
 **Current merged baseline:** PR #22 merge commit `afd390e8338a198d76938eef5ddcf35718ec189c`, schema version 3 / `prototype-content-r2`  
 **Abandoned references:** PR #17 and PR #18, both closed unmerged
 
@@ -14,9 +14,9 @@ The central rule remains:
 
 > The same internal operation that changes the private candidate records the explanatory fact. Public results are projections of finalized journal facts, never independent commit inputs.
 
-A second rule now applies to report work:
+The current DEC-0045 rule for report work is:
 
-> M04E2A2 stores validated explanatory state only. It introduces no service that ingests, reads, snapshots, clears, or prunes that state.
+> R1 and R2 use one explicitly caller-owned, non-persisted ledger. Before P1, no application object, `GameSession`, service member, autoload, singleton, or hidden global retains canonical mutable ledger state. R1 is the next planning boundary and has no approved implementation prompt.
 
 ## Historical former dependency sequence (superseded by `DEC-0045`; non-executable)
 

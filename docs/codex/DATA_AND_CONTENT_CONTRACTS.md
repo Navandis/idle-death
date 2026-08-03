@@ -2845,7 +2845,7 @@ Schema remains 3 and content remains `prototype-content-r2` through M04E2T2. No 
 
 M04E2T2 merged through PR #22 at final head `00bd7d1ce27817b508eb0aac1663d1de48353237` and merge commit `afd390e8338a198d76938eef5ddcf35718ec189c`. Final exact-head evidence passed 178 full tests, 74 focused tests, all 15 markers, import, cleanup, and artifact audit.
 
-## Deferred report contracts
+## Historical former report contracts (superseded by `DEC-0045`; non-executable)
 
 The following A2/A3/A4 material is historical non-executable evidence superseded by `DEC-0045`; it does not retain current report-state, migration, ingestion, read, snapshot, retention, or coordination authority. References to M04E2A1 typed results are interpreted as the finalized typed run facts delivered by M04E2T2.
 
