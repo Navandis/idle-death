@@ -3417,7 +3417,7 @@ M04E2T1 -> M04E2T2 -> M04E2R1 -> M04E2R2 -> M04E2P1 -> M04E2B
 
 R1 defines a normalized in-memory live report ledger and exactly-once ingestion of finalized committed run facts. R2 adds snapshot, bounded history, retention, and detached reads to that same ledger. Before P1, there is one explicitly caller-owned, non-persisted ledger: each R1/R2 operation receives that ledger explicitly or receives a private candidate derived from it. No application object, `GameSession`, service member, autoload, singleton, or hidden global may retain canonical mutable ledger state. This decision does not approve a concrete ingestion API or a name such as `ReportService`.
 
-Store irreducible source facts and necessary transition cursors or identities; derive redundant views. The exact R1 fields, API, ownership/lifetime matrix, and test oracle are deferred to G3.
+Store irreducible source facts and necessary transition cursors or identities; derive redundant views. The exact R1 fields, API, ownership/lifetime matrix, interval-decision table, and complete test oracle are deferred to G3.
 
 P1 alone places the proven ledger under `GameState` as its sole durable owner, introduces schema version 4, and adds migration/persistence. Schema version 3 remains current until P1. Current merged `GameState` contains no authoritative report ledger.
 
@@ -3458,7 +3458,7 @@ One runtime validator is the semantic authority for implemented ledger relations
 ## 3. Current approval state
 
 - `DEC-0001` through `DEC-0040`, `DEC-0043` through `DEC-0045` are Accepted.
-- `DEC-0041` is Superseded; its report authority, attribution, schema-v4, idempotency, snapshot, and retention semantics remain carried forward.
+- `DEC-0041` is Superseded. Current authority carries forward only the high-level report intent restated by `DEC-0045` and the maintained contracts: reports explain already-applied gains; finalized committed facts provide historical attribution; P1 owns schema-v4 persistence; R1 provides exactly-once/no-double-count safety and no mutation for inputs the G3 oracle classifies as rejected or malformed; and R2 owns snapshot and retention behavior. `DEC-0041`'s concrete interval classifications and outcomes are historical/regression evidence for G3, not binding R1 requirements, and may be reclassified by the owner-approved G3 interval-decision table and complete test oracle.
 - `DEC-0042` is Superseded by `DEC-0043`; its failed-branch record and report-slice lessons remain historical context.
 - M04A through M04D3, M04E1, M04E2T1, and M04E2T2 are implemented, verified, and merged.
 - M04E2T1 merged through PR #21 from final head `a4d8056cb8771e84e1948fc5e59939c46a13003c` at merge commit `68364e0b417a6e7ebc63b50a386ac5d9f2c506bf`.
