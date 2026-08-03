@@ -1657,10 +1657,11 @@ The final slice used 25 non-documentation/non-`.uid` files and 1,460 net additio
 
 **Work item type:** Conceptual sub-epic  
 **Parent epic:** M04 / M04E / M04E2  
-**Definition status:** Superseded by `DEC-0045`
-**Prompt status:** Not applicable; non-executable historical record
+**Definition status:** Superseded
+**Prompt status:** Not applicable
 **Implementation status:** Not directly executable
 **Verification status:** —  
+**Superseded by:** Accepted `DEC-0045`
 **Historical former decomposition:** M04E2A2 -> M04E2A3 -> M04E2A4
 
 #### Purpose
@@ -1677,10 +1678,11 @@ The former M04E2A sequence is never executable or completable; it is retained on
 
 **Work item type:** Implementation slice  
 **Parent epic:** M04 / M04E / M04E2 / M04E2A  
-**Definition status:** Superseded by `DEC-0045`; historical non-executable boundary
+**Definition status:** Superseded
 **Prompt status:** Superseded
 **Implementation status:** Rework required
 **Verification status:** Failed
+**Superseded by:** Accepted `DEC-0045`
 **Recommended Codex task size:** Medium; one report-state/schema/migration/persistence pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M04E2A2-report-state-schema-v4-persistence.md`
 
@@ -1751,10 +1753,11 @@ A valid empty or fixture-populated report state can construct, validate, deep-cl
 
 **Work item type:** Implementation slice  
 **Parent epic:** M04 / M04E / M04E2 / M04E2A  
-**Definition status:** Superseded by `DEC-0045`; historical non-executable boundary
+**Definition status:** Superseded
 **Prompt status:** Not drafted  
 **Implementation status:** Not directly executable
 **Verification status:** —  
+**Superseded by:** Accepted `DEC-0045`
 **Recommended Codex task size:** Small-medium; one temporal/checked-aggregation pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M04E2A3-live-report-ingestion.md`
 
@@ -1794,10 +1797,11 @@ A finalized committed interval is represented once in live report state or rejec
 
 **Work item type:** Implementation slice  
 **Parent epic:** M04 / M04E / M04E2 / M04E2A  
-**Definition status:** Superseded by `DEC-0045`; historical non-executable boundary
+**Definition status:** Superseded
 **Prompt status:** Not drafted  
 **Implementation status:** Not directly executable
 **Verification status:** —  
+**Superseded by:** Accepted `DEC-0045`
 **Recommended Codex task size:** Small-medium; one read/snapshot/history/evidence pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M04E2A4-report-reads-snapshot-history-evidence.md`
 
@@ -1836,10 +1840,11 @@ The accepted M04E2A report foundation is Merged/Passed only after this slice pas
 
 **Work item type:** Implementation slice  
 **Parent epic:** M04 / M04E / M04E2  
-**Definition status:** Approved high-level boundary under accepted `DEC-0045`
+**Definition status:** Approved
 **Prompt status:** Not drafted  
 **Implementation status:** Not started  
 **Verification status:** —  
+**Architecture authority:** Accepted `DEC-0045`
 **Recommended Codex task size:** Small-medium; one transaction-coordinator/harness pull request.  
 **Planned prompt file:** `docs/codex/milestone-prompts/M04E2B-atomic-reported-run-final-m04-harness.md`
 

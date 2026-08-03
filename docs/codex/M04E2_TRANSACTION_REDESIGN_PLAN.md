@@ -3,8 +3,9 @@
 **Status:** Historical T1/T2 architecture; M04E2A2/A3/A4 superseded by `DEC-0045`; M04E2R1 is the next planning boundary
 **Date:** 2026-07-23  
 **Authority:** Accepted `DEC-0043`; accepted `DEC-0044`; accepted `DEC-0045`; carried-forward report semantics from superseded `DEC-0041`/`DEC-0042`
-**Current merged baseline:** PR #22 merge commit `afd390e8338a198d76938eef5ddcf35718ec189c`, schema version 3 / `prototype-content-r2`  
-**Abandoned references:** PR #17 and PR #18, both closed unmerged
+**Historical T1/T2 implementation baseline:** PR #22 merge commit `afd390e8338a198d76938eef5ddcf35718ec189c`, schema version 3 / `prototype-content-r2`
+**Forensic references:** PR #17, PR #18, and PR #23, all closed unmerged
+**Last updated:** 2026-08-03
 
 ## Purpose
 

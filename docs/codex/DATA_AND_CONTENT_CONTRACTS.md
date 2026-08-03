@@ -3150,7 +3150,7 @@ REPORT_RECENT_EVENT_LIMIT = 64
 
 Pruning keeps newest records/details, preserves exact counts, and increments explicit compaction counters. Recent report history is not permanent Codex Mortis analytics.
 
-## Historical former M04E2B atomic boundary (superseded by `DEC-0045`; non-executable)
+## Historical former A2/A3/A4-dependent M04E2B boundary (superseded by `DEC-0045`; non-executable)
 
 After M04E2T1, M04E2T2, and M04E2A2 through M04E2A4 are Merged/Passed, M04E2B may add:
 
