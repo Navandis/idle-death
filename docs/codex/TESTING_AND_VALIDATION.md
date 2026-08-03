@@ -2,9 +2,9 @@
 
 **Document role:** Canonical test strategy, commands, fixture rules, and manual validation flows
 **Repository path:** `docs/codex/TESTING_AND_VALIDATION.md`
-**Document status:** Approved through M04E2T2; M04E2A2 validation plan Draft v0.1
-**Validation revision:** 32
-**Last updated:** 2026-07-23
+**Document status:** Approved through M04E2T2; report architecture realigned by `DEC-0045`
+**Validation revision:** 33
+**Last updated:** 2026-08-03
 **Engine target:** Godot 4.7 standard build, GDScript only
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)  
 **Owner evidence companion:** [OWNER_VERIFICATION_WORKFLOW.md](OWNER_VERIFICATION_WORKFLOW.md)
@@ -46,7 +46,7 @@ M04D2 merged through PR #14 at merge commit `24228a078199d9728eb57e4e26c27447aa6
 
 M04D3 merged through PR #15 at merge commit `9fd8f98e3787f711f3d03c9de03d3615d531216a` from final head `5a5cafc6b640001fba86c7ea9531ae9daf43fcc3`. Linux/Codex focused coverage passed `35/35` tests and `592` assertions. Owner Windows verification passed the full suite before and after (`144/144`, `2,222` assertions), focused M04D3 (`18/18`, `254` assertions), import, all sixteen markers, cleanup, cleanup proof, and artifact audit with zero failed steps. Accepted `DEC-0040` decomposes M04E into approved forecast-only M04E1 and report-state M04E2.
 
-M04E1 merged through PR #16 at merge commit `03f05a3d78609a993cecab8b0077e5f7d7d55900` from final head `738e89c606dd9f1f9f0396334ea9d8587ff389f3`. Owner Windows verification passed the full suite before and after (`153/153`, `2,522` assertions), focused M04E1 (`9/9`, `295` assertions), explicit import, all fifteen markers, cleanup, cleanup proof, and artifact audit with zero failed steps. PR #17 and PR #18 later attempted M04E2 report/result foundations and were closed unmerged at terminal heads `5c87118045faa6f48f8ce50977a9bcdcfa967e57` and `602dec077f44338cdb4a2eabbd30d3989c877902`. M04E2T1 and M04E2T2 subsequently merged and passed through PR #21 and PR #22. M04E2A2 report state/schema-v4 persistence is the active planning boundary.
+M04E1 merged through PR #16 at merge commit `03f05a3d78609a993cecab8b0077e5f7d7d55900` from final head `738e89c606dd9f1f9f0396334ea9d8587ff389f3`. Owner Windows verification passed the full suite before and after (`153/153`, `2,522` assertions), focused M04E1 (`9/9`, `295` assertions), explicit import, all fifteen markers, cleanup, cleanup proof, and artifact audit with zero failed steps. PR #17 and PR #18 were closed unmerged at terminal heads `5c87118045faa6f48f8ce50977a9bcdcfa967e57` and `602dec077f44338cdb4a2eabbd30d3989c877902`. PR #23 then closed unmerged at `f68e6eac3347cde1b5347ce2d70cc4ce12ac3610` after 8 commits, 58 changed files, 2,012 additions, and 69 deletions. M04E2T1 and M04E2T2 subsequently merged and passed through PR #21 and PR #22. `DEC-0045` makes M04E2R1 the next planning boundary; no R1 implementation prompt is approved.
 
 ## 2. Pinned test and platform dependencies
 
@@ -2166,13 +2166,27 @@ Final non-documentation/non-`.uid` scope was 25 files and 1,460 net additions. T
 
 `GATE-FINALIZED-RUN-FACTS` is satisfied. The M04E2T2 prompt is historical and must not be re-executed.
 
-## 31. M04E2A2 report-state and schema-v4 validation package
+## 31. Current M04E2 report validation boundaries (`DEC-0045`)
 
-This section is Draft v0.1 with the M04E2A2 planning package. It becomes executable only after explicit owner approval of the prompt, `GATE-REPORT-SCHEMA`, and `GATE-SLICE-SCOPE`.
+PR #23's ten findings are retained with explicit classification: findings 1 and 4 were local defects; finding 3 was both a local defect and a runtime/wire duplication signal; findings 2 and 5–10 were architecture/ownership signals. Closure followed repeated transition, coverage, provenance, compaction, sequence-authority, and runtime/wire-parity failures—not defect count or review-round count alone.
+
+Before R1 implementation, G3 must define and obtain owner approval for the R1 interval-decision table and complete R1 test oracle. R1 implementation validation must then prove that owner-approved table and oracle; this G1 section does not determine any interval classification or outcome. Independently of those classifications, R1 remains bound by `DEC-0045` to ingest finalized committed run facts exactly once into an explicitly caller-owned, non-persisted ledger, with fact-based attribution and no mutation for inputs the approved oracle classifies as rejected or malformed.
+
+R2 validation must prove snapshot, bounded retention, detached reads, and lifecycle transitions on the same explicit ledger. Neither R1 nor R2 may introduce persistence, a hidden owner, or an application coordinator.
+
+P1 validation begins only after proven R1/R2 transitions. It must prove schema-v4 mapping/migration and failure preservation, while every new, migrated, exposed, and persisted state is gameplay/report cursor aligned. It must prove that no direct committed-simulation path can expose or persist an unreported interval. The wire validator is structural (exact keys, containers, canonical primitive grammar, safe reconstruction); the runtime validator remains the single semantic authority.
+
+B validation must require an aligned source, allow a transient gameplay-ahead/report-behind state only inside its private candidate between committed simulation and ingestion, require an aligned final candidate before complete validation and one live commit, and prove the private lag is never exposed or persisted.
+
+The convergence assessment follows the G0 policy: after two substantial correction rounds, continue only when remaining findings are local, understood, testable, and within a converging design; stop or replan on affirmative architecture, ownership, scope, or oracle evidence. Do not use a fixed defect count or review-round count as an absolute stop rule.
+
+## 32. Historical M04E2A2 report-state and schema-v4 validation package (superseded by `DEC-0045`; non-executable)
+
+This historical Draft v0.1 section is non-executable. `DEC-0045` supersedes the former prompt and `GATE-REPORT-SCHEMA` route.
 
 M04E2A2 changes authoritative runtime state and the save writer but adds no production report mutation. Validation must prove exact construction, clone/copy isolation, schema grammar, migration, persistence, and failure preservation.
 
-### 31.1 Focused commands
+### 32.1 Focused commands
 
 ```bash
 ./tools/test/run_gut.sh -- \
@@ -2212,7 +2226,7 @@ git status --short
 
 Also run affected M02, M04A, and M04D1 schema/migration traces and report exact marker results. Existing historical behavior remains valid even though the current writer advances to v4.
 
-### 31.2 Runtime-state behavior groups
+### 32.2 Runtime-state behavior groups
 
 1. canonical empty `ReportState` at zero and nonzero gameplay cursors;
 2. report cursor may trail but never exceed gameplay cursor;
@@ -2237,7 +2251,7 @@ Also run affected M02, M04A, and M04D1 schema/migration traces and report exact 
 21. null, missing, or wrong-class report children reject without mutation;
 22. no report mutator, query, snapshot, clear, or prune method exists in production.
 
-### 31.3 Schema and wire behavior groups
+### 32.3 Schema and wire behavior groups
 
 1. explicit `SCHEMA_VERSION_V4 = 4` and current writer v4;
 2. v4 game-state keys equal v3 keys plus exactly `report_state`;
@@ -2252,7 +2266,7 @@ Also run affected M02, M04A, and M04D1 schema/migration traces and report exact 
 11. deterministic JSON encode/decode bytes for equal snapshots;
 12. no result/context/transaction/journal/projector/read-model artifact serializes.
 
-### 31.4 Migration and compatibility groups
+### 32.4 Migration and compatibility groups
 
 1. frozen v1/v2/v3 validator behavior remains exact;
 2. frozen v1/v2/v3 fixture bytes remain unchanged;
@@ -2271,7 +2285,7 @@ Also run affected M02, M04A, and M04D1 schema/migration traces and report exact 
 15. populated v4 state round-trips through real file storage;
 16. failure injection leaves the previous valid primary/backup available.
 
-### 31.5 Malformed-state matrices
+### 32.5 Malformed-state matrices
 
 The runtime and primitive matrices must mutate one field/path at a time and cover:
 
@@ -2295,7 +2309,7 @@ The runtime and primitive matrices must mutate one field/path at a time and cove
 
 A rejection must identify a stable path/category, expose no partial runtime, and overwrite no valid file.
 
-### 31.6 Field-propagation proof
+### 32.6 Field-propagation proof
 
 Every authoritative report field must be proven through:
 
@@ -2313,7 +2327,7 @@ construct
 
 Source-text mapping audits may supplement but cannot replace populated behavioral round trips.
 
-### 31.7 Required trace markers
+### 32.7 Required trace markers
 
 ```text
 TRACE M04E2A2 empty_report_state_at_cursor=PASS
@@ -2335,7 +2349,7 @@ TRACE M04E2A2 schema_v4_content_r2=PASS
 
 Each marker is earned through real assertions. The trace uses an isolated existing `--work-root`, writes no ordinary user save, and exits nonzero when the root is absent.
 
-### 31.8 Owner Windows package
+### 32.8 Owner Windows package
 
 Codex creates:
 
@@ -2362,7 +2376,7 @@ zero-failure summary
 
 Use execution-policy bypass. No interactive checklist is required.
 
-### 31.9 Review gates
+### 32.9 Review gates
 
 Before final owner verification:
 

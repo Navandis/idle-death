@@ -3,8 +3,8 @@
 **Document role:** Durable record of approved and proposed design and architecture decisions  
 **Repository path:** `docs/codex/DECISIONS.md`  
 **Document status:** Approved architecture and active decision record  
-**Revision:** 30  
-**Last updated:** 2026-07-23
+**Revision:** 31
+**Last updated:** 2026-08-03
 
 ## 1. How to use this file
 
@@ -74,6 +74,7 @@ Rules:
 | `DEC-0042` | Abandon the combined M04E2A implementation; require typed committed results and four replacement slices | Superseded | 2026-07-20 |
 | `DEC-0043` | Simulation mutation and explanatory facts share one transaction provenance; M04E2 is re-sliced after failed PRs #17 and #18 | Accepted | 2026-07-22 |
 | `DEC-0044` | Finalized simulation facts use one detached typed result family and a closed event union | Accepted | 2026-07-22 |
+| `DEC-0045` | Runtime-ledger-first report architecture, persistence sequencing, and PR #23 stop | Accepted | 2026-08-03 |
 
 ---
 
@@ -3365,6 +3366,8 @@ Results and their child facts remain detached, non-authoritative, and non-persis
 - Adding a future simulation event type requires an explicit typed subtype and contract review.
 - M04E2A2 remains the only next slice authorized to introduce report state and schema version 4.
 
+> **Current clarification under `DEC-0045`:** The preceding M04E2A2 next-slice authorization is superseded. M04E2A2, M04E2A3, and M04E2A4 are non-executable historical evidence; M04E2R1 is the next planning boundary and has no approved implementation prompt.
+
 ### Alternatives considered
 
 - **Retain dictionaries and document their keys:** rejected because delayed consumers need a durable typed contract and dictionary drift is difficult to audit.
@@ -3386,18 +3389,82 @@ Results and their child facts remain detached, non-authoritative, and non-persis
 - `docs/codex/M04E2T2_PLANNING.md`
 - `docs/codex/milestone-prompts/M04E2T2-finalized-typed-run-facts.md`
 
+---
+
+## `DEC-0045` — Runtime-ledger-first report architecture, persistence sequencing, and PR #23 stop
+
+**Status:** Accepted
+**Date:** 2026-08-03
+**Decision type:** Report-state architecture, ownership, milestone packaging, and persistence sequencing
+**Supersedes:** The M04E2A2/M04E2A3/M04E2A4 implementation packaging and the associated active `GATE-REPORT-SCHEMA`, `GATE-REPORT-INGESTION`, and `GATE-REPORT-READS-HISTORY` routes
+**Preserves:** `DEC-0016`, `DEC-0043`, `DEC-0044`, and the rule that reports describe already-applied gains
+
+### Context
+
+PR #23 attempted report runtime state, schema version 4, migration, mapping, runtime and wire validation, and persistence before ingestion, snapshot, retention, and read transitions existed. It closed unmerged at `f68e6eac3347cde1b5347ce2d70cc4ce12ac3610` after 8 commits across 58 files (2,012 additions and 69 deletions).
+
+Findings 1 and 4 were local defects. Finding 3 was both a local content-validation defect and evidence of runtime/wire semantic duplication. Findings 2 and 5–10 were architecture/ownership signals about transition order, coverage, provenance, compaction, and sequence authority. Closure followed those repeated independent transition, coverage, provenance, compaction, sequence-authority, and runtime/wire-parity failures—not defect count or review-round count alone.
+
+PRs #17, #18, and #23 remain forensic and regression evidence only. Their production implementations, validators, and persisted graphs are not production-code sources and must not be copied or cherry-picked wholesale.
+
+### Decision
+
+The active sequence is:
+
+```text
+M04E2T1 -> M04E2T2 -> M04E2R1 -> M04E2R2 -> M04E2P1 -> M04E2B
+```
+
+R1 defines a normalized in-memory live report ledger and exactly-once ingestion of finalized committed run facts. R2 adds snapshot, bounded history, retention, and detached reads to that same ledger. Before P1, there is one explicitly caller-owned, non-persisted ledger: each R1/R2 operation receives that ledger explicitly or receives a private candidate derived from it. No application object, `GameSession`, service member, autoload, singleton, or hidden global may retain canonical mutable ledger state. This decision does not approve a concrete ingestion API or a name such as `ReportService`.
+
+Store irreducible source facts and necessary transition cursors or identities; derive redundant views. The exact R1 fields, API, ownership/lifetime matrix, interval-decision table, and complete test oracle are deferred to G3.
+
+P1 alone places the proven ledger under `GameState` as its sole durable owner, introduces schema version 4, and adds migration/persistence. Schema version 3 remains current until P1. Current merged `GameState` contains no authoritative report ledger.
+
+Every new or migrated P1 state must begin with the report cursor aligned to the gameplay simulation cursor. Every integrated state exposed to callers or persistence must remain aligned. After P1, no direct committed-simulation path may expose or persist an unreported interval. Durable lag, rebasing, or missing-fact recovery requires a separate accepted decision.
+
+Only B may hold a transient gameplay-ahead/report-behind state: it must start from an aligned `GameState`, clone privately, run committed simulation, ingest the same finalized facts, restore cursor alignment, validate the complete candidate, and make one live commit. That private candidate is never exposed or persisted.
+
+One runtime validator is the semantic authority for implemented ledger relationships. The future P1 wire validator is limited to exact keys, containers, canonical primitive grammar, and safe reconstruction; an explicit mapper rebuilds runtime state, which the runtime validator authorizes before exposure.
+
+### Consequences
+
+- M04E2A2, M04E2A3, and M04E2A4 are retired as executable future slices; their plans, prompts, rows, and gates remain searchable historical evidence only.
+- M04E2R1 is the next planning boundary. It has no approved implementation prompt.
+- P1 planning must prove a safe intermediate repository state before implementation; it may not weaken the aligned-state rule merely because B has not yet been implemented.
+- Reports remain explanatory and never claim-gate already banked gameplay gains.
+
+### Alternatives considered
+
+- **Patch PR #23 again:** rejected because the systemic findings concerned legal transition ownership, not merely isolated defects.
+- **Persist a reduced graph immediately:** rejected until R1 proves which facts are irreducible.
+- **Permit durable cursor lag until B:** rejected because non-persisted finalized facts cannot safely repair an omitted interval.
+
+### Affected documents
+
+- `docs/codex/DECISIONS.md`
+- `docs/codex/MILESTONES.md`
+- `docs/codex/ARCHITECTURE.md`
+- `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`
+- `docs/codex/TESTING_AND_VALIDATION.md`
+- `docs/codex/M04E2_IMPLEMENTATION_POSTMORTEM.md`
+- `docs/codex/M04E2A2_PLANNING.md`
+- `docs/codex/M04E2_TRANSACTION_REDESIGN_PLAN.md`
+- `docs/codex/M04E2_RESET_PLAN.md`
+- `docs/codex/M04E2T2_PLANNING.md`
+- `docs/codex/milestone-prompts/M04E2A2-report-state-schema-v4-persistence.md`
+- `docs/codex/milestone-prompts/M04E2T2-finalized-typed-run-facts.md`
+
 ## 3. Current approval state
 
-- `DEC-0001` through `DEC-0040` and `DEC-0043` through `DEC-0044` are Accepted.
-- `DEC-0041` is Superseded; its report authority, attribution, schema-v4, idempotency, snapshot, and retention semantics remain carried forward.
+- `DEC-0001` through `DEC-0040`, `DEC-0043` through `DEC-0045` are Accepted.
+- `DEC-0041` is Superseded. Current authority carries forward only the high-level report intent restated by `DEC-0045` and the maintained contracts: reports explain already-applied gains; finalized committed facts provide historical attribution; P1 owns schema-v4 persistence; R1 provides exactly-once/no-double-count safety and no mutation for inputs the G3 oracle classifies as rejected or malformed; and R2 owns snapshot and retention behavior. `DEC-0041`'s concrete interval classifications and outcomes are historical/regression evidence for G3, not binding R1 requirements, and may be reclassified by the owner-approved G3 interval-decision table and complete test oracle.
 - `DEC-0042` is Superseded by `DEC-0043`; its failed-branch record and report-slice lessons remain historical context.
 - M04A through M04D3, M04E1, M04E2T1, and M04E2T2 are implemented, verified, and merged.
 - M04E2T1 merged through PR #21 from final head `a4d8056cb8771e84e1948fc5e59939c46a13003c` at merge commit `68364e0b417a6e7ebc63b50a386ac5d9f2c506bf`.
 - M04E2T2 merged through PR #22 from final head `00bd7d1ce27817b508eb0aac1663d1de48353237` at merge commit `afd390e8338a198d76938eef5ddcf35718ec189c`.
 - `GATE-SINGLE-PROVENANCE-TRANSACTION` and `GATE-FINALIZED-RUN-FACTS` are satisfied. Their recorded owner scope exceptions apply only to their completed slices.
-- PR #17 and PR #18 remain closed unmerged forensic references; M04E2A1 remains Superseded/Failed.
-- The active M04E2 sequence is M04E2T1 -> M04E2T2 -> M04E2A2 -> M04E2A3 -> M04E2A4 -> M04E2B.
-- M04E2A2 has an approved milestone boundary and a Draft v0.1 planning package/prompt. No new decision is proposed because its exact report-state/schema semantics are already carried forward in maintained contracts.
-- `GATE-REPORT-SCHEMA` and the M04E2A2 `GATE-SLICE-SCOPE` remain pending explicit owner approval of the planning package and prompt.
-- M04E2A3, M04E2A4, and M04E2B remain blocked on their preceding slices and fresh prompt/scope reviews.
+- PR #17, PR #18, and PR #23 remain closed unmerged forensic references; M04E2A1 and M04E2A2 are superseded failed/rework attempts, while M04E2A3 and M04E2A4 are superseded, never-implemented, non-executable historical slices.
+- The active M04E2 sequence is M04E2T1 -> M04E2T2 -> M04E2R1 -> M04E2R2 -> M04E2P1 -> M04E2B.
+- M04E2R1 is the next planning boundary and has no approved implementation prompt. `DEC-0045` supersedes the former A2/A3/A4 report gates.
 - Future changes preserve decision IDs for wording clarifications and create a new decision when semantics, ownership, compatibility, implementation packaging, or security posture changes.

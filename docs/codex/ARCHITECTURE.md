@@ -3,8 +3,8 @@
 **Document role:** Maintained implementation architecture for the 0-90 minute prototype  
 **Repository path:** `docs/codex/ARCHITECTURE.md`  
 **Document status:** Approved architecture  
-**Architecture revision:** 24  
-**Last updated:** 2026-07-23  
+**Architecture revision:** 25
+**Last updated:** 2026-08-03
 **Engine target:** Godot 4.7, GDScript only  
 **Primary design context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md) and [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md)
 
@@ -1745,7 +1745,23 @@ PR #17 and PR #18 are closed unmerged and are not production-code sources. Their
 
 Accepted `DEC-0043` supersedes the implementation packaging in `DEC-0042` while preserving the non-claim report semantics carried from `DEC-0041`. Accepted `DEC-0044` finalizes the typed public run-fact boundary.
 
-The active sequence is:
+Accepted `DEC-0045` records PR #23 as a closed-unmerged architecture stop and supersedes the former A2/A3/A4 route below. Current merged `GameState` has no authoritative report ledger and schema version 3 remains current. PRs #17, #18, and #23 are forensic/regression evidence only, never production-code sources.
+
+## Current M04E2 report architecture (`DEC-0045`)
+
+```text
+M04E2T1 -> M04E2T2 -> M04E2R1 -> M04E2R2 -> M04E2P1 -> M04E2B
+```
+
+R1/R2 prove one normalized ledger in memory before persistence. The ledger is explicitly caller-owned and non-persisted: every operation receives the ledger explicitly or a private candidate derived from it. Before P1, no application object, `GameSession`, service member, autoload, singleton, or hidden global retains canonical mutable ledger state. The exact R1 field list, API, ownership matrix, and test oracle remain G3 planning work; this architecture does not pre-approve `ReportService` or another ingestion API.
+
+Only irreducible source facts and necessary transition cursors/identities are stored. Totals, counts, windows, summaries, and other redundant views are derived unless G3 proves a stored fact is necessary. One runtime validator owns report-ledger semantic meaning. P1's wire validator checks exact keys, containers, canonical primitive grammar, and safe reconstruction; mapping is explicit and reconstructed state must pass the runtime validator before exposure.
+
+P1 alone puts the proven ledger under `GameState` as sole durable ownership and introduces schema version 4. Every new, migrated, exposed, and persisted P1 state is cursor-aligned to gameplay simulation. No direct committed-simulation path may expose or persist an unreported interval after P1.
+
+B requires an aligned source `GameState`, clones privately, performs committed simulation, and may hold a gameplay-ahead/report-behind candidate only until the approved R1 ingestion transition consumes the same finalized facts. B requires an aligned final candidate before complete validation and one live commit. The transient candidate is never exposed or persisted.
+
+The following was the active sequence before `DEC-0045` and is retained only as historical evidence:
 
 ```text
 M04E2T1 single-provenance simulation transaction  [Merged/Passed]
@@ -1797,7 +1813,7 @@ Raw public segment/channel dictionaries, generic event payload dictionaries, nes
 
 M04E2T2 merged through PR #22 from final head `00bd7d1ce27817b508eb0aac1663d1de48353237` at merge commit `afd390e8338a198d76938eef5ddcf35718ec189c`. Exact-head owner evidence passed 178 full tests, 74 focused tests, all 15 markers, import, negative-root behavior, cleanup, and artifact audit. Final targeted and unrestricted reviews were clean.
 
-## Planned M04E2A2 report-state/schema boundary
+## Historical former M04E2A2 report-state/schema boundary (superseded by `DEC-0045`; non-executable)
 
 M04E2A2 adds one authoritative report-state family inside `GameState` and advances the current writer from schema version 3 to version 4.
 
@@ -1817,9 +1833,9 @@ The version-4 writer keeps codec `JSON_V1`, content revision `prototype-content-
 
 A report cursor may trail gameplay simulation time until M04E2A3. M04E2A2 validates and persists fixture-populated state but adds no `ReportService`, ingestion, read model, snapshot, clear, archive, pruning, offline classification, or simulation/report coordinator.
 
-The planning and prompt boundary is maintained in [M04E2A2 planning](M04E2A2_PLANNING.md). Implementation remains blocked pending explicit owner approval of `GATE-REPORT-SCHEMA`, `GATE-SLICE-SCOPE`, and the Draft v0.1 prompt.
+The former planning/prompt boundary is retained only through [M04E2A2 planning](M04E2A2_PLANNING.md) as historical evidence. `DEC-0045` supersedes its retired report gate and forbids execution.
 
-## Deferred report boundaries
+## Historical former A2/A3/A4 report boundaries (superseded by `DEC-0045`; non-executable)
 
 ### M04E2A2
 

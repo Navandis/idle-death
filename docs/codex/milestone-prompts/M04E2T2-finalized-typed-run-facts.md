@@ -13,6 +13,7 @@
 **Approved PR title:** `M04E2T2: Add finalized typed simulation run facts`  
 **Repository prompt path:** `docs/codex/milestone-prompts/M04E2T2-finalized-typed-run-facts.md`
 
+> **Current follow-on (2026-08-03):** This executed prompt is historical. M04E2A2/A3/A4 are superseded and non-executable by `DEC-0045`; M04E2R1 is the next planning boundary and has no approved implementation prompt.
 > This prompt authorized the finalized typed public run-fact migration and is retained as executed historical provenance. M04E2T2 merged and passed through PR #22. Do not re-execute this prompt or continue its implementation branch for M04E2A2.
 
 ## Completion record
@@ -29,7 +30,7 @@ Focused suite: 74/74 tests, 1,291 assertions
 Trace markers: 15/15
 ```
 
-The recorded owner scope exception applies only to M04E2T2. The active next boundary is M04E2A2.
+The recorded owner scope exception applies only to M04E2T2. The former M04E2A2 boundary is superseded and non-executable; M04E2R1 is the next planning boundary.
 
 ## Historical approval gate
 

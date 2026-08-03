@@ -8,6 +8,8 @@
 **Decision:** Accepted `DEC-0044`  
 **Executed prompt:** `docs/codex/milestone-prompts/M04E2T2-finalized-typed-run-facts.md` v0.1
 
+> **Current follow-on (2026-08-03):** M04E2A2/A3/A4 are superseded and non-executable under `DEC-0045`. M04E2R1 is the next planning boundary; no R1 implementation prompt is approved.
+
 ## Purpose and outcome
 
 M04E2T2 converted the trustworthy internal facts established by M04E2T1 into one final detached public result contract. It removed the raw public segment/channel dictionaries, generic event payload dictionaries, nested engine result/event ownership, and simulation `change_summary`, while preserving the T1 candidate/journal/commit boundary.
@@ -102,19 +104,21 @@ Implementation: Merged
 Verification: Passed
 ```
 
-## Current action
+## Historical former current action (superseded by `DEC-0045`; non-executable)
 
 M04E2T2 is closed. Do not re-execute its prompt or continue its implementation branch as a basis for report state.
 
-The active next planning boundary is:
+The historical former next planning boundary was:
 
 ```text
 M04E2A2 — Report runtime state and schema-v4 persistence
 ```
 
-Use:
+Historical references retained as evidence only, not as an execution checklist:
 
 - `docs/codex/M04E2A2_PLANNING.md`;
-- `docs/codex/milestone-prompts/M04E2A2-report-state-schema-v4-persistence.md` after explicit owner approval;
+- `docs/codex/milestone-prompts/M04E2A2-report-state-schema-v4-persistence.md`;
 - `docs/codex/CODEX_DESKTOP_WORKFLOW.md`;
 - `tools/codex/publish_milestone_pr.ps1`.
+
+Do not review, approve, publish, or execute the former M04E2A2 package from this historical record. Under `DEC-0045`, current routing is G3 planning for M04E2R1; no R1 implementation prompt is approved.
