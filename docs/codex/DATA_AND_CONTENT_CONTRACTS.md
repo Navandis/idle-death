@@ -3,8 +3,8 @@
 **Document role:** Canonical prototype data, runtime-state, ID, and serialization contracts  
 **Repository path:** `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`  
 **Document status:** Approved architecture contract  
-**Revision:** 26  
-**Last updated:** 2026-07-23
+**Revision:** 27
+**Last updated:** 2026-08-03
 
 ## 1. Purpose
 

@@ -3,8 +3,8 @@
 **Document role:** Maintained implementation architecture for the 0-90 minute prototype  
 **Repository path:** `docs/codex/ARCHITECTURE.md`  
 **Document status:** Approved architecture  
-**Architecture revision:** 24  
-**Last updated:** 2026-07-23  
+**Architecture revision:** 25
+**Last updated:** 2026-08-03
 **Engine target:** Godot 4.7, GDScript only  
 **Primary design context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md) and [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md)
 
