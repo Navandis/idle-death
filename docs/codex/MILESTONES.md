@@ -3,8 +3,8 @@
 **Document role:** Approved implementation sequence and acceptance map for the 0–90 minute prototype  
 **Repository path:** `docs/codex/MILESTONES.md`  
 **Document status:** Approved rolling-wave milestone map  
-**Milestone-map revision:** 33  
-**Last updated:** 2026-07-23  
+**Milestone-map revision:** 34
+**Last updated:** 2026-08-03
 **Primary context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md), [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md), [Architecture](ARCHITECTURE.md), [Data contracts](DATA_AND_CONTENT_CONTRACTS.md), [Testing](TESTING_AND_VALIDATION.md), [Owner verification](OWNER_VERIFICATION_WORKFLOW.md), [Milestone recalibration](MILESTONE_RECALIBRATION_PROPOSAL.md), and [Decisions](DECISIONS.md)
 
 ## 1. Purpose and authority
@@ -15,7 +15,7 @@ Use the source hierarchy in `AGENTS.md`. A milestone definition cannot weaken a 
 
 ## 2. Current repository baseline
 
-After M04E2T2 completion:
+After M04E2T2 completion and the PR #23 architecture stop:
 
 - Godot 4.7, GDScript, the 1920 × 1080 reference viewport, resizing/stretch settings, and a temporary dry-run main scene exist.
 - `AGENTS.md`, project Codex configuration, the maintained design sources, the architecture documents, the approved `PROMPT_TEMPLATE.md`, and `OWNER_VERIFICATION_WORKFLOW.md` are present in the repository.
@@ -48,8 +48,9 @@ After M04E2T2 completion:
 - Accepted `DEC-0043` supersedes the implementation packaging in `DEC-0042` and requires a single-provenance simulation transaction before finalized typed run facts and report persistence.
 - M04E2T1 merged through PR #21 from final head `a4d8056cb8771e84e1948fc5e59939c46a13003c` at merge commit `68364e0b417a6e7ebc63b50a386ac5d9f2c506bf`; exact-head Windows verification passed `165/165` full tests, `61/61` focused tests, all twelve markers, import, negative-root behavior, cleanup, and artifact audit.
 - M04E2T2 merged through PR #22 from final head `00bd7d1ce27817b508eb0aac1663d1de48353237` at merge commit `afd390e8338a198d76938eef5ddcf35718ec189c`; exact-head Windows verification passed `178/178` full tests, `74/74` focused tests, all fifteen markers, import, negative-root behavior, cleanup, and artifact audit.
-- `GATE-SINGLE-PROVENANCE-TRANSACTION` and `GATE-FINALIZED-RUN-FACTS` are satisfied. The Draft M04E2A2 planning package defines the next owner-approval boundary.
-- PR #17 and PR #18 are retained only as forensic review/finding references and are not cherry-pick or production-code sources.
+- `GATE-SINGLE-PROVENANCE-TRANSACTION` and `GATE-FINALIZED-RUN-FACTS` are satisfied.
+- PR #23 closed unmerged at `f68e6eac3347cde1b5347ce2d70cc4ce12ac3610` after 8 commits, 58 changed files, 2,012 additions, and 69 deletions. PRs #17, #18, and #23 are forensic/regression evidence only and are not production-code sources.
+- Accepted `DEC-0045` retires M04E2A2/A3/A4 as executable slices. M04E2R1 is the next planning boundary and has no approved implementation prompt.
 - The repository still has no authoritative report accumulator/history, atomic reported-run coordinator, application shell, trusted offline adapter, concurrent-Reaping resolver, or player-facing gameplay UI.
 - Existing dry-run assets and scene work are preserved unless a scoped milestone explicitly replaces or integrates them.
 
@@ -136,10 +137,10 @@ A conceptual epic uses `Prompt: Not applicable` and `Implementation: Not directl
 | `GATE-TYPED-SIMULATION-RESULT` | Retired M04E2A1 prompt | Superseded by accepted `DEC-0043`. PR #18 closed unmerged and does not satisfy a current implementation gate. |
 | `GATE-SINGLE-PROVENANCE-TRANSACTION` | M04E2T1 prompt approval | Satisfied by M04E2T1 Merged/Passed through PR #21 and its exact-head owner evidence. |
 | `GATE-FINALIZED-RUN-FACTS` | M04E2T2 prompt approval | Satisfied by M04E2T2 Merged/Passed through PR #22, accepted `DEC-0044`, clean reviews, and exact-head owner evidence. |
-| `GATE-REPORT-SCHEMA` | M04E2A2 prompt approval | Satisfied by M04E2T2 Merged/Passed, the approved M04E2A2 v0.1 field/propagation/malformed-save/migration plan, explicit owner approval, and the completed scope review. M04E2A2 alone may introduce schema v4 and report persistence. |
-| `GATE-REPORT-INGESTION` | M04E2A3 prompt approval | Pending M04E2A2 Merged/Passed plus a fresh interval-decision, checked-aggregation, finalized-fact-consumer, and scope review. |
-| `GATE-REPORT-READS-HISTORY` | M04E2A4 prompt approval | Pending M04E2A3 Merged/Passed plus a fresh read-model, snapshot, offline-classification, retention, evidence, and scope review. |
-| `GATE-ATOMIC-REPORTED-RUN` | M04E2B prompt approval | Pending M04E2T1, M04E2T2, and M04E2A2 through M04E2A4 Merged/Passed plus a fresh coordinator/final-harness scope review. |
+| `GATE-REPORT-SCHEMA` | Former M04E2A2 prompt route | Superseded by `DEC-0045`; historical non-executable evidence. P1 alone may introduce schema v4 and report persistence after R1/R2 are proven. |
+| `GATE-REPORT-INGESTION` | Former M04E2A3 prompt route | Superseded by `DEC-0045`; historical non-executable evidence. R1 planning defines the replacement ingestion boundary. |
+| `GATE-REPORT-READS-HISTORY` | Former M04E2A4 prompt route | Superseded by `DEC-0045`; historical non-executable evidence. R2 follows approved R1 work. |
+| `GATE-ATOMIC-REPORTED-RUN` | M04E2B prompt approval | Pending M04E2T1, M04E2T2, M04E2R1, M04E2R2, and M04E2P1 Merged/Passed plus a fresh coordinator/final-harness scope review. |
 | `GATE-STEAM-TIME` | The applicable M06 slice prompt/implementation | Satisfied for prompt drafting by `DEC-0024`: use pinned GodotSteam 4.20 and development App ID `480`. M06 must still verify license footprint, wrapper API, explicit initialization, and live Windows behavior. |
 | `GATE-PRODUCTION-OFFLINE` | The final applicable M16 slice merge | Fake-provider automation plus the owner-run Windows/GodotSteam connected, unavailable, reconnect, clock-change, and repeated-load checks must pass. |
 | `RELEASE-GATE-STEAM-APP` | Before external Steam Playtest or commercial distribution | Replace development App ID `480` with Death Idle's assigned App ID and validate package ownership, launch-through-Steam behavior, export contents, and absence of development-only App ID aids. |
@@ -153,12 +154,30 @@ A conceptual epic uses `Prompt: Not applicable` and `Implementation: Not directl
 
 `GATE-CONTENT-CATALOG` was satisfied by M03. PR #7 merged on 2026-07-15 at merge commit `5e2b9b23878c9280f75b987cc9ad567d8980030d`; its final head was `971cdaa0fd46f641ec7409148e259d54f953d8c7`. Linux/Codex and owner Windows verification passed the full and focused suites, explicit import, semantic catalog trace, artifact audit, and Godot Inspector checklist.
 
-`GATE-SLICE-SCOPE` is mandatory for every post-M03 prompt. `GATE-GAMEPLAY-SCHEMA` through `GATE-FORECAST-CLONE` are satisfied by the merged M04A-M04E1 sequence. `GATE-TYPED-SIMULATION-RESULT` is Superseded after failed PR #18. `GATE-SINGLE-PROVENANCE-TRANSACTION` is satisfied by M04E2T1. `GATE-FINALIZED-RUN-FACTS` is satisfied by M04E2T2. `GATE-REPORT-SCHEMA` is the active pending owner-approval boundary for M04E2A2; later report and atomic-run gates remain pending their preceding slices and fresh scope reviews.
+`GATE-SLICE-SCOPE` is mandatory for every post-M03 prompt. `GATE-GAMEPLAY-SCHEMA` through `GATE-FORECAST-CLONE` are satisfied by the merged M04A-M04E1 sequence. `GATE-TYPED-SIMULATION-RESULT` is Superseded after failed PR #18. `GATE-SINGLE-PROVENANCE-TRANSACTION` is satisfied by M04E2T1. `GATE-FINALIZED-RUN-FACTS` is satisfied by M04E2T2. The former report-schema, ingestion, and reads/history gates are superseded by `DEC-0045`; no retired report gate is current.
 
 
 When trusted time is unavailable, the approved behavior is to grant no guessed closed-session progress, retain pending reconciliation, and continue monotonic foreground production. No milestone may introduce a local-device-time fallback.
 
 ## 6. Milestone status map
+
+### Current M04E2 status after `DEC-0045`
+
+| ID | Work item | Type | Definition | Prompt | Implementation | Verification |
+|---|---|---|---|---|---|---|
+| M04E2T1 | Single-provenance simulation transaction journal and commit boundary | Implementation slice | Approved | Approved | Merged | Passed |
+| M04E2T2 | Finalized typed run facts and current-consumer migration | Implementation slice | Approved | Approved | Merged | Passed |
+| M04E2A2 | Former report runtime state and schema-v4 persistence | Historical slice | Superseded | Superseded | Failed/rework required | PR #23 closed unmerged |
+| M04E2A3 | Former cursor-idempotent live report ingestion | Historical slice | Superseded | Not drafted | Non-executable | Historical only |
+| M04E2A4 | Former report reads, snapshot, bounded history, and final evidence | Historical slice | Superseded | Not drafted | Non-executable | Historical only |
+| M04E2R1 | Normalized live report ledger and committed-run ingestion | Planning boundary | Approved architecture | No approved prompt | Not started | Next planning boundary |
+| M04E2R2 | Snapshot, bounded history, retention, and detached reads | Future implementation slice | Approved architecture | Not drafted | Not started | Follows proven R1 |
+| M04E2P1 | GameState integration, schema-v4 migration, and persistence | Future implementation slice | Approved architecture | Not drafted | Not started | Follows proven R1/R2 |
+| M04E2B | Atomic simulation/report coordinator and final M04 harness | Future implementation slice | Approved architecture | Not drafted | Not started | Follows P1 |
+
+### Historical prior status map (superseded by `DEC-0045`; non-executable)
+
+All rows and detailed milestone definitions below that describe the former M04E2A2/A3/A4 route are retained as historical evidence. Their predecessor status/approval labels do not authorize execution; the current M04E2 status table and dependency sequence above are authoritative.
 
 | ID | Work item | Type | Definition | Prompt | Implementation | Verification |
 |---|---|---|---|---|---|---|
@@ -202,6 +221,16 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 ## 7. Dependency sequence
 
 ### 7.1 Exact near-term implementation sequence
+
+The current executable/planning sequence is:
+
+```text
+M04E2T1 -> M04E2T2 -> M04E2R1 -> M04E2R2 -> M04E2P1 -> M04E2B
+```
+
+R1 is a planning boundary only: no R1 implementation prompt is approved. Before P1 the report ledger is explicitly caller-owned and non-persisted; no application, `GameSession`, service member, autoload, singleton, or hidden global may retain canonical mutable ledger state. P1 must introduce only cursor-aligned exposed/persisted `GameState`; B may hold lag only privately between simulation and ingestion, and begins and ends aligned.
+
+### Historical prior dependency map (superseded by `DEC-0045`; non-executable)
 
 ```text
 M00 → M01 → M02 → M03
@@ -809,15 +838,17 @@ Schema version 1 and its key spelling remain unchanged. New-save calls pass the 
 
 #### Purpose
 
+The predecessor decomposition immediately above is superseded by `DEC-0045` for its M04E2 portion. The current M04 completion route is M04E2T1 -> M04E2T2 -> M04E2R1 -> M04E2R2 -> M04E2P1 -> M04E2B.
+
 Prove the core idle machinery before narrative and production UI are layered over it, while keeping state, commands, simulation, long-horizon channels, forecasts, and reports reviewable as separate slices.
 
 #### Epic outcome
 
-After M04A, M04B, M04C, M04D1, M04D2, M04D3, M04E1, M04E2T1, M04E2T2, M04E2A2, M04E2A3, M04E2A4, and M04E2B pass, one Gloamwood Reaping led by Man-at-Arms can be constructed, dispatched, advanced deterministically, saved, loaded, recalled, redispatched, forecast on a clone, atomically committed into report state, snapshotted into bounded history, and reloaded without claim-gating. Output access, backlog, Essence, Mastery, and configured eligible channels use scene-independent authority.
+After M04A, M04B, M04C, M04D1, M04D2, M04D3, M04E1, M04E2T1, M04E2T2, M04E2R1, M04E2R2, M04E2P1, and M04E2B pass, one Gloamwood Reaping led by Man-at-Arms can be constructed, dispatched, advanced deterministically, saved, loaded, recalled, redispatched, forecast on a clone, atomically committed into report state, snapshotted into bounded history, and reloaded without claim-gating. Output access, backlog, Essence, Mastery, and configured eligible channels use scene-independent authority.
 
 #### Epic completion rule
 
-M04 is complete only when M04A, M04B, M04C, M04D1, M04D2, M04D3, M04E1, M04E2T1, M04E2T2, M04E2A2, M04E2A3, M04E2A4, and M04E2B are all Merged and Passed. No `M04-persistent-reaping-simulation.md`, direct `M04D` prompt, direct `M04E-forecast-report-simulation-harness.md` prompt, or direct M04E2 prompt is valid under the approved recalibration.
+M04 is complete only when M04A, M04B, M04C, M04D1, M04D2, M04D3, M04E1, M04E2T1, M04E2T2, M04E2R1, M04E2R2, M04E2P1, and M04E2B are all Merged and Passed. No `M04-persistent-reaping-simulation.md`, direct `M04D` prompt, direct `M04E-forecast-report-simulation-harness.md` prompt, or direct M04E2 prompt is valid under the approved recalibration.
 
 ---
 
@@ -1398,11 +1429,13 @@ Permit currently valid changed loadouts to redispatch without losing or reinterp
 
 #### Purpose
 
+The predecessor decomposition immediately above is superseded by `DEC-0045` for its M04E2 portion. M04E now completes through M04E2T1 -> M04E2T2 -> M04E2R1 -> M04E2R2 -> M04E2P1 -> M04E2B.
+
 Complete the non-UI Reaping epic with detached projection, save-safe already-applied reporting, and one atomic final harness while keeping projection, report schema, and cross-owner transaction risk reviewable.
 
 #### Completion rule
 
-M04E1 is Merged/Passed. Under accepted `DEC-0043`, M04E is complete only when M04E2T1, M04E2T2, M04E2A2 through M04E2A4, and M04E2B are also Merged/Passed. No direct M04E implementation prompt is valid.
+M04E1 is Merged/Passed. Under accepted `DEC-0045`, M04E is complete only when M04E2T1, M04E2T2, M04E2R1, M04E2R2, M04E2P1, and M04E2B are also Merged/Passed. No direct M04E implementation prompt is valid.
 
 ---
 
@@ -1465,17 +1498,17 @@ Add one non-authoritative forecast seam and one explicit-duration adapter owner 
 **Prompt status:** Not applicable — no direct prompt  
 **Implementation status:** Not directly executable  
 **Verification status:** —  
-**Approved decomposition:** M04E2T1 -> M04E2T2 -> M04E2A2 -> M04E2A3 -> M04E2A4 -> M04E2B
+**Approved decomposition:** M04E2T1 -> M04E2T2 -> M04E2R1 -> M04E2R2 -> M04E2P1 -> M04E2B
 
 #### Recalibration record
 
 PR #17 and PR #18 are closed unmerged. PR #17 demonstrated that report state, migration, ingestion, reads, snapshots, retention, and verification were too broad for one branch. PR #18 demonstrated that an independently mutable candidate, typed result, and compatibility summary cannot be made safe through a growing post-hoc validator.
 
-Accepted `DEC-0043` replaces the implementation packaging in `DEC-0042` with a single-provenance simulation transaction prerequisite followed by finalized typed facts and the separately bounded report slices.
+Accepted `DEC-0043` replaces the implementation packaging in `DEC-0042` with a single-provenance simulation transaction prerequisite followed by finalized typed facts. Accepted `DEC-0045` then retired the former A2/A3/A4 slices after PR #23 and established the runtime-ledger-first R1/R2/P1/B route.
 
 #### Completion rule
 
-M04E2 is complete only when M04E2T1, M04E2T2, M04E2A2, M04E2A3, M04E2A4, and M04E2B are all Merged and Passed.
+M04E2 is complete only when M04E2T1, M04E2T2, M04E2R1, M04E2R2, M04E2P1, and M04E2B are all Merged and Passed. R1 is the next planning boundary and has no approved implementation prompt.
 
 ---
 
@@ -1532,7 +1565,7 @@ Refactor supplied-duration simulation so one internal transaction owns the priva
 
 #### Follow-on dependency
 
-- M04E2T2 completed through PR #22; the active follow-on is M04E2A2.
+- M04E2T2 completed through PR #22; `DEC-0045` makes M04E2R1 the next planning boundary.
 
 ---
 
@@ -1616,7 +1649,7 @@ The final slice used 25 non-documentation/non-`.uid` files and 1,460 net additio
 
 #### Follow-on dependency
 
-- M04E2A2 planning and prompt approval.
+- M04E2R1 planning after G3 establishes its field, ownership, and test-oracle packet.
 
 ---
 
@@ -1624,19 +1657,19 @@ The final slice used 25 non-documentation/non-`.uid` files and 1,460 net additio
 
 **Work item type:** Conceptual sub-epic  
 **Parent epic:** M04 / M04E / M04E2  
-**Definition status:** Approved under accepted `DEC-0043`  
-**Prompt status:** Not applicable  
-**Implementation status:** Not directly executable  
+**Definition status:** Superseded by `DEC-0045`
+**Prompt status:** Not applicable; non-executable historical record
+**Implementation status:** Non-executable
 **Verification status:** —  
-**Approved decomposition:** M04E2A2 -> M04E2A3 -> M04E2A4
+**Historical former decomposition:** M04E2A2 -> M04E2A3 -> M04E2A4
 
 #### Purpose
 
-Deliver report state/persistence, live ingestion, and read/snapshot/history behavior as separately reviewable transitions after simulation provenance and finalized typed facts are stable.
+This former sequence is historical only. `DEC-0045` replaces it with M04E2R1 -> M04E2R2 -> M04E2P1 -> M04E2B; R1 remains an unprompted planning boundary.
 
 #### Completion rule
 
-M04E2A is complete only when M04E2A2, M04E2A3, and M04E2A4 are all Merged and Passed.
+The former M04E2A sequence is never executable or completable; it is retained only as historical evidence.
 
 ---
 
@@ -1644,7 +1677,7 @@ M04E2A is complete only when M04E2A2, M04E2A3, and M04E2A4 are all Merged and Pa
 
 **Work item type:** Implementation slice  
 **Parent epic:** M04 / M04E / M04E2 / M04E2A  
-**Definition status:** Approved boundary under accepted `DEC-0043` and carried-forward report semantics  
+**Definition status:** Superseded by `DEC-0045`; historical non-executable boundary
 **Prompt status:** Draft v0.1 — pending explicit owner approval  
 **Implementation status:** Not started  
 **Verification status:** —  
@@ -1718,7 +1751,7 @@ A valid empty or fixture-populated report state can construct, validate, deep-cl
 
 **Work item type:** Implementation slice  
 **Parent epic:** M04 / M04E / M04E2 / M04E2A  
-**Definition status:** Approved boundary under accepted `DEC-0043`  
+**Definition status:** Superseded by `DEC-0045`; historical non-executable boundary
 **Prompt status:** Not drafted  
 **Implementation status:** Not started  
 **Verification status:** —  
@@ -1761,7 +1794,7 @@ A finalized committed interval is represented once in live report state or rejec
 
 **Work item type:** Implementation slice  
 **Parent epic:** M04 / M04E / M04E2 / M04E2A  
-**Definition status:** Approved boundary under accepted `DEC-0043`  
+**Definition status:** Superseded by `DEC-0045`; historical non-executable boundary
 **Prompt status:** Not drafted  
 **Implementation status:** Not started  
 **Verification status:** —  
@@ -1803,7 +1836,7 @@ The accepted M04E2A report foundation is Merged/Passed only after this slice pas
 
 **Work item type:** Implementation slice  
 **Parent epic:** M04 / M04E / M04E2  
-**Definition status:** Approved high-level boundary under accepted `DEC-0043`  
+**Definition status:** Approved high-level boundary under accepted `DEC-0045`
 **Prompt status:** Not drafted  
 **Implementation status:** Not started  
 **Verification status:** —  
@@ -1816,7 +1849,7 @@ Make the application-level supplied-duration path commit gameplay and report ing
 
 #### Dependencies
 
-- M04E2T1, M04E2T2, M04E2A2, M04E2A3, and M04E2A4 all Merged and Passed.
+- M04E2T1, M04E2T2, M04E2R1, M04E2R2, and M04E2P1 all Merged and Passed.
 - Fresh prompt and scope approval.
 
 #### Preliminary included scope

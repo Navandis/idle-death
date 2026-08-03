@@ -1,6 +1,6 @@
 # M04E2 single-provenance transaction redesign plan
 
-**Status:** Approved architecture; M04E2T1 and M04E2T2 Merged/Passed; M04E2A2 planning active  
+**Status:** Historical T1/T2 architecture; M04E2A2/A3/A4 superseded by `DEC-0045`; M04E2R1 is the next planning boundary
 **Date:** 2026-07-23  
 **Authority:** Accepted `DEC-0043`; accepted `DEC-0044`; carried-forward report semantics from superseded `DEC-0041`/`DEC-0042`  
 **Current merged baseline:** PR #22 merge commit `afd390e8338a198d76938eef5ddcf35718ec189c`, schema version 3 / `prototype-content-r2`  
@@ -8,7 +8,7 @@
 
 ## Purpose
 
-This plan replaced the failed post-hoc candidate/result reconciliation approach with one single-provenance simulation transaction, then finalized its public typed fact projection. Both replacement prerequisites are now merged and verified. The active next boundary is M04E2A2: authoritative report runtime state and schema-v4 persistence without report mutation.
+This plan replaced the failed post-hoc candidate/result reconciliation approach with one single-provenance simulation transaction, then finalized its public typed fact projection. Both replacement prerequisites are now merged and verified. The former M04E2A2 boundary is superseded and non-executable; M04E2R1 is the current next planning boundary and has no approved implementation prompt.
 
 The central rule remains:
 
@@ -18,7 +18,7 @@ A second rule now applies to report work:
 
 > M04E2A2 stores validated explanatory state only. It introduces no service that ingests, reads, snapshots, clears, or prunes that state.
 
-## Active dependency sequence
+## Historical former dependency sequence (superseded by `DEC-0045`; non-executable)
 
 ```text
 M04E1
@@ -109,7 +109,7 @@ interactive checks: none
 
 Targeted and unrestricted reviews were clean after bounded corrections. The owner-approved scope exception applies only to M04E2T2. `GATE-FINALIZED-RUN-FACTS` is satisfied.
 
-## M04E2A2 planned boundary
+## Historical former M04E2A2 planned boundary (superseded by `DEC-0045`; non-executable)
 
 ### Principal transition
 
@@ -182,7 +182,7 @@ For each slice:
 7. evidence validation and owner-controlled merge;
 8. documentation closure to Merged/Passed.
 
-## M04E2A2 stop conditions
+## Historical former M04E2A2 stop conditions (superseded by `DEC-0045`; non-executable)
 
 Return to planning when any occurs:
 
@@ -201,7 +201,7 @@ full suite is red at review request
 
 ## Current action
 
-Review and approve the M04E2A2 planning package and Draft v0.1 prompt:
+Do not review or execute the former M04E2A2 planning package or prompt. They are historical evidence only; G3 must plan M04E2R1.
 
 ```text
 docs/codex/M04E2A2_PLANNING.md
@@ -209,4 +209,4 @@ docs/codex/milestone-prompts/M04E2A2-report-state-schema-v4-persistence.md
 docs/codex/CODEX_DESKTOP_WORKFLOW.md
 ```
 
-Implementation remains blocked until the owner explicitly approves the prompt and satisfies `GATE-REPORT-SCHEMA` and `GATE-SLICE-SCOPE`.
+Historically, execution required owner approval and `GATE-REPORT-SCHEMA`; `DEC-0045` now supersedes that route and prohibits execution.

@@ -2690,13 +2690,19 @@ Final Windows evidence passed `153/153` full tests and `2,522` assertions before
 
 Accepted `DEC-0043` supersedes the failed M04E2A1 implementation packaging while carrying forward report semantics. Accepted `DEC-0044` defines the final typed public run-fact contract.
 
+Accepted `DEC-0045` supersedes the former A2/A3/A4 route. Current merged `GameState` contains no authoritative report ledger, no report state is persisted, and schema version 3 remains current until M04E2P1.
+
 The active sequence is:
 
 ```text
-M04E2T1 -> M04E2T2 -> M04E2A2 -> M04E2A3 -> M04E2A4 -> M04E2B
+M04E2T1 -> M04E2T2 -> M04E2R1 -> M04E2R2 -> M04E2P1 -> M04E2B
 ```
 
-M04E2T1 and M04E2T2 are Merged/Passed. M04E2A2 is the active planning boundary.
+M04E2T1 and M04E2T2 are Merged/Passed. M04E2R1 is the next planning boundary and has no approved implementation prompt.
+
+R1/R2 receive one explicitly caller-owned, non-persisted ledger or a private candidate derived from it. Before P1, no application, `GameSession`, service member, autoload, singleton, or hidden global retains canonical mutable ledger state. Exact R1 fields, API, ownership matrix, and test oracle are deferred to G3; only irreducible source facts and needed transition cursors/identities may be stored, while redundant views are derived.
+
+P1 alone places the proven ledger under `GameState` as sole durable owner and introduces schema version 4. Every new, migrated, exposed, and persisted P1 state must be cursor-aligned with gameplay. No direct committed-simulation path may expose or persist an unreported interval after P1. B begins aligned, permits a gameplay-ahead/report-behind ledger only transiently inside its private candidate after simulation and before ingestion, and finishes aligned before validation and one live commit. One runtime validator owns semantic meaning; the future wire validator owns exact keys, containers, canonical primitive grammar, and safe reconstruction only.
 
 ## Realized M04E2T1 single-provenance transaction contract
 
@@ -2841,9 +2847,9 @@ M04E2T2 merged through PR #22 at final head `00bd7d1ce27817b508eb0aac1663d1de483
 
 ## Deferred report contracts
 
-M04E2A2, M04E2A3, M04E2A4, and M04E2B retain the report-state, migration, ingestion, read, snapshot, retention, and atomic-coordination semantics below. References to M04E2A1 typed results are interpreted as the finalized typed run facts delivered by M04E2T2.
+The following A2/A3/A4 material is historical non-executable evidence superseded by `DEC-0045`; it does not retain current report-state, migration, ingestion, read, snapshot, retention, or coordination authority. References to M04E2A1 typed results are interpreted as the finalized typed run facts delivered by M04E2T2.
 
-## Approved deferred M04E2A2 report-state contract
+## Historical former M04E2A2 report-state contract (superseded by `DEC-0045`; non-executable)
 
 M04E2A2 alone advances the production writer to schema version 4. Codec remains `JSON_V1`; content remains `prototype-content-r2`. Every authoritative integer uses the canonical decimal-string wire codec.
 
@@ -3021,7 +3027,7 @@ Persisting the upgrade increments save revision once through the existing coordi
 
 M04E2A2 implements no service mutation; fixture-populated report state is used only to prove mapping and persistence.
 
-## Approved deferred M04E2A3 ingestion contract
+## Historical former M04E2A3 ingestion contract (superseded by `DEC-0045`; non-executable)
 
 `ReportService.ingest_committed_run(...)` consumes only successful committed M04E1 modes with no projected state and an exact validated typed `SimulationResult`.
 
@@ -3088,7 +3094,7 @@ Every failure preserves gameplay and report state exactly.
 
 M04E2A3 adds no public read model, snapshot command, offline classification, or history pruning.
 
-## Approved deferred M04E2A4 read/snapshot/history contract
+## Historical former M04E2A4 read/snapshot/history contract (superseded by `DEC-0045`; non-executable)
 
 Required pure detached queries are equivalent to:
 
@@ -3144,7 +3150,7 @@ REPORT_RECENT_EVENT_LIMIT = 64
 
 Pruning keeps newest records/details, preserves exact counts, and increments explicit compaction counters. Recent report history is not permanent Codex Mortis analytics.
 
-## Approved deferred M04E2B atomic boundary
+## Historical former M04E2B atomic boundary (superseded by `DEC-0045`; non-executable)
 
 After M04E2T1, M04E2T2, and M04E2A2 through M04E2A4 are Merged/Passed, M04E2B may add:
 

@@ -1,4 +1,9 @@
-# Implementation slice M04E2A2: Report runtime state and schema-v4 persistence
+> **Status: Superseded by DEC-0045**
+> **Execution: Do not execute**
+> **Historical outcome: PR #23 closed unmerged at f68e6eac3347cde1b5347ce2d70cc4ce12ac3610**
+> **Replacement sequence: M04E2R1 -> M04E2R2 -> M04E2P1 -> M04E2B**
+
+# Implementation slice M04E2A2: Report runtime state and schema-v4 persistence (historical, non-executable)
 
 **Prompt version:** v0.1  
 **Prompt date:** 2026-07-23  

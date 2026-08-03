@@ -1,15 +1,15 @@
 # M04E2 implementation postmortem — PR #17 and PR #18
 
 **Status:** Approved historical and engineering record  
-**Date:** 2026-07-22  
-**Authority:** Accepted `DEC-0043`  
+**Date:** 2026-08-03
+**Authority:** Accepted `DEC-0043`, `DEC-0044`, and `DEC-0045`
 **Scope:** Failed M04E2 implementation attempts only; no blame assignment and no production-code authority
 
 ## Purpose
 
-This document records why two M04E2 implementation attempts were closed unmerged, which findings remain useful, and which architecture patterns are prohibited in the replacement work.
+This document records why three M04E2 implementation attempts were closed unmerged, which findings remain useful, and which architecture patterns are prohibited in the replacement work.
 
-The report design is not being abandoned. Reports remain informational, gains remain automatically banked, historical attribution remains required, and schema-v4 report persistence remains a later approved slice.
+The report design is not being abandoned. Reports remain informational, gains remain automatically banked, historical attribution remains required, and schema-v4 report persistence remains a later P1 slice after runtime transitions are proven.
 
 ## Attempt 1 — PR #17
 
@@ -184,3 +184,42 @@ full suite red at review request
 ```
 
 When triggered, return to architecture planning rather than issuing another patch prompt.
+
+## Attempt 3 — PR #23
+
+```text
+Title: M04E2A2: Add report state and schema-v4 persistence
+Terminal head: f68e6eac3347cde1b5347ce2d70cc4ce12ac3610
+State: Closed unmerged
+Commits: 8
+Changed files: 58
+Additions: 2,012
+Deletions: 69
+```
+
+PR #23 attempted a complete report-state graph, schema version 4, `v3 -> v4` migration, mapping, runtime and primitive validators, and persistence before production owners existed for committed-run ingestion, snapshotting, compaction, retention, and reads.
+
+### Material findings and classification
+
+| # | Finding | Classification | Why it matters |
+|---:|---|---|---|
+| 1 | Primitive validation called `.is_empty()` before proving report children were containers. | Local defect | Retained malformed-input regression; not architecture proof by itself. |
+| 2 | Increasing event sequence did not require deterministic temporal/priority order. | Architecture/ownership signal | Sequence authority preceded the append/order transition. |
+| 3 | Disabled content references were accepted. | Both | The local check was missing; parallel runtime/wire semantic correction amplified duplicated authority. |
+| 4 | A getter cloned malformed private `_window` before validation and masked aliasing. | Local defect | Retained safe-access regression; not architecture proof by itself. |
+| 5 | Retained/live windows could overlap. | Architecture/ownership signal | Snapshot/history interval transitions were predicted rather than implemented. |
+| 6 | Omitted event count could exceed preserved event-type totals. | Architecture/ownership signal | Compaction counters existed before compaction behavior. |
+| 7 | Event-type totals could exceed retained plus omitted detail. | Architecture/ownership signal | Redundant independently stored counts created hidden authority. |
+| 8 | Non-empty windows could claim zero ingested runs and no mode provenance. | Architecture/ownership signal | Future ingestion provenance had no ingestion owner. |
+| 9 | `next_event_sequence` ignored compacted events with no retained detail. | Architecture/ownership signal | Next-ID authority depended on unimplemented compaction semantics. |
+| 10 | Retained/live windows could contain gaps while the report cursor claimed coverage. | Architecture/ownership signal | Cursor authority depended on unimplemented contiguous transitions. |
+
+Nine review threads were resolved during the branch. The final gap finding exposed another independent temporal-continuity class. Closure followed the repeated transition, coverage, provenance, compaction, sequence-authority, and runtime/wire-parity failures, not a defect count or review-round count. Findings 1 and 4 alone would normally justify bounded corrections and are not architecture evidence by themselves.
+
+### Retained evidence and prohibited reuse
+
+PRs #17, #18, and #23 remain forensic/regression evidence for black-box scenarios, malformed-input categories, aliasing and failure-preservation lessons, exact expected values, and review findings. They are not production-code sources: do not copy or cherry-pick their report implementations, validators, persisted graphs, or stopped schema field sets wholesale.
+
+### Replacement architecture
+
+`DEC-0045` replaces the former A2/A3/A4 execution route with `M04E2R1 -> M04E2R2 -> M04E2P1 -> M04E2B`. R1/R2 operate on one explicitly caller-owned non-persisted ledger; no application, `GameSession`, service member, autoload, singleton, or hidden global retains canonical mutable ledger state before P1. P1 gives `GameState` sole durable ownership and permits only gameplay/report cursor-aligned exposed or persisted state. B alone may transiently hold a gameplay-ahead/report-behind private candidate between simulation and ingestion; it starts and finishes aligned before validation and one live commit.
