@@ -73,6 +73,7 @@ Stop and report before proceeding when:
 - the live repository materially differs from the packet baseline;
 - a required authority or dependency is missing, stale, or contradictory;
 - the work needs another primary owner, risk dimension, integration seam, changed path, schema transition, or behavior outside the approved packet;
+- an approved required suite or check remains red, or the required evidence cannot be established;
 - acceptance cannot be proved with the packet oracle;
 - a byte/output ceiling cannot be met without ambiguity or omission;
 - the branch is based on stale `main`, publication would require force, or repository state is unexpectedly dirty;
