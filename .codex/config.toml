@@ -1,4 +1,0 @@
-# Codex reads at most 32 KiB of project instruction files by default.
-# Death Idle's root AGENTS.md is already close to that limit, so 64 KiB
-# leaves room for small, genuinely necessary nested instructions later.
-project_doc_max_bytes = 65536
