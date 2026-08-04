@@ -2,7 +2,7 @@
 
 **Document role:** Repository operating procedure for transactional Codex implementation and fixer tasks
 **Status:** Approved operational workflow for G2-forward implementation slices
-**Revision:** 3
+**Revision:** 4
 **Last updated:** 2026-08-04
 **Companion:** root `AGENTS.md`, the owner-approved versioned slice packet, `docs/codex/CODEX_PR_BRANCH_RECOVERY.md`, and `tools/codex/publish_milestone_pr.ps1`
 
@@ -159,6 +159,8 @@ implementation/readiness pass
 -> fresh triage disposition
 -> bounded correction packet when needed
 -> fresh fixer task for material corrections on the same branch/PR
+-> new-head CI
+-> bounded rereview
 -> final unrestricted current-head review
 -> exact-head owner verification when required
 -> owner merge
