@@ -2,8 +2,8 @@
 
 **Document role:** Repository operating procedure for transactional Codex implementation and fixer tasks
 **Status:** Approved operational workflow for G2-forward implementation slices
-**Revision:** 2
-**Last updated:** 2026-08-03
+**Revision:** 3
+**Last updated:** 2026-08-04
 **Companion:** root `AGENTS.md`, the owner-approved versioned slice packet, `docs/codex/CODEX_PR_BRANCH_RECOVERY.md`, and `tools/codex/publish_milestone_pr.ps1`
 
 ## Purpose
@@ -18,13 +18,21 @@ long-lived planning architect
 -> owner approval
 -> transactional implementation Codex task
 -> one feature branch and one pull request
+-> PR publication
+-> exact-head CI
+-> owner/architect paste-ready exact-head review request
+-> primary independent reviewer
+-> persisted review findings
 -> fresh PR-lifetime triage architect
--> fresh bounded fixer task for material corrections
--> exact-head review and owner verification
+-> triage authorization for any bounded correction
+-> fresh bounded fixer task for material corrections on the same branch/PR
+-> new-head CI and bounded rereview
+-> final unrestricted review
+-> applicable exact-head owner verification
 -> owner integration
 ```
 
-The planning architect does not independently assess its own packet or perform routine PR-lifetime triage. The implementation task executes the approved packet and does not rewrite its own authority. The triage architect classifies findings and convergence. A fixer receives a bounded correction packet rather than the entire planning history.
+The planning architect does not independently assess its own packet or perform routine PR-lifetime triage. The implementation task executes the approved packet and does not rewrite its own authority. A primary independent reviewer reviews the exact head before the fresh PR-lifetime triage architect classifies persisted findings and convergence. Triage authorizes any bounded correction; a fixer receives a bounded correction packet rather than the entire planning history, and material correction uses a fresh fixer task on the same branch/PR.
 
 ## One slice, one branch, one pull request
 

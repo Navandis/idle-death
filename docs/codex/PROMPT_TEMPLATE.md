@@ -3,7 +3,7 @@
 **Document role:** Active template for one bounded, directly executable implementation slice
 **Repository path:** `docs/codex/PROMPT_TEMPLATE.md`
 **Compatibility note:** The filename is retained as a legacy compatibility path. Its active contents define a slice packet, not the historical monolithic prompt model.
-**Last updated:** 2026-08-03
+**Last updated:** 2026-08-04
 
 ## 1. Use and provenance
 
@@ -148,9 +148,15 @@ planning architect
 -> owner approval
 -> transactional implementer
 -> PR publication
--> fresh PR-lifetime triage/review
--> transactional fixer context when needed
--> exact-head verification
+-> exact-head CI
+-> owner/architect paste-ready exact-head review trigger
+-> primary independent reviewer
+-> persisted review findings
+-> fresh PR-lifetime triage architect
+-> bounded fixer task when correction is required
+-> new-head CI and bounded rereview
+-> final unrestricted review
+-> applicable exact-head owner verification
 -> owner integration
 ```
 
