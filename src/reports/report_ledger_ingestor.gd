@@ -52,7 +52,7 @@ static func ingest_committed_run(source_ledger: ReportLedger, run: SimulationRun
 	return ReportLedgerIngestResult.applied(candidate)
 
 static func _wrapper_matches(run: SimulationRunService.SimulationRunResult, inner: SimulationResult) -> bool:
-	if run.requested_elapsed_msec != inner.requested_elapsed_msec or inner.committed_elapsed_msec != run.requested_elapsed_msec or run.baseline_simulation_time_msec != inner.baseline_simulation_time_msec or run.result_simulation_time_msec != inner.result_simulation_time_msec or run.success != inner.success or run.baseline_simulation_time_msec < 0 or run.result_simulation_time_msec < run.baseline_simulation_time_msec: return false
+	if run.requested_elapsed_msec != inner.requested_elapsed_msec or inner.committed_elapsed_msec != run.requested_elapsed_msec or run.baseline_simulation_time_msec != inner.baseline_simulation_time_msec or run.result_simulation_time_msec != inner.result_simulation_time_msec or run.success != inner.success: return false
 	return run.result_simulation_time_msec - run.baseline_simulation_time_msec == inner.committed_elapsed_msec
 
 static func _classify(cursor: int, start: int, finish: int) -> StringName:

@@ -17,6 +17,20 @@ func test_interval_decision_matrix_and_precedence() -> void:
 	var failed := SimulationRunService.SimulationRunResult.new(false, SimulationRunService.MODE_FORECAST, &"ERR", "", 0, 100, 100, null, null)
 	assert_eq(ReportLedgerIngestor.ingest_committed_run(source, failed).error_code, ReportLedgerIngestor.ERR_MODE_REJECTED)
 
+func test_parity_correct_negative_baseline_uses_result_invalid_precedence() -> void:
+	var source := ReportLedger.create_empty(0)
+	var source_before := source.deep_clone()
+	var inner := SimulationResult.timeline_only(10, -5, 5, ContentRegistry.CURRENT_REVISION)
+	var run := SimulationRunService.SimulationRunResult.new(true, SimulationRunService.MODE_FOREGROUND_SUPPLIED, &"", "", 10, -5, 5, inner, null)
+	var result := ReportLedgerIngestor.ingest_committed_run(source, run)
+	assert_eq(result.error_code, ReportLedgerIngestor.ERR_RESULT_INVALID)
+	assert_eq(result.outcome, ReportLedgerIngestResult.REJECTED)
+	assert_false(result.success)
+	assert_false(result.changed)
+	assert_ne(result.developer_details, "")
+	assert_null(result.candidate_ledger)
+	assert_true(source.value_equals(source_before))
+
 func test_rejections_have_exact_result_shape() -> void:
 	var rejected := ReportLedgerIngestor.ingest_committed_run(null, null)
 	assert_false(rejected.success)
