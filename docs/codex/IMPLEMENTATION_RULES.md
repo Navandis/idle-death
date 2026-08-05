@@ -3,8 +3,8 @@
 **Document role:** Detailed engineering conventions for Godot 4.7 and GDScript implementation  
 **Repository path:** `docs/codex/IMPLEMENTATION_RULES.md`  
 **Document status:** Approved engineering rules  
-**Rules revision:** 9  
-**Last updated:** 2026-07-23  
+**Rules revision:** 10
+**Last updated:** 2026-08-03
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)  
 **Data companion:** [DATA_AND_CONTENT_CONTRACTS.md](DATA_AND_CONTENT_CONTRACTS.md)
 
@@ -218,7 +218,9 @@ Only the owning service mutates its state:
 - Recollection service owns purchases;
 - progression processor owns milestone, guarantee, unlock, and resonance completion;
 - tutorial coordinator owns tutorial presentation state;
-- report service owns report accumulator snapshots and history.
+- report-ledger mutation follows accepted `DEC-0045` and the current owner-approved slice packet.
+  Before P1, R1/R2 operate on one explicitly caller-owned, non-persisted ledger; P1 alone gives `GameState` durable ownership.
+  G3 owns the exact R1 fields, API, ownership/lifetime matrix, interval-decision table, complete oracle, context manifest, and owner-approval packet. This rule does not pre-approve `ReportService` or another concrete API.
 
 Simulation may call these services or narrowly scoped internal mutation methods. It must not duplicate their validation rules.
 

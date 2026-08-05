@@ -1,64 +1,110 @@
 # Codex desktop implementation and pull-request workflow
 
-**Document role:** Repository operating procedure for Codex desktop milestone tasks  
-**Status:** Approved operational workflow for M04E2T2 and later milestone slices  
-**Date:** 2026-07-23  
-**Companion:** root `AGENTS.md`, milestone prompt, and `tools/codex/publish_milestone_pr.ps1`
+**Document role:** Repository operating procedure for transactional Codex implementation and fixer tasks
+**Status:** Approved operational workflow for G2-forward implementation slices
+**Revision:** 6
+**Last updated:** 2026-08-05
+**Companion:** root `AGENTS.md`, the owner-approved versioned slice packet, `docs/codex/CODEX_PR_BRANCH_RECOVERY.md`, and `tools/codex/publish_milestone_pr.ps1`
 
 ## Purpose
 
-The Codex desktop app can edit the local repository, run Godot/GUT, commit, push, and invoke GitHub CLI. Unlike the earlier web workflow, it does not provide a separate owner-facing “Create PR” button. This procedure makes branch publication explicit while preserving owner-only merge authority.
+Codex desktop can edit a local checkout, run repository checks, commit, push, and invoke GitHub CLI. This procedure preserves one owner-controlled feature branch and pull request while keeping planning, independent scope assessment, implementation, PR-lifetime triage, corrections, exact-head verification, and integration in appropriately bounded contexts.
 
-The workflow separates four roles:
+The default actor flow is:
 
-| Activity | Owner |
-|---|---|
-| Implementation, corrections, local tests, commit, push, PR creation/update | Codex desktop task |
-| Formal targeted and unrestricted code review | GitHub PR through `@codex review` |
-| Exact-head Windows merge gate | Project owner/local Windows checkout |
-| Merge, close, branch deletion, replacement PR, history rewrite | Project owner only |
+```text
+long-lived planning architect
+-> fresh independent scope assessor
+-> owner approval
+-> transactional implementation Codex task
+-> one feature branch and one pull request
+-> PR publication
+-> exact-head CI
+-> owner/architect paste-ready exact-head review request
+-> primary independent reviewer
+-> persisted review findings
+-> fresh PR-lifetime triage architect
+-> triage authorization for any bounded correction
+-> fresh bounded fixer task for material corrections on the same branch/PR
+-> new-head CI and bounded rereview
+-> bounded-rereview findings returned to PR-lifetime triage architect
+-> convergence assessment when required
+-> final unrestricted current-head review
+-> material-thread reconciliation
+-> applicable exact-head owner verification
+-> owner integration
+```
 
-## One milestone, one task, one branch, one PR
+The planning architect does not independently assess its own packet or perform routine PR-lifetime triage. The implementation task executes the approved packet and does not rewrite its own authority. A primary independent reviewer reviews the exact head before the fresh PR-lifetime triage architect classifies persisted findings and convergence. Triage authorizes any bounded correction; a fixer receives a bounded correction packet rather than the entire planning history, and material correction uses a fresh fixer task on the same branch/PR.
 
-For each new implementation slice:
+## One slice, one branch, one pull request
 
-1. start a new Codex desktop task from an updated local checkout;
-2. read the approved repository prompt `.md` file;
-3. fast-forward local `main` to `origin/main`;
-4. create the exact feature branch named by the prompt before modifying files;
-5. implement and verify on that branch;
+For each directly executable slice:
+
+1. start from a clean, current local checkout;
+2. read root `AGENTS.md`, the exact owner-approved versioned slice packet, and only its context-manifest entries;
+3. fast-forward local `main` to `origin/main` using fast-forward-only behavior;
+4. create the exact feature branch named by the packet before modifying files;
+5. implement and verify only the packet scope;
 6. commit the intended change;
-7. push the feature branch;
-8. create one PR targeting `main`;
-9. stop and report the PR number, URL, branch, and exact head SHA.
+7. push the feature branch without force;
+8. create one pull request targeting `main` or update the one existing PR for that branch;
+9. report the PR number, URL, branch, exact head SHA, changed-path set, and validation;
+10. stop without merge.
 
-Every refinement, bug fix, review correction, and requested change for that milestone remains in the same desktop task and updates the same feature branch/PR. Do not create a replacement PR unless the owner explicitly closes the original and orders replacement.
+Every implementation and correction for the slice remains on that feature branch and pull request unless the owner explicitly authorizes replacement. This continuity rule does **not** require one long-lived implementation task.
+
+A material correction round normally uses a fresh transactional fixer context supplied with the exact findings, current PR head, bounded correction authority, affected code/contracts/tests, and required regressions. A trivial mechanical correction may remain in the original implementation task only when the exception is explicit, directly provable, and does not broaden context, scope, ownership, or authority.
+
+## Packet-driven operating context
+
+The owner-approved slice packet supplies:
+
+```text
+verified base ref
+feature branch
+PR target and title
+primary owner and principal transition
+sole context manifest
+included scope and exclusions
+acceptance/test oracle
+scope and convergence guards
+delivery and owner-verification contract
+hard stop
+```
+
+Do not replace the packet manifest with broad routine reading. Failed branches, superseded prompt bodies, architect transcripts, full design sources, the full decision log, and the full milestone map are exceptional context only when an exact packet entry or concrete unresolved conflict requires them.
+
+If live repository state materially differs from the packet baseline, stop before dependent edits. Record the exact mismatch and return to the planning architect rather than resetting legitimate newer work or silently adapting the packet.
 
 ## Prohibited actions
 
-Codex desktop must not:
+Codex implementation and fixer tasks must not:
 
 - edit, commit, or push directly on `main`;
-- merge or auto-merge a PR;
-- close a PR;
-- approve its own PR;
-- delete the feature branch;
-- force-push or rewrite published history;
+- merge or auto-merge a pull request;
+- close a pull request;
+- approve their own pull request;
+- delete a local or remote milestone branch;
+- force-push or rewrite published history during ordinary publication;
 - change the PR base away from `main` without owner instruction;
 - use a branch or PR from an abandoned milestone as the implementation base;
-- run a merge command as part of “publish” or “finish.”
+- create a replacement PR merely because a correction is required;
+- broaden or materially rewrite the active packet;
+- treat “finish,” “publish,” “submit,” or “complete” as merge authority.
 
-When instructions are ambiguous, stop after pushing/creating the PR. “Finish,” “publish,” “submit,” or “complete the milestone” never implies merge.
+Merge, close, branch deletion, replacement, force, and history rewrite are owner-only actions. `CODEX_PR_BRANCH_RECOVERY.md` is an exceptional deliberately authorized recovery procedure, not ordinary publication guidance.
 
 ## Environment capability checks
 
-The local Codex environment should make these commands available:
+The local implementation environment should provide:
 
 ```text
 git
 gh
-Godot 4.7 executable through GODOT_BIN or PATH
-PowerShell 5.1 or newer on Windows
+packet-required language/runtime tools
+Godot 4.7 through GODOT_BIN or PATH when executable Godot work is in scope
+PowerShell 5.1 or newer on Windows when an owner package is in scope
 ```
 
 Before implementation or publication, verify:
@@ -68,22 +114,25 @@ git --version
 gh --version
 gh auth status
 git remote -v
+git branch --show-current
 git status --short
+git rev-parse HEAD
+git rev-parse origin/main
 ```
 
-Environment setup provides tools and credentials. It does not replace repository policy in `AGENTS.md` or the task-specific delivery contract.
+Environment setup provides tools and credentials. It does not replace repository policy or packet authority.
 
 ## Safe publication helper
 
-After all intended changes are committed, use:
+After all intended changes are committed, use the existing helper when the packet names this publication path:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
     -File .\tools\codex\publish_milestone_pr.ps1 `
     -RepoRoot '<repository root>' `
-    -ExpectedBranch 'codex/implement-<milestone>' `
+    -ExpectedBranch '<packet feature branch>' `
     -BaseBranch 'main' `
-    -Title '<approved PR title>' `
+    -Title '<packet-approved PR title>' `
     -BodyFile '<temporary PR description file>'
 ```
 
@@ -92,64 +141,88 @@ The helper:
 - refuses `main`;
 - checks Git and GitHub CLI authentication;
 - refuses tracked or staged uncommitted changes;
-- verifies the feature branch is based on current `origin/main` and has commits ahead of it;
-- pushes only the current feature branch;
+- verifies that the feature branch is based on current `origin/main` and has commits ahead of it;
+- pushes only the current feature branch without force;
 - creates a PR when none exists for the branch;
 - updates the title/body of the existing open PR when one exists;
 - prints the PR number, URL, branch, base, and exact head SHA;
-- contains no merge, close, auto-merge, deletion, or force-push operation.
+- contains no merge, close, auto-merge, deletion, replacement, or force-push operation.
 
-The PR body file should be created outside the repository or removed before publication so it does not become an unrelated tracked change.
+Create the PR body outside the repository or remove it before publication so it cannot enter the packet diff accidentally.
 
-## Task-specific delivery contract
+## Review, triage, correction, and convergence
 
-Every approved milestone prompt repeats a short contract with:
+The opening `default actor flow` above is the sole end-to-end lifecycle sequence in this document. This section defines phase-specific gates only; it is not a second lifecycle authority.
 
-```text
-Base branch
-Feature branch
-PR target
-Approved PR title
-Required handoff evidence
-Hard stop after PR creation/update
-```
-
-Repository policy is durable. The prompt supplies the exact branch/title for the current task.
-
-## Review and correction loop
+Initial published head:
 
 ```text
-Codex desktop implementation and readiness pass
--> push/update PR
--> targeted GitHub @codex review
--> corrections in the same Codex desktop task and branch
--> repeat the same targeted audit only within the stop rule
--> final unrestricted GitHub review
--> exact-head owner verification
--> owner merge
+PR publication/update
+-> exact-head CI
+-> owner/architect paste-ready exact-head review request
+-> primary independent exact-head review of the complete current diff
+-> persisted review findings
+-> fresh PR-lifetime triage
 ```
 
-Do not run final owner verification before the final review is clean. Any code or documentation commit after the reviewed head invalidates exact-head evidence.
+Correction head:
+
+```text
+bounded correction packet
+-> fresh fixer on the same branch and PR
+-> new-head CI
+-> bounded rereview
+-> findings returned to triage
+-> explicit convergence assessment when required
+```
+
+Stable head:
+
+```text
+final unrestricted current-head review
+-> material-thread reconciliation
+-> exact-head owner verification when required
+-> owner integration
+```
+
+The triage architect owns true-positive, false-positive, duplicate, correction, scope, and convergence dispositions. The implementer or fixer does not silently dismiss findings or enlarge its own correction authority.
+
+After two substantial correction rounds, pause for an explicit convergence assessment. Continue when remaining findings are local, understood, testable, and within the existing design. Stop, split, or redesign only when affirmative evidence shows an architecture, ownership, scope, oracle, repeated-root-cause, or evidence-integrity problem. Round count alone is never dispositive.
+
+Any code or relevant contract commit after a final review invalidates that final-review evidence. Any commit after owner verification invalidates that owner-verification evidence. CI may rerun automatically; review and owner evidence require deliberate reconciliation against the new head.
 
 ## Recommended GitHub `main` ruleset
 
-Repository instructions are advisory to an agent. GitHub protection should enforce the boundary:
+Repository instructions are advisory. GitHub protection should enforce the boundary:
 
 - require pull requests before changes enter `main`;
-- require at least one approval;
-- require approval from someone other than the latest pusher;
+- require at least one approval from someone other than the latest pusher;
 - dismiss stale approvals after new commits;
-- require all review conversations resolved;
+- require review conversations to be resolved;
+- require applicable status checks;
 - block force pushes and branch deletion;
-- do not give Codex, GitHub CLI automation, or another bot a bypass role.
+- give Codex, GitHub CLI automation, and bots no bypass role.
 
-The ruleset is configured by the owner in GitHub and is not changed by milestone implementation tasks.
+The owner configures the ruleset. Slice implementation tasks do not change it unless a separately approved repository-governance packet says otherwise.
 
-## Failure recovery
+## Failure and recovery
 
-- If edits began on `main`, stop before committing; create the feature branch at the current working tree and verify no main commit was created.
-- If a commit was accidentally pushed to `main`, stop. Do not self-revert, merge, or rewrite. Report the exact SHA and wait for owner instructions.
-- If a PR was accidentally merged, stop. Do not create a revert or replacement PR without owner instructions.
-- If the helper finds more than one open PR for the branch, stop and report the URLs.
-- If the branch is behind or not based on current `origin/main`, stop for a deliberate rebase/merge decision; do not force-push automatically.
-- If `gh auth status` fails, ask the owner to authenticate; do not substitute a credential or remote URL.
+- **Edits began on `main`:** stop before committing; create the packet branch from the current working tree and verify no `main` commit exists.
+- **Commit pushed to `main`:** stop. Do not self-revert or rewrite. Report the exact SHA for owner direction.
+- **PR accidentally merged:** stop. Do not create a revert or replacement without owner authorization.
+- **More than one open PR for the branch:** stop and report all URLs.
+- **Branch is stale or not based on current `origin/main`:** stop for a deliberate update strategy; do not force-push automatically.
+- **Authentication fails:** ask the owner to restore the normal authenticated environment; do not invent credentials or alter remotes.
+- **Packet or contract defect:** preserve work, stop the affected behavior, and return to the planning architect for a new owner-approved version.
+- **Unexpected owner/tool edit on an active PR branch:** use `CODEX_PR_BRANCH_RECOVERY.md` only after explicit owner authorization. Its verified force-with-lease path is exceptional and must not be folded into the publication helper.
+
+## Handoff
+
+At the packet hard stop, report:
+
+- resulting behavior or documentation outcome;
+- every changed path and purpose;
+- commands/checks actually run and results;
+- PR number, URL, branch, and exact head;
+- assumptions, pending owner evidence, limitations, risks, and deferred work;
+- explicit confirmation that no merge or other owner-only action occurred.

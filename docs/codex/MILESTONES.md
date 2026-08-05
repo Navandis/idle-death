@@ -3,13 +3,13 @@
 **Document role:** Approved implementation sequence and acceptance map for the 0–90 minute prototype  
 **Repository path:** `docs/codex/MILESTONES.md`  
 **Document status:** Approved rolling-wave milestone map  
-**Milestone-map revision:** 34
+**Milestone-map revision:** 35
 **Last updated:** 2026-08-03
 **Primary context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md), [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md), [Architecture](ARCHITECTURE.md), [Data contracts](DATA_AND_CONTENT_CONTRACTS.md), [Testing](TESTING_AND_VALIDATION.md), [Owner verification](OWNER_VERIFICATION_WORKFLOW.md), [Milestone recalibration](MILESTONE_RECALIBRATION_PROPOSAL.md), and [Decisions](DECISIONS.md)
 
 ## 1. Purpose and authority
 
-This file divides the approved prototype architecture and first-session sequence into reviewable work items. It defines scope and acceptance, not the implementation prompt text. The owner approved the original map in Phase 7 and approved the post-M03 rolling-wave recalibration on 2026-07-15. From M04 onward, M04–M17 are conceptual epics; only approved lettered implementation slices receive versioned Codex prompts.
+This file divides the approved prototype architecture and first-session sequence into reviewable work items. It defines scope and acceptance, not implementation packet text. The owner approved the original map in Phase 7 and approved the post-M03 rolling-wave recalibration on 2026-07-15. From M04 onward, M04–M17 are conceptual epics; only approved lettered implementation slices receive owner-approved versioned slice packets. `docs/codex/PROMPT_TEMPLATE.md` is retained as a legacy compatibility path whose active contents define the G2-forward packet template. Historical prompt artifacts retain their original meaning, status, and provenance.
 
 Use the source hierarchy in `AGENTS.md`. A milestone definition cannot weaken a protected design invariant or accepted decision. When repository state later differs from an assumption here, update this file and record any architecture/design decision before drafting that milestone's prompt.
 
@@ -18,7 +18,7 @@ Use the source hierarchy in `AGENTS.md`. A milestone definition cannot weaken a 
 After M04E2T2 completion and the PR #23 architecture stop:
 
 - Godot 4.7, GDScript, the 1920 × 1080 reference viewport, resizing/stretch settings, and a temporary dry-run main scene exist.
-- `AGENTS.md`, project Codex configuration, the maintained design sources, the architecture documents, the approved `PROMPT_TEMPLATE.md`, and `OWNER_VERIFICATION_WORKFLOW.md` are present in the repository.
+- The slim root `AGENTS.md`, maintained design and architecture sources, the active slice-packet template at the legacy `PROMPT_TEMPLATE.md` path, and `OWNER_VERIFICATION_WORKFLOW.md` are present. The temporary `.codex/config.toml` instruction-size override has been removed; no replacement override is required.
 - GUT 9.7.1 is committed under `addons/gut/`.
 - GodotSteam GDExtension 4.20 is committed under `addons/godotsteam/`.
 - Development App ID `480` is configured in `project.godot`; automatic Steam initialization is disabled.
@@ -70,9 +70,9 @@ Every milestone must:
 10. stop for owner approval when a listed decision gate is reached;
 11. package owner-run merge gates under `OWNER_VERIFICATION_WORKFLOW.md`, preferring one milestone-specific PowerShell entry point with a generated log and a separate checklist only for interactive observations;
 12. identify one primary subsystem owner and one principal behavior or state transition for every implementation slice;
-13. complete the `DEC-0033` scope assessment before prompt approval;
+13. complete the `DEC-0033` scope assessment before G2-forward slice-packet approval;
 14. stop and report material scope growth before adding another subsystem owner, risk dimension, or cross-layer seam;
-15. issue prompts only for directly executable implementation slices, never for conceptual epics.
+15. issue owner-approved versioned slice packets only for directly executable implementation slices, never for conceptual epics.
 
 A conceptual epic may be decomposed only through an approved map update. A slice may be split after implementation begins only when the split preserves a demonstrable result and the dependency/status tables are updated before work continues. Do not merge later work merely because Codex can generate a large diff.
 
@@ -102,8 +102,8 @@ A trigger requires a split or an explicit owner-approved exception. Estimates do
 | Type | Meaning |
 |---|---|
 | Completed milestone | Historical directly executed milestone from M00–M03. |
-| Conceptual epic | Approved outcome and dependency container; not directly executable and receives no prompt. |
-| Implementation slice | Bounded lettered task that may receive one approved prompt and pull request. |
+| Conceptual epic | Approved outcome and dependency container; not directly executable and receives no implementation packet. |
+| Implementation slice | Bounded lettered task that may receive one owner-approved versioned slice packet and pull request. |
 | Release gate | Required decision or validation outside the prototype implementation sequence. |
 
 ### 4.2 Status values
@@ -115,7 +115,7 @@ A trigger requires a split or an explicit owner-approved exception. Estimates do
 | Implementation | Not directly executable, Not started, In progress, Pull request open, Merged, Rework required |
 | Verification | —, Partial, Passed, Failed, Blocked |
 
-A conceptual epic uses `Prompt: Not applicable` and `Implementation: Not directly executable`. Its completion is derived from the required slices; it does not receive an epic-level implementation pull request.
+A conceptual epic uses `Prompt: Not applicable` and `Implementation: Not directly executable`. Its completion is derived from the required slices; it does not receive an epic-level implementation packet or pull request. `Prompt` is a retained legacy column name pending a separately scoped status-table migration. Historical rows retain their original prompt-artifact meaning, status, and provenance. For G2-forward directly executable work only, that column records versioned slice-packet status using the existing values; no completed or superseded prompt artifact is reclassified.
 
 ## 5. Decision and dependency gates
 
@@ -126,7 +126,7 @@ A conceptual epic uses `Prompt: Not applicable` and `Implementation: Not directl
 | `GATE-FIXED-POINT` | M01 merge | Implement accepted `DEC-0026`: one centralized scale of `1_000_000` for fractional state, unscaled discrete counts, explicit-period accumulation, checked 64-bit arithmetic, canonical carries, documented bounds, and cross-platform tests including one-item-per-8-hours and one-item-per-24-hours cases. |
 | `GATE-SAVE-SCHEMA` | M02 merge | Freeze schema-version-1 key spelling and representative fixtures before gameplay state depends on it. |
 | `GATE-CONTENT-CATALOG` | M03 merge | Validate one explicit typed catalog containing the required prototype IDs, `RES_ESSENCE`, stable `CHANNEL_...` sources, centralized `TERM_...` terminology, editable names independent of IDs, normalized values, content-revision compatibility, deterministic ordering, and editor-inspectable `.tres` definitions before simulation depends on content. |
-| `GATE-SLICE-SCOPE` | Every post-M03 prompt approval | Complete the `DEC-0033` scope assessment. Split the work or record an explicit owner-approved exception when a mandatory review trigger is crossed. |
+| `GATE-SLICE-SCOPE` | Every post-M03 G2-forward slice-packet approval | Complete the `DEC-0033` scope assessment. Split the work or record an explicit owner-approved exception when a mandatory review trigger is crossed. Historical prompt approvals retain their original record meaning. |
 | `GATE-GAMEPLAY-SCHEMA` | M04A implementation and merge | Satisfied for prompt drafting by accepted `DEC-0034`: M04A introduces schema version 2 with a production sequential `v1 -> v2` migration. M04A must implement and verify the transactional upgrade, historical fixture, failure preservation, and owner Windows path before merge. |
 | `GATE-REAPING-ASSIGNMENT` | M04B prompt approval | Satisfied by accepted `DEC-0035`: Threshold-scoped operation identity, canonical loadout tuples, revision/episode identity, immutable first-start timestamps, stable recalled records, Form exclusivity, tether derivation, and nonzero carry handling. |
 | `GATE-CORE-RESOLUTION` | M04C prompt approval | Satisfied by accepted `DEC-0036` and approved M04C v0.1: transactional mutation, exact Settlement segmentation, core rate semantics, residual ownership, no-active timeline behavior, and the temporary one-active-Reaping limit. |
@@ -154,7 +154,7 @@ A conceptual epic uses `Prompt: Not applicable` and `Implementation: Not directl
 
 `GATE-CONTENT-CATALOG` was satisfied by M03. PR #7 merged on 2026-07-15 at merge commit `5e2b9b23878c9280f75b987cc9ad567d8980030d`; its final head was `971cdaa0fd46f641ec7409148e259d54f953d8c7`. Linux/Codex and owner Windows verification passed the full and focused suites, explicit import, semantic catalog trace, artifact audit, and Godot Inspector checklist.
 
-`GATE-SLICE-SCOPE` is mandatory for every post-M03 prompt. `GATE-GAMEPLAY-SCHEMA` through `GATE-FORECAST-CLONE` are satisfied by the merged M04A-M04E1 sequence. `GATE-TYPED-SIMULATION-RESULT` is Superseded after failed PR #18. `GATE-SINGLE-PROVENANCE-TRANSACTION` is satisfied by M04E2T1. `GATE-FINALIZED-RUN-FACTS` is satisfied by M04E2T2. The former report-schema, ingestion, and reads/history gates are superseded by `DEC-0045`; no retired report gate is current.
+`GATE-SLICE-SCOPE` is mandatory for every post-M03 G2-forward slice packet. Historical prompt records retain their original terminology. `GATE-GAMEPLAY-SCHEMA` through `GATE-FORECAST-CLONE` are satisfied by the merged M04A-M04E1 sequence. `GATE-TYPED-SIMULATION-RESULT` is Superseded after failed PR #18. `GATE-SINGLE-PROVENANCE-TRANSACTION` is satisfied by M04E2T1. `GATE-FINALIZED-RUN-FACTS` is satisfied by M04E2T2. The former report-schema, ingestion, and reads/history gates are superseded by `DEC-0045`; no retired report gate is current.
 
 
 When trusted time is unavailable, the approved behavior is to grant no guessed closed-session progress, retain pending reconciliation, and continue monotonic foreground production. No milestone may introduce a local-device-time fallback.
@@ -228,7 +228,7 @@ The current executable/planning sequence is:
 M04E2T1 -> M04E2T2 -> M04E2R1 -> M04E2R2 -> M04E2P1 -> M04E2B
 ```
 
-R1 is a planning boundary only: no R1 implementation prompt is approved. Before P1 the report ledger is explicitly caller-owned and non-persisted; no application, `GameSession`, service member, autoload, singleton, or hidden global may retain canonical mutable ledger state. P1 must introduce only cursor-aligned exposed/persisted `GameState`; B may hold lag only privately between simulation and ingestion, and begins and ends aligned.
+R1 is a planning boundary only: no owner-approved R1 slice packet exists, and its legacy `Prompt` status remains `Not drafted`. Before P1 the report ledger is explicitly caller-owned and non-persisted; no application, `GameSession`, service member, autoload, singleton, or hidden global may retain canonical mutable ledger state. P1 must introduce only cursor-aligned exposed/persisted `GameState`; B may hold lag only privately between simulation and ingestion, and begins and ends aligned.
 
 ### Historical prior dependency map (superseded by `DEC-0045`; non-executable)
 
@@ -273,7 +273,7 @@ M04E2
                                              └─ M17 implementation slices
 ```
 
-The post-M04E2 entries above are conceptual dependencies, not approved prompt IDs. Their preliminary decompositions remain subject to repository inspection and owner approval immediately before each epic. M06 remains early enough to retire the trusted-time/platform risk before M16. M07–M15 may use fake trusted-time providers, but the final applicable M16 slice cannot merge until the M06 live Windows gate is complete.
+The post-M04E2 entries above are conceptual dependencies, not approved G2-forward slice-packet IDs. Their preliminary decompositions remain subject to repository inspection, fresh independent scope assessment, and owner approval immediately before each directly executable slice. M06 remains early enough to retire the trusted-time/platform risk before M16. M07–M15 may use fake trusted-time providers, but the final applicable M16 slice cannot merge until the M06 live Windows gate is complete.
 
 ## 8. Recalibrated planning model
 
@@ -282,9 +282,9 @@ M03 demonstrated that a technically coherent architecture can still become an un
 ### 8.1 Conceptual epics versus implementation slices
 
 - M04–M17 preserve durable product and architecture outcomes.
-- A conceptual epic never receives a direct prompt or implementation pull request.
+- A conceptual epic never receives a direct implementation packet or pull request.
 - Lettered slices are the only directly executable post-M03 work items.
-- Each slice is reassessed against the merged repository immediately before prompt drafting.
+- Each G2-forward slice is reassessed against the merged repository immediately before packet drafting and independent scope assessment.
 - Later decompositions are planning defaults rather than frozen class or file designs.
 
 ### 8.2 Preliminary decomposition of later conceptual epics
@@ -3371,22 +3371,22 @@ Create or update a dedicated accepted decision record and, when implementation i
 
 ## 13. Status and maintenance procedure
 
-When a definition is approved, change only its Definition column to **Approved**. A conceptual epic never advances to Prompt or Implementation status. The planning workflow creates one lettered slice prompt at a time and updates Prompt status only when that prompt actually exists. Implementation pull requests update Implementation and Verification status only after the relevant checks have actually run.
+When a definition is approved, change only its Definition column to **Approved**. A conceptual epic never advances to legacy `Prompt` or Implementation status. For G2-forward work, the planning workflow creates one versioned slice packet at a time and updates the retained `Prompt` column only when that packet actually exists. Historical rows continue to refer to their original prompt artifacts and statuses. Implementation pull requests update Implementation and Verification status only after the relevant checks have actually run.
 
-Before each new slice prompt:
+Before each new G2-forward slice packet:
 
 1. inspect the merged repository and prior-slice evidence;
 2. confirm the parent epic and exact dependency state;
 3. complete the `DEC-0033` scope assessment and `GATE-SLICE-SCOPE` review;
-4. resolve any listed decision gate, including `GATE-GAMEPLAY-SCHEMA` before M04A;
-5. draft only the next slice prompt and obtain owner approval.
+4. resolve every listed decision gate;
+5. draft only the next versioned packet, obtain a fresh independent scope assessment, incorporate bounded corrections, and obtain explicit owner approval.
 
 When a slice reveals a planning problem:
 
-1. stop the affected prompt or implementation;
+1. stop the affected packet or implementation;
 2. identify the conflicting source, missing dependency, new subsystem owner, or scope-growth trigger;
 3. update this map and, when necessary, `DECISIONS.md` and the architecture/contracts;
-4. preserve superseded definitions or prompt versions through Git history and explicit status rather than silently changing accepted scope;
-5. resume only after the revised definition or prompt is approved.
+4. preserve superseded definitions, packet versions, and historical prompt artifacts through Git history and explicit status rather than silently changing accepted scope or provenance;
+5. resume only after the revised definition or packet is independently assessed and owner-approved.
 
 The commercial save-format/threat-model review remains a release gate, not an excuse to add encryption, binary encoding, Steam Cloud, or a backend to the 0–90 minute prototype without a new approved milestone.
