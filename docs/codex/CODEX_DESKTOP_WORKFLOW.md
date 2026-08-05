@@ -2,8 +2,8 @@
 
 **Document role:** Repository operating procedure for transactional Codex implementation and fixer tasks
 **Status:** Approved operational workflow for G2-forward implementation slices
-**Revision:** 5
-**Last updated:** 2026-08-04
+**Revision:** 6
+**Last updated:** 2026-08-05
 **Companion:** root `AGENTS.md`, the owner-approved versioned slice packet, `docs/codex/CODEX_PR_BRANCH_RECOVERY.md`, and `tools/codex/publish_milestone_pr.ps1`
 
 ## Purpose
@@ -27,7 +27,10 @@ long-lived planning architect
 -> triage authorization for any bounded correction
 -> fresh bounded fixer task for material corrections on the same branch/PR
 -> new-head CI and bounded rereview
--> final unrestricted review
+-> bounded-rereview findings returned to PR-lifetime triage architect
+-> convergence assessment when required
+-> final unrestricted current-head review
+-> material-thread reconciliation
 -> applicable exact-head owner verification
 -> owner integration
 ```
@@ -186,7 +189,7 @@ The triage architect owns true-positive, false-positive, duplicate, correction, 
 
 After two substantial correction rounds, pause for an explicit convergence assessment. Continue when remaining findings are local, understood, testable, and within the existing design. Stop, split, or redesign only when affirmative evidence shows an architecture, ownership, scope, oracle, repeated-root-cause, or evidence-integrity problem. Round count alone is never dispositive.
 
-Any code or relevant contract commit after a final review or owner verification invalidates that exact-head evidence. CI may rerun automatically; review and owner evidence require deliberate reconciliation against the new head.
+Any code or relevant contract commit after a final review invalidates that final-review evidence. Any commit after owner verification invalidates that owner-verification evidence. CI may rerun automatically; review and owner evidence require deliberate reconciliation against the new head.
 
 ## Recommended GitHub `main` ruleset
 
