@@ -77,7 +77,7 @@ GameApp (persistent root scene and Godot lifecycle owner)
         |      |      live, offline, forecast, and debug modes
         |      +--> TutorialCoordinator
         |      |      observes state and requests domain actions
-        |      +--> ReportService / SimulationRunService
+        |      +--> SimulationRunService; caller-owned ReportLedger only in R1
         |      +--> SaveService
         |      +--> MonotonicClock / TrustedTimeProvider adapters
         |
@@ -112,6 +112,10 @@ Domain and simulation code must not depend on:
 The approved production bridge for the prototype is the pinned GodotSteam 4.20 GDExtension. M06 may use it only to implement `TrustedTimeProvider` at the platform/application boundary. The adapter is injected by `GameApp`, replaced by fakes in automated tests, and never imported by domain or simulation code. No other Steam feature is implied by this exception.
 
 ## 5. Three data bands
+
+### Current M04E2 report architecture (`DEC-0046`)
+
+M04E2R1 owns a caller-retained, non-persisted `ReportLedger` aggregate and a stateless ingestion boundary from finalized committed run facts. It is not a `GameSession`, `GameState`, application, persistence, or global owner. The ingestor returns a validated detached candidate only for an exact-new committed interval; R2 owns snapshots/reads, P1 owns durable `GameState` and schema-v4 integration, and B owns atomic simulation/report coordination.
 
 The project uses three intentionally different kinds of data.
 
@@ -158,7 +162,7 @@ Examples:
 - `HallState`;
 - `ProgressionState`;
 - `TutorialState`;
-- `ReportAccumulatorState`.
+- historical `ReportAccumulatorState` examples (not a current runtime owner).
 
 Runtime state must implement explicit conversion to and from save-safe primitives. Mutable game state is not saved through `ResourceSaver`, scene serialization, or node ownership.
 

@@ -2180,7 +2180,11 @@ B validation must require an aligned source, allow a transient gameplay-ahead/re
 
 The convergence assessment follows the G0 policy: after two substantial correction rounds, continue only when remaining findings are local, understood, testable, and within a converging design; stop or replan on affirmative architecture, ownership, scope, or oracle evidence. Do not use a fixed defect count or review-round count as an absolute stop rule.
 
-## 32. Historical M04E2A2 report-state and schema-v4 validation package (superseded by `DEC-0045`; non-executable)
+## 32. M04E2R1 normalized live-ledger validation package
+
+R1 validates the caller-owned, non-persisted ledger only: factory/clone/validator grammar; wrapper precedence and interval matrix; normalized source/channel/Settlement continuity; one-shot/chunked equality; transactionality and overflow; and schema-v3 persistence exclusion. Required Codex evidence is focused R1 GUT coverage, the full `tools/test/run_gut.sh` suite, import, main-scene smoke, deterministic trace, exact 32-path audit, and artifact cleanup. The Windows owner runner verifies the exact SHA with no interactive checklist. R2/P1/B remain deferred.
+
+## 33. Historical M04E2A2 report-state and schema-v4 validation package (superseded by `DEC-0045`; non-executable)
 
 This historical Draft v0.1 section is non-executable. `DEC-0045` supersedes the former prompt and `GATE-REPORT-SCHEMA` route.
 

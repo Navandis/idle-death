@@ -8,6 +8,10 @@
 
 ## 1. Purpose
 
+### Current M04E2R1 typed-fact contract
+
+`ReportLedger` is a non-persisted caller-owned runtime value. Its stored facts are root cursor/mode coverage, maximal attributed slices, full component identity, backlog/core endpoints and deltas, channel output/period/progress/carry/banked endpoints, and normalized Settlement events. It consumes only validated successful committed `SimulationRunResult` wrappers. Historical `ReportAccumulatorState`, report-history, `ReportService`, snapshot, and schema-v4 examples elsewhere in this document are superseded/non-executable until their R2/P1 boundaries are approved.
+
 This document defines the boundary between immutable authored content and mutable authoritative state. It also defines canonical identifier rules, minimum entity fields, save-schema ownership, numeric units, reservations, report events, and validation requirements.
 
 Read it with:

@@ -170,7 +170,7 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 | M04E2A2 | Former report runtime state and schema-v4 persistence | Implementation slice | Superseded | Superseded | Rework required | Failed |
 | M04E2A3 | Former cursor-idempotent live report ingestion | Implementation slice | Superseded | Not drafted | Not directly executable | — |
 | M04E2A4 | Former report reads, snapshot, bounded history, and final evidence | Implementation slice | Superseded | Not drafted | Not directly executable | — |
-| M04E2R1 | Normalized live report ledger and committed-run ingestion | Implementation slice | Approved | Not drafted | Not started | — |
+| M04E2R1 | Normalized live report ledger and committed-run ingestion | Implementation slice | Approved | Approved v0.3 | In progress | Partial |
 | M04E2R2 | Snapshot, bounded history, retention, and detached reads | Implementation slice | Approved | Not drafted | Not started | — |
 | M04E2P1 | GameState integration, schema-v4 migration, and persistence | Implementation slice | Approved | Not drafted | Not started | — |
 | M04E2B | Atomic simulation/report coordinator and final M04 harness | Implementation slice | Approved | Not drafted | Not started | — |
