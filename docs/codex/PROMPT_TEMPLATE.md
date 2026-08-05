@@ -155,7 +155,10 @@ planning architect
 -> fresh PR-lifetime triage architect
 -> bounded fixer task when correction is required
 -> new-head CI and bounded rereview
+-> bounded-rereview findings returned to PR-lifetime triage architect
+-> convergence assessment when required
 -> final unrestricted review
+-> material-thread reconciliation
 -> applicable exact-head owner verification
 -> owner integration
 ```
