@@ -5,7 +5,8 @@ uses fresh Godot import state and restores any pre-existing .godot directory.
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)][string]$ExpectedSha,
-    [string]$GodotBin
+    [string]$GodotBin,
+    [ValidateSet('None', 'RestoreCopyFailure')][string]$FaultInjection = 'None'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -21,7 +22,12 @@ $script:TraceSummary = 'FAIL'
 $script:LogPath = $null
 $script:TempRoot = $null
 $script:GodotBackup = $null
-$script:GodotExisted = $false
+$script:OriginalGodotState = 'PreparationNotStarted'
+$script:BackupState = 'NotCreated'
+$script:FreshStatePreparationStarted = $false
+$script:FreshStatePrepared = $false
+$script:RestorationVerified = $false
+$script:RecoveryBackupRetained = $false
 $script:GodotFingerprint = @()
 $script:StatusBaseline = ''
 $script:IgnoredBaseline = @()
@@ -86,10 +92,14 @@ function Invoke-NativeStep([string]$Name, [string]$Command, [string[]]$Arguments
     Write-Log "COMMAND ${Name}: $Command $($Arguments -join ' ')"
     $output = @(& $Command @Arguments 2>&1)
     $exitCode = $LASTEXITCODE
+    Write-Log "NATIVE EXIT ${Name}: $exitCode"
     foreach ($line in $output) { Write-Log "OUTPUT ${Name}: $($line.ToString())" }
     $passed = $exitCode -eq 0
     if ($passed -and $Validator) {
-        try { $passed = & $Validator (($output | ForEach-Object { $_.ToString() }) -join "`n") $exitCode }
+        try {
+            $passed = & $Validator (($output | ForEach-Object { $_.ToString() }) -join "`n") $exitCode
+            if (-not $passed) { Write-Log "VALIDATOR ${Name}: native output did not meet the required evidence." }
+        }
         catch { $passed = $false; Write-Log "VALIDATOR ${Name}: $($_.Exception.Message)" }
     }
     if ($passed) {
@@ -130,19 +140,50 @@ function Test-TraceMarkers([string]$Output) {
 function Invoke-Cleanup {
     try {
         $godotRoot = Join-Path $RepositoryRoot '.godot'
-        if (Test-Path -LiteralPath $godotRoot) {
-            Remove-Item -LiteralPath $godotRoot -Recurse -Force
-        }
-        if ($script:GodotExisted) {
-            Move-Item -LiteralPath $script:GodotBackup -Destination $godotRoot -ErrorAction Stop
-            $restored = (Test-Path -LiteralPath $godotRoot) -and (@(Get-DirectoryFingerprint $godotRoot) -join "`n") -eq (@($script:GodotFingerprint) -join "`n")
-            if (-not $restored) { throw 'The pre-existing .godot directory was not restored exactly.' }
-        } elseif (Test-Path -LiteralPath $godotRoot) {
-            throw 'A newly generated .godot directory remains after cleanup.'
+        if (-not $script:FreshStatePreparationStarted) {
+            Write-Log 'Cleanup skipped cache removal because fresh-state preparation never began.'
+        } elseif ($script:OriginalGodotState -eq 'OriginalAbsent') {
+            if (Test-Path -LiteralPath $godotRoot) {
+                Remove-Item -LiteralPath $godotRoot -Recurse -Force
+            }
+            if (Test-Path -LiteralPath $godotRoot) {
+                throw 'A newly generated .godot directory remains after cleanup.'
+            }
+        } elseif ($script:BackupState -eq 'IndependentBackupVerified') {
+            if (-not $script:FreshStatePrepared) {
+                $originalStillIntact = (Test-Path -LiteralPath $godotRoot) -and (@(Get-DirectoryFingerprint $godotRoot) -join "`n") -eq (@($script:GodotFingerprint) -join "`n")
+                if (-not $originalStillIntact) {
+                    throw 'Fresh-state preparation did not complete and the original .godot directory is no longer exact.'
+                }
+                $script:RestorationVerified = $true
+            } else {
+                if (Test-Path -LiteralPath $godotRoot) {
+                    Remove-Item -LiteralPath $godotRoot -Recurse -Force
+                }
+                if ($FaultInjection -eq 'RestoreCopyFailure') {
+                    throw 'Injected restoration copy failure for isolated recovery validation.'
+                }
+                Copy-Item -LiteralPath $script:GodotBackup -Destination $godotRoot -Recurse -Force -ErrorAction Stop
+                $restored = (Test-Path -LiteralPath $godotRoot) -and (@(Get-DirectoryFingerprint $godotRoot) -join "`n") -eq (@($script:GodotFingerprint) -join "`n")
+                if (-not $restored) { throw 'The pre-existing .godot directory was not restored exactly.' }
+                $script:RestorationVerified = $true
+            }
+            if ($script:RestorationVerified) {
+                Remove-Item -LiteralPath $script:GodotBackup -Recurse -Force -ErrorAction Stop
+                $script:GodotBackup = $null
+                $script:BackupState = 'RemovedAfterRestorationVerified'
+            }
+        } else {
+            throw 'Fresh-state preparation began without a verified backup for a pre-existing .godot directory.'
         }
         $script:CleanupResult = 'PASS'
         Write-Log 'Cleanup result: PASS'
     } catch {
+        if ($script:BackupState -eq 'IndependentBackupVerified' -and $script:GodotBackup -and (Test-Path -LiteralPath $script:GodotBackup)) {
+            $script:RecoveryBackupRetained = $true
+            Write-Log "RECOVERY BACKUP RETAINED: $script:GodotBackup"
+            Write-Log "RECOVERY ROOT RETAINED: $script:TempRoot"
+        }
         Add-Failure "cleanup: $($_.Exception.Message)"
         Write-Log 'Cleanup result: FAIL'
     }
@@ -151,6 +192,9 @@ function Invoke-Cleanup {
 
 function Assert-CleanupAbsence {
     try {
+        if ($script:RecoveryBackupRetained) {
+            throw "A verified recovery backup was retained at $script:GodotBackup."
+        }
         $tempAbsent = -not $script:TempRoot -or -not (Test-Path -LiteralPath $script:TempRoot)
         $backupAbsent = -not $script:GodotBackup -or -not (Test-Path -LiteralPath $script:GodotBackup)
         if (-not $tempAbsent -or -not $backupAbsent) { throw 'Runner-owned temporary state remains.' }
@@ -217,13 +261,29 @@ try {
     $script:TempRoot = Join-Path ([IO.Path]::GetTempPath()) ('m04e2r1-owner-' + [guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $script:TempRoot -Force | Out-Null
     $godotRoot = Join-Path $RepositoryRoot '.godot'
-    $script:GodotExisted = Test-Path -LiteralPath $godotRoot
-    if ($script:GodotExisted) {
+    if (Test-Path -LiteralPath $godotRoot) {
+        $script:OriginalGodotState = 'OriginalDetectedUntouched'
         $script:GodotFingerprint = @(Get-DirectoryFingerprint $godotRoot)
         $script:GodotBackup = Join-Path $script:TempRoot 'original-godot'
-        Move-Item -LiteralPath $godotRoot -Destination $script:GodotBackup -ErrorAction Stop
-        Write-Log 'Pre-existing .godot moved to a runner-owned backup.'
+        Copy-Item -LiteralPath $godotRoot -Destination $script:GodotBackup -Recurse -Force -ErrorAction Stop
+        $backupFingerprint = @(Get-DirectoryFingerprint $script:GodotBackup)
+        if (-not (Test-Path -LiteralPath $script:GodotBackup) -or (@($backupFingerprint) -join "`n") -ne (@($script:GodotFingerprint) -join "`n")) {
+            throw 'The independent .godot backup did not match the original fingerprint.'
+        }
+        $script:BackupState = 'IndependentBackupVerified'
+        Write-Log 'Pre-existing .godot fingerprinted and copied to a verified independent backup.'
+        $script:FreshStatePreparationStarted = $true
+        Remove-Item -LiteralPath $godotRoot -Recurse -Force -ErrorAction Stop
+        $script:OriginalGodotState = 'OriginalRemovedForFreshState'
+        $script:FreshStatePrepared = $true
+        Write-Log 'Fresh-state preparation completed after independent backup verification.'
     } else {
+        $script:OriginalGodotState = 'OriginalAbsent'
+        $script:FreshStatePreparationStarted = $true
+        if (Test-Path -LiteralPath $godotRoot) {
+            Remove-Item -LiteralPath $godotRoot -Recurse -Force -ErrorAction Stop
+        }
+        $script:FreshStatePrepared = $true
         Write-Log 'No pre-existing .godot directory was present.'
     }
 
@@ -244,7 +304,9 @@ try {
     Add-Failure "verification setup: $($_.Exception.Message)"
 } finally {
     Invoke-Cleanup
-    if ($script:TempRoot -and (Test-Path -LiteralPath $script:TempRoot)) {
+    if ($script:RecoveryBackupRetained) {
+        Write-Log "RECOVERY ROOT RETAINED: $script:TempRoot"
+    } elseif ($script:TempRoot -and (Test-Path -LiteralPath $script:TempRoot)) {
         try { Remove-Item -LiteralPath $script:TempRoot -Recurse -Force } catch { Add-Failure "temporary-root removal: $($_.Exception.Message)" }
     }
     Assert-CleanupAbsence
