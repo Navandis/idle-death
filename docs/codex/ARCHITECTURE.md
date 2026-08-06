@@ -3,7 +3,7 @@
 **Document role:** Maintained implementation architecture for the 0-90 minute prototype  
 **Repository path:** `docs/codex/ARCHITECTURE.md`  
 **Document status:** Approved architecture  
-**Architecture revision:** 26
+**Architecture revision:** 27
 **Last updated:** 2026-08-06
 **Engine target:** Godot 4.7, GDScript only  
 **Primary design context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md) and [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md)
@@ -175,7 +175,9 @@ Presentation state belongs to Nodes, scenes, and view models. It includes:
 - temporary hover and focus state;
 - animation progress;
 - an open comparison panel;
-- which archived report the player is viewing.
+- which screen is currently receiving presentation focus.
+
+Report-history viewing or selection state is deferred to separately owner-approved later work. R1 defines no archived-report presentation lifecycle.
 
 Presentation state is not authoritative gameplay state. A screen may be rebuilt without changing production, inventory, assignments, unlocks, or milestone completion.
 
@@ -269,9 +271,10 @@ Presentation requests gameplay changes through the explicit `GameSession` refere
 - restore or activate a Hall;
 - select a Hall recipe or target;
 - purchase a Recollection;
-- acknowledge or archive a report;
 - skip or complete tutorial presentation;
 - request a manual save.
+
+Report acknowledgement, archive, clear, retention, and related presentation commands are deferred to separately owner-approved later work. They are not current R1 commands.
 
 A command follows this transaction order:
 
@@ -1047,7 +1050,7 @@ The architecture provides the following replaceable seams:
 | Content | checked-in `ContentCatalog` and `.tres` definitions | minimal fixture catalog/registry |
 | Save storage | `FileSaveStorage` using `user://` | in-memory or temporary-directory storage |
 | Simulation | `SimulationEngine` | same engine with fixture state and trace enabled |
-| Presentation sink | `GameSession` state-change summaries and report history | event collector or no-op sink |
+| Presentation sink | `GameSession` state-change summaries; any report-history handling is deferred to separately owner-approved later work | event collector or no-op sink |
 | Random source | none for the prototype | deterministic fake if introduced later |
 
 Pure domain and simulation tests must not require a running main scene.
