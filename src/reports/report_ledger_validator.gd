@@ -99,7 +99,7 @@ static func _channel_by_id(slice: ReportLedgerSlice, channel_id: StringName) -> 
 static func _merge_compatible(left: ReportLedgerSlice, right: ReportLedgerSlice) -> bool:
 	if left.end_simulation_msec != right.start_simulation_msec or left.run_mode != right.run_mode or left.content_revision != right.content_revision or left.threshold_id != right.threshold_id or left.assignment_revision != right.assignment_revision or left.form_id != right.form_id or left.writ_id != right.writ_id or left.ordered_retinue_ids != right.ordered_retinue_ids or left.lifecycle_state != right.lifecycle_state or left.channels.size() != right.channels.size(): return false
 	for index in range(left.channels.size()):
-		if left.channels[index].channel_id != right.channels[index].channel_id or left.channels[index].output_item_id != right.channels[index].output_item_id or left.channels[index].rate_period_msec != right.channels[index].rate_period_msec: return false
+		if left.channels[index].channel_id != right.channels[index].channel_id or left.channels[index].output_item_id != right.channels[index].output_item_id or left.channels[index].rate_period_msec != right.channels[index].rate_period_msec or left.channels[index].end_simulation_msec != right.channels[index].start_simulation_msec: return false
 	return true
 
 static func _add(left: int, right: int) -> Dictionary:
