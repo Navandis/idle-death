@@ -173,8 +173,8 @@ function Invoke-ArtifactAudit {
         if ((@($postArtifacts) -join "`n") -ne (@($script:RelevantArtifactBaseline) -join "`n")) { throw 'A new relevant generated artifact remains.' }
         & git -C $RepositoryRoot check-ignore -q -- ($script:LogPath.Substring($RepositoryRoot.Length).TrimStart('\'))
         if ($LASTEXITCODE -ne 0) { throw 'The retained owner log is not ignored.' }
-        & git -C $RepositoryRoot ls-files --error-unmatch -- ($script:LogPath.Substring($RepositoryRoot.Length).TrimStart('\')) 2>$null
-        if ($LASTEXITCODE -eq 0) { throw 'The retained owner log is tracked.' }
+        $trackedOwnerLog = @(git -C $RepositoryRoot ls-files -- ($script:LogPath.Substring($RepositoryRoot.Length).TrimStart('\')))
+        if ($trackedOwnerLog.Count -ne 0) { throw 'The retained owner log is tracked.' }
         $script:ArtifactAudit = 'PASS'
         Write-Log 'Artifact audit: PASS'
     } catch {
