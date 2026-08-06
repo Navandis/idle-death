@@ -3,14 +3,16 @@
 **Document role:** Canonical prototype data, runtime-state, ID, and serialization contracts  
 **Repository path:** `docs/codex/DATA_AND_CONTENT_CONTRACTS.md`  
 **Document status:** Approved architecture contract  
-**Revision:** 27
-**Last updated:** 2026-08-03
+**Revision:** 28
+**Last updated:** 2026-08-06
 
 ## 1. Purpose
 
 ### Current M04E2R1 typed-fact contract
 
 `ReportLedger` is a non-persisted caller-owned runtime value. Its stored facts are root cursor/mode coverage, maximal attributed slices, full component identity, backlog/core endpoints and deltas, channel output/period/progress/carry/banked endpoints, and normalized Settlement events. It consumes only validated successful committed `SimulationRunResult` wrappers. Historical `ReportAccumulatorState`, report-history, `ReportService`, snapshot, and schema-v4 examples elsewhere in this document are superseded/non-executable until their R2/P1 boundaries are approved.
+
+`DEC-0046` is Accepted and the M04E2R1 Slice Packet v0.3 is owner-approved. Implementation is in progress through PR #34 and verification is Partial: R1 is not merged or fully passed, and exact-head Windows owner verification remains pending. M04E2R2, M04E2P1, and M04E2B remain deferred.
 
 This document defines the boundary between immutable authored content and mutable authoritative state. It also defines canonical identifier rules, minimum entity fields, save-schema ownership, numeric units, reservations, report events, and validation requirements.
 
@@ -2694,7 +2696,7 @@ Final Windows evidence passed `153/153` full tests and `2,522` assertions before
 
 Accepted `DEC-0043` supersedes the failed M04E2A1 implementation packaging while carrying forward report semantics. Accepted `DEC-0044` defines the final typed public run-fact contract.
 
-Accepted `DEC-0045` supersedes the former A2/A3/A4 route. Current merged `GameState` contains no authoritative report ledger, no report state is persisted, and schema version 3 remains current until M04E2P1.
+Accepted `DEC-0045` supersedes the former A2/A3/A4 route. `DEC-0046` is Accepted and the owner-approved M04E2R1 Slice Packet v0.3 is in progress through PR #34 with Partial verification. Current merged `GameState` contains no authoritative report ledger, no report state is persisted, and schema version 3 remains current until M04E2P1.
 
 The active sequence is:
 
@@ -2702,9 +2704,9 @@ The active sequence is:
 M04E2T1 -> M04E2T2 -> M04E2R1 -> M04E2R2 -> M04E2P1 -> M04E2B
 ```
 
-M04E2T1 and M04E2T2 are Merged/Passed. M04E2R1 is the next planning boundary and has no approved implementation prompt.
+M04E2T1 and M04E2T2 are Merged/Passed. M04E2R1 is in progress through PR #34 under the owner-approved Slice Packet v0.3; verification is Partial, R1 is not merged or fully passed, and exact-head Windows owner verification is pending. M04E2R2, M04E2P1, and M04E2B remain deferred.
 
-R1/R2 receive one explicitly caller-owned, non-persisted ledger or a private candidate derived from it. Before P1, no application, `GameSession`, service member, autoload, singleton, or hidden global retains canonical mutable ledger state. Exact R1 fields, API, ownership matrix, and test oracle are deferred to G3; only irreducible source facts and needed transition cursors/identities may be stored, while redundant views are derived.
+R1/R2 receive one explicitly caller-owned, non-persisted ledger or a private candidate derived from it. Before P1, no application, `GameSession`, service member, autoload, singleton, or hidden global retains canonical mutable ledger state. The owner-approved R1 packet defines its fields, API, ownership matrix, and test oracle; only irreducible source facts and needed transition cursors/identities may be stored, while redundant views are derived.
 
 P1 alone places the proven ledger under `GameState` as sole durable owner and introduces schema version 4. Every new, migrated, exposed, and persisted P1 state must be cursor-aligned with gameplay. No direct committed-simulation path may expose or persist an unreported interval after P1. B begins aligned, permits a gameplay-ahead/report-behind ledger only transiently inside its private candidate after simulation and before ingestion, and finishes aligned before validation and one live commit. One runtime validator owns semantic meaning; the future wire validator owns exact keys, containers, canonical primitive grammar, and safe reconstruction only.
 
