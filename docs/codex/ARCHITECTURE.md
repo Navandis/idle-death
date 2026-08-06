@@ -3,8 +3,8 @@
 **Document role:** Maintained implementation architecture for the 0-90 minute prototype  
 **Repository path:** `docs/codex/ARCHITECTURE.md`  
 **Document status:** Approved architecture  
-**Architecture revision:** 25
-**Last updated:** 2026-08-03
+**Architecture revision:** 26
+**Last updated:** 2026-08-06
 **Engine target:** Godot 4.7, GDScript only  
 **Primary design context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md) and [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md)
 
@@ -234,7 +234,7 @@ Tests construct `GameState`, `ContentRegistry`, clocks, services, `SimulationEng
 | Progression | Command tether capacity, milestones, guarantees, resonance IDs, counters, unlock flags, and world flags. |
 | Story | Scripted opening state, narrative entities, Brand state, and resumable narrative checkpoints. |
 | Tutorial | Current state, completed presentation steps, skip/help flags, and presented notification IDs. |
-| Reports | Current accumulator and bounded report history. |
+| Reports | R1 has no `GameState` report substate: its `ReportLedger` is explicitly caller-owned and non-persisted. R2 owns snapshot, detached-read, history, retention, and related lifecycle behavior on that explicit ledger; P1 alone may place the proven ledger under `GameState` and introduce schema version 4; B alone owns later atomic simulation/report coordination. None of R2, P1, or B is implemented or authorized by this correction. |
 | Simulation timeline | Monotonic `simulation_time_msec` used for authoritative event ordering and report windows. |
 
 ### 7.1 Stored versus derived values
@@ -851,19 +851,15 @@ This specific UX rule remains an owner-review point in the decision log. Archite
 
 ### 19.1 Immediate banking
 
-Simulation writes gains directly to authoritative inventory, counters, Mastery, backlog, and Hall state. `ReportAccumulatorState` receives deltas and explanatory events at the same time.
+Simulation writes gains directly to authoritative inventory, counters, Mastery, backlog, and Hall state. Reports never gate or claim those gains. Finalized successful committed run facts may be ingested into R1's caller-owned, non-persisted `ReportLedger` after the gameplay gains have been committed.
 
-### 19.2 Report lifecycle
+### 19.2 Current R1 boundary and deferred report lifecycle
 
-When the player opens a report:
+R1 creates no `GameState` accumulator or bounded report history. R1 performs no report archive, clear, retention, persistence, or presentation lifecycle, and no current accumulator state owns report facts.
 
-1. snapshot the current accumulator into an immutable `ReportRecord`;
-2. append it to bounded report history;
-3. clear only the live accumulator;
-4. save the report transition;
-5. render the archived record.
+R2 owns the future snapshot, detached-read, history, and retention transition on the explicit ledger. P1 owns later `GameState` placement and schema-version-4 persistence. Their exact lifecycle APIs require their own owner-approved packets. B alone owns the later atomic simulation/report coordination. None of R2, P1, or B is implemented or authorized by this correction.
 
-A crash after opening must not lose the report or change inventory. Report history length is configurable.
+The former `ReportAccumulatorState` to `ReportRecord` archive/clear model is historical, non-executable evidence superseded by `DEC-0045` and `DEC-0046`; it does not describe current R1 behavior.
 
 ### 19.3 Forecast service
 
@@ -1751,19 +1747,19 @@ Accepted `DEC-0043` supersedes the implementation packaging in `DEC-0042` while 
 
 Accepted `DEC-0045` records PR #23 as a closed-unmerged architecture stop and supersedes the former A2/A3/A4 route below. Current merged `GameState` has no authoritative report ledger and schema version 3 remains current. PRs #17, #18, and #23 are forensic/regression evidence only, never production-code sources.
 
-## Current M04E2 report architecture (`DEC-0045`)
+## Current M04E2 report architecture (`DEC-0045`, `DEC-0046`)
 
 ```text
 M04E2T1 -> M04E2T2 -> M04E2R1 -> M04E2R2 -> M04E2P1 -> M04E2B
 ```
 
-R1/R2 prove one normalized ledger in memory before persistence. The ledger is explicitly caller-owned and non-persisted: every operation receives the ledger explicitly or a private candidate derived from it. Before P1, no application object, `GameSession`, service member, autoload, singleton, or hidden global retains canonical mutable ledger state. The exact R1 field list, API, ownership matrix, and test oracle remain G3 planning work; this architecture does not pre-approve `ReportService` or another ingestion API.
+`DEC-0045` superseded the former A2/A3/A4 route. `DEC-0046` is Accepted, and the owner-approved M04E2R1 Slice Packet v0.3 is in implementation through PR #34. Verification is Partial: R1 is not merged or fully passed, and exact-head Windows owner verification remains pending. R2, P1, and B remain deferred.
 
-Only irreducible source facts and necessary transition cursors/identities are stored. Totals, counts, windows, summaries, and other redundant views are derived unless G3 proves a stored fact is necessary. One runtime validator owns report-ledger semantic meaning. P1's wire validator checks exact keys, containers, canonical primitive grammar, and safe reconstruction; mapping is explicit and reconstructed state must pass the runtime validator before exposure.
+R1 proves one normalized ledger in memory before persistence. The ledger is explicitly caller-owned and non-persisted: every operation receives the ledger explicitly or a private candidate derived from it. Before P1, no application object, `GameSession`, service member, autoload, singleton, or hidden global retains canonical mutable ledger state. The owner-approved packet and [M04E2R1 planning memo](M04E2R1_PLANNING.md) define the exact R1 fields, API, ownership matrix, interval behavior, and test oracle. `DEC-0046` defines the current runtime boundary. This architecture still does not pre-approve `ReportService` or any other application/service owner.
 
-P1 alone puts the proven ledger under `GameState` as sole durable ownership and introduces schema version 4. Every new, migrated, exposed, and persisted P1 state is cursor-aligned to gameplay simulation. No direct committed-simulation path may expose or persist an unreported interval after P1.
+R1 stores the irreducible source facts and necessary transition cursors or identities specified by that approved stored-versus-derived contract; it derives redundant totals, counts, windows, summaries, and other display views. One runtime validator owns implemented report-ledger semantic meaning. Future P1 wire validation, mapping, and reconstruction remain deferred to P1's own approved packet.
 
-B requires an aligned source `GameState`, clones privately, performs committed simulation, and may hold a gameplay-ahead/report-behind candidate only until the approved R1 ingestion transition consumes the same finalized facts. B requires an aligned final candidate before complete validation and one live commit. The transient candidate is never exposed or persisted.
+P1 alone may later put the proven ledger under `GameState` as sole durable ownership and introduce schema version 4. B alone may later coordinate atomic simulation/report work. R2, P1, and B require their own owner-approved packets; this section does not define their APIs or implementation details.
 
 The following was the active sequence before `DEC-0045` and is retained only as historical evidence:
 
