@@ -32,6 +32,48 @@ func test_timeline_chunks_and_no_op_result_shapes() -> void:
 	var duplicate := ReportLedgerIngestor.ingest_committed_run(one_shot, _wrapper(SimulationResult.timeline_only(10, 0, 10, "r")))
 	assert_true(duplicate.success, "no-op success"); assert_false(duplicate.changed, "no-op unchanged"); assert_eq(duplicate.error_code, &"", "no-op empty error"); assert_eq(duplicate.developer_details, "", "no-op empty details"); assert_null(duplicate.candidate_ledger, "no-op no candidate")
 
+func test_i_cont_01_through_i_cont_18_public_grammar_uses_fresh_sources() -> void:
+	for row in [["I-CONT-01", "applied", ReportLedgerIngestResult.APPLIED], ["I-CONT-02", "applied", ReportLedgerIngestResult.APPLIED], ["I-CONT-03", "applied", ReportLedgerIngestResult.APPLIED], ["I-CONT-04", "slice", ReportLedgerIngestor.ERR_SLICE], ["I-CONT-05", "applied", ReportLedgerIngestResult.APPLIED], ["I-CONT-06", "identity", ReportLedgerIngestor.ERR_IDENTITY], ["I-CONT-07", "applied", ReportLedgerIngestResult.APPLIED], ["I-CONT-08", "applied", ReportLedgerIngestResult.APPLIED], ["I-CONT-09", "applied", ReportLedgerIngestResult.APPLIED], ["I-CONT-10", "applied", ReportLedgerIngestResult.APPLIED], ["I-CONT-11", "applied", ReportLedgerIngestResult.APPLIED], ["I-CONT-12", "channel", ReportLedgerIngestor.ERR_CHANNEL], ["I-CONT-13", "channel", ReportLedgerIngestor.ERR_CHANNEL], ["I-CONT-14", "channel", ReportLedgerIngestor.ERR_CHANNEL], ["I-CONT-15", "channel", ReportLedgerIngestor.ERR_CHANNEL], ["I-CONT-16", "channel", ReportLedgerIngestor.ERR_CHANNEL], ["I-CONT-17", "channel", ReportLedgerIngestor.ERR_CHANNEL], ["I-CONT-18", "slice", ReportLedgerIngestor.ERR_SLICE]]:
+		var source := _apply(ReportLedger.create_empty(0), _segment(0, 10, 10, 9, 0, 1))
+		var before := source.deep_clone()
+		var segment := _continuity_input(row[1])
+		var input := segment.detached_copy()
+		var result := _ingest(source, segment)
+		if row[1] == "applied":
+			assert_eq(result.outcome, ReportLedgerIngestResult.APPLIED, "%s applies" % row[0])
+			assert_true(result.success and result.changed, "%s applied grammar" % row[0])
+			assert_eq(result.error_code, &"", "%s empty error" % row[0])
+			assert_eq(result.developer_details, "", "%s empty details" % row[0])
+			assert_not_null(result.candidate_ledger, "%s candidate" % row[0])
+			assert_true(ReportLedgerValidator.validate(result.candidate_ledger).ok, "%s candidate validates" % row[0])
+			assert_ne(result.candidate_ledger, source, "%s candidate detached" % row[0])
+		else:
+			assert_eq(result.outcome, ReportLedgerIngestResult.REJECTED, "%s rejects" % row[0])
+			assert_false(result.success or result.changed, "%s rejected grammar" % row[0])
+			assert_eq(result.error_code, row[2], "%s exact code" % row[0])
+			assert_ne(result.developer_details, "", "%s details" % row[0])
+			assert_null(result.candidate_ledger, "%s no candidate" % row[0])
+		assert_true(source.value_equals(before), "%s source unchanged" % row[0])
+		assert_true(segment.value_equals(input), "%s input unchanged" % row[0])
+
+func test_i_chunk_03_and_i_chunk_04_use_typed_settlement_and_bank_events() -> void:
+	var settlement := SimulationThresholdSettledEvent.new(10, 0, &"T", 7, 0, 0, &"OVERDUE", &"SETTLED")
+	var bank := SimulationChannelBankedEvent.new(10, 0, &"T", &"C", &"SOUL", 1, &"OVERDUE", 1, 1)
+	var one := SimulationResult.active_reaping(10, 0, 10, "r", [_segment(0, 10, 1, 0, 0, 1, &"F", [&"A"], &"SOUL", 1000, 0, 0, 1)], [bank, settlement])
+	var chunk := SimulationResult.active_reaping(10, 0, 10, "r", [_segment(0, 10, 1, 0, 0, 1, &"F", [&"A"], &"SOUL", 1000, 0, 0, 1)], [SimulationChannelBankedEvent.new(10, 0, &"T", &"C", &"SOUL", 1, &"OVERDUE", 1, 1), SimulationThresholdSettledEvent.new(10, 0, &"T", 7, 0, 0, &"OVERDUE", &"SETTLED")])
+	var left := ReportLedgerIngestor.ingest_committed_run(ReportLedger.create_empty(0), _wrapper(one))
+	var right := ReportLedgerIngestor.ingest_committed_run(ReportLedger.create_empty(0), _wrapper(chunk))
+	assert_true(left.success and right.success, "typed event candidates apply")
+	assert_true(left.candidate_ledger.value_equals(right.candidate_ledger), "typed-event chunk candidates equal")
+	assert_eq(left.candidate_ledger.settlement_events.size(), 1, "one normalized Settlement")
+	assert_true(ReportLedgerValidator.validate(left.candidate_ledger).ok, "typed-event candidate validates")
+
+func _continuity_input(kind: String) -> SimulationSegmentResult:
+	if kind == "identity": return _segment(10, 20, 9, 8, 1, 2, &"OTHER")
+	if kind == "slice": return _segment(10, 20, 8, 7, 1, 2)
+	if kind == "channel": return _segment(10, 20, 9, 8, 0, 2)
+	return _segment(10, 20, 9, 8, 1, 2)
+
 func _ingest(source: ReportLedger, segment: SimulationSegmentResult) -> ReportLedgerIngestResult:
 	var inner := SimulationResult.active_reaping(segment.elapsed_msec, segment.start_simulation_msec, segment.end_simulation_msec, "r", [segment], [])
 	return ReportLedgerIngestor.ingest_committed_run(source, _wrapper(inner))
