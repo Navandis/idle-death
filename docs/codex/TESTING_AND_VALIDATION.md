@@ -3,8 +3,8 @@
 **Document role:** Canonical test strategy, commands, fixture rules, and manual validation flows
 **Repository path:** `docs/codex/TESTING_AND_VALIDATION.md`
 **Document status:** Approved through M04E2T2; `DEC-0046` Accepted and M04E2R1 implementation in progress through PR #34
-**Validation revision:** 34
-**Last updated:** 2026-08-06
+**Validation revision:** 35
+**Last updated:** 2026-08-07
 **Engine target:** Godot 4.7 standard build, GDScript only
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)  
 **Owner evidence companion:** [OWNER_VERIFICATION_WORKFLOW.md](OWNER_VERIFICATION_WORKFLOW.md)
@@ -672,18 +672,31 @@ Test the promises the project actually makes:
 
 ## 10. Report and forecast tests
 
-Test:
+Current R1 and existing forecast evidence:
 
-- gains are in inventory before the report opens;
-- opening snapshots the accumulator into history;
-- clearing the live accumulator leaves inventory unchanged;
-- report history survives save/load;
-- the same gain is not reported twice;
+- gameplay gains are committed independently of report presentation;
+- duplicate committed-run ingestion does not duplicate ledger facts;
+- R1 has no report-open, accumulator-clear, history, retention, persistence, acknowledgement, archive, or presentation lifecycle;
 - forecast does not mutate its baseline state;
 - two forecasts from the same baseline are identical;
 - hypothetical assignment comparison starts both branches from the same clone;
 - forecast hides unknown channels appropriately;
 - actual offline resolution matches the forecast under unchanged state and content.
+
+Deferred R2 evidence (non-executable until a later owner-approved packet):
+
+- snapshots and detached reads;
+- report history and retention;
+- report-open or report-selection lifecycle;
+- acknowledgement, archive, and clear behavior.
+
+Deferred P1 evidence (non-executable until a later owner-approved packet):
+
+- GameState ledger ownership;
+- schema version 4;
+- mapping, migration, persistence, and report-history save/load.
+
+The former accumulator-to-history, accumulator-clear, and report-history save/load examples are deferred R2/P1 behavior, not current R1 instructions.
 
 ## 11. Integration test paths
 
