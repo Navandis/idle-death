@@ -288,10 +288,10 @@ try {
     }
 
     $wrapperPath = Join-Path $RepositoryRoot 'tools\test\run_gut.ps1'
-    $fullOk = Invoke-NativeStep 'full-gut' $PowerShellExe @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $wrapperPath, '-GodotBin', $resolvedGodot) { param($output, $exitCode) Test-ExactCounts $output 190 190 3068 }
+    $fullOk = Invoke-NativeStep 'full-gut' $PowerShellExe @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $wrapperPath, '-GodotBin', $resolvedGodot) { param($output, $exitCode) Test-ExactCounts $output 194 194 4325 }
     $script:FullGutSummary = if ($fullOk) { 'PASS' } else { 'FAIL' }
     $focusedCommand = "& '$wrapperPath' -GodotBin '$resolvedGodot' -GutArgs @('-gtest=res://tests/unit/m04e2r1/test_report_ledger.gd','-gtest=res://tests/unit/m04e2r1/test_report_ledger_ingestion.gd','-gtest=res://tests/unit/m04e2r1/test_report_ledger_interval_matrix.gd','-gtest=res://tests/integration/m04e2r1/test_report_ledger_persistence_exclusion.gd')"
-    $focusedOk = Invoke-NativeStep 'focused-r1' $PowerShellExe @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $focusedCommand) { param($output, $exitCode) Test-ExactCounts $output 12 12 236 }
+    $focusedOk = Invoke-NativeStep 'focused-r1' $PowerShellExe @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $focusedCommand) { param($output, $exitCode) Test-ExactCounts $output 16 16 1493 }
     $script:FocusedSummary = if ($focusedOk) { 'PASS' } else { 'FAIL' }
     $importOk = Invoke-NativeStep 'import' $resolvedGodot @('--headless', '--path', $RepositoryRoot, '--import') $null
     $script:ImportResult = if ($importOk) { 'PASS' } else { 'FAIL' }
@@ -313,8 +313,8 @@ try {
     Invoke-ArtifactAudit
     $automated = if ($script:FailedSteps -eq 0 -and $script:FullGutSummary -eq 'PASS' -and $script:FocusedSummary -eq 'PASS' -and $script:TraceSummary -eq 'PASS' -and $script:ImportResult -eq 'PASS' -and $script:SmokeResult -eq 'PASS' -and $script:CleanupResult -eq 'PASS' -and $script:CleanupAbsence -eq 'PASS' -and $script:ArtifactAudit -eq 'PASS') { 'PASS' } else { 'FAIL' }
     Write-Log 'Final summary:'
-    Write-Log "Full GUT: 190/190 tests, 3068 assertions ($script:FullGutSummary)"
-    Write-Log "Focused R1: 12/12 tests, 236 assertions ($script:FocusedSummary)"
+    Write-Log "Full GUT: 194/194 tests, 4325 assertions ($script:FullGutSummary)"
+    Write-Log "Focused R1: 16/16 tests, 1493 assertions ($script:FocusedSummary)"
     Write-Log "Trace markers: 11/11 ($script:TraceSummary)"
     Write-Log "Import: $script:ImportResult"
     Write-Log "Main-scene smoke: $script:SmokeResult"
