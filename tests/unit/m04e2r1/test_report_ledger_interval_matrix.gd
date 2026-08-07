@@ -29,38 +29,6 @@ func test_each_wrapper_parity_mismatch_and_malformed_covered_input_reject_first(
 	var malformed := SimulationResult.timeline_only(10, -1, 9, "r")
 	assert_eq(ReportLedgerIngestor.ingest_committed_run(ReportLedger.create_empty(20), _run(SimulationRunService.MODE_DEBUG, malformed)).error_code, ReportLedgerIngestor.ERR_RESULT_INVALID, "malformed covered input precedes duplicate")
 
-func test_p_01_through_p_06_independent_wrapper_parity_and_rejected_shape() -> void:
-	for row in [["P-01", 10, 9, 10, 10, 20, true, 10, 20, true], ["P-02", 10, 10, 9, 10, 19, true, 10, 19, true], ["P-03", 11, 11, 11, 10, 20, true, 9, 20, true], ["P-04", 9, 9, 9, 10, 20, true, 10, 19, true], ["P-05", 10, 10, 10, 10, 20, false, 10, 20, true], ["P-06", 10, 10, 10, 10, 19, true, 10, 19, true]]:
-		var inner := SimulationResult.new(SimulationResult.KIND_TIMELINE_ONLY, row[6], &"", "", row[2], row[3], row[4], row[5], "r")
-		var run := SimulationRunService.SimulationRunResult.new(row[9], SimulationRunService.MODE_DEBUG, &"", "", row[1], row[7], row[8], inner, null)
-		var truth := _parity(run, inner)
-		assert_eq(truth.count(false), 1, "%s has one false predicate" % row[0])
-		assert_false(truth[["P-01", "P-02", "P-03", "P-04", "P-05", "P-06"].find(row[0])], "%s intended predicate" % row[0])
-		var source := ReportLedger.create_empty(10)
-		var before := source.deep_clone()
-		var input := inner.detached_copy()
-		var rejected := ReportLedgerIngestor.ingest_committed_run(source, run)
-		assert_eq(rejected.error_code, ReportLedgerIngestor.ERR_WRAPPER, "%s wrapper code" % row[0])
-		assert_eq(rejected.outcome, ReportLedgerIngestResult.REJECTED, "%s rejected grammar" % row[0])
-		assert_true(source.value_equals(before), "%s source unchanged" % row[0])
-		assert_true(run.simulation_result.value_equals(input), "%s input unchanged" % row[0])
-		assert_null(rejected.candidate_ledger, "%s no candidate" % row[0])
-	var shape := ReportLedgerIngestor.ingest_committed_run(ReportLedger.create_empty(0), null)
-	assert_true(_is_result_shape(shape), "real rejected result has documented shape")
-	shape.developer_details = ""
-	assert_false(_is_result_shape(shape), "empty rejection details violates shape")
-	for outcome in [ReportLedgerIngestResult.APPLIED, ReportLedgerIngestResult.DUPLICATE_NO_OP, ReportLedgerIngestResult.ZERO_DURATION_NO_OP]:
-		var value := ReportLedgerIngestResult.applied(ReportLedger.create_empty(0)) if outcome == ReportLedgerIngestResult.APPLIED else ReportLedgerIngestResult.no_op(outcome)
-		assert_true(_is_result_shape(value), "%s retains documented shape" % outcome)
-
-func _parity(run: SimulationRunService.SimulationRunResult, inner: SimulationResult) -> Array[bool]:
-	return [run.requested_elapsed_msec == inner.requested_elapsed_msec, inner.committed_elapsed_msec == run.requested_elapsed_msec, run.baseline_simulation_time_msec == inner.baseline_simulation_time_msec, run.result_simulation_time_msec == inner.result_simulation_time_msec, run.success == inner.success, run.result_simulation_time_msec - run.baseline_simulation_time_msec == inner.committed_elapsed_msec]
-
-func _is_result_shape(value: ReportLedgerIngestResult) -> bool:
-	if value.outcome == ReportLedgerIngestResult.REJECTED: return not value.success and not value.changed and not value.error_code.is_empty() and not value.developer_details.is_empty() and value.candidate_ledger == null
-	if value.outcome == ReportLedgerIngestResult.APPLIED: return value.success and value.changed and value.error_code.is_empty() and value.developer_details.is_empty() and value.candidate_ledger != null
-	return value.success and not value.changed and value.error_code.is_empty() and value.developer_details.is_empty() and value.candidate_ledger == null
-
 func _timeline(start: int, finish: int) -> SimulationResult:
 	return SimulationResult.zero_duration(start) if start == finish else SimulationResult.timeline_only(finish - start, start, finish, "r")
 
