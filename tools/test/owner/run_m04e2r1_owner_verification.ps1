@@ -288,10 +288,21 @@ try {
     }
 
     $wrapperPath = Join-Path $RepositoryRoot 'tools\test\run_gut.ps1'
-    $fullOk = Invoke-NativeStep 'full-gut' $PowerShellExe @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $wrapperPath, '-GodotBin', $resolvedGodot) { param($output, $exitCode) Test-ExactCounts $output 194 194 4394 }
+    $fullOk = Invoke-NativeStep 'full-gut' $PowerShellExe @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $wrapperPath, '-GodotBin', $resolvedGodot) { param($output) Test-ExactCounts $output 194 194 4394 }
     $script:FullGutSummary = if ($fullOk) { 'PASS' } else { 'FAIL' }
-    $focusedCommand = "& '$wrapperPath' -GodotBin '$resolvedGodot' -GutArgs @('-gtest=res://tests/unit/m04e2r1/test_report_ledger.gd','-gtest=res://tests/unit/m04e2r1/test_report_ledger_ingestion.gd','-gtest=res://tests/unit/m04e2r1/test_report_ledger_interval_matrix.gd','-gtest=res://tests/integration/m04e2r1/test_report_ledger_persistence_exclusion.gd')"
-    $focusedOk = Invoke-NativeStep 'focused-r1' $PowerShellExe @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $focusedCommand) { param($output, $exitCode) Test-ExactCounts $output 16 16 1562 }
+    $focusedWrapperVariable = 'M04E2R1_OWNER_FOCUSED_WRAPPER_PATH'
+    $focusedGodotVariable = 'M04E2R1_OWNER_FOCUSED_GODOT_PATH'
+    $previousFocusedWrapper = [Environment]::GetEnvironmentVariable($focusedWrapperVariable, 'Process')
+    $previousFocusedGodot = [Environment]::GetEnvironmentVariable($focusedGodotVariable, 'Process')
+    $focusedCommand = '& $env:M04E2R1_OWNER_FOCUSED_WRAPPER_PATH -GodotBin $env:M04E2R1_OWNER_FOCUSED_GODOT_PATH -GutArgs @(''-gtest=res://tests/unit/m04e2r1/test_report_ledger.gd'',''-gtest=res://tests/unit/m04e2r1/test_report_ledger_ingestion.gd'',''-gtest=res://tests/unit/m04e2r1/test_report_ledger_interval_matrix.gd'',''-gtest=res://tests/integration/m04e2r1/test_report_ledger_persistence_exclusion.gd'')'
+    try {
+        [Environment]::SetEnvironmentVariable($focusedWrapperVariable, $wrapperPath, 'Process')
+        [Environment]::SetEnvironmentVariable($focusedGodotVariable, $resolvedGodot, 'Process')
+        $focusedOk = Invoke-NativeStep 'focused-r1' $PowerShellExe @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $focusedCommand) { param($output) Test-ExactCounts $output 16 16 1562 }
+    } finally {
+        [Environment]::SetEnvironmentVariable($focusedWrapperVariable, $previousFocusedWrapper, 'Process')
+        [Environment]::SetEnvironmentVariable($focusedGodotVariable, $previousFocusedGodot, 'Process')
+    }
     $script:FocusedSummary = if ($focusedOk) { 'PASS' } else { 'FAIL' }
     $importOk = Invoke-NativeStep 'import' $resolvedGodot @('--headless', '--path', $RepositoryRoot, '--import') $null
     $script:ImportResult = if ($importOk) { 'PASS' } else { 'FAIL' }
