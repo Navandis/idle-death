@@ -59,10 +59,10 @@ func test_real_channel_gap_regression_preserves_both_channel_intervals() -> void
 	assert_true(source.value_equals(snapshot), "gap source remains value-unchanged")
 func test_four_genuine_one_shot_and_chunked_wrapper_arrays() -> void:
 	var rows := [
-		_chunk("I-CHUNK-01", [_wrapper(_active(0, 20, [_segment(0, 20, 10, 8)]))], [_wrapper(_active(0, 10, [_segment(0, 10, 10, 9)])), _wrapper(_active(10, 20, [_segment(10, 20, 9, 8)]))], func(one, chunks): return one.slices.size() == 1 and chunks.slices.size() == 1, func(one_shot, chunked): return one_shot[0].simulation_result.result_kind == SimulationResult.KIND_ACTIVE_REAPING and chunked[0].simulation_result.result_kind == SimulationResult.KIND_ACTIVE_REAPING and one_shot[0].baseline_simulation_time_msec == chunked[0].baseline_simulation_time_msec and one_shot[0].result_simulation_time_msec == chunked[1].result_simulation_time_msec),
-		_chunk("I-CHUNK-02", [_wrapper(_timeline(0, 20))], [_wrapper(_timeline(0, 10)), _wrapper(_timeline(10, 20))], func(one, chunks): return one.slices.is_empty() and chunks.slices.is_empty(), func(one_shot, chunked): return one_shot[0].simulation_result.result_kind == SimulationResult.KIND_TIMELINE_ONLY and chunked[0].simulation_result.result_kind == SimulationResult.KIND_TIMELINE_ONLY and one_shot[0].result_simulation_time_msec == chunked[1].result_simulation_time_msec),
+		_chunk("I-CHUNK-01", [_wrapper(_active(0, 20, [_segment(0, 20, 10, 8)]))], [_wrapper(_active(0, 10, [_segment(0, 10, 10, 9)])), _wrapper(_active(10, 20, [_segment(10, 20, 9, 8)]))], func(one, chunks): return one.slices.size() == 1 and chunks.slices.size() == 1, func(one_shot, chunked): return one_shot[0].simulation_result.result_kind == SimulationResult.KIND_ACTIVE_REAPING and chunked[0].simulation_result.result_kind == SimulationResult.KIND_ACTIVE_REAPING and one_shot[0].baseline_simulation_time_msec == chunked[0].baseline_simulation_time_msec and one_shot[0].result_simulation_time_msec == chunked[1].result_simulation_time_msec, func(one, chunks): return _chunk_01_active_output(one) and _chunk_01_active_output(chunks)),
+		_chunk("I-CHUNK-02", [_wrapper(_timeline(0, 20))], [_wrapper(_timeline(0, 10)), _wrapper(_timeline(10, 20))], func(one, chunks): return one.slices.is_empty() and chunks.slices.is_empty(), func(one_shot, chunked): return one_shot[0].simulation_result.result_kind == SimulationResult.KIND_TIMELINE_ONLY and chunked[0].simulation_result.result_kind == SimulationResult.KIND_TIMELINE_ONLY and one_shot[0].result_simulation_time_msec == chunked[1].result_simulation_time_msec, func(one, chunks): return _chunk_02_timeline_output(one) and _chunk_02_timeline_output(chunks)),
 		_chunk("I-CHUNK-03", [_wrapper(_settlement_run(0, 20, 2, 0))], [_wrapper(_active(0, 10, [_segment(0, 10, 2, 1)])), _wrapper(_settlement_run(10, 20, 1, 0))], func(one, chunks): return one.settlement_events.size() == 1 and chunks.settlement_events.size() == 1, func(one_shot, chunked): return _settlement_count(one_shot[0].simulation_result) == 1 and _settlement_count(chunked[0].simulation_result) + _settlement_count(chunked[1].simulation_result) == 1 and _settlement_input_is_exact(one_shot[0].simulation_result) and _settlement_input_is_exact(chunked[1].simulation_result), func(one, chunks): return _chunk_03_settlement_metadata(one, chunks)),
-		_chunk("I-CHUNK-04", [_wrapper(_bank_run(0, 20, 2, 7, 2, 7, 2, 7))], [_wrapper(_bank_run(0, 10, 2, 4, 2, 5, 2, 5)), _wrapper(_bank_run(10, 20, 4, 7, 5, 7, 5, 7))], func(one, chunks): return one.slices[0].channels[0].rate_carry_units_before == 2 and one.slices[0].channels[0].rate_carry_units_after == 7 and chunks.slices[0].channels[0].total_banked_units_after == 7 and one.settlement_events.is_empty() and chunks.settlement_events.is_empty(), func(one_shot, chunked): return _bank_count(one_shot[0].simulation_result) == 1 and _bank_count(chunked[0].simulation_result) + _bank_count(chunked[1].simulation_result) == 2 and one_shot[0].simulation_result.events.size() != chunked[0].simulation_result.events.size() + chunked[1].simulation_result.events.size() and one_shot[0].simulation_result.segments[0].channel_deltas[0].progress_subunits_before == 2 and one_shot[0].simulation_result.segments[0].channel_deltas[0].progress_subunits_after == 7 and chunked[0].simulation_result.segments[0].channel_deltas[0].progress_subunits_after == chunked[1].simulation_result.segments[0].channel_deltas[0].progress_subunits_before and chunked[0].simulation_result.segments[0].channel_deltas[0].rate_carry_units_before == 2 and chunked[0].simulation_result.segments[0].channel_deltas[0].rate_carry_units_after == 5 and chunked[1].simulation_result.segments[0].channel_deltas[0].rate_carry_units_before == 5 and chunked[1].simulation_result.segments[0].channel_deltas[0].rate_carry_units_after == 7 and chunked[0].simulation_result.segments[0].channel_deltas[0].total_banked_units_after == chunked[1].simulation_result.segments[0].channel_deltas[0].total_banked_units_before and _bank_input_matches_channel(one_shot[0].simulation_result) and _bank_input_matches_channel(chunked[0].simulation_result) and _bank_input_matches_channel(chunked[1].simulation_result))
+		_chunk("I-CHUNK-04", [_wrapper(_bank_run(0, 20, 2, 7, 2, 7, 2, 7))], [_wrapper(_bank_run(0, 10, 2, 4, 2, 5, 2, 5)), _wrapper(_bank_run(10, 20, 4, 7, 5, 7, 5, 7))], func(one, chunks): return one.slices[0].channels[0].rate_carry_units_before == 2 and one.slices[0].channels[0].rate_carry_units_after == 7 and chunks.slices[0].channels[0].total_banked_units_after == 7 and one.settlement_events.is_empty() and chunks.settlement_events.is_empty(), func(one_shot, chunked): return _bank_count(one_shot[0].simulation_result) == 1 and _bank_count(chunked[0].simulation_result) + _bank_count(chunked[1].simulation_result) == 2 and one_shot[0].simulation_result.events.size() != chunked[0].simulation_result.events.size() + chunked[1].simulation_result.events.size() and one_shot[0].simulation_result.segments[0].channel_deltas[0].progress_subunits_before == 2 and one_shot[0].simulation_result.segments[0].channel_deltas[0].progress_subunits_after == 7 and chunked[0].simulation_result.segments[0].channel_deltas[0].progress_subunits_after == chunked[1].simulation_result.segments[0].channel_deltas[0].progress_subunits_before and chunked[0].simulation_result.segments[0].channel_deltas[0].rate_carry_units_before == 2 and chunked[0].simulation_result.segments[0].channel_deltas[0].rate_carry_units_after == 5 and chunked[1].simulation_result.segments[0].channel_deltas[0].rate_carry_units_before == 5 and chunked[1].simulation_result.segments[0].channel_deltas[0].rate_carry_units_after == 7 and chunked[0].simulation_result.segments[0].channel_deltas[0].total_banked_units_after == chunked[1].simulation_result.segments[0].channel_deltas[0].total_banked_units_before and _bank_input_matches_channel(one_shot[0].simulation_result) and _bank_input_matches_channel(chunked[0].simulation_result) and _bank_input_matches_channel(chunked[1].simulation_result), func(one, chunks): return _chunk_04_banking_output(one) and _chunk_04_banking_output(chunks))
 	]
 	var actual: Array[String] = []
 	for row in rows:
@@ -72,8 +72,18 @@ func test_four_genuine_one_shot_and_chunked_wrapper_arrays() -> void:
 		assert_true(row.input_probe.call(row.one_shot, row.chunked), "%s committed wrapper input facts" % row.id)
 		assert_true(_same_wrapper_interval(row.one_shot, row.chunked), "%s wrapper sequences cover same interval" % row.id)
 		assert_true(_same_wrapper_mode(row.one_shot, row.chunked), "%s wrapper modes are equivalent" % row.id)
-		var one := _apply_committed_wrappers(ReportLedger.create_empty(0), row.one_shot)
-		var chunks := _apply_committed_wrappers(ReportLedger.create_empty(0), row.chunked)
+		var one_source := ReportLedger.create_empty(0)
+		var chunk_source := ReportLedger.create_empty(0)
+		var one_source_snapshot := one_source.deep_clone()
+		var chunk_source_snapshot := chunk_source.deep_clone()
+		var one_inputs := _runs_snapshot(row.one_shot)
+		var chunk_inputs := _runs_snapshot(row.chunked)
+		var one := _apply_committed_wrappers(one_source, row.one_shot)
+		var chunks := _apply_committed_wrappers(chunk_source, row.chunked)
+		assert_true(one_source.value_equals(one_source_snapshot), "%s one-shot source unchanged" % row.id)
+		assert_true(chunk_source.value_equals(chunk_source_snapshot), "%s chunked source unchanged" % row.id)
+		_assert_runs_unchanged(row.one_shot, one_inputs, "%s one-shot wrapper inputs unchanged" % row.id)
+		_assert_runs_unchanged(row.chunked, chunk_inputs, "%s chunked wrapper inputs unchanged" % row.id)
 		assert_true(ReportLedgerValidator.validate(one).ok and ReportLedgerValidator.validate(chunks).ok, "%s candidates validate" % row.id)
 		assert_true(row.probe.call(one, chunks), "%s typed boundary facts retained" % row.id)
 		assert_true(row.result_probe.call(one, chunks), "%s normalized candidate metadata" % row.id)
@@ -93,10 +103,11 @@ func test_transactionality_overflow_and_no_op_input_preservation() -> void:
 	for row in cases:
 		var before := source.deep_clone()
 		var run := _wrapper(row[1])
+		var wrapper := _wrapper_snapshot(run)
 		var inner := run.simulation_result.detached_copy()
 		var result := ReportLedgerIngestor.ingest_committed_run(source, run)
 		assert_true(source.value_equals(before), "%s source unchanged" % row[0])
-		assert_true(run.simulation_result.value_equals(inner), "%s inner unchanged" % row[0])
+		_assert_run_unchanged(run, wrapper, inner, "%s complete wrapper and child preservation" % row[0])
 		if row[2] == ReportLedgerIngestResult.APPLIED:
 			assert_eq(result.outcome, ReportLedgerIngestResult.APPLIED, "applied outcome")
 			assert_true(result.success, "applied success")
@@ -132,16 +143,16 @@ func test_public_source_validation_precedence_for_unreachable_overflows() -> voi
 	_assert_source_validation_precedence("I-OVF-02", _invalid_root_source(0, 0, 0, FixedPoint.INT64_MAX), "Next event sequence is invalid; public source-validation precedence is approved where the checked increment cannot be reached from a canonical valid source.")
 func _cont(id: String, scenario: Dictionary, expected: StringName) -> Dictionary:
 	return {"id": id, "scenario": scenario, "expected": expected}
-func _scenario(source: ReportLedger, inner: SimulationResult, probe: Callable, mode: StringName = SimulationRunService.MODE_FOREGROUND_SUPPLIED, candidate_probe: Callable = func(_candidate): return true, mode_probe: Callable = func(): return true) -> Dictionary:
+func _scenario(source: ReportLedger, inner: SimulationResult, probe: Callable, mode: StringName = SimulationRunService.MODE_FOREGROUND_SUPPLIED, candidate_probe: Callable = func(_candidate): return false, mode_probe: Callable = func(): return true) -> Dictionary:
 	return {"source": source, "run": _wrapper(inner, mode), "probe": probe, "candidate_probe": candidate_probe, "mode_probe": mode_probe}
 func _i_cont_01() -> Dictionary:
 	var source := _apply(ReportLedger.create_empty(0), _active(0, 10, [_segment(0, 10, 10, 9)]))
 	var incoming := _active(10, 20, [_segment(10, 20, 9, 8)])
-	return _scenario(source, incoming, func(): return source.slices[0].run_mode == SimulationRunService.MODE_FOREGROUND_SUPPLIED and incoming.baseline_simulation_time_msec == 10 and incoming.result_simulation_time_msec == 20 and source.slices[0].remaining_backlog_after == incoming.segments[0].remaining_backlog_before, SimulationRunService.MODE_OFFLINE_FIXTURE, func(candidate): return candidate.slices.size() == 2 and candidate.slices[0].run_mode != candidate.slices[1].run_mode, func(): return source.slices[0].run_mode == SimulationRunService.MODE_FOREGROUND_SUPPLIED and SimulationRunService.MODE_FOREGROUND_SUPPLIED != SimulationRunService.MODE_OFFLINE_FIXTURE)
+	return _scenario(source, incoming, func(): return source.slices[0].run_mode == SimulationRunService.MODE_FOREGROUND_SUPPLIED and incoming.baseline_simulation_time_msec == 10 and incoming.result_simulation_time_msec == 20 and source.slices[0].remaining_backlog_after == incoming.segments[0].remaining_backlog_before, SimulationRunService.MODE_OFFLINE_FIXTURE, func(candidate): return _mode_split_output(candidate), func(): return source.slices[0].run_mode == SimulationRunService.MODE_FOREGROUND_SUPPLIED and SimulationRunService.MODE_FOREGROUND_SUPPLIED != SimulationRunService.MODE_OFFLINE_FIXTURE)
 func _i_cont_02() -> Dictionary:
 	var source := _apply(ReportLedger.create_empty(0), _active(0, 10, [_segment(0, 10, 10, 9)], "content-a"))
 	var incoming := _active(10, 20, [_segment(10, 20, 9, 8)], "content-b")
-	return _scenario(source, incoming, func(): return source.slices[0].content_revision == "content-a" and incoming.content_revision == "content-b" and _continuity_endpoints_match(source.slices[0], incoming.segments[0]))
+	return _scenario(source, incoming, func(): return source.slices[0].content_revision == "content-a" and incoming.content_revision == "content-b" and _continuity_endpoints_match(source.slices[0], incoming.segments[0]), SimulationRunService.MODE_FOREGROUND_SUPPLIED, func(candidate): return _content_split_output(candidate))
 func _i_cont_03() -> Dictionary:
 	var source := _apply(ReportLedger.create_empty(0), _active(0, 10, [_segment(0, 10, 2, 1)]))
 	var incoming := _settlement_run(10, 20, 1, 0)
@@ -159,7 +170,7 @@ func _i_cont_04() -> Dictionary:
 func _i_cont_05() -> Dictionary:
 	var source := _apply(ReportLedger.create_empty(0), _active(0, 10, [_segment(0, 10, 10, 9, &"T", 1)]))
 	var incoming := _active(10, 20, [_segment(10, 20, 9, 8, &"T", 2, &"F2")])
-	return _scenario(source, incoming, func(): return source.slices[0].assignment_revision == 1 and incoming.segments[0].assignment_revision == 2 and source.slices[0].form_id != incoming.segments[0].form_id and source.slices[0].remaining_backlog_after == incoming.segments[0].remaining_backlog_before, SimulationRunService.MODE_FOREGROUND_SUPPLIED, func(candidate): return ReportLedgerValidator.validate(candidate).ok and candidate.slices.size() == 2 and candidate.slices[0].assignment_revision == 1 and candidate.slices[1].assignment_revision == 2 and candidate.slices[0].form_id == &"F" and candidate.slices[0].writ_id == &"W" and candidate.slices[0].ordered_retinue_ids == [&"A"] and candidate.slices[1].form_id == &"F2" and candidate.slices[1].writ_id == &"W" and candidate.slices[1].ordered_retinue_ids == [&"A"] and candidate.slices[0] != candidate.slices[1] and candidate.slices[1].remaining_backlog_before == candidate.slices[0].remaining_backlog_after and _channel_endpoints_continue(candidate.slices[0].channels[0], candidate.slices[1].channels[0]))
+	return _scenario(source, incoming, func(): return source.slices[0].assignment_revision == 1 and incoming.segments[0].assignment_revision == 2 and source.slices[0].form_id != incoming.segments[0].form_id and source.slices[0].remaining_backlog_after == incoming.segments[0].remaining_backlog_before, SimulationRunService.MODE_FOREGROUND_SUPPLIED, func(candidate): return ReportLedgerValidator.validate(candidate).ok and candidate.ingested_through_simulation_msec == 20 and candidate.foreground_elapsed_msec == 20 and candidate.slices.size() == 2 and candidate.slices[0].assignment_revision == 1 and candidate.slices[1].assignment_revision == 2 and candidate.slices[0].form_id == &"F" and candidate.slices[0].writ_id == &"W" and candidate.slices[0].ordered_retinue_ids == [&"A"] and candidate.slices[1].form_id == &"F2" and candidate.slices[1].writ_id == &"W" and candidate.slices[1].ordered_retinue_ids == [&"A"] and candidate.slices[0] != candidate.slices[1] and _slice_and_channel_interval_is(candidate.slices[0], 0, 10) and _slice_and_channel_interval_is(candidate.slices[1], 10, 20) and candidate.slices[1].remaining_backlog_before == candidate.slices[0].remaining_backlog_after and _channel_endpoints_continue(candidate.slices[0].channels[0], candidate.slices[1].channels[0]))
 func _i_cont_06() -> Dictionary:
 	var source := _apply(ReportLedger.create_empty(0), _active(0, 10, [_segment(0, 10, 10, 9)]))
 	var incoming := _active(10, 20, [_segment(10, 20, 9, 8, &"T", 1, &"OTHER")])
@@ -168,12 +179,12 @@ func _i_cont_07() -> Dictionary:
 	var source := _apply(ReportLedger.create_empty(0), _active(0, 10, [_segment(0, 10, 10, 9)]))
 	source = _apply(source, _timeline(10, 20))
 	var incoming := _active(20, 30, [_segment(20, 30, 9, 8)])
-	return _scenario(source, incoming, func(): return source.ingested_through_simulation_msec == 20 and source.slices[0].end_simulation_msec == 10 and incoming.baseline_simulation_time_msec == 20 and incoming.segments[0].remaining_backlog_before == source.slices[0].remaining_backlog_after)
+	return _scenario(source, incoming, func(): return source.ingested_through_simulation_msec == 20 and source.slices[0].end_simulation_msec == 10 and incoming.baseline_simulation_time_msec == 20 and incoming.segments[0].remaining_backlog_before == source.slices[0].remaining_backlog_after, SimulationRunService.MODE_FOREGROUND_SUPPLIED, func(candidate): return _timeline_gap_output(candidate))
 func _i_cont_08() -> Dictionary:
 	var source := _apply(ReportLedger.create_empty(0), _active(0, 10, [_segment(0, 10, 10, 9, &"T")]))
 	source = _apply(source, _active(10, 20, [_segment(10, 20, 4, 3, &"OTHER")]))
 	var incoming := _active(20, 30, [_segment(20, 30, 9, 8, &"T")])
-	return _scenario(source, incoming, func(): return source.slices[1].threshold_id == &"OTHER" and source.slices[0].threshold_id == &"T" and incoming.segments[0].threshold_id == &"T" and incoming.segments[0].remaining_backlog_before == source.slices[0].remaining_backlog_after)
+	return _scenario(source, incoming, func(): return source.slices[1].threshold_id == &"OTHER" and source.slices[0].threshold_id == &"T" and incoming.segments[0].threshold_id == &"T" and incoming.segments[0].remaining_backlog_before == source.slices[0].remaining_backlog_after, SimulationRunService.MODE_FOREGROUND_SUPPLIED, func(candidate): return _intervening_threshold_output(candidate))
 func _i_cont_09() -> Dictionary:
 	var source := _apply(ReportLedger.create_empty(0), _active(0, 10, [_segment(0, 10, 10, 9, &"T", 1, &"A")]))
 	source = _apply(source, _active(10, 20, [_segment(10, 20, 9, 8, &"T", 2, &"B")]))
@@ -182,7 +193,7 @@ func _i_cont_09() -> Dictionary:
 func _i_cont_10() -> Dictionary:
 	var source := _apply(ReportLedger.create_empty(0), _active(0, 10, [_segment(0, 10, 10, 9, &"T", 1, &"FORM_A")]))
 	var next := _active(10, 20, [_segment(10, 20, 9, 8, &"T", 2, &"FORM_B")])
-	return _scenario(source, next, func(): return source.slices[0].form_id != next.segments[0].form_id and source.slices[0].channels[0].output_item_id == next.segments[0].channel_deltas[0].output_item_id, SimulationRunService.MODE_FOREGROUND_SUPPLIED, func(candidate): return candidate.slices.size() == 2 and candidate.slices[0].form_id == &"FORM_A" and candidate.slices[1].form_id == &"FORM_B")
+	return _scenario(source, next, func(): return source.slices[0].form_id != next.segments[0].form_id and source.slices[0].channels[0].output_item_id == next.segments[0].channel_deltas[0].output_item_id, SimulationRunService.MODE_FOREGROUND_SUPPLIED, func(candidate): return _equal_output_identity_output(candidate))
 func _i_cont_11() -> Dictionary:
 	var source := _apply(ReportLedger.create_empty(0), _active(0, 10, [_segment(0, 10, 10, 9)]))
 	var incoming := _active(10, 20, [_segment(10, 20, 9, 8, &"T", 1, &"F", [&"A"], "r", [_channel(&"C", 0, 0, 0, 0), _channel(&"D", 3, 4, 5, 6)])])
@@ -288,7 +299,7 @@ func _assert_source_validation_precedence(label: String, source: ReportLedger, e
 	var inner_before := run.simulation_result.detached_copy()
 	var result := ReportLedgerIngestor.ingest_committed_run(source, run)
 	_assert_rejected(result, ReportLedgerIngestor.ERR_LEDGER_INVALID, source, source_before, run, wrapper_before, inner_before, "%s %s" % [label, expected_details])
-func _chunk(id: String, one_shot: Array[SimulationRunService.SimulationRunResult], chunked: Array[SimulationRunService.SimulationRunResult], probe: Callable, input_probe: Callable, result_probe: Callable = func(_one, _chunks): return true) -> Dictionary:
+func _chunk(id: String, one_shot: Array[SimulationRunService.SimulationRunResult], chunked: Array[SimulationRunService.SimulationRunResult], probe: Callable, input_probe: Callable, result_probe: Callable) -> Dictionary:
 	return {"id": id, "one_shot": one_shot, "chunked": chunked, "probe": probe, "input_probe": input_probe, "result_probe": result_probe}
 
 func _continuity_endpoints_match(source: ReportLedgerSlice, incoming: SimulationSegmentResult) -> bool:
@@ -299,20 +310,100 @@ func _continuity_endpoints_match(source: ReportLedgerSlice, incoming: Simulation
 func _channel_endpoints_continue(prior: ReportLedgerChannel, current: ReportLedgerChannel) -> bool:
 	return prior.channel_id == current.channel_id and prior.output_item_id == current.output_item_id and prior.rate_period_msec == current.rate_period_msec and prior.progress_subunits_after == current.progress_subunits_before and prior.rate_carry_units_after == current.rate_carry_units_before and prior.total_banked_units_after == current.total_banked_units_before
 
+func _slice_and_channel_interval_is(slice: ReportLedgerSlice, expected_start: int, expected_end: int) -> bool:
+	return slice.start_simulation_msec == expected_start and slice.end_simulation_msec == expected_end and slice.channels.size() == 1 and slice.channels[0].start_simulation_msec == expected_start and slice.channels[0].end_simulation_msec == expected_end
+
+func _slice_has_expected_t_identity(slice: ReportLedgerSlice) -> bool:
+	return slice.threshold_id == &"T" and slice.assignment_revision == 1 and slice.form_id == &"F" and slice.writ_id == &"W" and slice.ordered_retinue_ids == [&"A"]
+
+func _channel_has_expected_c_identity(channel: ReportLedgerChannel) -> bool:
+	return channel.channel_id == &"C" and channel.output_item_id == &"SOUL" and channel.rate_period_msec == 1000
+
+func _mode_split_output(candidate: ReportLedger) -> bool:
+	if candidate.ingested_through_simulation_msec != 20 or candidate.foreground_elapsed_msec != 10 or candidate.offline_elapsed_msec != 10 or candidate.slices.size() != 2:
+		return false
+	var first := candidate.slices[0]
+	var second := candidate.slices[1]
+	return (
+		first.start_simulation_msec == 0 and first.end_simulation_msec == 10
+		and first.run_mode == SimulationRunService.MODE_FOREGROUND_SUPPLIED
+		and second.start_simulation_msec == 10 and second.end_simulation_msec == 20
+		and second.run_mode == SimulationRunService.MODE_OFFLINE_FIXTURE
+		and first.threshold_id == second.threshold_id
+		and first.assignment_revision == second.assignment_revision
+		and first.form_id == second.form_id and first.writ_id == second.writ_id
+		and first.ordered_retinue_ids == second.ordered_retinue_ids
+		and first.remaining_backlog_before == 10 and first.remaining_backlog_after == 9
+		and second.remaining_backlog_before == 9 and second.remaining_backlog_after == 8
+		and first.remaining_backlog_after == second.remaining_backlog_before
+		and _channel_endpoints_continue(first.channels[0], second.channels[0])
+	)
+
+func _content_split_output(candidate: ReportLedger) -> bool:
+	if candidate.ingested_through_simulation_msec != 20 or candidate.foreground_elapsed_msec != 20 or candidate.slices.size() != 2: return false
+	var first := candidate.slices[0]
+	var second := candidate.slices[1]
+	return first.start_simulation_msec == 0 and first.end_simulation_msec == 10 and first.content_revision == "content-a" and second.start_simulation_msec == 10 and second.end_simulation_msec == 20 and second.content_revision == "content-b" and _slice_has_expected_t_identity(first) and _slice_has_expected_t_identity(second) and first.remaining_backlog_before == 10 and first.remaining_backlog_after == 9 and second.remaining_backlog_before == 9 and second.remaining_backlog_after == 8 and first.remaining_backlog_after == second.remaining_backlog_before and _channel_has_expected_c_identity(first.channels[0]) and _channel_has_expected_c_identity(second.channels[0]) and _channel_endpoints_continue(first.channels[0], second.channels[0])
+
+func _timeline_gap_output(candidate: ReportLedger) -> bool:
+	if candidate.ingested_through_simulation_msec != 30 or candidate.foreground_elapsed_msec != 30 or candidate.slices.size() != 2: return false
+	var first := candidate.slices[0]
+	var resumed := candidate.slices[1]
+	return first.start_simulation_msec == 0 and first.end_simulation_msec == 10 and resumed.start_simulation_msec == 20 and resumed.end_simulation_msec == 30 and resumed.remaining_backlog_before == first.remaining_backlog_after and _slice_has_expected_t_identity(first) and _slice_has_expected_t_identity(resumed) and _channel_has_expected_c_identity(first.channels[0]) and _channel_has_expected_c_identity(resumed.channels[0]) and _channel_endpoints_continue(first.channels[0], resumed.channels[0])
+
+func _intervening_threshold_output(candidate: ReportLedger) -> bool:
+	if candidate.ingested_through_simulation_msec != 30 or candidate.slices.size() != 3: return false
+	var first := candidate.slices[0]
+	var other := candidate.slices[1]
+	var last := candidate.slices[2]
+	return first.start_simulation_msec == 0 and first.end_simulation_msec == 10 and other.start_simulation_msec == 10 and other.end_simulation_msec == 20 and last.start_simulation_msec == 20 and last.end_simulation_msec == 30 and first.threshold_id == &"T" and other.threshold_id == &"OTHER" and last.threshold_id == &"T" and last.threshold_id != other.threshold_id and last.remaining_backlog_before == first.remaining_backlog_after and _channel_endpoints_continue(first.channels[0], last.channels[0])
+
+func _equal_output_identity_output(candidate: ReportLedger) -> bool:
+	if candidate.slices.size() != 2: return false
+	var first := candidate.slices[0]
+	var second := candidate.slices[1]
+	return first.start_simulation_msec == 0 and first.end_simulation_msec == 10 and second.start_simulation_msec == 10 and second.end_simulation_msec == 20 and first.form_id == &"FORM_A" and second.form_id == &"FORM_B" and first.form_id != second.form_id and first.channels[0].output_item_id == &"SOUL" and second.channels[0].output_item_id == &"SOUL" and first.remaining_backlog_after == second.remaining_backlog_before and _channel_endpoints_continue(first.channels[0], second.channels[0]) and ReportLedgerValidator.validate(candidate).ok
+
 func _stored_a_b_a_is_distinct_and_continuous(candidate: ReportLedger) -> bool:
-	if candidate.slices.size() != 3: return false
+	if candidate.ingested_through_simulation_msec != 30 or candidate.foreground_elapsed_msec != 30 or candidate.slices.size() != 3:
+		return false
 	var first := candidate.slices[0]
 	var second := candidate.slices[1]
 	var last := candidate.slices[2]
-	return first.form_id == &"A" and second.form_id == &"B" and last.form_id == &"A" and first.assignment_revision == 1 and second.assignment_revision == 2 and last.assignment_revision == 3 and first.writ_id == last.writ_id and first.ordered_retinue_ids == last.ordered_retinue_ids and first.start_simulation_msec == 0 and first.end_simulation_msec == 10 and second.end_simulation_msec == 20 and last.start_simulation_msec == 20 and last.end_simulation_msec == 30 and first != last and first.remaining_backlog_after == second.remaining_backlog_before and second.remaining_backlog_after == last.remaining_backlog_before and _channel_endpoints_continue(first.channels[0], second.channels[0]) and _channel_endpoints_continue(second.channels[0], last.channels[0])
+	return first.form_id == &"A" and second.form_id == &"B" and last.form_id == &"A" and first.assignment_revision == 1 and second.assignment_revision == 2 and last.assignment_revision == 3 and first.writ_id == last.writ_id and first.ordered_retinue_ids == last.ordered_retinue_ids and _slice_and_channel_interval_is(first, 0, 10) and _slice_and_channel_interval_is(second, 10, 20) and _slice_and_channel_interval_is(last, 20, 30) and first != last and first.remaining_backlog_after == second.remaining_backlog_before and second.remaining_backlog_after == last.remaining_backlog_before and _channel_endpoints_continue(first.channels[0], second.channels[0]) and _channel_endpoints_continue(second.channels[0], last.channels[0])
 
 func _new_channel_d_has_supplied_endpoints(channel: SimulationChannelDeltaResult) -> bool:
 	return channel.channel_id == &"D" and channel.output_item_id == &"SOUL" and channel.rate_period_msec == 1000 and channel.progress_subunits_before == 3 and channel.rate_carry_units_before == 5 and channel.total_banked_units_before == 0
 
 func _new_channel_d_is_retained(candidate: ReportLedger) -> bool:
-	if candidate.slices.size() != 2 or candidate.slices[1].channels.size() != 2: return false
+	if candidate.slices.size() != 2 or candidate.slices[0].channels.size() != 1 or candidate.slices[1].channels.size() != 2: return false
+	var first_existing := candidate.slices[0].channels[0]
+	var second_existing := candidate.slices[1].channels[0]
 	var added := candidate.slices[1].channels[1]
-	return _channel_endpoints_continue(candidate.slices[0].channels[0], candidate.slices[1].channels[0]) and added.channel_id == &"D" and added.start_simulation_msec == 10 and added.progress_subunits_before == 3 and added.rate_carry_units_before == 5 and added.total_banked_units_before == 0 and added.output_item_id == &"SOUL" and added.rate_period_msec == 1000
+	return _channel_has_expected_c_identity(first_existing) and _channel_has_expected_c_identity(second_existing) and _channel_endpoints_continue(first_existing, second_existing) and added.channel_id == &"D" and added.output_item_id == &"SOUL" and added.rate_period_msec == 1000 and added.start_simulation_msec == 10 and added.end_simulation_msec == 20 and added.progress_subunits_before == 3 and added.progress_subunits_after == 4 and added.rate_carry_units_before == 5 and added.rate_carry_units_after == 6 and added.total_banked_units_before == 0 and added.total_banked_units_after == 0
+
+func _chunk_01_active_output(ledger: ReportLedger) -> bool:
+	if ledger.ingested_through_simulation_msec != 20 or ledger.foreground_elapsed_msec != 20 or ledger.slices.size() != 1:
+		return false
+	var slice := ledger.slices[0]
+	var channel := slice.channels[0]
+	return (
+		slice.start_simulation_msec == 0 and slice.end_simulation_msec == 20
+		and slice.remaining_backlog_before == 10 and slice.remaining_backlog_after == 8
+		and slice.channels.size() == 1 and channel.channel_id == &"C"
+		and channel.start_simulation_msec == 0 and channel.end_simulation_msec == 20
+		and channel.progress_subunits_before == 0 and channel.progress_subunits_after == 0
+		and channel.rate_carry_units_before == 0 and channel.rate_carry_units_after == 0
+		and channel.total_banked_units_before == 0 and channel.total_banked_units_after == 0
+	)
+
+func _chunk_02_timeline_output(ledger: ReportLedger) -> bool:
+	return ledger.ingested_through_simulation_msec == 20 and ledger.foreground_elapsed_msec == 20 and ledger.slices.is_empty() and ledger.settlement_events.is_empty()
+
+func _chunk_04_banking_output(ledger: ReportLedger) -> bool:
+	if ledger.slices.size() != 1: return false
+	var channel := ledger.slices[0].channels[0]
+	return channel.channel_id == &"C" and channel.start_simulation_msec == 0 and channel.end_simulation_msec == 20 and channel.progress_subunits_before == 2 and channel.progress_subunits_after == 7 and channel.rate_carry_units_before == 2 and channel.rate_carry_units_after == 7 and channel.total_banked_units_before == 2 and channel.total_banked_units_after == 7 and channel.output_item_id == &"SOUL" and channel.rate_period_msec == 1000
 
 func _chunk_03_settlement_metadata(one: ReportLedger, chunks: ReportLedger) -> bool:
 	if one.settlement_events.size() != 1 or chunks.settlement_events.size() != 1: return false
@@ -333,10 +424,7 @@ func _assert_applied(result: ReportLedgerIngestResult, source: ReportLedger, sna
 	assert_true(ReportLedgerValidator.validate(result.candidate_ledger).ok, label)
 	assert_ne(result.candidate_ledger, source, label)
 	assert_true(source.value_equals(snapshot), label)
-	assert_eq(_wrapper_snapshot(run), wrapper, "%s wrapper scalar state unchanged" % label)
-	assert_eq(run.simulation_result, wrapper.simulation_result, label)
-	assert_eq(run.projected_state, wrapper.projected_state, label)
-	assert_true(run.simulation_result.value_equals(inner), "%s inner segment/channel/event facts unchanged" % label)
+	_assert_run_unchanged(run, wrapper, inner, label)
 
 func _assert_rejected(result: ReportLedgerIngestResult, code: StringName, source: ReportLedger, snapshot: ReportLedger, run: SimulationRunService.SimulationRunResult, wrapper: Dictionary, inner: SimulationResult, label: String) -> void:
 	assert_eq(result.outcome, ReportLedgerIngestResult.REJECTED, label)
@@ -346,10 +434,24 @@ func _assert_rejected(result: ReportLedgerIngestResult, code: StringName, source
 	assert_ne(result.developer_details, "", label)
 	assert_null(result.candidate_ledger, label)
 	assert_true(source.value_equals(snapshot), label)
+	_assert_run_unchanged(run, wrapper, inner, label)
+
+func _assert_run_unchanged(run: SimulationRunService.SimulationRunResult, wrapper: Dictionary, inner: SimulationResult, label: String) -> void:
 	assert_eq(_wrapper_snapshot(run), wrapper, "%s wrapper scalar state unchanged" % label)
-	assert_eq(run.simulation_result, wrapper.simulation_result, label)
-	assert_eq(run.projected_state, wrapper.projected_state, label)
+	assert_eq(run.simulation_result, wrapper.simulation_result, "%s simulation-result reference unchanged" % label)
+	assert_eq(run.projected_state, wrapper.projected_state, "%s projected-state reference unchanged" % label)
 	assert_true(run.simulation_result.value_equals(inner), "%s inner segment/channel/event facts unchanged" % label)
+
+func _runs_snapshot(runs: Array[SimulationRunService.SimulationRunResult]) -> Array:
+	var snapshots: Array = []
+	for run in runs:
+		snapshots.append({"wrapper": _wrapper_snapshot(run), "inner": run.simulation_result.detached_copy()})
+	return snapshots
+
+func _assert_runs_unchanged(runs: Array[SimulationRunService.SimulationRunResult], snapshots: Array, label: String) -> void:
+	assert_eq(runs.size(), snapshots.size(), "%s snapshot cardinality" % label)
+	for index in runs.size():
+		_assert_run_unchanged(runs[index], snapshots[index].wrapper, snapshots[index].inner, "%s %s" % [label, index])
 func _same_wrapper_interval(one_shot: Array[SimulationRunService.SimulationRunResult], chunked: Array[SimulationRunService.SimulationRunResult]) -> bool:
 	return one_shot[0].baseline_simulation_time_msec == chunked[0].baseline_simulation_time_msec and one_shot[0].result_simulation_time_msec == chunked.back().result_simulation_time_msec
 
