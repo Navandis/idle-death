@@ -1,8 +1,9 @@
 class_name ReportLedger
 extends RefCounted
 
-## Non-persisted report evidence.  Callers retain the source and only replace it
-## with a returned candidate after an APPLIED ingestion result.
+## Caller-owned, non-persisted report evidence for deterministic
+## simulation-millisecond intervals. It owns normalized ledger values and child
+## records, not source-run mutation, clocks, saves, or application lifecycle.
 
 var window_start_simulation_msec: int = 0
 var ingested_through_simulation_msec: int = 0

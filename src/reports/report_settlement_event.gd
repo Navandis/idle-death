@@ -1,8 +1,9 @@
 class_name ReportSettlementEvent
 extends RefCounted
 
-## One normalized Settlement boundary.  Bank events are deliberately folded
-## into channel endpoints because their call-count changes when runs are split.
+## One caller-owned, non-persisted deterministic Settlement boundary in
+## simulation milliseconds. It owns normalized event facts, not bank-event
+## history, source mutation, saves, clocks, or application lifecycle.
 
 var event_sequence: int = 0
 var content_revision: String = ""

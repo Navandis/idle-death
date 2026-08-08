@@ -1,6 +1,10 @@
 class_name ReportLedgerValidator
 extends RefCounted
 
+## Stateless deterministic validation for caller-owned, non-persisted ledger
+## values. It owns no ledger state, clocks, saves, or lifecycle; callers supply
+## complete simulation-millisecond facts and the ingestor owns mutation.
+
 const FAILURE := &"REPORT_LEDGER_VALIDATION_FAILED"
 const MODES := [&"FOREGROUND_SUPPLIED", &"OFFLINE_FIXTURE", &"DEBUG"]
 const INT64_MAX := FixedPoint.INT64_MAX

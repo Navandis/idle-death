@@ -1,8 +1,9 @@
 class_name ReportLedgerSlice
 extends RefCounted
 
-## A maximal, caller-owned operational interval.  Derived totals intentionally
-## remain outside this value object so endpoint facts are the only authority.
+## A maximal caller-owned, non-persisted deterministic operational interval in
+## simulation milliseconds. It owns normalized endpoints and children, not
+## derived totals, source mutation, clocks, saves, or application lifecycle.
 
 var run_mode: StringName = &""
 var content_revision: String = ""

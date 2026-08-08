@@ -1,6 +1,10 @@
 class_name ReportLedgerIngestResult
 extends RefCounted
 
+## Typed, non-persisted ingestion-result envelope. It owns only result grammar,
+## not ledger or run mutation; the deterministic ingestor and caller own those
+## lifecycles and their simulation-millisecond facts.
+
 const APPLIED := &"APPLIED"
 const DUPLICATE_NO_OP := &"DUPLICATE_NO_OP"
 const ZERO_DURATION_NO_OP := &"ZERO_DURATION_NO_OP"

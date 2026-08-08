@@ -88,7 +88,7 @@ func _check_persistence_exclusion() -> void:
 	var snapshot := SaveSchemaMapper.runtime_to_snapshot(state, TimeAuthorityState.new(), 1, ContentRegistry.CURRENT_REVISION)
 	var serialized := JSON.stringify(snapshot)
 	var excluded := true
-	for forbidden in ["ReportLedger", "report_ledger", "settlement_events", "ReportLedgerIngestor"]:
+	for forbidden in ["ReportLedger", "report_ledger", "settlement_events", "ReportLedgerIngestor", "ingest_committed_run", "REPORT_INGEST_"]:
 		excluded = excluded and not serialized.contains(forbidden)
 	_marker("persistence_exclusion", ReportLedgerValidator.validate(ledger).ok and snapshot.schema_version == SaveInt64.format(3) and excluded, "real schema-v3 in-memory snapshot must exclude R1 ledger symbols")
 

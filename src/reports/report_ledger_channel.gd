@@ -1,8 +1,9 @@
 class_name ReportLedgerChannel
 extends RefCounted
 
-## Stored endpoint evidence for one Threshold output channel.  The ledger owns
-## these values; no simulation object or mutable game state is retained here.
+## Stored deterministic simulation-millisecond endpoint evidence for one
+## Threshold output channel. The caller-owned ledger retains these values, not
+## simulation objects, mutable game state, saves, clocks, or lifecycle control.
 
 var channel_id: StringName = &""
 var output_item_id: StringName = &""
