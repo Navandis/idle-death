@@ -75,6 +75,7 @@ Rules:
 | `DEC-0043` | Simulation mutation and explanatory facts share one transaction provenance; M04E2 is re-sliced after failed PRs #17 and #18 | Accepted | 2026-07-22 |
 | `DEC-0044` | Finalized simulation facts use one detached typed result family and a closed event union | Accepted | 2026-07-22 |
 | `DEC-0045` | Runtime-ledger-first report architecture, persistence sequencing, and PR #23 stop | Accepted | 2026-08-03 |
+| `DEC-0046` | Caller-owned chunk-invariant report ledger and exact committed-run ingestion | Accepted | 2026-08-05 |
 
 ---
 
@@ -3455,9 +3456,29 @@ One runtime validator is the semantic authority for implemented ledger relations
 - `docs/codex/milestone-prompts/M04E2A2-report-state-schema-v4-persistence.md`
 - `docs/codex/milestone-prompts/M04E2T2-finalized-typed-run-facts.md`
 
+## `DEC-0046` — Caller-owned chunk-invariant report ledger and exact committed-run ingestion
+
+**Status:** Accepted
+**Date:** 2026-08-05
+**Decision type:** M04E2R1 runtime report boundary
+
+### Decision
+
+R1 adds one typed, non-persisted `ReportLedger`. Its caller owns the source and applied references. `ReportLedgerIngestor` consumes only a successful committed `SimulationRunService.SimulationRunResult`, deep-clones only for an exact-new interval, validates the complete normalized candidate, and returns it only on `APPLIED`.
+
+The ledger stores cursor/mode coverage, maximal historical slices, channel endpoints, and one normalized Settlement event per Threshold. It folds validated bank events, derives totals and summaries, rejects malformed, projected, gapped, overlapping, identity-discontinuous, channel-discontinuous, and overflowing inputs without mutating any input, and is chunk-invariant for equivalent same-mode runs.
+
+R1 adds no `GameState` ownership, service/global retention, schema transition, mapper, migration, save data, snapshot/history/read model, or simulation/report coordinator. R2, P1, and B retain those boundaries in sequence.
+
+### Consequences
+
+- Schema version 3 and the current content revision remain unchanged.
+- The accepted executable artifacts are `M04E2R1_PLANNING.md` and `milestone-prompts/M04E2R1-normalized-live-report-ledger.md`.
+- Historical `ReportService`, `ReportAccumulatorState`, and archive examples remain non-executable evidence.
+
 ## 3. Current approval state
 
-- `DEC-0001` through `DEC-0040`, `DEC-0043` through `DEC-0045` are Accepted.
+- `DEC-0001` through `DEC-0040`, `DEC-0043` through `DEC-0046` are Accepted.
 - `DEC-0041` is Superseded. Current authority carries forward only the high-level report intent restated by `DEC-0045` and the maintained contracts: reports explain already-applied gains; finalized committed facts provide historical attribution; P1 owns schema-v4 persistence; R1 provides exactly-once/no-double-count safety and no mutation for inputs the G3 oracle classifies as rejected or malformed; and R2 owns snapshot and retention behavior. `DEC-0041`'s concrete interval classifications and outcomes are historical/regression evidence for G3, not binding R1 requirements, and may be reclassified by the owner-approved G3 interval-decision table and complete test oracle.
 - `DEC-0042` is Superseded by `DEC-0043`; its failed-branch record and report-slice lessons remain historical context.
 - M04A through M04D3, M04E1, M04E2T1, and M04E2T2 are implemented, verified, and merged.
@@ -3466,5 +3487,5 @@ One runtime validator is the semantic authority for implemented ledger relations
 - `GATE-SINGLE-PROVENANCE-TRANSACTION` and `GATE-FINALIZED-RUN-FACTS` are satisfied. Their recorded owner scope exceptions apply only to their completed slices.
 - PR #17, PR #18, and PR #23 remain closed unmerged forensic references; M04E2A1 and M04E2A2 are superseded failed/rework attempts, while M04E2A3 and M04E2A4 are superseded, never-implemented, non-executable historical slices.
 - The active M04E2 sequence is M04E2T1 -> M04E2T2 -> M04E2R1 -> M04E2R2 -> M04E2P1 -> M04E2B.
-- M04E2R1 is the next planning boundary and has no approved implementation prompt. `DEC-0045` supersedes the former A2/A3/A4 report gates.
+- M04E2R1 has an owner-approved v0.3 implementation packet and is in implementation on its named feature branch. `DEC-0045` supersedes the former A2/A3/A4 report gates.
 - Future changes preserve decision IDs for wording clarifications and create a new decision when semantics, ownership, compatibility, implementation packaging, or security posture changes.

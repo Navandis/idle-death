@@ -3,8 +3,8 @@
 **Document role:** Approved implementation sequence and acceptance map for the 0–90 minute prototype  
 **Repository path:** `docs/codex/MILESTONES.md`  
 **Document status:** Approved rolling-wave milestone map  
-**Milestone-map revision:** 35
-**Last updated:** 2026-08-03
+**Milestone-map revision:** 36
+**Last updated:** 2026-08-06
 **Primary context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md), [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md), [Architecture](ARCHITECTURE.md), [Data contracts](DATA_AND_CONTENT_CONTRACTS.md), [Testing](TESTING_AND_VALIDATION.md), [Owner verification](OWNER_VERIFICATION_WORKFLOW.md), [Milestone recalibration](MILESTONE_RECALIBRATION_PROPOSAL.md), and [Decisions](DECISIONS.md)
 
 ## 1. Purpose and authority
@@ -50,7 +50,7 @@ After M04E2T2 completion and the PR #23 architecture stop:
 - M04E2T2 merged through PR #22 from final head `00bd7d1ce27817b508eb0aac1663d1de48353237` at merge commit `afd390e8338a198d76938eef5ddcf35718ec189c`; exact-head Windows verification passed `178/178` full tests, `74/74` focused tests, all fifteen markers, import, negative-root behavior, cleanup, and artifact audit.
 - `GATE-SINGLE-PROVENANCE-TRANSACTION` and `GATE-FINALIZED-RUN-FACTS` are satisfied.
 - PR #23 closed unmerged at `f68e6eac3347cde1b5347ce2d70cc4ce12ac3610` after 8 commits, 58 changed files, 2,012 additions, and 69 deletions. PRs #17, #18, and #23 are forensic/regression evidence only and are not production-code sources.
-- Accepted `DEC-0045` retires M04E2A2/A3/A4 as executable slices. M04E2R1 is the next planning boundary and has no approved implementation prompt.
+- Accepted `DEC-0045` retires M04E2A2/A3/A4 as executable slices. `DEC-0046` is Accepted, the M04E2R1 Slice Packet v0.3 is owner-approved, and implementation is in progress through PR #34 with Partial verification. R1 is not merged or fully passed, exact-head Windows owner verification is pending, and M04E2R2/M04E2P1/M04E2B remain deferred.
 - The repository still has no authoritative report accumulator/history, atomic reported-run coordinator, application shell, trusted offline adapter, concurrent-Reaping resolver, or player-facing gameplay UI.
 - Existing dry-run assets and scene work are preserved unless a scoped milestone explicitly replaces or integrates them.
 
@@ -170,7 +170,7 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 | M04E2A2 | Former report runtime state and schema-v4 persistence | Implementation slice | Superseded | Superseded | Rework required | Failed |
 | M04E2A3 | Former cursor-idempotent live report ingestion | Implementation slice | Superseded | Not drafted | Not directly executable | — |
 | M04E2A4 | Former report reads, snapshot, bounded history, and final evidence | Implementation slice | Superseded | Not drafted | Not directly executable | — |
-| M04E2R1 | Normalized live report ledger and committed-run ingestion | Implementation slice | Approved | Not drafted | Not started | — |
+| M04E2R1 | Normalized live report ledger and committed-run ingestion | Implementation slice | Approved | Approved v0.3 | In progress | Partial |
 | M04E2R2 | Snapshot, bounded history, retention, and detached reads | Implementation slice | Approved | Not drafted | Not started | — |
 | M04E2P1 | GameState integration, schema-v4 migration, and persistence | Implementation slice | Approved | Not drafted | Not started | — |
 | M04E2B | Atomic simulation/report coordinator and final M04 harness | Implementation slice | Approved | Not drafted | Not started | — |
@@ -228,7 +228,7 @@ The current executable/planning sequence is:
 M04E2T1 -> M04E2T2 -> M04E2R1 -> M04E2R2 -> M04E2P1 -> M04E2B
 ```
 
-R1 is a planning boundary only: no owner-approved R1 slice packet exists, and its legacy `Prompt` status remains `Not drafted`. Before P1 the report ledger is explicitly caller-owned and non-persisted; no application, `GameSession`, service member, autoload, singleton, or hidden global may retain canonical mutable ledger state. P1 must introduce only cursor-aligned exposed/persisted `GameState`; B may hold lag only privately between simulation and ingestion, and begins and ends aligned.
+`DEC-0046` is Accepted and the owner-approved M04E2R1 Slice Packet v0.3 is in progress through PR #34 with Partial verification. R1 is not merged or fully passed, and exact-head Windows owner verification remains pending. Before P1 the report ledger is explicitly caller-owned and non-persisted; no application, `GameSession`, service member, autoload, singleton, or hidden global may retain canonical mutable ledger state. P1 must introduce only cursor-aligned exposed/persisted `GameState`; B may hold lag only privately between simulation and ingestion, and begins and ends aligned. M04E2R2, M04E2P1, and M04E2B remain deferred.
 
 ### Historical prior dependency map (superseded by `DEC-0045`; non-executable)
 
@@ -1504,11 +1504,11 @@ Add one non-authoritative forecast seam and one explicit-duration adapter owner 
 
 PR #17 and PR #18 are closed unmerged. PR #17 demonstrated that report state, migration, ingestion, reads, snapshots, retention, and verification were too broad for one branch. PR #18 demonstrated that an independently mutable candidate, typed result, and compatibility summary cannot be made safe through a growing post-hoc validator.
 
-Accepted `DEC-0043` replaces the implementation packaging in `DEC-0042` with a single-provenance simulation transaction prerequisite followed by finalized typed facts. Accepted `DEC-0045` then retired the former A2/A3/A4 slices after PR #23 and established the runtime-ledger-first R1/R2/P1/B route.
+Accepted `DEC-0043` replaces the implementation packaging in `DEC-0042` with a single-provenance simulation transaction prerequisite followed by finalized typed facts. Accepted `DEC-0045` then retired the former A2/A3/A4 slices after PR #23 and established the runtime-ledger-first R1/R2/P1/B route. `DEC-0046` is Accepted; the owner-approved M04E2R1 Slice Packet v0.3 is in progress through PR #34 with Partial verification, pending exact-head Windows owner verification. R1 is not merged or fully passed, and R2/P1/B remain deferred.
 
 #### Completion rule
 
-M04E2 is complete only when M04E2T1, M04E2T2, M04E2R1, M04E2R2, M04E2P1, and M04E2B are all Merged and Passed. R1 is the next planning boundary and has no approved implementation prompt.
+M04E2 is complete only when M04E2T1, M04E2T2, M04E2R1, M04E2R2, M04E2P1, and M04E2B are all Merged and Passed. `DEC-0046` is Accepted; the owner-approved M04E2R1 Slice Packet v0.3 is in progress through PR #34 with Partial verification and pending exact-head Windows owner verification. R2/P1/B remain deferred.
 
 ---
 
@@ -1565,7 +1565,7 @@ Refactor supplied-duration simulation so one internal transaction owns the priva
 
 #### Follow-on dependency
 
-- M04E2T2 completed through PR #22; `DEC-0045` makes M04E2R1 the next planning boundary.
+- M04E2T2 completed through PR #22; `DEC-0046` is Accepted and the owner-approved M04E2R1 Slice Packet v0.3 is in progress through PR #34 with Partial verification. Exact-head Windows owner verification is pending; R2/P1/B remain deferred.
 
 ---
 
@@ -1649,7 +1649,7 @@ The final slice used 25 non-documentation/non-`.uid` files and 1,460 net additio
 
 #### Follow-on dependency
 
-- M04E2R1 planning after G3 establishes its field, ownership, and test-oracle packet.
+- `DEC-0046` Accepted the owner-approved M04E2R1 Slice Packet v0.3; implementation is in progress through PR #34 with Partial verification and pending exact-head Windows owner verification.
 
 ---
 

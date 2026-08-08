@@ -2,9 +2,9 @@
 
 **Document role:** Canonical test strategy, commands, fixture rules, and manual validation flows
 **Repository path:** `docs/codex/TESTING_AND_VALIDATION.md`
-**Document status:** Approved through M04E2T2; report architecture realigned by `DEC-0045`
-**Validation revision:** 33
-**Last updated:** 2026-08-03
+**Document status:** Approved through M04E2T2; `DEC-0046` Accepted and M04E2R1 implementation in progress through PR #34
+**Validation revision:** 35
+**Last updated:** 2026-08-07
 **Engine target:** Godot 4.7 standard build, GDScript only
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)  
 **Owner evidence companion:** [OWNER_VERIFICATION_WORKFLOW.md](OWNER_VERIFICATION_WORKFLOW.md)
@@ -46,7 +46,7 @@ M04D2 merged through PR #14 at merge commit `24228a078199d9728eb57e4e26c27447aa6
 
 M04D3 merged through PR #15 at merge commit `9fd8f98e3787f711f3d03c9de03d3615d531216a` from final head `5a5cafc6b640001fba86c7ea9531ae9daf43fcc3`. Linux/Codex focused coverage passed `35/35` tests and `592` assertions. Owner Windows verification passed the full suite before and after (`144/144`, `2,222` assertions), focused M04D3 (`18/18`, `254` assertions), import, all sixteen markers, cleanup, cleanup proof, and artifact audit with zero failed steps. Accepted `DEC-0040` decomposes M04E into approved forecast-only M04E1 and report-state M04E2.
 
-M04E1 merged through PR #16 at merge commit `03f05a3d78609a993cecab8b0077e5f7d7d55900` from final head `738e89c606dd9f1f9f0396334ea9d8587ff389f3`. Owner Windows verification passed the full suite before and after (`153/153`, `2,522` assertions), focused M04E1 (`9/9`, `295` assertions), explicit import, all fifteen markers, cleanup, cleanup proof, and artifact audit with zero failed steps. PR #17 and PR #18 were closed unmerged at terminal heads `5c87118045faa6f48f8ce50977a9bcdcfa967e57` and `602dec077f44338cdb4a2eabbd30d3989c877902`. PR #23 then closed unmerged at `f68e6eac3347cde1b5347ce2d70cc4ce12ac3610` after 8 commits, 58 changed files, 2,012 additions, and 69 deletions. M04E2T1 and M04E2T2 subsequently merged and passed through PR #21 and PR #22. `DEC-0045` makes M04E2R1 the next planning boundary; no R1 implementation prompt is approved.
+M04E1 merged through PR #16 at merge commit `03f05a3d78609a993cecab8b0077e5f7d7d55900` from final head `738e89c606dd9f1f9f0396334ea9d8587ff389f3`. Owner Windows verification passed the full suite before and after (`153/153`, `2,522` assertions), focused M04E1 (`9/9`, `295` assertions), explicit import, all fifteen markers, cleanup, cleanup proof, and artifact audit with zero failed steps. PR #17 and PR #18 were closed unmerged at terminal heads `5c87118045faa6f48f8ce50977a9bcdcfa967e57` and `602dec077f44338cdb4a2eabbd30d3989c877902`. PR #23 then closed unmerged at `f68e6eac3347cde1b5347ce2d70cc4ce12ac3610` after 8 commits, 58 changed files, 2,012 additions, and 69 deletions. M04E2T1 and M04E2T2 subsequently merged and passed through PR #21 and PR #22. `DEC-0046` is Accepted; the owner-approved M04E2R1 Slice Packet v0.3 is being implemented through PR #34, with verification Partial. R1 is not merged or fully passed, exact-head Windows owner verification is pending, and R2/P1/B remain deferred.
 
 ## 2. Pinned test and platform dependencies
 
@@ -672,18 +672,31 @@ Test the promises the project actually makes:
 
 ## 10. Report and forecast tests
 
-Test:
+Current R1 and existing forecast evidence:
 
-- gains are in inventory before the report opens;
-- opening snapshots the accumulator into history;
-- clearing the live accumulator leaves inventory unchanged;
-- report history survives save/load;
-- the same gain is not reported twice;
+- gameplay gains are committed independently of report presentation;
+- duplicate committed-run ingestion does not duplicate ledger facts;
+- R1 has no report-open, accumulator-clear, history, retention, persistence, acknowledgement, archive, or presentation lifecycle;
 - forecast does not mutate its baseline state;
 - two forecasts from the same baseline are identical;
 - hypothetical assignment comparison starts both branches from the same clone;
 - forecast hides unknown channels appropriately;
 - actual offline resolution matches the forecast under unchanged state and content.
+
+Deferred R2 evidence (non-executable until a later owner-approved packet):
+
+- snapshots and detached reads;
+- report history and retention;
+- report-open or report-selection lifecycle;
+- acknowledgement, archive, and clear behavior.
+
+Deferred P1 evidence (non-executable until a later owner-approved packet):
+
+- GameState ledger ownership;
+- schema version 4;
+- mapping, migration, persistence, and report-history save/load.
+
+The former accumulator-to-history, accumulator-clear, and report-history save/load examples are deferred R2/P1 behavior, not current R1 instructions.
 
 ## 11. Integration test paths
 
@@ -2166,11 +2179,15 @@ Final non-documentation/non-`.uid` scope was 25 files and 1,460 net additions. T
 
 `GATE-FINALIZED-RUN-FACTS` is satisfied. The M04E2T2 prompt is historical and must not be re-executed.
 
-## 31. Current M04E2 report validation boundaries (`DEC-0045`)
+## 31. Current M04E2 report validation boundaries (`DEC-0046`)
+
+`DEC-0046` is Accepted and the M04E2R1 Slice Packet v0.3 is owner-approved. Implementation is in progress through PR #34 and verification is Partial: R1 is not merged or fully passed, and exact-head Windows owner verification remains pending. The current R1 validation package applies to this in-progress implementation; M04E2R2, M04E2P1, and M04E2B remain deferred.
+
+### Historical pre-G3 planning record
 
 PR #23's ten findings are retained with explicit classification: findings 1 and 4 were local defects; finding 3 was both a local defect and a runtime/wire duplication signal; findings 2 and 5–10 were architecture/ownership signals. Closure followed repeated transition, coverage, provenance, compaction, sequence-authority, and runtime/wire-parity failures—not defect count or review-round count alone.
 
-Before R1 implementation, G3 must define and obtain owner approval for the R1 interval-decision table and complete R1 test oracle. R1 implementation validation must then prove that owner-approved table and oracle; this G1 section does not determine any interval classification or outcome. Independently of those classifications, R1 remains bound by `DEC-0045` to ingest finalized committed run facts exactly once into an explicitly caller-owned, non-persisted ledger, with fact-based attribution and no mutation for inputs the approved oracle classifies as rejected or malformed.
+Before G3 approval, the R1 interval-decision table and test oracle were pending owner approval. The approved R1 package requires ingestion of finalized committed run facts exactly once into an explicitly caller-owned, non-persisted ledger, with fact-based attribution and no mutation for inputs the approved oracle classifies as rejected or malformed.
 
 R2 validation must prove snapshot, bounded retention, detached reads, and lifecycle transitions on the same explicit ledger. Neither R1 nor R2 may introduce persistence, a hidden owner, or an application coordinator.
 
@@ -2180,7 +2197,11 @@ B validation must require an aligned source, allow a transient gameplay-ahead/re
 
 The convergence assessment follows the G0 policy: after two substantial correction rounds, continue only when remaining findings are local, understood, testable, and within a converging design; stop or replan on affirmative architecture, ownership, scope, or oracle evidence. Do not use a fixed defect count or review-round count as an absolute stop rule.
 
-## 32. Historical M04E2A2 report-state and schema-v4 validation package (superseded by `DEC-0045`; non-executable)
+## 32. M04E2R1 normalized live-ledger validation package
+
+R1 validates the caller-owned, non-persisted ledger only: factory/clone/validator grammar; wrapper precedence and interval matrix; normalized source/channel/Settlement continuity; one-shot/chunked equality; transactionality and overflow; and schema-v3 persistence exclusion. Required Codex evidence is focused R1 GUT coverage, the full `tools/test/run_gut.sh` suite, import, main-scene smoke, deterministic trace, exact 32-path audit, and artifact cleanup. The Windows owner runner verifies the exact SHA with no interactive checklist; its exact-head run remains pending while PR #34 is in progress. R2/P1/B remain deferred.
+
+## 33. Historical M04E2A2 report-state and schema-v4 validation package (superseded by `DEC-0045`; non-executable)
 
 This historical Draft v0.1 section is non-executable. `DEC-0045` supersedes the former prompt and `GATE-REPORT-SCHEMA` route.
 
