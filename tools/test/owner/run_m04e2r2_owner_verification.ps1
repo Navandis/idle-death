@@ -4,10 +4,22 @@ is UTF-8, lives under the ignored owner-artifact directory, and is removed when
 all checks pass so cleanup absence is directly observable.
 #>
 [CmdletBinding()]
-param([string]$GodotBin)
+param(
+    [Parameter(Mandatory = $true)]
+    [ValidatePattern('^[0-9A-Fa-f]{40}$')]
+    [string]$ExpectedHead,
+    [string]$GodotBin
+)
 
 $ErrorActionPreference = 'Stop'
 $root = Resolve-Path (Join-Path $PSScriptRoot '..\..\..')
+$actualHead = (& git -C $root rev-parse --verify HEAD 2>$null).Trim()
+if ($LASTEXITCODE -ne 0 -or $actualHead -notmatch '^[0-9A-Fa-f]{40}$') {
+    throw "Unable to verify repository HEAD; expected $ExpectedHead, actual $actualHead."
+}
+if (-not $actualHead.Equals($ExpectedHead, [System.StringComparison]::OrdinalIgnoreCase)) {
+    throw "ExpectedHead mismatch; expected $ExpectedHead, actual $actualHead."
+}
 $logDirectory = Join-Path $root 'artifacts\owner-verification'
 $logPath = Join-Path $logDirectory 'm04e2r2-owner-verification.log'
 New-Item -ItemType Directory -Force -Path $logDirectory | Out-Null
@@ -23,4 +35,4 @@ finally {
     if (Test-Path -LiteralPath $logPath) { Remove-Item -LiteralPath $logPath -Force }
 }
 if (Test-Path -LiteralPath $logPath) { throw 'Owner log cleanup failed.' }
-Write-Host 'M04E2R2 owner verification package completed; cleanup=PASS.'
+Write-Host "M04E2R2 owner verification package completed; head=$actualHead; cleanup=PASS."

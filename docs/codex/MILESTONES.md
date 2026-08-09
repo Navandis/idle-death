@@ -51,7 +51,7 @@ After M04E2R1 completion and PR #34 integration:
 - `GATE-SINGLE-PROVENANCE-TRANSACTION` and `GATE-FINALIZED-RUN-FACTS` are satisfied.
 - PR #23 closed unmerged at `f68e6eac3347cde1b5347ce2d70cc4ce12ac3610` after 8 commits, 58 changed files, 2,012 additions, and 69 deletions. PRs #17, #18, and #23 are forensic/regression evidence only and are not production-code sources.
 - Accepted `DEC-0045` retires M04E2A2/A3/A4 as executable slices, and accepted `DEC-0046` defines the caller-owned, non-persisted R1 boundary.
-- M04E2R1 merged through PR #34 from final head `ec3fc115cc685d378b93f6968f0f28300760c755` at merge commit `bda72749cfc6f20bfa1fd8e42acefdb6e3a8f31d`; CI run 55, review and triage convergence, exact-head Windows owner verification, and post-merge synchronization and branch cleanup completed. M04E2R2/M04E2P1/M04E2B remain deferred.
+- M04E2R1 merged through PR #34 from final head `ec3fc115cc685d378b93f6968f0f28300760c755` at merge commit `bda72749cfc6f20bfa1fd8e42acefdb6e3a8f31d`; CI run 55, review and triage convergence, exact-head Windows owner verification, and post-merge synchronization and branch cleanup completed. M04E2R2 is in progress under its owner-approved v0.3 packet and draft PR; M04E2P1/M04E2B remain deferred.
 - `QUANTITATIVE_SCOPE_BUDGETS_AND_ANTI_BLOAT_GUARDRAILS.md` revision 1.2 is the owner-approved authority for concept budgets, categorized gross-addition measurement, exact reassessment triggers, threshold exceptions, evidence floors, and anti-bloat controls in future packets and correction rounds.
 - The repository now has the caller-owned, non-persisted M04E2R1 live `ReportLedger`, but still has no snapshot/history/retention read model, persisted `GameState` report authority, atomic reported-run coordinator, application shell, trusted offline adapter, concurrent-Reaping resolver, or player-facing gameplay UI.
 - Existing dry-run assets and scene work are preserved unless a scoped milestone explicitly replaces or integrates them.
@@ -173,7 +173,7 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 | M04E2A3 | Former cursor-idempotent live report ingestion | Implementation slice | Superseded | Not drafted | Not directly executable | — |
 | M04E2A4 | Former report reads, snapshot, bounded history, and final evidence | Implementation slice | Superseded | Not drafted | Not directly executable | — |
 | M04E2R1 | Normalized live report ledger and committed-run ingestion | Implementation slice | Approved | Approved v0.3 | Merged | Passed |
-| M04E2R2 | Snapshot, bounded history, retention, and detached reads | Implementation slice | Approved | Not drafted | Not started | — |
+| M04E2R2 | Snapshot, bounded history, retention, and detached reads | Implementation slice | Approved | Approved v0.3 | In progress | Partial |
 | M04E2P1 | GameState integration, schema-v4 migration, and persistence | Implementation slice | Approved | Not drafted | Not started | — |
 | M04E2B | Atomic simulation/report coordinator and final M04 harness | Implementation slice | Approved | Not drafted | Not started | — |
 
@@ -232,7 +232,7 @@ The current executable/planning sequence is:
 M04E2T1 -> M04E2T2 -> M04E2R1 -> M04E2R2 -> M04E2P1 -> M04E2B
 ```
 
-`DEC-0046` is Accepted and M04E2R1 is Merged/Passed through PR #34 at merge commit `bda72749cfc6f20bfa1fd8e42acefdb6e3a8f31d` after exact-head CI, review convergence, and Windows owner verification. Before P1 the report ledger remains explicitly caller-owned and non-persisted; no application, `GameSession`, service member, autoload, singleton, or hidden global may retain canonical mutable ledger state. P1 must introduce only cursor-aligned exposed/persisted `GameState`; B may hold lag only privately between simulation and ingestion, and begins and ends aligned. M04E2R2, M04E2P1, and M04E2B remain deferred.
+`DEC-0046` is Accepted and M04E2R1 is Merged/Passed through PR #34 at merge commit `bda72749cfc6f20bfa1fd8e42acefdb6e3a8f31d` after exact-head CI, review convergence, and Windows owner verification. M04E2R2 is in progress under its owner-approved v0.3 packet and draft PR. Before P1 the report ledger remains explicitly caller-owned and non-persisted; no application, `GameSession`, service member, autoload, singleton, or hidden global may retain canonical mutable ledger state. P1 must introduce only cursor-aligned exposed/persisted `GameState`; B may hold lag only privately between simulation and ingestion, and begins and ends aligned. M04E2P1 and M04E2B remain deferred.
 
 ### Historical prior dependency map (superseded by `DEC-0045`; non-executable)
 
@@ -312,7 +312,7 @@ M03 demonstrated that a technically coherent architecture can still become an un
 ### 8.3 Changes from the starting hypothesis
 
 - State/time, persistence, and content were correctly separated into M01–M03.
-- M04A through M04E2R1 are complete. Accepted `DEC-0040` split forecast from report work; accepted `DEC-0043` and `DEC-0044` established the T1/T2 provenance and finalized-fact prerequisites; accepted `DEC-0045` and `DEC-0046` replaced the former A2/A3/A4 route with the current R1/R2/P1/B route. The active M04 completion route now contains thirteen approved implementation slices; M04E2R2, M04E2P1, and M04E2B remain deferred.
+- M04A through M04E2R1 are complete. Accepted `DEC-0040` split forecast from report work; accepted `DEC-0043` and `DEC-0044` established the T1/T2 provenance and finalized-fact prerequisites; accepted `DEC-0045` and `DEC-0046` replaced the former A2/A3/A4 route with the current R1/R2/P1/B route. The active M04 completion route now contains thirteen approved implementation slices; M04E2R2 is in progress under its owner-approved v0.3 packet and draft PR, while M04E2P1 and M04E2B remain deferred.
 - Later first-session outcomes remain conceptually ordered but are decomposed only when their repository state is known.
 - Reports, forecasts, trusted time, and presentation remain incremental rather than becoming catch-all work.
 - M17 remains an acceptance epic and may not absorb unfinished major systems.
@@ -1508,11 +1508,11 @@ Add one non-authoritative forecast seam and one explicit-duration adapter owner 
 
 PR #17 and PR #18 are closed unmerged. PR #17 demonstrated that report state, migration, ingestion, reads, snapshots, retention, and verification were too broad for one branch. PR #18 demonstrated that an independently mutable candidate, typed result, and compatibility summary cannot be made safe through a growing post-hoc validator.
 
-Accepted `DEC-0043` replaces the implementation packaging in `DEC-0042` with a single-provenance simulation transaction prerequisite followed by finalized typed facts. Accepted `DEC-0045` then retired the former A2/A3/A4 slices after PR #23 and established the runtime-ledger-first R1/R2/P1/B route. `DEC-0046` is Accepted. M04E2R1 merged through PR #34 at `bda72749cfc6f20bfa1fd8e42acefdb6e3a8f31d` and passed exact-head CI, review convergence, Windows owner verification, and integration cleanup. R2/P1/B remain deferred.
+Accepted `DEC-0043` replaces the implementation packaging in `DEC-0042` with a single-provenance simulation transaction prerequisite followed by finalized typed facts. Accepted `DEC-0045` then retired the former A2/A3/A4 slices after PR #23 and established the runtime-ledger-first R1/R2/P1/B route. `DEC-0046` is Accepted. M04E2R1 merged through PR #34 at `bda72749cfc6f20bfa1fd8e42acefdb6e3a8f31d` and passed exact-head CI, review convergence, Windows owner verification, and integration cleanup. M04E2R2 is in progress under its owner-approved v0.3 packet and draft PR; P1/B remain deferred.
 
 #### Completion rule
 
-M04E2 is not complete. M04E2T1, M04E2T2, and M04E2R1 are Merged/Passed; M04E2R2, M04E2P1, and M04E2B remain deferred and not started. Completion still requires all six current slices to be Merged and Passed.
+M04E2 is not complete. M04E2T1, M04E2T2, and M04E2R1 are Merged/Passed; M04E2R2 is in progress under its owner-approved v0.3 packet and draft PR, while M04E2P1 and M04E2B remain deferred and not started. Completion still requires all six current slices to be Merged and Passed.
 
 ---
 
@@ -1569,7 +1569,7 @@ Refactor supplied-duration simulation so one internal transaction owns the priva
 
 #### Follow-on dependency
 
-- M04E2T2 and M04E2R1 completed through PR #22 and PR #34. M04E2R2, M04E2P1, and M04E2B remain deferred and require their own approved packets.
+- M04E2T2 and M04E2R1 completed through PR #22 and PR #34. M04E2R2 is in progress under its owner-approved v0.3 packet and draft PR; M04E2P1 and M04E2B remain deferred and require their own approved packets.
 
 ---
 
@@ -1653,7 +1653,7 @@ The final slice used 25 non-documentation/non-`.uid` files and 1,460 net additio
 
 #### Follow-on dependency
 
-- M04E2R1 completed through PR #34 and is Merged/Passed. M04E2R2 remains Approved / Not drafted / Not started; this closure record does not authorize its packet or implementation.
+- M04E2R1 completed through PR #34 and is Merged/Passed. M04E2R2 is now Approved / Approved v0.3 / In progress with Partial verification under its draft PR; M04E2P1 and M04E2B remain deferred.
 
 ---
 
@@ -1699,7 +1699,7 @@ Add one caller-owned, non-persisted normalized `ReportLedger` and a stateless in
 
 #### Follow-on dependency
 
-- M04E2R2 remains Approved / Not drafted / Not started. No R2 packet, implementation, or next-slice planning is authorized by this closure update.
+- M04E2R2 is now Approved / Approved v0.3 / In progress with Partial verification under its draft PR. M04E2P1 and M04E2B remain deferred.
 
 ---
 
