@@ -39,27 +39,55 @@ func test_validator_accepts_only_production_reachable_continuation_tuples() -> v
 	assert_true(ReportLedgerValidator.validate(_continuation_ledger(&"OVERDUE", 0, true)).ok, "Settlement boundary endpoint without following SETTLED work is valid")
 
 func test_validator_rejects_reused_mutable_report_nodes_across_complete_graph() -> void:
-	var shared_child := _two_continuation_ledger()
-	shared_child.threshold_continuations[1].channels[0] = shared_child.threshold_continuations[0].channels[0]
-	var rows := [
-		["continuation root", _reused_continuation_root()],
-		["continuation child", shared_child],
-		["record root", _reused_record_root()],
-		["slice root", _reused_slice_root()],
-		["slice channel child", _reused_slice_channel()],
-		["Settlement event root", _reused_settlement_event()],
-		["live-to-retained slice", _live_to_retained_slice_alias()]
-	]
+	var rows := []
+	var continuation_root := _two_continuation_ledger()
+	assert_true(ReportLedgerValidator.validate(continuation_root).ok, "continuation root baseline validates")
+	continuation_root.threshold_continuations[1] = continuation_root.threshold_continuations[0]
+	rows.append(["continuation root", continuation_root])
+
+	var continuation_channel := _two_continuation_ledger()
+	assert_true(ReportLedgerValidator.validate(continuation_channel).ok, "continuation channel baseline validates")
+	continuation_channel.threshold_continuations[1].channels[0] = continuation_channel.threshold_continuations[0].channels[0]
+	rows.append(["continuation channel", continuation_channel])
+
+	var record_root := _two_record_ledger()
+	assert_true(ReportLedgerValidator.validate(record_root).ok, "record root baseline validates")
+	record_root.retained_records[1] = record_root.retained_records[0]
+	rows.append(["record root", record_root])
+
+	var slice_root := _childless_slice_ledger()
+	assert_true(ReportLedgerValidator.validate(slice_root).ok, "slice root baseline validates")
+	slice_root.slices[1] = slice_root.slices[0]
+	rows.append(["slice root", slice_root])
+
+	var slice_channel := _two_channel_slice_ledger()
+	assert_true(ReportLedgerValidator.validate(slice_channel).ok, "slice channel baseline validates")
+	slice_channel.slices[1].channels[0] = slice_channel.slices[0].channels[0]
+	rows.append(["slice channel", slice_channel])
+
+	var settlement_event := _detail_ledger()
+	assert_true(ReportLedgerValidator.validate(settlement_event).ok, "Settlement event baseline validates")
+	settlement_event.settlement_events.append(settlement_event.settlement_events[0])
+	rows.append(["Settlement event", settlement_event])
+
+	var live_to_retained := _retained_live_childless_slice_ledger()
+	assert_true(ReportLedgerValidator.validate(live_to_retained).ok, "live-to-retained baseline validates")
+	live_to_retained.retained_records[0].slices[0] = live_to_retained.slices[0]
+	rows.append(["live-to-retained slice", live_to_retained])
+
 	for row in rows:
-		assert_false(ReportLedgerValidator.validate(row[1]).ok, "%s reuse rejects" % row[0])
-	assert_true(ReportLedgerValidator.validate(_two_continuation_ledger()).ok, "equivalent fully detached graph validates")
+		var failure := ReportLedgerValidator.validate(row[1])
+		assert_false(failure.ok, "%s reuse rejects" % row[0])
+		assert_eq(failure.code, ReportLedgerValidator.FAILURE, "%s reports the identity failure code" % row[0])
+		assert_eq(failure.details, "Ledger-owned mutable report node is reused.", "%s reports the identity failure details" % row[0])
+	assert_true(ReportLedgerValidator.validate(_retained_live_childless_slice_ledger()).ok, "fully detached graph validates")
 
 func _continuation_ledger(lifecycle: StringName, backlog: int, settled: bool) -> ReportLedger:
 	var ledger := ReportLedger.create_empty(0)
 	ledger.threshold_continuations.append(_continuation(&"T", lifecycle, backlog, settled))
 	return ledger
 
-func _continuation(id: StringName, lifecycle: StringName = &"OVERDUE", backlog: int = 1, settled: bool = false) -> ReportThresholdContinuation:
+func _continuation(id: StringName, lifecycle: StringName = &"OVERDUE", backlog: int = 1, settled: bool = false, channel_id: StringName = &"C") -> ReportThresholdContinuation:
 	var continuation := ReportThresholdContinuation.new()
 	continuation.threshold_id = id
 	continuation.latest_assignment_revision = 1
@@ -68,11 +96,12 @@ func _continuation(id: StringName, lifecycle: StringName = &"OVERDUE", backlog: 
 	continuation.lifecycle_state = lifecycle
 	continuation.remaining_backlog = backlog
 	continuation.has_settled = settled
-	var channel := ReportChannelContinuation.new()
-	channel.channel_id = &"C"
-	channel.output_item_id = &"SOUL"
-	channel.rate_period_msec = 1000
-	continuation.channels.append(channel)
+	if not str(channel_id).is_empty():
+		var channel := ReportChannelContinuation.new()
+		channel.channel_id = channel_id
+		channel.output_item_id = &"SOUL"
+		channel.rate_period_msec = 1000
+		continuation.channels.append(channel)
 	return continuation
 
 func _two_continuation_ledger() -> ReportLedger:
@@ -80,46 +109,65 @@ func _two_continuation_ledger() -> ReportLedger:
 	ledger.threshold_continuations = [_continuation(&"A"), _continuation(&"B")]
 	return ledger
 
-func _reused_continuation_root() -> ReportLedger:
+func _two_record_ledger() -> ReportLedger:
 	var ledger := ReportLedger.create_empty(0)
-	var continuation := _continuation(&"A")
-	ledger.threshold_continuations = [continuation, continuation]
-	return ledger
-
-func _reused_record_root() -> ReportLedger:
-	var ledger := ReportLedger.create_empty(0)
-	var record := _record(1, 0, 10)
-	ledger.retained_records = [record, record]
+	ledger.retained_records = [_record(1, 0, 10), _record(2, 10, 20)]
 	ledger.next_record_sequence = 3
-	ledger.window_start_simulation_msec = 10
-	ledger.ingested_through_simulation_msec = 10
+	ledger.window_start_simulation_msec = 20
+	ledger.ingested_through_simulation_msec = 20
 	return ledger
 
-func _reused_slice_root() -> ReportLedger:
-	var ledger := _detail_ledger()
-	ledger.slices.append(ledger.slices[0])
+func _childless_slice_ledger() -> ReportLedger:
+	var ledger := ReportLedger.create_empty(0)
 	ledger.ingested_through_simulation_msec = 20
 	ledger.foreground_elapsed_msec = 20
+	ledger.slices = [_slice(&"A", 0, 10), _slice(&"B", 10, 20)]
+	ledger.threshold_continuations = [_continuation(&"A", &"OVERDUE", 1, false, &""), _continuation(&"B", &"OVERDUE", 1, false, &"")]
 	return ledger
 
-func _reused_slice_channel() -> ReportLedger:
-	var ledger := _detail_ledger()
-	ledger.slices[0].channels.append(ledger.slices[0].channels[0])
+func _two_channel_slice_ledger() -> ReportLedger:
+	var ledger := ReportLedger.create_empty(0)
+	ledger.ingested_through_simulation_msec = 20
+	ledger.foreground_elapsed_msec = 20
+	ledger.slices = [_slice(&"A", 0, 10, &"CA"), _slice(&"B", 10, 20, &"CB")]
+	ledger.threshold_continuations = [_continuation(&"A", &"OVERDUE", 1, false, &"CA"), _continuation(&"B", &"OVERDUE", 1, false, &"CB")]
 	return ledger
 
-func _reused_settlement_event() -> ReportLedger:
-	var ledger := _detail_ledger()
-	ledger.settlement_events.append(ledger.settlement_events[0])
-	return ledger
-
-func _live_to_retained_slice_alias() -> ReportLedger:
-	var ledger := _detail_ledger()
+func _retained_live_childless_slice_ledger() -> ReportLedger:
+	var ledger := ReportLedger.create_empty(0)
 	var record := _record(1, 0, 10)
-	record.slices.append(ledger.slices[0])
-	record.settlement_events.append(ledger.settlement_events[0].deep_clone())
-	ledger.retained_records.append(record)
+	record.slices.append(_slice(&"T", 0, 10))
+	ledger.retained_records = [record]
 	ledger.next_record_sequence = 2
+	ledger.window_start_simulation_msec = 10
+	ledger.ingested_through_simulation_msec = 20
+	ledger.foreground_elapsed_msec = 10
+	ledger.slices = [_slice(&"T", 10, 20)]
+	ledger.threshold_continuations = [_continuation(&"T", &"OVERDUE", 1, false, &"")]
 	return ledger
+
+func _slice(threshold_id: StringName, start: int, finish: int, channel_id: StringName = &"") -> ReportLedgerSlice:
+	var slice := ReportLedgerSlice.new()
+	slice.run_mode = SimulationRunService.MODE_FOREGROUND_SUPPLIED
+	slice.content_revision = "r"
+	slice.threshold_id = threshold_id
+	slice.assignment_revision = 1
+	slice.form_id = &"F"
+	slice.writ_id = &"W"
+	slice.lifecycle_state = &"OVERDUE"
+	slice.start_simulation_msec = start
+	slice.end_simulation_msec = finish
+	slice.remaining_backlog_before = 1
+	slice.remaining_backlog_after = 1
+	if not str(channel_id).is_empty():
+		var channel := ReportLedgerChannel.new()
+		channel.channel_id = channel_id
+		channel.output_item_id = &"SOUL"
+		channel.start_simulation_msec = start
+		channel.end_simulation_msec = finish
+		channel.rate_period_msec = 1000
+		slice.channels.append(channel)
+	return slice
 
 func _detail_ledger() -> ReportLedger:
 	var ledger := ReportLedger.create_empty(0)
