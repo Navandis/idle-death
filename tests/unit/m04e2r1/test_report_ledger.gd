@@ -114,6 +114,29 @@ func test_channel_interval_may_be_strictly_contained_in_owning_slice() -> void:
 	ledger.slices[0].channels[0].end_simulation_msec = 8
 	assert_true(ReportLedgerValidator.validate(ledger).ok, "channel [2,8) is contained in slice [0,10)")
 
+func test_r2_root_fields_clone_and_equality_are_detached() -> void:
+	var ledger := _canonical()
+	ledger.next_record_sequence = 2
+	var record := ReportWindowRecord.new()
+	record.record_sequence = 1
+	record.window_end_simulation_msec = 10
+	record.foreground_elapsed_msec = 10
+	ledger.retained_records.append(record)
+	var continuation := ReportThresholdContinuation.new()
+	continuation.threshold_id = &"THRESHOLD_A"
+	continuation.latest_assignment_revision = 1
+	continuation.form_id = &"FORM_A"
+	continuation.writ_id = &"WRIT_A"
+	continuation.lifecycle_state = &"OVERDUE"
+	continuation.remaining_backlog = 0
+	continuation.has_settled = true
+	ledger.threshold_continuations.append(continuation)
+	var copy := ledger.deep_clone()
+	assert_true(copy.value_equals(ledger), "R2 root fields participate in equality")
+	copy.retained_records[0].record_sequence = 2
+	assert_false(copy.value_equals(ledger), "record sequence differs")
+	assert_eq(ledger.retained_records[0].record_sequence, 1, "record is detached")
+
 func _eq(id: String, path: String, mutate: Callable) -> Dictionary:
 	return {"id": id, "path": path, "mutate": mutate}
 

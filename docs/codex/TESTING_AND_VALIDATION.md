@@ -683,11 +683,11 @@ Current R1 and existing forecast evidence:
 - forecast hides unknown channels appropriately;
 - actual offline resolution matches the forecast under unchanged state and content.
 
-Deferred R2 evidence (non-executable until a later owner-approved packet):
+Current R2 evidence under the owner-approved packet:
 
 - snapshots and detached reads;
 - report history and retention;
-- report-open or report-selection lifecycle;
+- report-open or report-selection lifecycle remains deferred;
 - acknowledgement, archive, and clear behavior.
 
 Deferred P1 evidence (non-executable until a later owner-approved packet):

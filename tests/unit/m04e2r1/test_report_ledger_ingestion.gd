@@ -150,6 +150,15 @@ func test_transactionality_overflow_and_no_op_input_preservation() -> void:
 func test_public_source_validation_precedence_for_unreachable_overflows() -> void:
 	_assert_source_validation_precedence("I-OVF-01", _invalid_root_source(FixedPoint.INT64_MAX, FixedPoint.INT64_MAX, 1, 1), "Mode duration overflow.", "source duration overflow")
 	_assert_source_validation_precedence("I-OVF-02", _invalid_root_source(0, 0, 0, FixedPoint.INT64_MAX), "Next event sequence is invalid", "public source-validation precedence is approved where the checked increment cannot be reached from a canonical valid source.")
+
+func test_r2_ingestion_keeps_compact_continuation_after_live_merge() -> void:
+	var source := _apply(ReportLedger.create_empty(0), _active(0, 10, [_segment(0, 10, 10, 9)]))
+	assert_eq(source.threshold_continuations.size(), 1, "first accepted Threshold creates continuation")
+	var result := ReportLedgerIngestor.ingest_committed_run(source, _wrapper(_active(10, 20, [_segment(10, 20, 9, 8)])))
+	assert_eq(result.outcome, ReportLedgerIngestResult.APPLIED, "continuing input applies")
+	var continuation := result.candidate_ledger.threshold_continuations[0]
+	assert_eq(continuation.remaining_backlog, 8, "continuation stores latest backlog")
+	assert_eq(continuation.channels[0].progress_subunits, 0, "continuation stores latest channel endpoint")
 func _cont(id: String, scenario: Dictionary, expected: StringName) -> Dictionary:
 	return {"id": id, "scenario": scenario, "expected": expected}
 func _scenario(source: ReportLedger, inner: SimulationResult, probe: Callable, mode: StringName = SimulationRunService.MODE_FOREGROUND_SUPPLIED, expected_ledger: Dictionary = {}) -> Dictionary:

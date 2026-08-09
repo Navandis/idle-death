@@ -84,6 +84,7 @@ static func _append_segment(candidate: ReportLedger, segment: SimulationSegmentR
 		if not merge_result.ok: return merge_result
 	else:
 		candidate.slices.append(next)
+	_update_continuation(candidate, next)
 	return {"ok": true}
 
 static func _slice_from(segment: SimulationSegmentResult, mode: StringName, content: String) -> ReportLedgerSlice:
@@ -121,23 +122,70 @@ static func _slice_from(segment: SimulationSegmentResult, mode: StringName, cont
 	return slice
 
 static func _check_continuity(candidate: ReportLedger, next: ReportLedgerSlice) -> Dictionary:
+	var prior := _continuation(candidate, next.threshold_id)
+	if prior == null: return _legacy_detail_continuity(candidate, next)
+	if next.assignment_revision < prior.latest_assignment_revision:
+		return {"ok": false, "code": ERR_IDENTITY, "details": "Assignment revision regressed."}
+	if next.assignment_revision == prior.latest_assignment_revision and (next.form_id != prior.form_id or next.writ_id != prior.writ_id or next.ordered_retinue_ids != prior.ordered_retinue_ids):
+		return {"ok": false, "code": ERR_IDENTITY, "details": "Historical component identity changed."}
+	if prior.remaining_backlog != next.remaining_backlog_before or (prior.lifecycle_state == &"SETTLED" and next.lifecycle_state == &"OVERDUE"):
+		return {"ok": false, "code": ERR_SLICE, "details": "Threshold backlog or lifecycle is discontinuous."}
+	for prior_channel in prior.channels:
+		var current := _channel(next, prior_channel.channel_id)
+		if current == null: return {"ok": false, "code": ERR_CHANNEL, "details": "A previously seen channel is missing."}
+		if prior_channel.output_item_id != current.output_item_id or prior_channel.rate_period_msec != current.rate_period_msec or prior_channel.progress_subunits != current.progress_subunits_before or prior_channel.rate_carry_units != current.rate_carry_units_before or prior_channel.total_banked_units != current.total_banked_units_before:
+			return {"ok": false, "code": ERR_CHANNEL, "details": "Channel endpoints are discontinuous."}
+	return {"ok": true}
+
+static func _legacy_detail_continuity(candidate: ReportLedger, next: ReportLedgerSlice) -> Dictionary:
+	# Direct R1 fixtures may predate R2 continuation entries. Preserve the R1
+	# public rejection precedence for those validated caller-created ledgers;
+	# candidates produced by this ingestor always gain compact continuation.
 	var latest: ReportLedgerSlice = null
-	var identity_key := "%s|%d" % [next.threshold_id, next.assignment_revision]
-	var identity_value := "%s|%s|%s" % [next.form_id, next.writ_id, next.ordered_retinue_ids]
 	var known_channels := {}
 	for prior in candidate.slices:
-		if prior.threshold_id == next.threshold_id:
-			latest = prior
-			for channel in prior.channels: known_channels[channel.channel_id] = channel
-		if "%s|%d" % [prior.threshold_id, prior.assignment_revision] == identity_key and "%s|%s|%s" % [prior.form_id, prior.writ_id, prior.ordered_retinue_ids] != identity_value: return {"ok": false, "code": ERR_IDENTITY, "details": "Historical component identity changed."}
+		if prior.threshold_id != next.threshold_id: continue
+		latest = prior
+		for channel in prior.channels: known_channels[channel.channel_id] = channel
+		if prior.assignment_revision == next.assignment_revision and (prior.form_id != next.form_id or prior.writ_id != next.writ_id or prior.ordered_retinue_ids != next.ordered_retinue_ids):
+			return {"ok": false, "code": ERR_IDENTITY, "details": "Historical component identity changed."}
 	if latest == null: return {"ok": true}
-	if latest.remaining_backlog_after != next.remaining_backlog_before or (latest.lifecycle_state == &"SETTLED" and next.lifecycle_state == &"OVERDUE"): return {"ok": false, "code": ERR_SLICE, "details": "Threshold backlog or lifecycle is discontinuous."}
+	if latest.remaining_backlog_after != next.remaining_backlog_before or (latest.lifecycle_state == &"SETTLED" and next.lifecycle_state == &"OVERDUE"):
+		return {"ok": false, "code": ERR_SLICE, "details": "Threshold backlog or lifecycle is discontinuous."}
 	for prior_id in known_channels:
 		var current := _channel(next, StringName(prior_id))
 		if current == null: return {"ok": false, "code": ERR_CHANNEL, "details": "A previously seen channel is missing."}
-		var prior: ReportLedgerChannel = known_channels[prior_id]
-		if prior.output_item_id != current.output_item_id or prior.rate_period_msec != current.rate_period_msec or prior.progress_subunits_after != current.progress_subunits_before or prior.rate_carry_units_after != current.rate_carry_units_before or prior.total_banked_units_after != current.total_banked_units_before: return {"ok": false, "code": ERR_CHANNEL, "details": "Channel endpoints are discontinuous."}
+		var previous: ReportLedgerChannel = known_channels[prior_id]
+		if previous.output_item_id != current.output_item_id or previous.rate_period_msec != current.rate_period_msec or previous.progress_subunits_after != current.progress_subunits_before or previous.rate_carry_units_after != current.rate_carry_units_before or previous.total_banked_units_after != current.total_banked_units_before:
+			return {"ok": false, "code": ERR_CHANNEL, "details": "Channel endpoints are discontinuous."}
 	return {"ok": true}
+
+static func _update_continuation(candidate: ReportLedger, slice: ReportLedgerSlice) -> void:
+	var continuation := _continuation(candidate, slice.threshold_id)
+	if continuation == null:
+		continuation = ReportThresholdContinuation.new()
+		continuation.threshold_id = slice.threshold_id
+		candidate.threshold_continuations.append(continuation)
+		candidate.threshold_continuations.sort_custom(func(left, right): return str(left.threshold_id) < str(right.threshold_id))
+	continuation.latest_assignment_revision = slice.assignment_revision
+	continuation.form_id = slice.form_id
+	continuation.writ_id = slice.writ_id
+	continuation.ordered_retinue_ids.assign(slice.ordered_retinue_ids)
+	continuation.lifecycle_state = slice.lifecycle_state
+	continuation.remaining_backlog = slice.remaining_backlog_after
+	if slice.lifecycle_state == &"SETTLED": continuation.has_settled = true
+	for source_channel in slice.channels:
+		var target := _continuation_channel(continuation, source_channel.channel_id)
+		if target == null:
+			target = ReportChannelContinuation.new()
+			target.channel_id = source_channel.channel_id
+			continuation.channels.append(target)
+		target.output_item_id = source_channel.output_item_id
+		target.rate_period_msec = source_channel.rate_period_msec
+		target.progress_subunits = source_channel.progress_subunits_after
+		target.rate_carry_units = source_channel.rate_carry_units_after
+		target.total_banked_units = source_channel.total_banked_units_after
+	continuation.channels.sort_custom(func(left, right): return str(left.channel_id) < str(right.channel_id))
 
 static func _can_merge(left: ReportLedgerSlice, right: ReportLedgerSlice) -> bool:
 	return ReportLedgerValidator._merge_compatible(left, right)
@@ -161,8 +209,8 @@ static func _merge(left: ReportLedgerSlice, right: ReportLedgerSlice) -> Diction
 static func _append_settlements(candidate: ReportLedger, inner: SimulationResult) -> Dictionary:
 	for event in inner.events:
 		if not (event is SimulationThresholdSettledEvent): continue
-		for existing in candidate.settlement_events:
-			if existing.threshold_id == event.subject_id: return {"ok": false, "code": ERR_SLICE, "details": "Threshold has already settled in this ledger window."}
+		var continuation := _continuation(candidate, event.subject_id)
+		if continuation == null or continuation.has_settled: return {"ok": false, "code": ERR_SLICE, "details": "Threshold has already settled."}
 		var next_sequence := _add(candidate.next_event_sequence, 1)
 		if not next_sequence.ok: return {"ok": false, "code": ERR_OVERFLOW, "details": "Settlement event sequence overflow."}
 		var owner: SimulationSegmentResult = inner.segments[event.segment_index]
@@ -175,11 +223,22 @@ static func _append_settlements(candidate: ReportLedger, inner: SimulationResult
 		normalized.persistent_returns_total = event.persistent_returns_total
 		candidate.settlement_events.append(normalized)
 		candidate.next_event_sequence = next_sequence.value
+		continuation.has_settled = true
 	return {"ok": true}
 
 static func _channel(slice: ReportLedgerSlice, channel_id: StringName) -> ReportLedgerChannel:
 	for value in slice.channels:
 		if value.channel_id == channel_id: return value
+	return null
+
+static func _continuation(ledger: ReportLedger, threshold_id: StringName) -> ReportThresholdContinuation:
+	for continuation in ledger.threshold_continuations:
+		if continuation.threshold_id == threshold_id: return continuation
+	return null
+
+static func _continuation_channel(continuation: ReportThresholdContinuation, channel_id: StringName) -> ReportChannelContinuation:
+	for channel in continuation.channels:
+		if channel.channel_id == channel_id: return channel
 	return null
 
 static func _add(left: int, right: int) -> Dictionary:

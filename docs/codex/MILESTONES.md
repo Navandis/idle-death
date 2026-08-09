@@ -177,6 +177,8 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 | M04E2P1 | GameState integration, schema-v4 migration, and persistence | Implementation slice | Approved | Not drafted | Not started | — |
 | M04E2B | Atomic simulation/report coordinator and final M04 harness | Implementation slice | Approved | Not drafted | Not started | — |
 
+M04E2R2 is in progress under its owner-approved v0.3 packet. Its draft-PR verification status is Partial; P1 and B remain deferred.
+
 ### Historical prior status map (superseded by `DEC-0045`; non-executable)
 
 All rows and detailed milestone definitions below that describe the former M04E2A2/A3/A4 route are retained as historical evidence. Their predecessor status/approval labels do not authorize execution; the current M04E2 status table and dependency sequence above are authoritative.

@@ -860,7 +860,7 @@ Simulation writes gains directly to authoritative inventory, counters, Mastery, 
 
 R1 creates no `GameState` accumulator or bounded report history. R1 performs no report archive, clear, retention, persistence, or presentation lifecycle, and no current accumulator state owns report facts.
 
-R2 owns the future snapshot, detached-read, history, and retention transition on the explicit ledger. P1 owns later `GameState` placement and schema-version-4 persistence. Their exact lifecycle APIs require their own owner-approved packets. B alone owns the later atomic simulation/report coordination. None of R2, P1, or B is implemented or authorized by this correction.
+R2 owns the current snapshot, detached-read, history, and retention transition on the explicit ledger through its owner-approved packet. P1 owns later `GameState` placement and schema-version-4 persistence. B alone owns the later atomic simulation/report coordination. P1 and B remain deferred.
 
 The former `ReportAccumulatorState` to `ReportRecord` archive/clear model is historical, non-executable evidence superseded by `DEC-0045` and `DEC-0046`; it does not describe current R1 behavior.
 

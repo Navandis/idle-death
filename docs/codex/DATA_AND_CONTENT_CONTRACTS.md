@@ -10,6 +10,8 @@
 
 ### Current M04E2R1 typed-fact contract
 
+M04E2R1 is Merged/Passed. The owner-approved M04E2R2 packet extends this same non-persisted caller-owned ledger with rollover, bounded records, compact continuation, and detached reads; it introduces no `GameState` ownership or serialized meaning. P1 and B remain deferred.
+
 `ReportLedger` is a non-persisted caller-owned runtime value. Its stored facts are root cursor/mode coverage, maximal attributed slices, full component identity, backlog/core endpoints and deltas, channel output/period/progress/carry/banked endpoints, and normalized Settlement events. It consumes only validated successful committed `SimulationRunResult` wrappers. Historical `ReportAccumulatorState`, report-history, `ReportService`, snapshot, and schema-v4 examples elsewhere in this document are superseded/non-executable until their R2/P1 boundaries are approved.
 
 `DEC-0046` is Accepted and the M04E2R1 Slice Packet v0.3 is owner-approved. Implementation is in progress through PR #34 and verification is Partial: R1 is not merged or fully passed, and exact-head Windows owner verification remains pending. M04E2R2, M04E2P1, and M04E2B remain deferred.
