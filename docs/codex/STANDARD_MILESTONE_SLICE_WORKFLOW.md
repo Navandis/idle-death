@@ -2,7 +2,7 @@
 
 **Status:** Owner-approved durable workflow specification
 **Effective date:** 2 August 2026
-**Revision:** 1.2 — architect handover and actor-prompt routing codified
+**Revision:** 1.3 — quantitative scope-budget routing codified
 **Last updated:** 9 August 2026
 **Document role:** Standard actor, artifact, context, information-transfer, review, verification, integration, and handover model for one Death Idle implementation slice
 **Applies to:** Game implementation milestones, architecture-driven documentation slices, review corrections, owner verification, and future workflow automation
@@ -11,6 +11,7 @@
 - [Governance findings and actions](DEVELOPMENT_GOVERNANCE_FINDINGS_AND_ACTIONS.md);
 - [Architect handover standard](ARCHITECT_HANDOVER_STANDARD.md);
 - [Actor prompt standard](ACTOR_PROMPT_STANDARD.md);
+- [Quantitative scope budgets and anti-bloat guardrails](QUANTITATIVE_SCOPE_BUDGETS_AND_ANTI_BLOAT_GUARDRAILS.md);
 - current repository decisions, milestones, architecture, testing, and operational workflow documents;
 - the active approved slice packet.
 
@@ -100,6 +101,12 @@ The owner retains final authority over:
 - force or history-rewriting operations;
 - exceptional recovery;
 - spending.
+
+### 2.8 Quantitative budgets are reassessment boundaries
+
+`QUANTITATIVE_SCOPE_BUDGETS_AND_ANTI_BLOAT_GUARDRAILS.md` is the single semantic owner of concept budgets, categorized review-surface measurement, reassessment thresholds, exception records, and anti-gaming rules. Hard authority boundaries and acceptance/evidence floors outrank physical size.
+
+Crossing an active concept or quantitative threshold requires the policy's stop, measurement, and approval route before publication. It is not an instruction to code-golf, hide logic, weaken evidence, or introduce speculative abstraction merely to fit a number.
 
 ---
 
@@ -468,6 +475,7 @@ No agent or automation infers merge permission from words such as “finish,” 
 | Setup operational bootstrap | Architect | Mutable setup state and next setup step | Replaced by later setup bootstrap |
 | Planning architect runtime handover | Outgoing planning architect | Successor bootstrap, net session delta, source-labelled mutable state, and exact cutoff | Replaced by later handover |
 | Handover and actor-prompt standards | Architect + owner approval | Continuity, prompt proportionality, and explicit session routing | Durable |
+| Quantitative scope-budget policy | Architect + owner approval | Concept budgets, categorized measurement, threshold exceptions, and anti-bloat rules | Durable |
 | G0 governance/workflow records | Architect + owner approval | Continuity and anti-drift | Durable |
 
 ---
@@ -527,6 +535,7 @@ The owner should not manually paste implementation details that are already pres
 - define stored versus derived values;
 - define legal mutation and read owners;
 - identify risk dimensions and integration seams;
+- declare hard authority boundaries, a concept budget, categorized forecasts, reassessment thresholds, and an acceptance/evidence floor under `QUANTITATIVE_SCOPE_BUDGETS_AND_ANTI_BLOAT_GUARDRAILS.md`;
 - choose the smallest coherent sequence;
 - draft decision and milestone changes where needed.
 
@@ -544,7 +553,8 @@ The owner should not manually paste implementation details that are already pres
 - inspect context breadth;
 - challenge hidden future behavior;
 - verify acceptance can disprove defects;
-- compare forecast against review-surface guardrails;
+- challenge the concept budget, categorized forecasts, review-zone status, active reassessment thresholds, and any proposed exception under `QUANTITATIVE_SCOPE_BUDGETS_AND_ANTI_BLOAT_GUARDRAILS.md`;
+- require an explicit coherence and category-concentration explanation when the forecast enters a review zone;
 - recommend approve, revise, split, or explicit exception.
 
 **Output:** Scope-review result
@@ -599,10 +609,12 @@ The pre-edit report should normally be concise. It is not a second planning memo
 - run focused checks while iterating;
 - run specified broader regression before handoff;
 - build the owner-verification package when required;
+- measure cumulative changed paths and categorized gross additions, deletions, and net growth against the approved packet;
+- preserve the acceptance/evidence floor rather than compressing proof to fit a number;
 - run `git diff --check` and scope audit.
 
 **Output:** Complete local change and evidence
-**Stop when:** Scope grows materially, another authority is needed, or a required oracle cannot be made trustworthy.
+**Stop when:** Scope grows materially, another authority is needed, a required oracle cannot be made trustworthy, or an active concept or quantitative threshold would be crossed before publication without the policy's exception route.
 
 ---
 
@@ -661,6 +673,8 @@ The pre-edit report should normally be concise. It is not a second planning memo
 - validate each finding against current authority and code;
 - classify true/false/duplicate/prompt defect/architecture signal;
 - identify smallest correction and regression;
+- when the correction changes review surface, record both the correction delta and cumulative PR totals by governed category;
+- determine whether a concept or threshold crossing remains a local retained-triage matter or requires fresh scope assessment under `QUANTITATIVE_SCOPE_BUDGETS_AND_ANTI_BLOAT_GUARDRAILS.md`;
 - draft false-positive dispositions;
 - decide whether owner input is needed.
 
@@ -676,19 +690,22 @@ The pre-edit report should normally be concise. It is not a second planning memo
 - remain on same branch and PR;
 - apply exact corrections;
 - add named regressions;
+- report the correction delta and cumulative PR measurements by governed category;
+- preserve the approved concept budget and acceptance/evidence floor;
+- stop before publication and route the exact exception report if a concept or quantitative threshold would be crossed;
 - rerun focused and broader checks;
 - publish new head;
 - allow CI to rerun;
 - request bounded rereview.
 
-**After two substantial rounds:** Architect performs a convergence assessment.
+**After two substantial rounds:** The retained triage architect performs the convergence assessment required by this workflow. Quantitative growth is one input under `QUANTITATIVE_SCOPE_BUDGETS_AND_ANTI_BLOAT_GUARDRAILS.md`, not the conclusion.
 
 **Continue when:**
 
 - defects are local;
 - root cause is understood;
 - regression is reliable;
-- scope remains stable;
+- scope, concepts, paths, and quantitative authority remain stable or explicitly approved;
 - next correction plausibly converges.
 
 **Stop/split/redesign when:**
@@ -697,6 +714,7 @@ The pre-edit report should normally be concise. It is not a second planning memo
 - oracle remains unreliable;
 - each correction exposes a new independent defect class;
 - another owner/schema/seam is required;
+- thresholds keep expanding without a stable endpoint;
 - scope expands without a credible endpoint.
 
 ---
@@ -880,11 +898,18 @@ Use stable IDs only where traceability benefits from them.
 
 ### 8.9 Scope and convergence guards
 
-- forecasted files/lines;
-- risk dimensions;
-- seams;
-- mandatory stop conditions;
-- conditions requiring owner decision.
+Reference `QUANTITATIVE_SCOPE_BUDGETS_AND_ANTI_BLOAT_GUARDRAILS.md` and record:
+
+- hard authority boundaries;
+- the concept budget, including named additions, replacements, and zero allowances;
+- categorized forecast additions, deletions, expected paths, and governed aggregate;
+- active review-zone and mandatory-reassessment thresholds;
+- risk dimensions and integration seams;
+- the acceptance/evidence floor;
+- any exact delegated variance or approved exception;
+- mandatory stop conditions and owner-decision triggers.
+
+A material correction packet also records the forecast correction delta and forecast final cumulative PR totals. Do not restate the policy's default tables when a precise reference and packet-specific values are sufficient.
 
 ### 8.10 Delivery contract
 
@@ -1117,6 +1142,12 @@ Stop for a deliberate update strategy. Do not force-push automatically.
 
 Use the documented recovery path. Do not self-rewrite or improvise.
 
+### Concept-budget or quantitative-threshold crossing
+
+Stop before publication and follow `QUANTITATIVE_SCOPE_BUDGETS_AND_ANTI_BLOAT_GUARDRAILS.md`. Retain the complete exception report in the packet, triage record, or PR record tied to the exact ref. Present the owner with the exact variance, affected concepts and paths, hard-boundary status, recommendation, and reference to that durable record.
+
+A numerical exception cannot authorize another owner, schema, public contract, dependency, trust boundary, source of semantic truth, or other hard authority crossing. Revise the packet or architecture first.
+
 ### Non-convergence
 
 Record the evidence and redesign the ownership/model rather than adding another validator layer.
@@ -1170,6 +1201,8 @@ A slice is complete only when:
 - post-merge CI passed;
 - local `main` synchronized;
 - exact merged feature branch cleaned;
+- final changed paths and categorized additions, deletions, and net growth were recorded;
+- final concept additions, removals, or replacements and any approved exception or delegated variance were recorded;
 - milestone/decision status was updated when needed;
 - durable lessons were captured.
 

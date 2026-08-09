@@ -4,7 +4,7 @@
 **Repository path:** `docs/codex/PROMPT_TEMPLATE.md`
 **Compatibility note:** The filename is retained as a legacy compatibility path. Its active contents define a slice packet, not the historical monolithic prompt model.
 **Last updated:** 2026-08-09
-**Companions:** `docs/codex/ACTOR_PROMPT_STANDARD.md`, `docs/codex/STANDARD_MILESTONE_SLICE_WORKFLOW.md`, and `docs/codex/CODEX_DESKTOP_WORKFLOW.md`
+**Companions:** `docs/codex/ACTOR_PROMPT_STANDARD.md`, `docs/codex/STANDARD_MILESTONE_SLICE_WORKFLOW.md`, `docs/codex/QUANTITATIVE_SCOPE_BUDGETS_AND_ANTI_BLOAT_GUARDRAILS.md`, and `docs/codex/CODEX_DESKTOP_WORKFLOW.md`
 
 ## 1. Use and provenance
 
@@ -68,8 +68,9 @@ This table is the sole task manifest. Use exact headings, requirement labels, de
 |---:|---|---|---|---|
 | 1 | Latest owner instruction | Approval/correction of this packet | Current authority | Inspect only |
 | 2 | `AGENTS.md` | Full file | Universal router | Inspect only |
-| 3 | This packet | Full file | Executable task authority | Add/modify unchanged after approval |
-| 4 | [[PATH]] | [[EXACT HEADING/ID]] | [[REASON]] | [[STATUS]] |
+| 3 | `docs/codex/QUANTITATIVE_SCOPE_BUDGETS_AND_ANTI_BLOAT_GUARDRAILS.md` | Exact sections governing this packet, normally §§4–11 | Concept budgets, categorized measurement, thresholds, evidence floor, and exception route | Inspect only |
+| 4 | This packet | Full file | Executable task authority | Add/modify unchanged after approval |
+| 5 | [[PATH]] | [[EXACT HEADING/ID]] | [[REASON]] | [[STATUS]] |
 
 Also list:
 
@@ -129,28 +130,60 @@ The oracle must be able to disprove defects. Cover the applicable groups:
 |---|---|---|---|
 | AC-01 | [[EXACT CONDITION]] | [[COMMAND/ARTIFACT]] | [[IMPLEMENTER/CI/OWNER]] |
 
-Do not use size, file count, marker count, or green CI as a substitute for semantic completeness. Map every required packet field and protected invariant to a positive pass/fail check.
+Do not use size, file count, marker count, or green CI as a substitute for semantic completeness. Map every required packet field and protected invariant to a positive pass/fail check. The acceptance and evidence floor in `QUANTITATIVE_SCOPE_BUDGETS_AND_ANTI_BLOAT_GUARDRAILS.md` may not be weakened to fit a concept or physical-size budget.
 
 ## 9. Scope, convergence, and escalation guards
 
-Record informed estimates and exact ceilings:
+Use `docs/codex/QUANTITATIVE_SCOPE_BUDGETS_AND_ANTI_BLOAT_GUARDRAILS.md` as the semantic authority. Do not reproduce its project-wide defaults when a precise reference and packet-specific values are sufficient.
+
+### 9.1 Hard authority and concept declaration
 
 ```text
+Hard authority boundaries:
 Primary owners:
-Authoritative aggregates:
+Authoritative aggregate families:
+Public APIs/result grammars:
 Schema transitions:
-Risk dimensions:
-Cross-layer seams:
-Expected changed paths/files/lines:
-Authored-data volume:
-Owner-verification surface:
+Dependencies/platform bridges:
+Production abstraction layers:
+Test-only helper concepts:
+Verification-tool concepts:
 ```
 
-State mandatory stop conditions. Stop before adding another owner, risk dimension, seam, schema transition, unapproved path, or material scope beyond the assessment. After two substantial correction rounds, require explicit convergence assessment. Round count alone is never dispositive; continue only when remaining findings are local, understood, testable, and within the design.
+Name every approved concept addition or replacement. A zero allowance is enforceable.
+
+### 9.2 Categorized forecast and thresholds
+
+| Category | Forecast additions | Forecast deletions | Expected paths | Reassessment threshold | Concepts added/replaced |
+|---|---:|---:|---:|---:|---|
+| Production runtime | [[RANGE]] | [[RANGE]] | [[COUNT]] | [[VALUE]] | [[LIST]] |
+| Tests/evidence | [[RANGE]] | [[RANGE]] | [[COUNT]] | [[VALUE]] | [[LIST]] |
+| Verification tooling | [[RANGE]] | [[RANGE]] | [[COUNT]] | [[VALUE]] | [[LIST]] |
+| Documentation | [[RANGE]] | [[RANGE]] | [[COUNT]] | [[VALUE]] | [[LIST]] |
+| Authored/generated data | [[RANGE]] | [[RANGE]] | [[COUNT]] | [[VALUE]] | [[LIST]] |
+| **Aggregate governed total** | [[RANGE]] | [[RANGE]] | [[COUNT]] | [[VALUE]] | — |
+
+State:
+
+```text
+Review-zone status:
+Mandatory-reassessment status:
+Exact delegated variance, if any:
+Approved exception, if any:
+Acceptance/evidence floor:
+```
+
+A small deterministic or documentation-only task may use the compact form allowed by the policy, but the complete path set, governed totals, concepts, hard boundaries, and threshold status must remain visible.
+
+### 9.3 Stop, exception, and convergence route
+
+Stop before adding another owner, aggregate, schema, public contract, dependency, risk dimension, seam, unapproved path, or behavior outside the packet. Stop before publication when the approved concept budget or quantitative threshold would be crossed. Preserve local work, retain the complete exception report in a durable packet/triage/PR record, and present the owner with only the exact variance, affected concepts and paths, hard-boundary status, recommendation, and reference to that record.
+
+For a material correction, record both the correction delta and cumulative PR totals by governed category. After two substantial correction rounds, require the retained PR-lifetime convergence assessment defined by `STANDARD_MILESTONE_SLICE_WORKFLOW.md`. Round count and physical size are evidence, not automatic approval or rejection.
 
 State the independent scope-assessor and PR-lifetime triage boundaries. One slice keeps one branch and one PR. Material correction rounds normally use a fresh bounded fixer context on that same branch/PR; a trivial mechanical correction may remain in the implementation task only when explicitly justified and directly provable.
 
-Any material change to the principal transition, ownership, schema, milestone sequence, or oracle returns to planning and fresh independent assessment before implementation continues.
+Any material change to the principal transition, ownership, schema, milestone sequence, concept model, or oracle returns to planning and fresh independent assessment before implementation continues.
 
 ## 10. Delivery, review, verification, and owner interface
 
@@ -185,7 +218,9 @@ Provide:
 - CI and owner-verification ordering;
 - exact-head invalidation rule;
 - merge/close/delete/force/replacement/history authority;
-- final hard stop without merge.
+- final hard stop without merge;
+- no-publication handling for a concept-budget or quantitative-threshold crossing under the repository policy;
+- durable location of the complete exception report and concise owner decision summary when an exception is requested.
 
 Every architect-drafted wrapper or handoff prompt states:
 

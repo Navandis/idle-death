@@ -47,6 +47,7 @@ Detailed engineering contracts belong in `docs/codex/IMPLEMENTATION_RULES.md`, m
 - Use canonical IDs rather than display text. Keep authored definitions immutable during play.
 - Extend save fixtures, migrations/compatibility handling, tests, and maintained documentation in the same approved slice whenever authoritative meaning changes.
 - Implement only the current packet. Do not import later-slice behavior because it is visible, create speculative extension systems, or perform broad unrelated refactors/reformatting.
+- Use the smallest complete, clear, and independently reviewable solution. Do not code-golf, hide logic in strings, data, or generated blobs, or introduce speculative abstractions merely to fit a number. Apply `docs/codex/QUANTITATIVE_SCOPE_BUDGETS_AND_ANTI_BLOAT_GUARDRAILS.md`.
 - Write junior-readable GDScript and reasoning comments as required by `docs/codex/IMPLEMENTATION_RULES.md`.
 
 ## Slice, branch, review, and owner authority
@@ -75,6 +76,7 @@ Stop and report before proceeding when:
 - the work needs another primary owner, risk dimension, integration seam, changed path, schema transition, or behavior outside the approved packet;
 - an approved required suite or check remains red, or the required evidence cannot be established;
 - acceptance cannot be proved with the packet oracle;
+- the active packet's concept budget, changed-path threshold, or gross-addition reassessment threshold would be crossed without the exception process in `docs/codex/QUANTITATIVE_SCOPE_BUDGETS_AND_ANTI_BLOAT_GUARDRAILS.md`;
 - a byte/output ceiling cannot be met without ambiguity or omission;
 - the branch is based on stale `main`, publication would require force, or repository state is unexpectedly dirty;
 - a prompt/packet defect, non-converging design, or owner decision is required.

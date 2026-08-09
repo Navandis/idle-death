@@ -3,10 +3,12 @@
 **Document role:** Detailed engineering conventions for Godot 4.7 and GDScript implementation  
 **Repository path:** `docs/codex/IMPLEMENTATION_RULES.md`  
 **Document status:** Approved engineering rules  
-**Rules revision:** 10
-**Last updated:** 2026-08-03
+**Rules revision:** 11
+**Last updated:** 2026-08-09
 **Architecture companion:** [ARCHITECTURE.md](ARCHITECTURE.md)  
 **Data companion:** [DATA_AND_CONTENT_CONTRACTS.md](DATA_AND_CONTENT_CONTRACTS.md)
+
+**Quantitative scope companion:** [QUANTITATIVE_SCOPE_BUDGETS_AND_ANTI_BLOAT_GUARDRAILS.md](QUANTITATIVE_SCOPE_BUDGETS_AND_ANTI_BLOAT_GUARDRAILS.md)
 
 ## 1. Purpose
 
@@ -27,7 +29,7 @@ When several implementations are possible, prefer the one that is:
 7. easy to inspect in a pull request;
 8. compatible with Godot 4.7 and GDScript only.
 
-Avoid compressed, clever, or highly generic code when an explicit version is easier to verify.
+Avoid compressed, clever, or highly generic code when an explicit version is easier to verify. Do not code-golf, hide logic in strings, data, or generated blobs, or introduce speculative abstraction solely to satisfy a numerical budget. Use the smallest complete, clear, and independently reviewable solution, and follow `QUANTITATIVE_SCOPE_BUDGETS_AND_ANTI_BLOAT_GUARDRAILS.md` for concept budgets, measurements, thresholds, and exceptions.
 
 ## 3. GDScript naming and file organization
 

@@ -20,6 +20,7 @@ Read the current repository versions of:
 - `docs/codex/STANDARD_MILESTONE_SLICE_WORKFLOW.md`;
 - `docs/codex/DEVELOPMENT_GOVERNANCE_FINDINGS_AND_ACTIONS.md`;
 - `docs/codex/ACTOR_PROMPT_STANDARD.md`;
+- `docs/codex/QUANTITATIVE_SCOPE_BUDGETS_AND_ANTI_BLOAT_GUARDRAILS.md`;
 - `docs/codex/templates/architect-handover/00_BOOTSTRAP_PROMPT.txt`;
 - `docs/codex/templates/architect-handover/01_SESSION_HANDOVER.md`.
 
@@ -70,6 +71,8 @@ Fill `01_SESSION_HANDOVER.md` with:
 15. facts the successor must reverify before a dependent action.
 
 Distinguish implementation, CI, primary review, PR-lifetime triage, correction/convergence, final review, owner verification, and integration when a PR is active.
+
+Always name `docs/codex/QUANTITATIVE_SCOPE_BUDGETS_AND_ANTI_BLOAT_GUARDRAILS.md` in the successor authority map. When an active packet, implementation, correction, threshold exception, or convergence decision exists, record only the slice-specific facts that affect continuation, such as the active concept budget, cumulative governed total, correction delta, review-zone or reassessment-threshold state, approved exception, or delegated variance. Do not copy the policy, its default tables, or the complete exception report into the handover.
 
 SOURCE DISCIPLINE
 

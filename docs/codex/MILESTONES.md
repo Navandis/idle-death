@@ -3,9 +3,9 @@
 **Document role:** Approved implementation sequence and acceptance map for the 0–90 minute prototype  
 **Repository path:** `docs/codex/MILESTONES.md`  
 **Document status:** Approved rolling-wave milestone map  
-**Milestone-map revision:** 37
-**Last updated:** 2026-08-08
-**Primary context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md), [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md), [Architecture](ARCHITECTURE.md), [Data contracts](DATA_AND_CONTENT_CONTRACTS.md), [Testing](TESTING_AND_VALIDATION.md), [Owner verification](OWNER_VERIFICATION_WORKFLOW.md), [Milestone recalibration](MILESTONE_RECALIBRATION_PROPOSAL.md), and [Decisions](DECISIONS.md)
+**Milestone-map revision:** 38
+**Last updated:** 2026-08-09
+**Primary context:** [Prototype source of truth](../design/PROTOTYPE_0_90_SOURCE_OF_TRUTH.md), [Idle-fork source of truth](../design/IDLE_FORK_SOURCE_OF_TRUTH.md), [Architecture](ARCHITECTURE.md), [Data contracts](DATA_AND_CONTENT_CONTRACTS.md), [Testing](TESTING_AND_VALIDATION.md), [Owner verification](OWNER_VERIFICATION_WORKFLOW.md), [Milestone recalibration](MILESTONE_RECALIBRATION_PROPOSAL.md), [Quantitative scope budgets and anti-bloat guardrails](QUANTITATIVE_SCOPE_BUDGETS_AND_ANTI_BLOAT_GUARDRAILS.md), and [Decisions](DECISIONS.md)
 
 ## 1. Purpose and authority
 
@@ -52,6 +52,7 @@ After M04E2R1 completion and PR #34 integration:
 - PR #23 closed unmerged at `f68e6eac3347cde1b5347ce2d70cc4ce12ac3610` after 8 commits, 58 changed files, 2,012 additions, and 69 deletions. PRs #17, #18, and #23 are forensic/regression evidence only and are not production-code sources.
 - Accepted `DEC-0045` retires M04E2A2/A3/A4 as executable slices, and accepted `DEC-0046` defines the caller-owned, non-persisted R1 boundary.
 - M04E2R1 merged through PR #34 from final head `ec3fc115cc685d378b93f6968f0f28300760c755` at merge commit `bda72749cfc6f20bfa1fd8e42acefdb6e3a8f31d`; CI run 55, review and triage convergence, exact-head Windows owner verification, and post-merge synchronization and branch cleanup completed. M04E2R2/M04E2P1/M04E2B remain deferred.
+- `QUANTITATIVE_SCOPE_BUDGETS_AND_ANTI_BLOAT_GUARDRAILS.md` revision 1.2 is the owner-approved authority for concept budgets, categorized gross-addition measurement, exact reassessment triggers, threshold exceptions, evidence floors, and anti-bloat controls in future packets and correction rounds.
 - The repository now has the caller-owned, non-persisted M04E2R1 live `ReportLedger`, but still has no snapshot/history/retention read model, persisted `GameState` report authority, atomic reported-run coordinator, application shell, trusted offline adapter, concurrent-Reaping resolver, or player-facing gameplay UI.
 - Existing dry-run assets and scene work are preserved unless a scoped milestone explicitly replaces or integrates them.
 
@@ -79,22 +80,22 @@ A conceptual epic may be decomposed only through an approved map update. A slice
 
 ### 3.1 Review-surface guardrails
 
-These are planning triggers, not mechanical merge quotas.
+This table is a compact planning summary governed by `QUANTITATIVE_SCOPE_BUDGETS_AND_ANTI_BLOAT_GUARDRAILS.md`. That policy owns concept counting, categorized measurement, exact exception records, anti-gaming rules, and the acceptance/evidence floor. These values are reassessment triggers, not mechanical merge quotas or entitlements.
 
-| Guardrail | Normal target | Mandatory split review |
-|---|---:|---:|
-| Primary subsystem owners | 1 | More than 1 |
-| New authoritative aggregate families | 0–1 | More than 2 |
-| Save-schema transitions | 0–1 | More than 1 |
-| New player-facing flows/screens | 0–1 | More than 1 |
-| New platform/native integrations | 0–1 | Any platform work mixed with unrelated gameplay |
-| Risk dimensions | 0–3 | 4 or more |
-| Cross-layer integration seams | 0–2 | More than 2 |
-| Non-documentation source/test files | Approximately 10–25 | Forecast above approximately 35 |
-| Non-documentation code/test line delta, excluding `.uid` and repetitive authored data | Approximately 500–1,200 | Forecast above approximately 1,500 |
-| Bulk `.tres` content | Small fixture set | Production-catalog bulk mixed with a new framework |
+| Guardrail | Normal planning band | Review zone | Mandatory reassessment |
+|---|---:|---:|---:|
+| Primary subsystem owners | 1 | — | More than 1 is a hard authority stop |
+| New authoritative aggregate families | 0–1 | 2 requires explicit assessor scrutiny | More than 2 is presumptive split/redesign |
+| Save-schema transitions | 0–1 | — | More than 1 is a hard authority stop |
+| New player-facing flows/screens | 0–1 | — | More than 1 requires split or explicit owner exception |
+| New platform/native integrations | 0 | 1 only in its own approved slice | Any platform work mixed with unrelated gameplay is a hard stop |
+| Risk dimensions | 0–3 | — | 4 or more |
+| Cross-layer integration seams | 0–2 | — | More than 2 |
+| Non-documentation changed paths excluding `.uid` | Approximately 10–25 | 26–35 | 36 or more |
+| Non-documentation gross additions excluding `.uid` and repetitive authored data | Approximately 500–1,200 | 1,201–1,500 | 1,501 or more |
+| Bulk authored data | Small fixture/catalog set | Separately forecast | Production-catalog bulk mixed with a new framework requires split review |
 
-A trigger requires a split or an explicit owner-approved exception. Estimates do not authorize extra work, and crossing a number does not automatically invalidate an otherwise coherent slice.
+Entering a review zone requires an explicit scope-assessor or triage explanation of slice coherence and dominant growth categories. It does not itself require an owner exception. Crossing a mandatory reassessment trigger requires the policy's stop and approval route before publication; a hard authority crossing requires packet or architecture revision rather than a numerical exception.
 
 ## 4. Status vocabulary
 
@@ -127,7 +128,7 @@ A conceptual epic uses `Prompt: Not applicable` and `Implementation: Not directl
 | `GATE-FIXED-POINT` | M01 merge | Implement accepted `DEC-0026`: one centralized scale of `1_000_000` for fractional state, unscaled discrete counts, explicit-period accumulation, checked 64-bit arithmetic, canonical carries, documented bounds, and cross-platform tests including one-item-per-8-hours and one-item-per-24-hours cases. |
 | `GATE-SAVE-SCHEMA` | M02 merge | Freeze schema-version-1 key spelling and representative fixtures before gameplay state depends on it. |
 | `GATE-CONTENT-CATALOG` | M03 merge | Validate one explicit typed catalog containing the required prototype IDs, `RES_ESSENCE`, stable `CHANNEL_...` sources, centralized `TERM_...` terminology, editable names independent of IDs, normalized values, content-revision compatibility, deterministic ordering, and editor-inspectable `.tres` definitions before simulation depends on content. |
-| `GATE-SLICE-SCOPE` | Every post-M03 G2-forward slice-packet approval | Complete the `DEC-0033` scope assessment. Split the work or record an explicit owner-approved exception when a mandatory review trigger is crossed. Historical prompt approvals retain their original record meaning. |
+| `GATE-SLICE-SCOPE` | Every post-M03 G2-forward slice-packet approval | Complete the `DEC-0033` scope assessment and the concept-budget, categorized-forecast, reassessment-threshold, evidence-floor, and exception declarations required by `QUANTITATIVE_SCOPE_BUDGETS_AND_ANTI_BLOAT_GUARDRAILS.md`. Split the work, revise authority, or record an explicit owner-approved exception before publication when a mandatory trigger is crossed. Historical prompt approvals retain their original record meaning. |
 | `GATE-GAMEPLAY-SCHEMA` | M04A implementation and merge | Satisfied for prompt drafting by accepted `DEC-0034`: M04A introduces schema version 2 with a production sequential `v1 -> v2` migration. M04A must implement and verify the transactional upgrade, historical fixture, failure preservation, and owner Windows path before merge. |
 | `GATE-REAPING-ASSIGNMENT` | M04B prompt approval | Satisfied by accepted `DEC-0035`: Threshold-scoped operation identity, canonical loadout tuples, revision/episode identity, immutable first-start timestamps, stable recalled records, Form exclusivity, tether derivation, and nonzero carry handling. |
 | `GATE-CORE-RESOLUTION` | M04C prompt approval | Satisfied by accepted `DEC-0036` and approved M04C v0.1: transactional mutation, exact Settlement segmentation, core rate semantics, residual ownership, no-active timeline behavior, and the temporary one-active-Reaping limit. |
@@ -3425,8 +3426,9 @@ Before each new G2-forward slice packet:
 1. inspect the merged repository and prior-slice evidence;
 2. confirm the parent epic and exact dependency state;
 3. complete the `DEC-0033` scope assessment and `GATE-SLICE-SCOPE` review;
-4. resolve every listed decision gate;
-5. draft only the next versioned packet, obtain a fresh independent scope assessment, incorporate bounded corrections, and obtain explicit owner approval.
+4. record the concept budget, categorized forecast, active reassessment thresholds, and acceptance/evidence floor required by `QUANTITATIVE_SCOPE_BUDGETS_AND_ANTI_BLOAT_GUARDRAILS.md`;
+5. resolve every listed decision gate;
+6. draft only the next versioned packet, obtain a fresh independent scope assessment, incorporate bounded corrections, and obtain explicit owner approval.
 
 When a slice reveals a planning problem:
 

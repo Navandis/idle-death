@@ -2,7 +2,7 @@
 
 **Status:** Owner-approved durable workflow standard
 **Effective date:** 9 August 2026
-**Revision:** 1.0
+**Revision:** 1.1 — quantitative guardrail routing added
 **Document role:** Canonical package, content, source-confidence, cutoff, and bootstrap rules for transition between long-lived Death Idle planning-architect sessions
 **Applies to:** A planning architect approaching context or memory limits and the fresh planning architect that succeeds it
 **Companions:**
@@ -10,6 +10,7 @@
 - [Governance findings and actions](DEVELOPMENT_GOVERNANCE_FINDINGS_AND_ACTIONS.md);
 - [Standard milestone slice workflow](STANDARD_MILESTONE_SLICE_WORKFLOW.md);
 - [Actor prompt standard](ACTOR_PROMPT_STANDARD.md);
+- [Quantitative scope budgets and anti-bloat guardrails](QUANTITATIVE_SCOPE_BUDGETS_AND_ANTI_BLOAT_GUARDRAILS.md);
 - [Versioned slice-packet template](PROMPT_TEMPLATE.md);
 - the current repository decisions, milestones, architecture, active planning memo, active slice packet, pull request, CI, and review state.
 
@@ -210,6 +211,8 @@ It contains:
 11. facts requiring reverification;
 12. successor first-turn completion test.
 
+The exact authority map always names `QUANTITATIVE_SCOPE_BUDGETS_AND_ANTI_BLOAT_GUARDRAILS.md`. Active packet-specific concept budgets, governed totals, review-zone or reassessment state, correction deltas, and approved exceptions appear only when they affect continuation. Do not copy the policy or its default tables.
+
 Delete unused template rows and placeholder sections. A filled handover is not required to preserve the blank template's full size.
 
 ---
@@ -293,6 +296,7 @@ Authority bands are:
 The manifest normally includes only:
 
 - this handover standard and the standard milestone workflow;
+- `QUANTITATIVE_SCOPE_BUDGETS_AND_ANTI_BLOAT_GUARDRAILS.md`, with exact sections relevant to current planning, implementation surface, correction, exception, or convergence work;
 - current `DECISIONS.md`, `MILESTONES.md`, and relevant architecture or contract sections;
 - the active planning memo and active slice packet;
 - the active PR, CI, review threads, or owner evidence when relevant to the cutoff;
@@ -372,12 +376,13 @@ The outgoing architect then:
 6. marks inaccessible local, owner-machine, or external-session facts honestly;
 7. extracts the net session delta;
 8. defines the exact cutoff, execution owner, and architect responsibility;
-9. builds the minimum authority map;
-10. records active model, effort, and session routing;
-11. fills the two runtime templates and deletes unused rows;
-12. includes optional artifacts only when the section 4.1 test passes;
-13. checks for copied repository prose, repeated state, implementation leakage, chronology, and unstated assumptions;
-14. produces the runtime archive without a manifest or checksum file.
+9. builds the minimum authority map and always names `QUANTITATIVE_SCOPE_BUDGETS_AND_ANTI_BLOAT_GUARDRAILS.md` as stable policy;
+10. when an active packet, PR, correction, exception, or convergence question exists, records only the slice-specific concept budget, governed totals, correction delta, review-zone/threshold state, and approved exception or delegated variance needed for continuation;
+11. records active model, effort, and session routing;
+12. fills the two runtime templates and deletes unused rows;
+13. includes optional artifacts only when the section 4.1 test passes;
+14. checks for copied repository prose, copied quantitative default tables, repeated state, implementation leakage, chronology, and unstated assumptions;
+15. produces the runtime archive without a manifest or checksum file.
 
 The outgoing architect does not use handover preparation as an opportunity to implement, fix, merge, resolve review threads, or silently decide an open owner question.
 
@@ -414,8 +419,9 @@ Before advancing work, the successor must be able to answer:
 8. What is the planning architect's immediate responsibility?
 9. Which owner-only boundary applies?
 10. Which model, effort, and session routing applies to active or next actors?
-11. Which superseded route remains a drift risk?
-12. Which mutable facts remain unverified?
+11. Which active concept/quantitative boundary or approved exception applies, when relevant?
+12. Which superseded route remains a drift risk?
+13. Which mutable facts remain unverified?
 
 If these answers cannot be derived from current durable sources plus the handover, the package is incomplete.
 
@@ -432,6 +438,7 @@ A handover is complete only when all answers are `yes`:
 - Are mutable facts timed and source-labelled?
 - Are inaccessible facts marked instead of inferred?
 - Are active and next actors routed by model, effort, session, and rationale?
+- Does the authority map name the quantitative-scope policy, and are active threshold or exception facts included only when they affect continuation?
 - Are current owner decisions and owner-only boundaries explicit?
 - Are superseded items included only when restoration remains a credible risk?
 - Is implementation detail absent when it already belongs to the active packet or PR?

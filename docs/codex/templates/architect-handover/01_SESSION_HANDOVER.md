@@ -34,14 +34,15 @@ Fetch these sources at their current refs. Do not rely on copied excerpts.
 | 1 | Latest owner instruction | [[EXACT INSTRUCTION OR APPROVAL]] | Current owner authority | Current authority |
 | 2 | `docs/codex/ARCHITECT_HANDOVER_STANDARD.md` | Full file | Continuity rules | Stable policy |
 | 3 | `docs/codex/STANDARD_MILESTONE_SLICE_WORKFLOW.md` | [[EXACT SECTIONS]] | Actor and lifecycle boundary | Stable policy |
-| 4 | `docs/codex/ACTOR_PROMPT_STANDARD.md` | [[EXACT SECTIONS, IF A HANDOFF PROMPT IS NEXT]] | Model/effort/session routing | Stable policy |
-| 5 | `docs/codex/DECISIONS.md` | [[DECISION IDS]] | Current accepted decisions | Current authority |
-| 6 | `docs/codex/MILESTONES.md` | [[EXACT MILESTONE/STATUS SECTION]] | Current sequence and status | Current authority |
-| 7 | `docs/codex/ARCHITECTURE.md` or exact contract | [[EXACT SECTION]] | Current architecture or contract boundary | Current authority |
-| 8 | [[ACTIVE PLANNING MEMO]] | [[VERSION/SECTIONS]] | Active planning contract | Approved planning authority |
-| 9 | [[ACTIVE SLICE PACKET]] | [[VERSION/SECTIONS]] | Current executable scope, when relevant | Approved packet |
-| 10 | [[VALIDATED WORKFLOW-STATE ARTIFACT, IF AVAILABLE]] | [[ARTIFACT/GENERATED TIME]] | Mutable state actually proven by the artifact | Operational state |
-| 11 | [[ACTIVE PR/CI/REVIEW/OWNER SOURCE]] | [[NUMBER/HEAD/RUN/THREAD/LOG]] | Continuation evidence not covered above | Operational state |
+| 4 | `docs/codex/QUANTITATIVE_SCOPE_BUDGETS_AND_ANTI_BLOAT_GUARDRAILS.md` | [[EXACT SECTIONS RELEVANT TO THE CUTOFF; normally §§3–9 and 15–16, plus §§10–14 when packet, correction, exception, or convergence work is active]] | Concept budgets, categorized measurement, reassessment thresholds, exceptions, anti-bloat rules, and quantitative convergence inputs | Stable policy |
+| 5 | `docs/codex/ACTOR_PROMPT_STANDARD.md` | [[EXACT SECTIONS, IF A HANDOFF PROMPT IS NEXT]] | Model/effort/session routing | Stable policy |
+| 6 | `docs/codex/DECISIONS.md` | [[DECISION IDS]] | Current accepted decisions | Current authority |
+| 7 | `docs/codex/MILESTONES.md` | [[EXACT MILESTONE/STATUS SECTION]] | Current sequence and status | Current authority |
+| 8 | `docs/codex/ARCHITECTURE.md` or exact contract | [[EXACT SECTION]] | Current architecture or contract boundary | Current authority |
+| 9 | [[ACTIVE PLANNING MEMO]] | [[VERSION/SECTIONS]] | Active planning contract | Approved planning authority |
+| 10 | [[ACTIVE SLICE PACKET]] | [[VERSION/SECTIONS]] | Current executable scope, when relevant | Approved packet |
+| 11 | [[VALIDATED WORKFLOW-STATE ARTIFACT, IF AVAILABLE]] | [[ARTIFACT/GENERATED TIME]] | Mutable state actually proven by the artifact | Operational state |
+| 12 | [[ACTIVE PR/CI/REVIEW/OWNER SOURCE]] | [[NUMBER/HEAD/RUN/THREAD/LOG]] | Continuation evidence not covered above | Operational state |
 
 **Historical or superseded source permitted for one exact question:**
 
@@ -59,6 +60,9 @@ Include only facts needed for continuation. Delete irrelevant rows.
 | CI at current head | [[STATE/RUN OR NONE]] | [[LABEL]] | [[TIME]] | [[SOURCE]] | [[CONSEQUENCE]] |
 | Primary/final review | [[STATE OR NONE]] | [[LABEL]] | [[TIME]] | [[SOURCE]] | [[CONSEQUENCE]] |
 | PR-lifetime triage and correction round | [[STATE OR NONE]] | [[LABEL]] | [[TIME]] | [[SOURCE]] | [[CONSEQUENCE]] |
+| Active concept/quantitative budget | [[PACKET BUDGET OR DELETE WHEN IRRELEVANT]] | [[LABEL]] | [[TIME]] | [[SOURCE]] | [[CONSEQUENCE]] |
+| Current governed surface and threshold state | [[TOTALS/REVIEW ZONE/REASSESSMENT STATE OR DELETE]] | [[LABEL]] | [[TIME]] | [[SOURCE]] | [[CONSEQUENCE]] |
+| Approved exception or delegated variance | [[EXACT RANGE/RECORD OR NONE/DELETE]] | [[LABEL]] | [[TIME]] | [[SOURCE]] | [[CONSEQUENCE]] |
 | Unresolved material review threads | [[STATE/THREADS OR NONE]] | [[LABEL]] | [[TIME]] | [[SOURCE]] | [[CONSEQUENCE]] |
 | Owner verification | [[PASS/FAIL/PENDING/NOT APPLICABLE]] | [[LABEL]] | [[TIME]] | [[SOURCE]] | [[CONSEQUENCE]] |
 | Integration/cleanup | [[STATE OR NOT STARTED]] | [[LABEL]] | [[TIME]] | [[SOURCE]] | [[CONSEQUENCE]] |
@@ -164,5 +168,6 @@ Before advancing work, the successor must be able to state:
 7. execution owner and planning architect responsibility as separate fields;
 8. required model, effort, and session routing;
 9. current owner-only boundary;
-10. prohibited restoration or reuse;
-11. mutable facts that remain unverified.
+10. applicable concept/quantitative boundary or approved exception, when relevant;
+11. prohibited restoration or reuse;
+12. mutable facts that remain unverified.
