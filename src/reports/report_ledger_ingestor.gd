@@ -38,13 +38,15 @@ static func ingest_committed_run(source_ledger: ReportLedger, run: SimulationRun
 	if interval == ERR_GAP: return _reject(ERR_GAP, "Committed interval begins ahead of the ledger cursor.")
 	if interval == ERR_OVERLAP: return _reject(ERR_OVERLAP, "Committed interval partially overlaps the ledger cursor.")
 	var candidate := source_ledger.deep_clone()
+	var settled_before_run := _settled_thresholds(source_ledger)
+	var settlements_normalized_this_run := {}
 	var duration_result := _add_mode_duration(candidate, run.mode, inner.committed_elapsed_msec)
 	if not duration_result.ok: return _reject(ERR_OVERFLOW, duration_result.details)
 	if inner.result_kind == SimulationResult.KIND_ACTIVE_REAPING:
 		for segment in inner.segments:
 			var append_result := _append_segment(candidate, segment, run.mode, inner.content_revision)
 			if not append_result.ok: return _reject(StringName(append_result.code), append_result.details)
-		var event_result := _append_settlements(candidate, inner)
+		var event_result := _append_settlements(candidate, inner, settled_before_run, settlements_normalized_this_run)
 		if not event_result.ok: return _reject(StringName(event_result.code), event_result.details)
 	candidate.ingested_through_simulation_msec = run.result_simulation_time_msec
 	var candidate_validation := ReportLedgerValidator.validate(candidate)
@@ -206,11 +208,11 @@ static func _merge(left: ReportLedgerSlice, right: ReportLedgerSlice) -> Diction
 		target.total_banked_units_after = source.total_banked_units_after
 	return {"ok": true}
 
-static func _append_settlements(candidate: ReportLedger, inner: SimulationResult) -> Dictionary:
+static func _append_settlements(candidate: ReportLedger, inner: SimulationResult, settled_before_run: Dictionary, settlements_normalized_this_run: Dictionary) -> Dictionary:
 	for event in inner.events:
 		if not (event is SimulationThresholdSettledEvent): continue
 		var continuation := _continuation(candidate, event.subject_id)
-		if continuation == null or continuation.has_settled: return {"ok": false, "code": ERR_SLICE, "details": "Threshold has already settled."}
+		if continuation == null or settled_before_run.has(event.subject_id) or settlements_normalized_this_run.has(event.subject_id): return {"ok": false, "code": ERR_SLICE, "details": "Threshold has already settled."}
 		var next_sequence := _add(candidate.next_event_sequence, 1)
 		if not next_sequence.ok: return {"ok": false, "code": ERR_OVERFLOW, "details": "Settlement event sequence overflow."}
 		var owner: SimulationSegmentResult = inner.segments[event.segment_index]
@@ -224,7 +226,14 @@ static func _append_settlements(candidate: ReportLedger, inner: SimulationResult
 		candidate.settlement_events.append(normalized)
 		candidate.next_event_sequence = next_sequence.value
 		continuation.has_settled = true
+		settlements_normalized_this_run[event.subject_id] = true
 	return {"ok": true}
+
+static func _settled_thresholds(ledger: ReportLedger) -> Dictionary:
+	var settled := {}
+	for continuation in ledger.threshold_continuations:
+		if continuation.has_settled: settled[continuation.threshold_id] = true
+	return settled
 
 static func _channel(slice: ReportLedgerSlice, channel_id: StringName) -> ReportLedgerChannel:
 	for value in slice.channels:

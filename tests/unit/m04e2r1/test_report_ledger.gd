@@ -137,6 +137,41 @@ func test_r2_root_fields_clone_and_equality_are_detached() -> void:
 	assert_false(copy.value_equals(ledger), "record sequence differs")
 	assert_eq(ledger.retained_records[0].record_sequence, 1, "record is detached")
 
+func test_validator_requires_compact_continuation_for_live_and_retained_detail() -> void:
+	var live := _canonical()
+	live.threshold_continuations.clear()
+	assert_false(ReportLedgerValidator.validate(live).ok, "live detailed Threshold without continuation rejects")
+	_set_continuations_from_live_detail(live)
+	assert_true(ReportLedgerValidator.validate(live).ok, "explicit matching live continuation passes")
+	var retained := _canonical()
+	var record := ReportWindowRecord.new()
+	record.record_sequence = 1
+	record.window_end_simulation_msec = 10
+	record.foreground_elapsed_msec = 10
+	record.slices.append(retained.slices[0].deep_clone())
+	record.settlement_events.append(retained.settlement_events[0].deep_clone())
+	retained.slices.clear()
+	retained.settlement_events.clear()
+	retained.window_start_simulation_msec = 10
+	retained.ingested_through_simulation_msec = 10
+	retained.foreground_elapsed_msec = 0
+	retained.next_event_sequence = 1
+	retained.retained_records.append(record)
+	retained.next_record_sequence = 2
+	retained.threshold_continuations.clear()
+	assert_false(ReportLedgerValidator.validate(retained).ok, "retained detailed Threshold without continuation rejects")
+	_set_continuations_from_record_detail(retained, record)
+	assert_true(ReportLedgerValidator.validate(retained).ok, "explicit matching retained continuation passes")
+	var pruned := _canonical()
+	pruned = ReportLedgerSnapshotter.rollover(pruned, 10).candidate_ledger
+	for index in range(8):
+		var finish := 20 + index * 10
+		pruned = ReportLedgerIngestor.ingest_committed_run(pruned, SimulationRunService.SimulationRunResult.new(true, SimulationRunService.MODE_FOREGROUND_SUPPLIED, &"", "", 10, finish - 10, finish, SimulationResult.timeline_only(10, finish - 10, finish, "r"), null)).candidate_ledger
+		pruned = ReportLedgerSnapshotter.rollover(pruned, finish).candidate_ledger
+	assert_eq(pruned.retained_records.size(), ReportLedger.MAX_RETAINED_RECORDS, "retention prunes the introducing record")
+	assert_true(pruned.slices.is_empty() and pruned.settlement_events.is_empty(), "pruned baseline has no live detail")
+	assert_true(ReportLedgerValidator.validate(pruned).ok, "continuation-only baseline after legitimate pruning passes")
+
 func _eq(id: String, path: String, mutate: Callable) -> Dictionary:
 	return {"id": id, "path": path, "mutate": mutate}
 
@@ -351,6 +386,7 @@ func _canonical() -> ReportLedger:
 	ledger.slices.append(slice)
 	ledger.settlement_events.append(_settlement(1, &"THRESHOLD_A", 10, 1, "content-r", 9))
 	ledger.next_event_sequence = 2
+	_set_continuations_from_live_detail(ledger)
 	assert_true(ReportLedgerValidator.validate(ledger).ok, "canonical fixture validates")
 	return ledger
 
@@ -407,6 +443,7 @@ func _settled() -> ReportLedger:
 	ledger.slices[0].returned_souls_delta = 0
 	ledger.settlement_events.clear()
 	ledger.next_event_sequence = 1
+	_set_continuations_from_live_detail(ledger)
 	assert_true(ReportLedgerValidator.validate(ledger).ok, "settled fixture validates")
 	return ledger
 
@@ -421,6 +458,7 @@ func _two_slices() -> ReportLedger:
 	second.run_mode = SimulationRunService.MODE_OFFLINE_FIXTURE
 	second.channels.append(_channel(&"CHANNEL_A", 10, 20, 1, 2, 0, 0))
 	ledger.slices = [first, second]
+	_set_continuations_from_live_detail(ledger)
 	assert_true(ReportLedgerValidator.validate(ledger).ok, "two-slice fixture validates")
 	return ledger
 
@@ -430,6 +468,7 @@ func _merge_pair() -> ReportLedger:
 	ledger.slices[1].content_revision = "content-other"
 	ledger.foreground_elapsed_msec = 20
 	ledger.offline_elapsed_msec = 0
+	_set_continuations_from_live_detail(ledger)
 	assert_true(ReportLedgerValidator.validate(ledger).ok, "near-merge pair validates")
 	return ledger
 
@@ -441,6 +480,7 @@ func _mode_coverage_baseline() -> ReportLedger:
 	var first := _slice(0, 10, 10, 9)
 	first.channels.append(_channel(&"CHANNEL_A", 0, 10, 0, 0, 0, 0))
 	ledger.slices.append(first)
+	_set_continuations_from_live_detail(ledger)
 	assert_true(ReportLedgerValidator.validate(ledger).ok, "mode-coverage baseline validates")
 	return ledger
 
@@ -465,6 +505,7 @@ func _settled_then_slice() -> ReportLedger:
 	second.run_mode = SimulationRunService.MODE_OFFLINE_FIXTURE
 	second.channels.append(_channel(&"CHANNEL_A", 10, 20, 0, 0, 0, 0))
 	ledger.slices = [first, second]
+	_set_continuations_from_live_detail(ledger)
 	assert_true(ReportLedgerValidator.validate(ledger).ok, "settled continuity fixture validates")
 	return ledger
 
@@ -481,6 +522,7 @@ func _two_settled() -> ReportLedger:
 	ledger.slices = [a, b]
 	ledger.settlement_events = [_settlement(1, &"THRESHOLD_A", 10), _settlement(2, &"THRESHOLD_B", 20)]
 	ledger.next_event_sequence = 3
+	_set_continuations_from_live_detail(ledger)
 	assert_true(ReportLedgerValidator.validate(ledger).ok, "two ordered Settlements validate")
 	return ledger
 
@@ -490,6 +532,7 @@ func _cross_revision_settled() -> ReportLedger:
 	ledger.slices[1].content_revision = "content-revision-2"
 	ledger.settlement_events[1].assignment_revision = 2
 	ledger.settlement_events[1].content_revision = "content-revision-2"
+	_set_continuations_from_live_detail(ledger)
 	assert_true(ReportLedgerValidator.validate(ledger).ok, "cross-revision settled baseline validates")
 	return ledger
 
@@ -505,3 +548,43 @@ func _has_unique(values: Array) -> bool:
 		if seen.has(value): return false
 		seen[value] = true
 	return true
+
+func _set_continuations_from_record_detail(ledger: ReportLedger, record: ReportWindowRecord) -> void:
+	ledger.threshold_continuations.clear()
+	_append_latest_continuations(ledger, record.slices, record.settlement_events)
+
+func _set_continuations_from_live_detail(ledger: ReportLedger) -> void:
+	ledger.threshold_continuations.clear()
+	_append_latest_continuations(ledger, ledger.slices, ledger.settlement_events)
+
+func _append_latest_continuations(ledger: ReportLedger, slices: Array[ReportLedgerSlice], events: Array[ReportSettlementEvent]) -> void:
+	var latest := {}
+	for slice in slices:
+		latest[slice.threshold_id] = slice
+	for threshold_id in latest:
+		_append_continuation(ledger, latest[threshold_id], events)
+
+func _append_continuation(ledger: ReportLedger, slice: ReportLedgerSlice, events: Array[ReportSettlementEvent]) -> void:
+	var continuation := ReportThresholdContinuation.new()
+	continuation.threshold_id = slice.threshold_id
+	continuation.latest_assignment_revision = slice.assignment_revision
+	continuation.form_id = slice.form_id
+	continuation.writ_id = slice.writ_id
+	continuation.ordered_retinue_ids.assign(slice.ordered_retinue_ids)
+	continuation.lifecycle_state = slice.lifecycle_state
+	continuation.remaining_backlog = slice.remaining_backlog_after
+	continuation.has_settled = slice.lifecycle_state == &"SETTLED"
+	for event in events:
+		if event.threshold_id == slice.threshold_id:
+			continuation.has_settled = true
+	for source_channel in slice.channels:
+		var channel := ReportChannelContinuation.new()
+		channel.channel_id = source_channel.channel_id
+		channel.output_item_id = source_channel.output_item_id
+		channel.rate_period_msec = source_channel.rate_period_msec
+		channel.progress_subunits = source_channel.progress_subunits_after
+		channel.rate_carry_units = source_channel.rate_carry_units_after
+		channel.total_banked_units = source_channel.total_banked_units_after
+		continuation.channels.append(channel)
+	ledger.threshold_continuations.append(continuation)
+	ledger.threshold_continuations.sort_custom(func(left, right): return str(left.threshold_id) < str(right.threshold_id))

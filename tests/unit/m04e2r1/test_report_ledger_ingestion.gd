@@ -159,6 +159,35 @@ func test_r2_ingestion_keeps_compact_continuation_after_live_merge() -> void:
 	var continuation := result.candidate_ledger.threshold_continuations[0]
 	assert_eq(continuation.remaining_backlog, 8, "continuation stores latest backlog")
 	assert_eq(continuation.channels[0].progress_subunits, 0, "continuation stores latest channel endpoint")
+
+func test_settlement_spanning_run_uses_pre_run_duplicate_state_and_matches_chunks() -> void:
+	var first := _segment(0, 10, 1, 0)
+	var following := _settled_segment(10, 20, 1)
+	var settlement := SimulationThresholdSettledEvent.new(10, 0, &"T", 1, 0, 0, &"OVERDUE", &"SETTLED")
+	var one_shot_run := _wrapper(_active(0, 20, [first, following], "r", [settlement]))
+	var first_chunk_run := _wrapper(_active(0, 10, [_segment(0, 10, 1, 0)], "r", [SimulationThresholdSettledEvent.new(10, 0, &"T", 1, 0, 0, &"OVERDUE", &"SETTLED")]))
+	var second_chunk_segment := _settled_segment(10, 20)
+	var second_chunk_run := _wrapper(_active(10, 20, [second_chunk_segment]))
+	var one_shot_source := ReportLedger.create_empty(0)
+	var chunked_source := ReportLedger.create_empty(0)
+	var one_shot_source_before := one_shot_source.deep_clone()
+	var chunked_source_before := chunked_source.deep_clone()
+	var one_shot_wrapper_before := _wrapper_snapshot(one_shot_run)
+	var first_chunk_wrapper_before := _wrapper_snapshot(first_chunk_run)
+	var second_chunk_wrapper_before := _wrapper_snapshot(second_chunk_run)
+	var one_shot_inner_before := one_shot_run.simulation_result.detached_copy()
+	var first_chunk_inner_before := first_chunk_run.simulation_result.detached_copy()
+	var second_chunk_inner_before := second_chunk_run.simulation_result.detached_copy()
+	var one_shot_result := ReportLedgerIngestor.ingest_committed_run(one_shot_source, one_shot_run)
+	_assert_applied(one_shot_result, one_shot_source, one_shot_source_before, one_shot_run, one_shot_wrapper_before, one_shot_inner_before, "one-shot Settlement boundary run applies")
+	var first_chunk_result := ReportLedgerIngestor.ingest_committed_run(chunked_source, first_chunk_run)
+	_assert_applied(first_chunk_result, chunked_source, chunked_source_before, first_chunk_run, first_chunk_wrapper_before, first_chunk_inner_before, "first Settlement chunk applies")
+	var second_chunk_result := ReportLedgerIngestor.ingest_committed_run(first_chunk_result.candidate_ledger, second_chunk_run)
+	_assert_applied(second_chunk_result, first_chunk_result.candidate_ledger, first_chunk_result.candidate_ledger.deep_clone(), second_chunk_run, second_chunk_wrapper_before, second_chunk_inner_before, "following SETTLED chunk applies")
+	assert_eq(one_shot_result.candidate_ledger.settlement_events.size(), 1, "one-shot emits exactly one normalized Settlement")
+	var continuation := one_shot_result.candidate_ledger.threshold_continuations[0]
+	assert_true(continuation.lifecycle_state == &"SETTLED" and continuation.remaining_backlog == 0 and continuation.has_settled, "post-boundary work leaves a settled compact continuation")
+	assert_true(one_shot_result.candidate_ledger.value_equals(second_chunk_result.candidate_ledger), "one-shot and chunked ledgers are value-equal")
 func _cont(id: String, scenario: Dictionary, expected: StringName) -> Dictionary:
 	return {"id": id, "scenario": scenario, "expected": expected}
 func _scenario(source: ReportLedger, inner: SimulationResult, probe: Callable, mode: StringName = SimulationRunService.MODE_FOREGROUND_SUPPLIED, expected_ledger: Dictionary = {}) -> Dictionary:
@@ -252,6 +281,9 @@ func _segment(start: int, finish: int, before: int, after: int, threshold: Strin
 		if not core.has(key): return null
 	core.merge(core_deltas, true)
 	return SimulationSegmentResult.new(0, threshold, revision, form, &"W", retinue, &"OVERDUE", start, finish, finish - start, before - after, before - after, before, after, core.essence_delta, core.mastery_delta_subunits, core.completed_cycles_delta, channels)
+
+func _settled_segment(start: int, finish: int, index: int = 0) -> SimulationSegmentResult:
+	return SimulationSegmentResult.new(index, &"T", 1, &"F", &"W", [&"A"], &"SETTLED", start, finish, finish - start, 0, 0, 0, 0, 0, 0, 0, [_input_channel(&"C", 0, 0, 0, 0)])
 func _input_channel(id: StringName, progress_before: int, progress_after: int, carry_before: int, carry_after: int, total_before: int = 0, total_after: int = 0) -> SimulationChannelDeltaResult:
 	return SimulationChannelDeltaResult.new(id, &"SOUL", total_after - total_before, progress_before, progress_after, 1000, carry_before, carry_after, total_before, total_after)
 func _active(start: int, finish: int, segments: Array[SimulationSegmentResult], content: String = "r", events: Array[SimulationEvent] = []) -> SimulationResult:
@@ -299,6 +331,15 @@ func _settled_source() -> ReportLedger:
 	slice.start_simulation_msec = 0
 	slice.end_simulation_msec = 10
 	ledger.slices.append(slice)
+	var continuation := ReportThresholdContinuation.new()
+	continuation.threshold_id = &"T"
+	continuation.latest_assignment_revision = 1
+	continuation.form_id = &"F"
+	continuation.writ_id = &"W"
+	continuation.ordered_retinue_ids = [&"A"]
+	continuation.lifecycle_state = &"SETTLED"
+	continuation.has_settled = true
+	ledger.threshold_continuations.append(continuation)
 	assert_true(ReportLedgerValidator.validate(ledger).ok, "settled source validates")
 	return ledger
 

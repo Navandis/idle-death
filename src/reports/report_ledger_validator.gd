@@ -15,6 +15,8 @@ static func validate(ledger: ReportLedger) -> Dictionary:
 
 static func _details(ledger: ReportLedger) -> String:
 	if ledger == null: return "Ledger is required."
+	var identity_details := _validate_owned_node_identities(ledger)
+	if not identity_details.is_empty(): return identity_details
 	if ledger.window_start_simulation_msec < 0 or ledger.ingested_through_simulation_msec < ledger.window_start_simulation_msec:
 		return "Ledger cursors are invalid."
 	if ledger.next_record_sequence < 1: return "Next record sequence is invalid."
@@ -105,6 +107,7 @@ static func _validate_continuations(ledger: ReportLedger) -> String:
 	var previous_threshold := ""
 	for continuation in ledger.threshold_continuations:
 		if continuation == null or str(continuation.threshold_id).is_empty() or continuation.latest_assignment_revision <= 0 or str(continuation.form_id).is_empty() or str(continuation.writ_id).is_empty() or not [&"OVERDUE", &"SETTLED"].has(continuation.lifecycle_state) or continuation.remaining_backlog < 0: return "Threshold continuation shape is invalid."
+		if not _continuation_tuple_is_reachable(continuation): return "Threshold continuation lifecycle tuple is invalid."
 		if not previous_threshold.is_empty() and str(continuation.threshold_id) <= previous_threshold: return "Threshold continuation ordering is invalid."
 		previous_threshold = str(continuation.threshold_id)
 		var retinue_seen := {}
@@ -128,7 +131,6 @@ static func _validate_detailed_continuity(ledger: ReportLedger) -> String:
 		if not record_details.is_empty(): return record_details
 	var live_details := _accumulate_detail(ledger.slices, ledger.settlement_events, latest, known_channels, settled_thresholds, seen_events)
 	if not live_details.is_empty(): return live_details
-	if ledger.threshold_continuations.is_empty(): return ""
 	for threshold_id in latest:
 		var continuation := _continuation_by_id(ledger, StringName(threshold_id))
 		if continuation == null: return "Detailed Threshold has no compact continuation."
@@ -142,6 +144,44 @@ static func _validate_detailed_continuity(ledger: ReportLedger) -> String:
 			var detail_channel: ReportLedgerChannel = detail_channels[channel.channel_id]
 			if channel.output_item_id != detail_channel.output_item_id or channel.rate_period_msec != detail_channel.rate_period_msec or channel.progress_subunits != detail_channel.progress_subunits_after or channel.rate_carry_units != detail_channel.rate_carry_units_after or channel.total_banked_units != detail_channel.total_banked_units_after: return "Continuation channel disagrees with detail."
 	return ""
+
+static func _continuation_tuple_is_reachable(continuation: ReportThresholdContinuation) -> bool:
+	if continuation.lifecycle_state == &"OVERDUE":
+		return (continuation.remaining_backlog > 0 and not continuation.has_settled) or (continuation.remaining_backlog == 0 and continuation.has_settled)
+	return continuation.lifecycle_state == &"SETTLED" and continuation.remaining_backlog == 0 and continuation.has_settled
+
+static func _validate_owned_node_identities(ledger: ReportLedger) -> String:
+	var seen := {}
+	for continuation in ledger.threshold_continuations:
+		if not _track_owned_node(continuation, seen): return "Ledger-owned mutable report node is reused."
+		if continuation != null:
+			for channel in continuation.channels:
+				if not _track_owned_node(channel, seen): return "Ledger-owned mutable report node is reused."
+	for record in ledger.retained_records:
+		if not _track_owned_node(record, seen): return "Ledger-owned mutable report node is reused."
+		if record != null:
+			for slice in record.slices:
+				if not _track_owned_node(slice, seen): return "Ledger-owned mutable report node is reused."
+				if slice != null:
+					for channel in slice.channels:
+						if not _track_owned_node(channel, seen): return "Ledger-owned mutable report node is reused."
+			for event in record.settlement_events:
+				if not _track_owned_node(event, seen): return "Ledger-owned mutable report node is reused."
+	for slice in ledger.slices:
+		if not _track_owned_node(slice, seen): return "Ledger-owned mutable report node is reused."
+		if slice != null:
+			for channel in slice.channels:
+				if not _track_owned_node(channel, seen): return "Ledger-owned mutable report node is reused."
+	for event in ledger.settlement_events:
+		if not _track_owned_node(event, seen): return "Ledger-owned mutable report node is reused."
+	return ""
+
+static func _track_owned_node(node: RefCounted, seen: Dictionary) -> bool:
+	if node == null: return true
+	var identity := node.get_instance_id()
+	if seen.has(identity): return false
+	seen[identity] = true
+	return true
 
 static func _accumulate_detail(slices: Array[ReportLedgerSlice], events: Array[ReportSettlementEvent], latest: Dictionary, known_channels: Dictionary, settled_thresholds: Dictionary, seen_events: Dictionary) -> String:
 	for slice in slices:
