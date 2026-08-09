@@ -1,0 +1,44 @@
+ROUTING RECORD — retain outside the PR comment unless needed there
+
+Actor: Primary independent reviewer
+Recommended model: Platform-selected GitHub Codex reviewer
+Effort: Platform-managed; adversarial/high-depth through requested focus
+Session: PLATFORM INVOCATION
+Session rationale: Fresh exact-head review independent of planning and implementation context
+
+PR COMMENT — PRIMARY OR FINAL REVIEW
+
+@codex review
+
+Mode: [[primary independent | final unrestricted]] review of the current PR head.
+
+Authority:
+- `[[ACTIVE PACKET PATH]]`
+- `[[EXACT DECISION OR CONTRACT REFERENCE]]`
+
+Focus:
+- [[RISK BOUNDARY 1]]
+- [[RISK BOUNDARY 2]]
+[[OPTIONAL THIRD RISK]]
+
+Report only material P1/P2 findings. Ignore style-only observations and behavior explicitly deferred by the packet.
+Limit: at most [[N]] findings and [[N]] words.
+Read-only; do not implement or mutate the PR.
+
+PR COMMENT — BOUNDED REREVIEW
+
+@codex review
+
+Mode: Bounded rereview of the current corrected head.
+
+Recheck:
+- [[CORRECTED FINDING OR CONTRACT]]
+- [[ADJACENT REGRESSION SURFACE]]
+
+Authority:
+- `[[ACTIVE PACKET PATH]]`
+- [[EXACT TRIAGE DISPOSITION OR THREAD IDS]]
+
+Report only remaining or newly introduced material P1/P2 defects in this bounded surface.
+Limit: at most [[N]] findings and [[N]] words.
+Read-only; do not implement or mutate the PR.

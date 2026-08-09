@@ -2,9 +2,9 @@
 
 **Document role:** Repository operating procedure for transactional Codex implementation and fixer tasks
 **Status:** Approved operational workflow for G2-forward implementation slices
-**Revision:** 6
-**Last updated:** 2026-08-05
-**Companion:** root `AGENTS.md`, the owner-approved versioned slice packet, `docs/codex/CODEX_PR_BRANCH_RECOVERY.md`, and `tools/codex/publish_milestone_pr.ps1`
+**Revision:** 7
+**Last updated:** 2026-08-09
+**Companions:** root `AGENTS.md`, the owner-approved versioned slice packet, `docs/codex/ACTOR_PROMPT_STANDARD.md`, `docs/codex/CODEX_PR_BRANCH_RECOVERY.md`, and `tools/codex/publish_milestone_pr.ps1`
 
 ## Purpose
 
@@ -20,7 +20,7 @@ long-lived planning architect
 -> one feature branch and one pull request
 -> PR publication
 -> exact-head CI
--> owner/architect paste-ready exact-head review request
+-> owner/architect compact paste-ready exact-head review request
 -> primary independent reviewer
 -> persisted review findings
 -> fresh PR-lifetime triage architect
@@ -36,6 +36,8 @@ long-lived planning architect
 ```
 
 The planning architect does not independently assess its own packet or perform routine PR-lifetime triage. The implementation task executes the approved packet and does not rewrite its own authority. A primary independent reviewer reviews the exact head before the fresh PR-lifetime triage architect classifies persisted findings and convergence. Triage authorizes any bounded correction; a fixer receives a bounded correction packet rather than the entire planning history, and material correction uses a fresh fixer task on the same branch/PR.
+
+All architect-drafted implementation, triage, fixer, audit, and review wrappers follow `ACTOR_PROMPT_STANDARD.md`, including explicit recommended model, effort, session, and session rationale.
 
 ## One slice, one branch, one pull request
 
@@ -65,6 +67,7 @@ verified base ref
 feature branch
 PR target and title
 primary owner and principal transition
+recommended implementation model, effort, session, and rationale
 sole context manifest
 included scope and exclusions
 acceptance/test oracle
@@ -74,6 +77,8 @@ hard stop
 ```
 
 Do not replace the packet manifest with broad routine reading. Failed branches, superseded prompt bodies, architect transcripts, full design sources, the full decision log, and the full milestone map are exceptional context only when an exact packet entry or concrete unresolved conflict requires them.
+
+A wrapper prompt for the implementer should normally identify the approved packet and any current baseline fact not already contained there. It must not restate the packet as a second implementation contract.
 
 If live repository state materially differs from the packet baseline, stop before dependent edits. Record the exact mismatch and return to the planning architect rather than resetting legitimate newer work or silently adapting the packet.
 
@@ -91,7 +96,7 @@ Codex implementation and fixer tasks must not:
 - use a branch or PR from an abandoned milestone as the implementation base;
 - create a replacement PR merely because a correction is required;
 - broaden or materially rewrite the active packet;
-- treat “finish,” “publish,” “submit,” or “complete” as merge authority.
+- treat `finish`, `publish`, `submit`, or `complete` as merge authority.
 
 Merge, close, branch deletion, replacement, force, and history rewrite are owner-only actions. `CODEX_PR_BRANCH_RECOVERY.md` is an exceptional deliberately authorized recovery procedure, not ordinary publication guidance.
 
@@ -159,7 +164,7 @@ Initial published head:
 ```text
 PR publication/update
 -> exact-head CI
--> owner/architect paste-ready exact-head review request
+-> owner/architect compact paste-ready exact-head review request
 -> primary independent exact-head review of the complete current diff
 -> persisted review findings
 -> fresh PR-lifetime triage
@@ -190,6 +195,69 @@ The triage architect owns true-positive, false-positive, duplicate, correction, 
 After two substantial correction rounds, pause for an explicit convergence assessment. Continue when remaining findings are local, understood, testable, and within the existing design. Stop, split, or redesign only when affirmative evidence shows an architecture, ownership, scope, oracle, repeated-root-cause, or evidence-integrity problem. Round count alone is never dispositive.
 
 Any code or relevant contract commit after a final review invalidates that final-review evidence. Any commit after owner verification invalidates that owner-verification evidence. CI may rerun automatically; review and owner evidence require deliberate reconciliation against the new head.
+
+## Compact GitHub Codex review request
+
+GitHub `@codex review` is a platform invocation on the PR where the comment is posted. The review comment already inherits repository and PR identity. Follow `ACTOR_PROMPT_STANDARD.md` and the template at `docs/codex/templates/actor-prompts/GITHUB_CODEX_REVIEW_TEMPLATE.txt`.
+
+The architect's routing record is normally kept outside the PR comment:
+
+```text
+Actor: Primary independent reviewer
+Recommended model: Platform-selected GitHub Codex reviewer
+Effort: Platform-managed; adversarial/high-depth through requested focus
+Session: PLATFORM INVOCATION
+Session rationale: Fresh exact-head review independent of planning and implementation context
+```
+
+A normal PR comment is:
+
+```text
+@codex review
+
+Mode: <primary independent | bounded rereview | final unrestricted> review of the current PR head.
+
+Authority:
+- `<active packet path>`
+- `<exact decision or contract reference>`
+
+Focus:
+- <risk boundary 1>
+- <risk boundary 2>
+
+Report only material P1/P2 findings. Ignore style-only observations and behavior explicitly deferred by the packet.
+Limit: at most <N> findings and <N> words.
+Read-only; do not implement or mutate the PR.
+```
+
+Normally omit:
+
+- repository name;
+- PR number and title;
+- branch and base;
+- complete changed-path list;
+- full implementation-packet restatement;
+- broad CI narrative;
+- exhaustive generic no-action lists.
+
+Include an exact head SHA only when it distinguishes a corrected head from an earlier request, is required for a bounded rereview, or is operationally necessary to reconcile exact-head evidence.
+
+For a bounded rereview, name only the corrected findings and adjacent regression surface. For a final unrestricted review, audit the complete current stable head and remove the bounded-finding restriction while retaining current authority, materiality, and output ceilings.
+
+## Fixer prompt boundary
+
+A material correction normally uses a fresh fixer session. The correction packet contains only:
+
+- final triage dispositions;
+- current expected branch/head when required;
+- exact authorized files or responsibility boundary;
+- required behavioral or text-level outcomes;
+- protected current behavior;
+- direct regressions and broader validation;
+- publication boundary;
+- stop conditions and final evidence.
+
+Do not give the fixer the full architect transcript, complete milestone history, or every prior review request. A trivial continuation may remain in an existing fixer session only when the prompt names the session and explains why its bounded context is beneficial and independence is unnecessary.
 
 ## Recommended GitHub `main` ruleset
 

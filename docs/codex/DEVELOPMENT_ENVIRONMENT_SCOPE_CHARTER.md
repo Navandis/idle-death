@@ -2,9 +2,10 @@
 
 **Status:** Owner-approved operating charter
 **Effective date:** 2 August 2026
+**Last updated:** 9 August 2026
 **Document role:** Stable purpose, scope, proportionality, interaction, review, and handover guardrails for completing and operating the Death Idle AI-assisted development environment
 **Applies to:** Development-environment setup, workflow tooling, future setup handovers, and later improvements to the recurring development process
-**Use with:** The latest dated setup bootstrap for mutable repository, branch, pull-request, CI, credential, and machine state
+**Use with:** The latest dated setup bootstrap for setup-specific mutable state, and `docs/codex/ARCHITECT_HANDOVER_STANDARD.md` for transitions between long-lived planning-architect sessions
 
 ---
 
@@ -88,7 +89,7 @@ Use this charter.
 
 ### Current operational state
 
-Use the latest dated setup bootstrap or handover. It owns mutable facts such as:
+Use the latest dated setup bootstrap for setup-specific continuation. Use the current planning-architect runtime handover, governed by `docs/codex/ARCHITECT_HANDOVER_STANDARD.md`, for a long-lived architect session transition. These records own only the mutable facts and net delta needed for continuation, such as:
 
 - current local branch and SHA;
 - `origin/main` SHA;
@@ -467,7 +468,7 @@ Once the required loop is sufficient, return to game development. Improve the en
 
 ## 12. Handover and bootstrap anti-drift requirements
 
-This charter is stable policy. A dated bootstrap is a mutable operational snapshot. Future handovers should use both.
+This charter is stable policy. A dated setup bootstrap is a mutable operational snapshot. A planning-architect session transition uses `docs/codex/ARCHITECT_HANDOVER_STANDARD.md` and references this charter rather than copying it into the package.
 
 A future setup handover must:
 
@@ -515,7 +516,9 @@ A step that cannot answer these questions clearly should not proceed without exp
 
 ---
 
-## 14. Compact future handover template
+## 14. Compact setup-specific future handover template
+
+This template remains for development-environment setup transitions. A general long-lived planning-architect rollover uses the two-file package and fuller delta/cutoff contract in `docs/codex/ARCHITECT_HANDOVER_STANDARD.md`.
 
 ```markdown
 # Death Idle Development Environment — Session Handover
@@ -555,6 +558,8 @@ A step that cannot answer these questions clearly should not proceed without exp
 ## Next operation
 
 - Purpose:
+- Execution owner:
+- Planning architect responsibility:
 - Required authorization:
 - Stop conditions:
 - Evidence expected:
@@ -579,7 +584,8 @@ This charter codifies the owner-approved clarification that:
 - the automation and procedures used only to establish that environment are bootstrap scaffolding;
 - setup instructions should minimize owner-facing detail that is not actionable;
 - review-round limits require convergence assessment rather than automatic abandonment;
-- setup should stop expanding when the durable development loop is sufficient.
+- setup should stop expanding when the durable development loop is sufficient;
+- general planning-architect rollovers should use the lean referenced-authority package in `ARCHITECT_HANDOVER_STANDARD.md`.
 
 It supersedes any prior handover wording that:
 

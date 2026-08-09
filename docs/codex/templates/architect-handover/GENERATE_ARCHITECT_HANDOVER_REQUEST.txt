@@ -1,0 +1,117 @@
+ROUTING
+
+Actor: Outgoing long-lived Death Idle planning architect
+Recommended model: ChatGPT Sol Pro
+Effort: High
+Session: EXISTING: current planning-architect session
+Session rationale: This session alone has direct access to its accepted session delta, current owner decisions, and the exact point at which its context is ending.
+
+OBJECTIVE
+
+Create the successor handover and bootstrap package required by `docs/codex/ARCHITECT_HANDOVER_STANDARD.md` for a fresh long-lived planning architect.
+
+This is a continuity task, not an implementation, correction, review, triage, or repository-mutation task.
+
+REQUIRED AUTHORITY
+
+Read the current repository versions of:
+
+- `docs/codex/ARCHITECT_HANDOVER_STANDARD.md`;
+- `docs/codex/STANDARD_MILESTONE_SLICE_WORKFLOW.md`;
+- `docs/codex/DEVELOPMENT_GOVERNANCE_FINDINGS_AND_ACTIONS.md`;
+- `docs/codex/ACTOR_PROMPT_STANDARD.md`;
+- `docs/codex/templates/architect-handover/00_BOOTSTRAP_PROMPT.txt`;
+- `docs/codex/templates/architect-handover/01_SESSION_HANDOVER.md`.
+
+Then read only the current decisions, milestones, architecture/contracts, planning memo, slice packet, pull request, CI, review, and owner evidence required to establish the current cutoff.
+
+Do not copy those current authorities into the package.
+
+REQUIRED PACKAGE
+
+Produce one archive containing exactly:
+
+```text
+00_BOOTSTRAP_PROMPT.txt
+01_SESSION_HANDOVER.md
+```
+
+An optional third file is permitted only when it is active session-only material needed by the immediate next planning action and cannot be reconstructed from the repository, PR, CI, review threads, owner evidence, or `01_SESSION_HANDOVER.md`. Name and justify any optional file inside the handover.
+
+Do not include:
+
+- package manifests;
+- checksum or SHA-sum files;
+- byte counts or assembly records;
+- copies of repository documents;
+- copied PR bodies, CI logs, or review transcripts;
+- full chat history;
+- failed approaches or correction chronology that no longer changes current authority;
+- old prompts retained only for completeness.
+
+HANDOVER CONTENT
+
+Fill `01_SESSION_HANDOVER.md` with:
+
+1. exact handover date/time and outgoing-session coverage;
+2. current phase, parent milestone or sequence, active bounded task, and lifecycle stage;
+3. the successor's planning-architect role boundary;
+4. one exact authority map pointing to current sources;
+5. only the mutable facts required for continuation, using the standard source labels and verification/report times;
+6. the net session delta: accepted, implemented, merged, rejected, superseded, or open outcomes that changed current planning;
+7. the last completed bounded operation;
+8. the single next workflow action;
+9. the execution owner for that action;
+10. the planning architect's own immediate responsibility, stated separately;
+11. expected next two to four transitions without expanding into the full remaining milestone;
+12. open owner decisions, blockers, and active risks;
+13. superseded routes or prohibited reuse only where restoration remains credible;
+14. active or next actor routing with recommended model, effort, session, and rationale;
+15. facts the successor must reverify before a dependent action.
+
+Distinguish implementation, CI, primary review, PR-lifetime triage, correction/convergence, final review, owner verification, and integration when a PR is active.
+
+SOURCE DISCIPLINE
+
+Use:
+
+```text
+REPO_VERIFIED
+GITHUB_VERIFIED
+OWNER_REPORTED
+ACTOR_REPORTED
+SESSION_ONLY
+UNVERIFIED
+```
+
+Do not infer a clean local working tree, owner-machine state, external-session state, current head, or passed gate without current evidence. If a current generated workflow-state document exists and is validated, use it only for facts it actually proves. The contract document alone is not evidence.
+
+BOOTSTRAP CONTENT
+
+Fill `00_BOOTSTRAP_PROMPT.txt` from the repository template. Keep it role-focused and normally within 250-500 words. Do not place current milestone detail, findings, SHAs, path lists, or implementation requirements in the bootstrap prompt.
+
+The fresh architect's first response must reconstruct and verify the continuation boundary before implementation, repository edits, GitHub mutation, or actor dispatch unless the latest owner instruction explicitly authorizes that exact action.
+
+BOUNDARIES
+
+While preparing this package:
+
+- do not implement or fix code;
+- do not edit repository files;
+- do not commit or push;
+- do not mutate GitHub;
+- do not resolve review threads;
+- do not merge, close, force, replace, or delete;
+- do not silently decide an open owner question;
+- do not create a new planning packet merely to make the handover appear complete.
+
+OUTPUT CONTRACT
+
+Return:
+
+- the completed archive;
+- the two included filenames;
+- any optional file and its justification, or `None`;
+- the handover word count;
+- a concise statement that copied repository authority, manifests, checksums, and transcript history are absent;
+- any fact left `UNVERIFIED` that materially affects the successor's next action.

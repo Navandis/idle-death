@@ -2,12 +2,15 @@
 
 **Status:** Owner-approved durable workflow specification
 **Effective date:** 2 August 2026
-**Revision:** 1.1 — architect-lane session separation clarified
+**Revision:** 1.2 — architect handover and actor-prompt routing codified
+**Last updated:** 9 August 2026
 **Document role:** Standard actor, artifact, context, information-transfer, review, verification, integration, and handover model for one Death Idle implementation slice
 **Applies to:** Game implementation milestones, architecture-driven documentation slices, review corrections, owner verification, and future workflow automation
 **Companion records:**
 - [Development environment scope charter](DEVELOPMENT_ENVIRONMENT_SCOPE_CHARTER.md);
 - [Governance findings and actions](DEVELOPMENT_GOVERNANCE_FINDINGS_AND_ACTIONS.md);
+- [Architect handover standard](ARCHITECT_HANDOVER_STANDARD.md);
+- [Actor prompt standard](ACTOR_PROMPT_STANDARD.md);
 - current repository decisions, milestones, architecture, testing, and operational workflow documents;
 - the active approved slice packet.
 
@@ -177,7 +180,8 @@ Exceptions are allowed only for trivial, directly provable work where another ar
 - prepare decisions, milestone changes, planning memo, and lean slice packet;
 - maintain context-routing rules;
 - receive escalations from scope assessment and PR triage;
-- create handovers and durable pivot records.
+- create handovers and durable pivot records;
+- draft bounded actor prompts under `ACTOR_PROMPT_STANDARD.md`.
 
 **Produces**
 
@@ -461,7 +465,9 @@ No agent or automation infers merge permission from words such as “finish,” 
 | Owner verification log | Owner tool | Windows/interactive exact-head evidence | Generated local evidence; not committed |
 | Merge commit | Owner | Integration record | Permanent |
 | Post-merge CI | GitHub Actions | Integrated-main validation | Permanent evidence |
-| Operational bootstrap | Architect | Mutable current state and next step | Replaced by later bootstrap |
+| Setup operational bootstrap | Architect | Mutable setup state and next setup step | Replaced by later setup bootstrap |
+| Planning architect runtime handover | Outgoing planning architect | Successor bootstrap, net session delta, source-labelled mutable state, and exact cutoff | Replaced by later handover |
+| Handover and actor-prompt standards | Architect + owner approval | Continuity, prompt proportionality, and explicit session routing | Durable |
 | G0 governance/workflow records | Architect + owner approval | Continuity and anti-drift | Durable |
 
 ---
@@ -486,7 +492,7 @@ No agent or automation infers merge permission from words such as “finish,” 
 | Owner verifier | Architect/PR | PASS/FAIL and log reference | Chat or PR comment | Owner | Manual, concise |
 | Owner | `main` | Merge decision | GitHub UI/CLI | Owner | Manual, consequential |
 | Merge | CI | Integrated main head | Push event | GitHub | Automatic |
-| Architect | Future architect | Pillar records and current bootstrap | Markdown artifacts/repository | Owner supplies new session | Manual bootstrap, durable sources |
+| Outgoing architect | Future architect | Net session delta, source-labelled mutable state, exact cutoff, and authority manifest | Two-file runtime handover referencing current repository/GitHub authority | Owner supplies new session | Manual bootstrap, durable sources |
 
 The owner should not manually paste implementation details that are already present in the branch, PR, CI, or packet.
 
@@ -1014,6 +1020,8 @@ Use the lowest effort that can reliably resolve the uncertainty:
 - High: architecture-sensitive, adversarial, cross-layer, or transactional;
 - Max/Ultra: exceptional exhaustive pass after a scoped High attempt.
 
+Every architect-drafted prompt must state the recommended model, effort, session choice, and session rationale. Use `ACTOR_PROMPT_STANDARD.md` for prompt proportionality, context selection, and fresh-versus-existing-session rules. Platform-selected review actors are identified as platform-selected rather than assigned a fictitious selectable model.
+
 ---
 
 ## 11. Owner-facing interaction standard
@@ -1117,30 +1125,32 @@ Record the evidence and redesign the ownership/model rather than adding another 
 
 ## 14. Architect handover and session transition
 
-The architect session should create a new bootstrap before context loss becomes operationally dangerous.
+The planning architect must create a successor bootstrap before context loss becomes operationally dangerous. Use `ARCHITECT_HANDOVER_STANDARD.md`; do not improvise a new package shape for each session.
 
-A handover must reference:
+A normal successor-facing runtime package contains exactly:
 
-1. scope and anti-drift charter;
-2. G0 governance record;
-3. this workflow specification;
-4. latest repository decisions and milestones;
-5. current architecture;
-6. latest operational bootstrap;
-7. active planning memo/packet;
-8. exact current repository/PR/CI state.
+```text
+00_BOOTSTRAP_PROMPT.txt
+01_SESSION_HANDOVER.md
+```
 
-It must state:
+The package references current repository and GitHub authority; it does not copy stable governance, architecture, decisions, milestone maps, active packets, PR bodies, CI logs, review transcripts, or other material already available in its canonical system. Package manifests, checksum lists, byte counts, and other bundling scaffolding are excluded.
 
-- what was decided and why;
-- what is current authority;
-- what is superseded;
-- what must not be restored;
-- current model/subscription lanes;
-- the single next bounded topic;
-- any owner decision still required.
+The handover must preserve:
 
-The next architect must verify current mutable facts rather than assuming the handover’s SHAs remain current.
+- the net session delta rather than the path taken to reach it;
+- an exact authority map with current, open, and historical/superseded bands;
+- mutable facts labelled by source and verification status;
+- the current parent milestone, bounded task, lifecycle stage, and last completed operation;
+- the single next workflow action;
+- the execution owner for that action;
+- the planning architect's own immediate responsibility, stated separately;
+- open owner decisions, blockers, and active drift risks;
+- model, effort, and fresh-versus-existing-session routing for active or next actors.
+
+The outgoing architect must not infer unavailable local, owner-machine, or external-session state. It marks such facts `UNVERIFIED`, `OWNER_REPORTED`, or `ACTOR_REPORTED` as defined by the handover standard.
+
+The successor reads the handover, fetches current durable authority, reverifies mutable facts that affect the next action, states the continuation boundary, and remains read-only during its first reconstruction response unless the latest owner instruction explicitly authorizes a mutation or dispatch.
 
 ---
 

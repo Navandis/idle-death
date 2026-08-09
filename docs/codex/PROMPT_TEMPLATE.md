@@ -3,7 +3,8 @@
 **Document role:** Active template for one bounded, directly executable implementation slice
 **Repository path:** `docs/codex/PROMPT_TEMPLATE.md`
 **Compatibility note:** The filename is retained as a legacy compatibility path. Its active contents define a slice packet, not the historical monolithic prompt model.
-**Last updated:** 2026-08-04
+**Last updated:** 2026-08-09
+**Companions:** `docs/codex/ACTOR_PROMPT_STANDARD.md`, `docs/codex/STANDARD_MILESTONE_SLICE_WORKFLOW.md`, and `docs/codex/CODEX_DESKTOP_WORKFLOW.md`
 
 ## 1. Use and provenance
 
@@ -12,6 +13,8 @@ Create one versioned owner-approved packet for one directly executable lettered 
 `PROMPT_TEMPLATE.md` remains the active path to avoid reference churn. The `Prompt` column in `MILESTONES.md` is also a legacy column name pending a separately scoped migration. Historical rows continue to describe their original prompt artifacts, status, and provenance. Only G2-forward directly executable work uses that column to record versioned packet status. Do not rewrite or reclassify completed or superseded prompt bodies.
 
 Before approval, the planning architect verifies live repository state, drafts the packet, obtains a fresh independent scope assessment, incorporates bounded corrections, and obtains explicit owner approval. The implementation task executes the approved packet; it does not author, broaden, replace, or approve its own authority.
+
+The packet is durable task authority. Any separate wrapper prompt for the implementer, scope assessor, reviewer, triage architect, or fixer follows `ACTOR_PROMPT_STANDARD.md` and references this packet rather than paraphrasing it.
 
 Semantic completeness outranks brevity. The active packet must fit within 20,480 bytes only after every required field below is present and unambiguous. Stop and revise the design if the complete contract cannot fit without compressed or omitted rules.
 
@@ -31,12 +34,18 @@ PR target and title:
 Primary subsystem owner:
 Risk dimensions:
 Integration seams:
-Implementation model/effort:
+Implementation actor:
+Recommended model:
+Effort:
+Session:
+Session rationale:
 Output ceiling:
 Hard stop:
 ```
 
-State whether the packet is proposed, independently assessed, owner-approved, implemented, or historical. Name the exact branch and owner-only actions. Do not rely on relative terms such as “latest” without a verified ref.
+State whether the packet is proposed, independently assessed, owner-approved, implemented, or historical. Name the exact branch and owner-only actions. Do not rely on relative terms such as `latest` without a verified ref.
+
+The normal implementation routing is a fresh transactional Codex session. An existing session requires an explicit reason that its prior bounded context is useful, it is not near its context limit, and continuity does not compromise independence or scope control. Keep model and effort in separate fields.
 
 ## 3. Objective, outcome, and principal transition
 
@@ -59,7 +68,8 @@ This table is the sole task manifest. Use exact headings, requirement labels, de
 |---:|---|---|---|---|
 | 1 | Latest owner instruction | Approval/correction of this packet | Current authority | Inspect only |
 | 2 | `AGENTS.md` | Full file | Universal router | Inspect only |
-| 3 | [[PATH]] | [[EXACT HEADING/ID]] | [[REASON]] | [[STATUS]] |
+| 3 | This packet | Full file | Executable task authority | Add/modify unchanged after approval |
+| 4 | [[PATH]] | [[EXACT HEADING/ID]] | [[REASON]] | [[STATUS]] |
 
 Also list:
 
@@ -91,13 +101,15 @@ For state, reporting, persistence, or projection work, include a stored-versus-d
 
 List tempting adjacent work, later slices, architecture/product decisions, unapproved dependencies, historical implementations, and prohibited restoration. Exclusions are enforceable scope boundaries, not a generic disclaimer.
 
+Do not repeat generic workflow prohibitions at length when `AGENTS.md`, `CODEX_DESKTOP_WORKFLOW.md`, or another exact authority already governs them. Repeat a prohibition only when the present slice creates a realistic task-specific risk.
+
 ## 7. Behavioral and transition requirements
 
 Use stable IDs only where they improve traceability.
 
 ### [[REQ-ID]] - [[NAME]]
 
-State exact preconditions, transition, result, ownership, units/order, failure/no-mutation behavior, and later-slice exclusions. Do not prescribe private helpers or class layouts unless ownership/safety requires them.
+State exact preconditions, transition, result, ownership, units/order, failure/no-mutation behavior, and later-slice exclusions. Do not prescribe private helpers or class layouts unless ownership or safety requires them.
 
 ## 8. Acceptance and test oracle
 
@@ -138,6 +150,8 @@ State mandatory stop conditions. Stop before adding another owner, risk dimensio
 
 State the independent scope-assessor and PR-lifetime triage boundaries. One slice keeps one branch and one PR. Material correction rounds normally use a fresh bounded fixer context on that same branch/PR; a trivial mechanical correction may remain in the implementation task only when explicitly justified and directly provable.
 
+Any material change to the principal transition, ownership, schema, milestone sequence, or oracle returns to planning and fresh independent assessment before implementation continues.
+
 ## 10. Delivery, review, verification, and owner interface
 
 Define the actor handoff:
@@ -149,7 +163,7 @@ planning architect
 -> transactional implementer
 -> PR publication
 -> exact-head CI
--> owner/architect paste-ready exact-head review trigger
+-> compact paste-ready exact-head review trigger
 -> primary independent reviewer
 -> persisted review findings
 -> fresh PR-lifetime triage architect
@@ -172,6 +186,20 @@ Provide:
 - exact-head invalidation rule;
 - merge/close/delete/force/replacement/history authority;
 - final hard stop without merge.
+
+Every architect-drafted wrapper or handoff prompt states:
+
+```text
+Actor
+Recommended model
+Effort
+Session
+Session rationale
+```
+
+Use `ACTOR_PROMPT_STANDARD.md` for fresh-versus-existing-session selection and prompt proportionality.
+
+The GitHub `@codex review` comment should normally contain only the review mode, active authority, two to five risk bullets, materiality standard, output ceiling, and read-only boundary. Do not repeat repository, PR, branch, base, complete path list, or full packet content already supplied by the PR and current packet unless an exact ambiguity requires it.
 
 Owner-facing instructions use:
 

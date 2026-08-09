@@ -2,13 +2,16 @@
 
 **Status:** Owner-approved historical decision and anti-drift record
 **Effective date:** 2 August 2026
-**Revision:** 1.1 — architect-lane session separation clarified
+**Revision:** 1.2 — lean architect handover and actor-prompt routing codified
+**Last updated:** 9 August 2026
 **Document role:** Durable rationale for the major project-governance, context-routing, workflow, review, and model-selection pivots made before returning to game implementation
 **Applies to:** Future architect sessions, handovers, repository-documentation realignment, milestone planning, and development-workflow maintenance
 **Use with:**
 - [Development environment scope charter](DEVELOPMENT_ENVIRONMENT_SCOPE_CHARTER.md);
 - [Standard milestone slice workflow](STANDARD_MILESTONE_SLICE_WORKFLOW.md);
-- the latest dated operational bootstrap;
+- [Architect handover standard](ARCHITECT_HANDOVER_STANDARD.md);
+- [Actor prompt standard](ACTOR_PROMPT_STANDARD.md);
+- the latest setup bootstrap or planning-architect runtime handover;
 - current repository sources of truth, decisions, milestones, and active slice packet.
 
 ---
@@ -471,15 +474,13 @@ The architect is the only actor expected to retain broad multi-month context. Ot
 
 **Resulting action**
 
-Create and maintain a durable architect continuity bundle:
+Maintain durable continuity through repository authority plus the standardized planning-architect runtime handover:
 
-1. development-environment scope and anti-drift charter;
-2. this governance findings and actions record;
-3. the standard milestone workflow specification;
-4. current repository decisions, milestones, and architecture;
-5. latest dated operational bootstrap;
-6. active planning memo and approved slice packet;
-7. explicit supersession and prohibited-reuse list.
+1. stable policy remains in this charter, this governance record, the milestone workflow, the handover standard, and the actor-prompt standard;
+2. current product and architecture authority remains in decisions, milestones, architecture, contracts, planning memos, and approved slice packets;
+3. the successor package contains only the bootstrap prompt and one session handover;
+4. the handover points to current authority, records the net session delta, labels mutable state by source, and states the exact cutoff;
+5. copied governance documents, package manifests, checksum lists, transcripts, and completed-operation evidence are excluded from the runtime package.
 
 Pillar decisions must be written into durable records before the architect proceeds to the next major phase.
 
@@ -518,6 +519,63 @@ Remaining enhancements are added later only when demonstrated recurring friction
 **Guardrail**
 
 Sufficiency takes priority over roadmap completeness.
+
+---
+
+### G0-16 — Architect handover packages duplicated authority and encouraged role drift
+
+**Finding**
+
+The first architect rollover package copied stable governance records, completion records, evidence summaries, a context manifest, a read-me, a bootstrap prompt, a package manifest, and checksums into one archive. The successor received extensive implementation-adjacent detail before it had reconstructed the current planning boundary.
+
+**Risk**
+
+Duplicated authority could become stale, obscure the live repository, and make implementation detail more salient than the planning architect's non-implementation role. Chronological evidence also consumed context without improving the immediate continuation decision.
+
+**Resulting action**
+
+Adopt `ARCHITECT_HANDOVER_STANDARD.md`. A normal runtime handover contains only:
+
+```text
+00_BOOTSTRAP_PROMPT.txt
+01_SESSION_HANDOVER.md
+```
+
+The handover references current authority, transfers the net session delta, labels mutable state by source, and distinguishes the next workflow action from the planning architect's own responsibility. Optional files are allowed only for active session-only material that cannot be reconstructed from canonical sources.
+
+**Guardrail**
+
+Do not place copied repository documents, package manifests, checksum lists, transcripts, or historical command/evidence records in a successor package merely for completeness.
+
+---
+
+### G0-17 — Actor prompts lacked explicit session routing and proportionality
+
+**Finding**
+
+Prompts for fixers, reviewers, auditors, and triage actors did not always state the recommended model, reasoning effort, or whether continuity or independence required an existing or fresh session. GitHub `@codex review` comments also repeated repository, pull-request, branch, base, path-list, and evidence information already supplied by the invocation context or active packet.
+
+**Risk**
+
+An actor could inherit bias or lose useful continuity unintentionally, while overlong prompts displaced the exact finding, oracle, and stop condition. Conversely, an underspecified architecture assessment could omit the authority and risk surface needed for a sound decision.
+
+**Resulting action**
+
+Adopt `ACTOR_PROMPT_STANDARD.md`. Every architect-drafted actor prompt states:
+
+```text
+Actor
+Recommended model
+Effort
+Session
+Session rationale
+```
+
+The prompt then includes only the task modules required for the actor. Prompt length is proportional to uncertainty, risk, and required oracle. GitHub review requests use a compact PR-local form and rely on the active packet and exact authority rather than restating the PR.
+
+**Guardrail**
+
+Do not shorten away ownership, acceptance, validation, or stop conditions. Do not preserve an existing session merely because it exists; preserve it only when its context is beneficial and independence is not required.
 
 ---
 
@@ -679,47 +737,53 @@ The following decisions must be codified before work proceeds materially beyond 
 - scope and anti-drift charter;
 - governance findings and actions record;
 - standard milestone workflow;
+- architect handover standard;
+- actor prompt standard;
 - accepted decision records;
 - architecture and data contracts.
 
 **Mutable records**
 
-- latest bootstrap;
+- latest setup bootstrap or planning-architect runtime handover;
 - current main and branch SHAs;
 - active PR and CI state;
 - unresolved findings;
-- immediate next action;
-- currently approved slice packet.
+- immediate next workflow action and execution owner;
+- planning architect's immediate responsibility;
+- currently approved planning memo and slice packet.
 
-### 7.3 Required architect handover bundle
+### 7.3 Required architect runtime handover
 
-A new architect session should receive, in this order:
+Use `ARCHITECT_HANDOVER_STANDARD.md` and its repository templates. The filled successor-facing package contains exactly:
 
-1. latest owner instruction;
-2. scope and anti-drift charter;
-3. this G0 governance record;
-4. standard milestone workflow;
-5. latest dated bootstrap;
-6. current repository `DECISIONS.md`, `MILESTONES.md`, and relevant architecture sections;
-7. active planning memo and approved slice packet;
-8. exact current GitHub/repository state when needed.
+```text
+00_BOOTSTRAP_PROMPT.txt
+01_SESSION_HANDOVER.md
+```
+
+The bootstrap establishes the planning-architect role and first-turn reconstruction behavior. The session handover supplies the net delta, exact authority map, source-labelled mutable state, current cutoff, and active routing. Stable and active repository documents remain in the repository and are referenced at their current paths; they are not copied into the package.
+
+Optional files require an explicit justification and are limited to active unpublished session-only material that cannot be reconstructed from the repository, PR, CI, review threads, or the handover itself. Package manifests, checksums, file inventories, and assembly records are not runtime continuity artifacts.
 
 ### 7.4 Handover content requirements
 
 A handover must state:
 
-- exact date;
-- current phase;
-- last completed bounded operation;
-- current `main`, active branch, PR, and CI facts;
-- accepted architecture and milestone sequence;
-- active packet version;
-- open decisions and blockers;
-- current findings requiring disposition;
-- superseded prompts/plans;
-- prohibited restoration or reuse;
-- the single next bounded topic;
-- which subscription/model lane applies to each actor.
+- exact date and outgoing-session coverage;
+- current phase, parent milestone or sequence, active bounded task, and lifecycle stage;
+- exact current authority and any open or superseded authority bands;
+- the net session delta: accepted, implemented, merged, rejected, superseded, or open outcomes that changed current planning;
+- mutable repository, PR, CI, review, owner-verification, local, or external-session facts with a source label and verification/report time;
+- the last completed bounded operation;
+- the single next workflow action;
+- the execution owner for that action;
+- the planning architect's own immediate responsibility, stated separately;
+- expected next transitions without expanding into the whole remaining milestone;
+- open decisions, blockers, active drift risks, and prohibited restoration or reuse;
+- model, effort, session choice, and session rationale for active or next actors;
+- facts the successor must reverify before a dependent action.
+
+The handover omits conversational back-and-forth, failed approaches that no longer affect authority, repeated document summaries, completed-operation evidence available elsewhere, and implementation detail already governed by the active packet or PR.
 
 ### 7.5 Anti-drift test for a new architect session
 
@@ -727,14 +791,17 @@ Before issuing work, the new architect must be able to answer:
 
 1. What is the ultimate project goal?
 2. Which tooling is durable and which work was bootstrap-only?
-3. What is the current game-development milestone sequence?
-4. Which documents are current authority?
-5. Which documents are historical or superseded?
-6. What is the exact next bounded decision or operation?
-7. Which actor owns it?
-8. Which owner-only boundary applies?
-9. What would constitute a systemic stop versus another bounded correction?
-10. Which model/subscription lane applies?
+3. What changed during the outgoing architect session?
+4. What is the current game-development milestone sequence?
+5. Which documents are current authority, open authority, or historical/superseded evidence?
+6. What bounded task and lifecycle stage are active?
+7. What was the last completed bounded operation?
+8. What is the single next workflow action and who executes it?
+9. What is the planning architect's own immediate responsibility?
+10. Which mutable facts require reverification?
+11. Which owner-only boundary applies?
+12. What would constitute a systemic stop versus another bounded correction?
+13. Which model, effort, and session choice applies to each active or next actor?
 
 If these cannot be answered from durable records, the handover is incomplete.
 
@@ -751,7 +818,10 @@ This record supersedes prior wording that:
 - treated M04E2A2 persistence as the current next slice;
 - used failed branch implementations as normal implementer context;
 - routed the Enterprise architect and metered Codex actors under one budget;
-- assumed important pivots could remain only in an architect chat transcript.
+- assumed important pivots could remain only in an architect chat transcript;
+- treated an architect handover as an archive of copied repository authority, completion evidence, manifests, or checksums;
+- omitted explicit model, effort, and fresh-versus-existing-session routing from architect-drafted actor prompts;
+- restated repository and pull-request metadata in GitHub review comments when the PR invocation already supplied it.
 
 The following remain historical evidence only unless explicitly re-approved:
 
@@ -759,7 +829,8 @@ The following remain historical evidence only unless explicitly re-approved:
 - former M04E2A2 planning and prompt;
 - PR #23 production implementation;
 - the initial model selector’s obsolete price comparisons;
-- setup-era command-by-command operating patterns.
+- setup-era command-by-command operating patterns;
+- dated handover archives that only duplicate current repository or GitHub authority.
 
 ---
 
@@ -776,6 +847,9 @@ This document codifies owner-approved conclusions drawn from:
 - the M04E2 failed-attempt postmortem;
 - PR #23 architecture conclusions;
 - the completed PR #30 workflow and setup-sufficiency reassessment;
-- the owner clarification that the architect uses a separate Enterprise/Sol Pro lane.
+- the owner clarification that the architect uses a separate Enterprise/Sol Pro lane;
+- the 3 August 2026 architect handover package audit;
+- the bounded fixer and PR-lifetime triage prompt examples;
+- the repeated GitHub `@codex review` requests on PR #34.
 
 This is a historical governance record. Current mutable repository state must still be verified through the latest bootstrap and repository/GitHub evidence.
