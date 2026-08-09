@@ -40,8 +40,15 @@ func test_validator_accepts_only_production_reachable_continuation_tuples() -> v
 
 func test_validator_rejects_reused_mutable_report_nodes_across_complete_graph() -> void:
 	var rows := []
-	var continuation_root := _two_continuation_ledger()
+	var continuation_root := ReportLedger.create_empty(0)
+	continuation_root.threshold_continuations = [
+		_continuation(&"A", &"OVERDUE", 1, false, &""),
+		_continuation(&"B", &"OVERDUE", 1, false, &"")
+	]
 	assert_true(ReportLedgerValidator.validate(continuation_root).ok, "continuation root baseline validates")
+	assert_ne(continuation_root.threshold_continuations[0], continuation_root.threshold_continuations[1], "continuation roots are independently allocated")
+	assert_true(continuation_root.threshold_continuations[0].channels.is_empty(), "first continuation root is childless")
+	assert_true(continuation_root.threshold_continuations[1].channels.is_empty(), "second continuation root is childless")
 	continuation_root.threshold_continuations[1] = continuation_root.threshold_continuations[0]
 	rows.append(["continuation root", continuation_root])
 
