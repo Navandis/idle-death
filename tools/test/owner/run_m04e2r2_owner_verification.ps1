@@ -68,13 +68,61 @@ function Trace([string]$Output) {
     foreach ($marker in $markers) { if ([regex]::Matches($Output, "(?m)^TRACE M04E2R2 $marker=PASS\r?$").Count -ne 1) { return $false } }
     return [regex]::Matches($Output, '(?m)^TRACE M04E2R2 .*=FAIL\r?$').Count -eq 0
 }
-function Run([string]$Name, [string]$Exe, [string[]]$Args, [scriptblock]$Validator) {
-    Log "COMMAND ${Name}: $Exe $($Args -join ' ')"
-    $output = @(& $Exe @Args 2>&1); $code = $LASTEXITCODE
-    Log "NATIVE EXIT ${Name}: $code"; foreach ($line in $output) { Log "OUTPUT ${Name}: $($line.ToString())" }
-    $ok = $code -eq 0
-    if ($ok -and $Validator) { try { $ok = & $Validator (Lines $output) } catch { $ok = $false; Log "VALIDATOR ${Name}: $($_.Exception.Message)" } }
-    if ($ok) { $script:Stage[$Name] = 'PASS'; Log "PASS $Name" } else { Fail "$Name (native exit $code)" }
+function Run([string]$Name, [string]$Exe, [string[]]$CommandArgs, [scriptblock]$Validator) {
+    # Keep the received lines in a mutable list so the streaming pipeline and
+    # the validator use the same complete output, without delaying log output.
+    $output = [System.Collections.Generic.List[string]]::new()
+    $nativeExitRecorded = $false
+    $validatorRecorded = $false
+    $stageRecorded = $false
+    $failureRecorded = $false
+    try {
+        Log "COMMAND ${Name}: $Exe $($CommandArgs -join ' ')"
+        & $Exe @CommandArgs 2>&1 | ForEach-Object {
+            $line = $_.ToString()
+            [void]$output.Add($line)
+            Log "OUTPUT ${Name}: $line"
+        }
+        $code = $LASTEXITCODE
+        $nativeExitRecorded = $true
+        Log "NATIVE EXIT ${Name}: $code"
+
+        $ok = $code -eq 0
+        if ($Validator) {
+            try {
+                if ($ok) { $ok = & $Validator (Lines $output.ToArray()) }
+                Log "VALIDATOR ${Name}: $(if ($ok) {'PASS'} else {'FAIL'})"
+            } catch {
+                $ok = $false
+                Log "VALIDATOR ${Name}: $($_.Exception.Message)"
+            }
+        } else {
+            Log "VALIDATOR ${Name}: NOT REQUIRED"
+        }
+        $validatorRecorded = $true
+
+        if ($ok) {
+            $script:Stage[$Name] = 'PASS'
+            Log "PASS $Name"
+        } else {
+            Fail "$Name (native exit $code)"
+            $failureRecorded = $true
+        }
+        $stageRecorded = $true
+    } catch {
+        if (-not $nativeExitRecorded) { Log "NATIVE EXIT ${Name}: UNRECORDED (interrupted before child completion)" }
+        if (-not $validatorRecorded) { Log "VALIDATOR ${Name}: UNRECORDED (interrupted before validation)" }
+        Fail "$Name (interrupted before completion: $($_.Exception.Message))"
+        $failureRecorded = $true
+    } finally {
+        if (-not $stageRecorded) {
+            $script:Stage[$Name] = 'FAIL'
+            Log "STAGE ${Name}: FAIL (incomplete command accounting)"
+        }
+        if (-not $failureRecorded -and -not $stageRecorded) {
+            Fail "$Name (incomplete command accounting)"
+        }
+    }
 }
 function Retain-RecoveryBackup([string]$Reason) {
     if ($script:Backup -and (Test-Path -LiteralPath $script:Backup)) {
