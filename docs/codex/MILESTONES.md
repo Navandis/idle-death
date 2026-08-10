@@ -173,11 +173,11 @@ When trusted time is unavailable, the approved behavior is to grant no guessed c
 | M04E2A3 | Former cursor-idempotent live report ingestion | Implementation slice | Superseded | Not drafted | Not directly executable | — |
 | M04E2A4 | Former report reads, snapshot, bounded history, and final evidence | Implementation slice | Superseded | Not drafted | Not directly executable | — |
 | M04E2R1 | Normalized live report ledger and committed-run ingestion | Implementation slice | Approved | Approved v0.3 | Merged | Passed |
-| M04E2R2 | Snapshot, bounded history, retention, and detached reads | Implementation slice | Approved | Approved v0.3 | In progress | Partial |
+| M04E2R2 | Snapshot, bounded history, retention, and detached reads | Implementation slice | Definition Approved | Prompt Approved v0.3 | In progress through PR #35 | Passed |
 | M04E2P1 | GameState integration, schema-v4 migration, and persistence | Implementation slice | Approved | Not drafted | Not started | — |
 | M04E2B | Atomic simulation/report coordinator and final M04 harness | Implementation slice | Approved | Not drafted | Not started | — |
 
-M04E2R2 is in progress under its owner-approved v0.3 packet. Its draft-PR verification status is Partial; P1 and B remain deferred.
+M04E2R2 has Definition Approved and Prompt Approved v0.3. Implementation is in progress through PR #35; verification passed; owner integration/merge pending. P1 and B remain deferred / not started.
 
 ### Historical prior status map (superseded by `DEC-0045`; non-executable)
 
@@ -1653,7 +1653,7 @@ The final slice used 25 non-documentation/non-`.uid` files and 1,460 net additio
 
 #### Follow-on dependency
 
-- M04E2R1 completed through PR #34 and is Merged/Passed. M04E2R2 is now Approved / Approved v0.3 / In progress with Partial verification under its draft PR; M04E2P1 and M04E2B remain deferred.
+- M04E2R1 completed through PR #34 and is Merged/Passed. M04E2R2 has Definition Approved and Prompt Approved v0.3. Implementation is in progress through PR #35; verification passed; owner integration/merge pending. M04E2P1 and M04E2B remain deferred / not started.
 
 ---
 
@@ -1699,7 +1699,7 @@ Add one caller-owned, non-persisted normalized `ReportLedger` and a stateless in
 
 #### Follow-on dependency
 
-- M04E2R2 is now Approved / Approved v0.3 / In progress with Partial verification under its draft PR. M04E2P1 and M04E2B remain deferred.
+- M04E2R2 has Definition Approved and Prompt Approved v0.3. Implementation is in progress through PR #35; verification passed; owner integration/merge pending. M04E2P1 and M04E2B remain deferred / not started.
 
 ---
 

@@ -66,7 +66,12 @@ func _init() -> void:
 	overflow.foreground_elapsed_msec = 1
 	var overflow_result := ReportLedgerSnapshotter.rollover(overflow, 9)
 	if not _check(overflow_result.outcome == ReportLedgerSnapshotResult.REJECTED and overflow_result.error_code == ReportLedgerSnapshotter.ERR_SEQUENCE_OVERFLOW, "overflow"): return
-	if not _check(GameState.new(0).get("report_ledger") == null, "exclusion"): return
+	var has_report_ledger_property := false
+	for property in GameState.new(0).get_property_list():
+		if property.name == &"report_ledger":
+			has_report_ledger_property = true
+			break
+	if not _check(not has_report_ledger_property, "exclusion"): return
 	print("TRACE M04E2R2 complete=PASS")
 	quit(0)
 

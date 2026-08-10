@@ -14,7 +14,7 @@ M04E2R1 is Merged/Passed. The owner-approved M04E2R2 packet extends this same no
 
 `ReportLedger` is a non-persisted caller-owned runtime value. Its stored facts are root cursor/mode coverage, maximal attributed slices, full component identity, backlog/core endpoints and deltas, channel output/period/progress/carry/banked endpoints, and normalized Settlement events. It consumes only validated successful committed `SimulationRunResult` wrappers. Historical `ReportAccumulatorState`, report-history, `ReportService`, snapshot, and schema-v4 examples elsewhere in this document are superseded/non-executable until their R2/P1 boundaries are approved.
 
-`DEC-0046` is Accepted. M04E2R1 is Merged/Passed through PR #34. M04E2R2 is in progress through PR #35 under its owner-approved v0.3 packet, with Partial verification; exact-head Windows owner verification remains pending. M04E2P1 and M04E2B remain deferred.
+`DEC-0046` is Accepted. M04E2R1 is Merged/Passed through PR #34. M04E2R2 has Definition Approved and Prompt Approved v0.3. Implementation is in progress through PR #35; verification passed; owner integration/merge pending. M04E2P1 and M04E2B remain deferred.
 
 This document defines the boundary between immutable authored content and mutable authoritative state. It also defines canonical identifier rules, minimum entity fields, save-schema ownership, numeric units, reservations, report events, and validation requirements.
 
@@ -2706,7 +2706,7 @@ The active sequence is:
 M04E2T1 -> M04E2T2 -> M04E2R1 -> M04E2R2 -> M04E2P1 -> M04E2B
 ```
 
-M04E2T1 and M04E2T2 are Merged/Passed. M04E2R1 is Merged/Passed through PR #34. M04E2R2 is in progress through PR #35 under its owner-approved v0.3 packet, with Partial verification; exact-head Windows owner verification remains pending. M04E2P1 and M04E2B remain deferred.
+M04E2T1 and M04E2T2 are Merged/Passed. M04E2R1 is Merged/Passed through PR #34. M04E2R2 has Definition Approved and Prompt Approved v0.3. Implementation is in progress through PR #35; verification passed; owner integration/merge pending. M04E2P1 and M04E2B remain deferred.
 
 R1/R2 receive one explicitly caller-owned, non-persisted ledger or a private candidate derived from it. Before P1, no application, `GameSession`, service member, autoload, singleton, or hidden global retains canonical mutable ledger state. The owner-approved R1 packet defines its fields, API, ownership matrix, and test oracle; only irreducible source facts and needed transition cursors/identities may be stored, while redundant views are derived.
 

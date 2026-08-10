@@ -154,11 +154,11 @@ func test_public_source_validation_precedence_for_unreachable_overflows() -> voi
 func test_r2_ingestion_keeps_compact_continuation_after_live_merge() -> void:
 	var source := _apply(ReportLedger.create_empty(0), _active(0, 10, [_segment(0, 10, 10, 9)]))
 	assert_eq(source.threshold_continuations.size(), 1, "first accepted Threshold creates continuation")
-	var result := ReportLedgerIngestor.ingest_committed_run(source, _wrapper(_active(10, 20, [_segment(10, 20, 9, 8)])))
+	var result := ReportLedgerIngestor.ingest_committed_run(source, _wrapper(_active(10, 20, [_segment(10, 20, 9, 8, &"T", 1, &"F", [&"A"], "r", [_input_channel(&"C", 0, 3, 0, 0)])])))
 	assert_eq(result.outcome, ReportLedgerIngestResult.APPLIED, "continuing input applies")
 	var continuation := result.candidate_ledger.threshold_continuations[0]
 	assert_eq(continuation.remaining_backlog, 8, "continuation stores latest backlog")
-	assert_eq(continuation.channels[0].progress_subunits, 0, "continuation stores latest channel endpoint")
+	assert_eq(continuation.channels[0].progress_subunits, 3, "continuation stores latest channel endpoint")
 
 func test_settlement_spanning_run_uses_pre_run_duplicate_state_and_matches_chunks() -> void:
 	var first := _segment(0, 10, 1, 0)
@@ -182,8 +182,9 @@ func test_settlement_spanning_run_uses_pre_run_duplicate_state_and_matches_chunk
 	_assert_applied(one_shot_result, one_shot_source, one_shot_source_before, one_shot_run, one_shot_wrapper_before, one_shot_inner_before, "one-shot Settlement boundary run applies")
 	var first_chunk_result := ReportLedgerIngestor.ingest_committed_run(chunked_source, first_chunk_run)
 	_assert_applied(first_chunk_result, chunked_source, chunked_source_before, first_chunk_run, first_chunk_wrapper_before, first_chunk_inner_before, "first Settlement chunk applies")
+	var second_chunk_source_before := first_chunk_result.candidate_ledger.deep_clone()
 	var second_chunk_result := ReportLedgerIngestor.ingest_committed_run(first_chunk_result.candidate_ledger, second_chunk_run)
-	_assert_applied(second_chunk_result, first_chunk_result.candidate_ledger, first_chunk_result.candidate_ledger.deep_clone(), second_chunk_run, second_chunk_wrapper_before, second_chunk_inner_before, "following SETTLED chunk applies")
+	_assert_applied(second_chunk_result, first_chunk_result.candidate_ledger, second_chunk_source_before, second_chunk_run, second_chunk_wrapper_before, second_chunk_inner_before, "following SETTLED chunk applies")
 	assert_eq(one_shot_result.candidate_ledger.settlement_events.size(), 1, "one-shot emits exactly one normalized Settlement")
 	var continuation := one_shot_result.candidate_ledger.threshold_continuations[0]
 	assert_true(continuation.lifecycle_state == &"SETTLED" and continuation.remaining_backlog == 0 and continuation.has_settled, "post-boundary work leaves a settled compact continuation")

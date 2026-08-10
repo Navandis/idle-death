@@ -1756,7 +1756,7 @@ Accepted `DEC-0045` records PR #23 as a closed-unmerged architecture stop and su
 M04E2T1 -> M04E2T2 -> M04E2R1 -> M04E2R2 -> M04E2P1 -> M04E2B
 ```
 
-`DEC-0045`, `DEC-0046`, and `DEC-0047` are Accepted. M04E2R1 is Merged/Passed through PR #34. M04E2R2 is in progress through PR #35 under `DEC-0047` and its owner-approved v0.3 packet, with Partial verification; exact-head Windows owner verification remains pending. P1 and B remain deferred.
+`DEC-0045`, `DEC-0046`, and `DEC-0047` are Accepted. M04E2R1 is Merged/Passed through PR #34. M04E2R2 has Definition Approved and Prompt Approved v0.3. Implementation is in progress through PR #35; verification passed; owner integration/merge pending. P1 and B remain deferred.
 
 R1 proves one normalized ledger in memory before persistence. The ledger is explicitly caller-owned and non-persisted: every operation receives the ledger explicitly or a private candidate derived from it. Before P1, no application object, `GameSession`, service member, autoload, singleton, or hidden global retains canonical mutable ledger state. The owner-approved packet and [M04E2R1 planning memo](M04E2R1_PLANNING.md) define the exact R1 fields, API, ownership matrix, interval behavior, and test oracle. `DEC-0046` defines the current runtime boundary. This architecture still does not pre-approve `ReportService` or any other application/service owner.
 

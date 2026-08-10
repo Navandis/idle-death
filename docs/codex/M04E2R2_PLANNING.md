@@ -12,7 +12,7 @@
 
 M04E2R1 is Merged/Passed through PR #34. The repository has one caller-owned, non-persisted `ReportLedger`, a stateless committed-run ingestor, one runtime validator, exact R1 continuity and transactionality tests, a deterministic trace, and an owner-verification package.
 
-M04E2R2 is the next bounded slice. It now has owner-approved `DEC-0047`, this planning memo, the v0.3 slice packet, `MAX_RETAINED_RECORDS = 8`, the exact concept/path authority, the categorized thresholds, and separate implementation authorization. No implementation branch, pull request, implementation result, CI evidence, review, or owner verification exists yet.
+**Historical planning-state snapshot (true at approval):** M04E2R2 was the next bounded slice with owner-approved `DEC-0047`, this planning memo, the v0.3 slice packet, `MAX_RETAINED_RECORDS = 8`, the exact concept/path authority, the categorized thresholds, and separate implementation authorization; no implementation branch, pull request, implementation result, CI evidence, review, or owner verification then existed. **Present status:** PR #35 has implemented the slice, the complete verification package has passed, and owner integration/merge remains pending.
 
 Independent assessment v0.1 returned **APPROVE WITH BOUNDED CORRECTIONS** and found no architecture blocker. Candidate v0.2 incorporated all six bounded corrections. The same assessor then returned **APPROVE**, confirmed one coherent slice, supported the `3,600` governed-addition stop-and-reassess threshold, and recommended no initial exception.
 
