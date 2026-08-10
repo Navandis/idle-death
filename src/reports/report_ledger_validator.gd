@@ -152,17 +152,28 @@ static func _continuation_tuple_is_reachable(continuation: ReportThresholdContin
 
 static func _validate_owned_node_identities(ledger: ReportLedger) -> String:
 	var seen := {}
+	var seen_arrays := []
+	if not _track_owned_array(ledger.slices, seen_arrays): return "Ledger-owned mutable report node is reused."
+	if not _track_owned_array(ledger.settlement_events, seen_arrays): return "Ledger-owned mutable report node is reused."
+	if not _track_owned_array(ledger.retained_records, seen_arrays): return "Ledger-owned mutable report node is reused."
+	if not _track_owned_array(ledger.threshold_continuations, seen_arrays): return "Ledger-owned mutable report node is reused."
 	for continuation in ledger.threshold_continuations:
 		if not _track_owned_node(continuation, seen): return "Ledger-owned mutable report node is reused."
 		if continuation != null:
+			if not _track_owned_array(continuation.ordered_retinue_ids, seen_arrays): return "Ledger-owned mutable report node is reused."
+			if not _track_owned_array(continuation.channels, seen_arrays): return "Ledger-owned mutable report node is reused."
 			for channel in continuation.channels:
 				if not _track_owned_node(channel, seen): return "Ledger-owned mutable report node is reused."
 	for record in ledger.retained_records:
 		if not _track_owned_node(record, seen): return "Ledger-owned mutable report node is reused."
 		if record != null:
+			if not _track_owned_array(record.slices, seen_arrays): return "Ledger-owned mutable report node is reused."
+			if not _track_owned_array(record.settlement_events, seen_arrays): return "Ledger-owned mutable report node is reused."
 			for slice in record.slices:
 				if not _track_owned_node(slice, seen): return "Ledger-owned mutable report node is reused."
 				if slice != null:
+					if not _track_owned_array(slice.ordered_retinue_ids, seen_arrays): return "Ledger-owned mutable report node is reused."
+					if not _track_owned_array(slice.channels, seen_arrays): return "Ledger-owned mutable report node is reused."
 					for channel in slice.channels:
 						if not _track_owned_node(channel, seen): return "Ledger-owned mutable report node is reused."
 			for event in record.settlement_events:
@@ -170,12 +181,20 @@ static func _validate_owned_node_identities(ledger: ReportLedger) -> String:
 	for slice in ledger.slices:
 		if not _track_owned_node(slice, seen): return "Ledger-owned mutable report node is reused."
 		if slice != null:
+			if not _track_owned_array(slice.ordered_retinue_ids, seen_arrays): return "Ledger-owned mutable report node is reused."
+			if not _track_owned_array(slice.channels, seen_arrays): return "Ledger-owned mutable report node is reused."
 			for channel in slice.channels:
 				if not _track_owned_node(channel, seen): return "Ledger-owned mutable report node is reused."
 	for event in ledger.settlement_events:
 		if not _track_owned_node(event, seen): return "Ledger-owned mutable report node is reused."
 	return ""
 
+
+static func _track_owned_array(container: Array, seen: Array) -> bool:
+	for tracked in seen:
+		if is_same(tracked, container): return false
+	seen.append(container)
+	return true
 static func _track_owned_node(node: RefCounted, seen: Dictionary) -> bool:
 	if node == null: return true
 	var identity := node.get_instance_id()

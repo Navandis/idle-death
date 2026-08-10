@@ -89,6 +89,89 @@ func test_validator_rejects_reused_mutable_report_nodes_across_complete_graph() 
 		assert_eq(failure.details, "Ledger-owned mutable report node is reused.", "%s reports the identity failure details" % row[0])
 	assert_true(ReportLedgerValidator.validate(_retained_live_childless_slice_ledger()).ok, "fully detached graph validates")
 
+func test_validator_rejects_reused_mutable_report_array_containers_across_complete_graph() -> void:
+	var rows := []
+	var continuation_retinue := _two_continuation_ledger()
+	assert_true(ReportLedgerValidator.validate(continuation_retinue).ok, "continuation Retinue baseline validates")
+	assert_false(is_same(continuation_retinue.threshold_continuations[0].ordered_retinue_ids, continuation_retinue.threshold_continuations[1].ordered_retinue_ids), "continuation Retinue containers are independently allocated")
+	continuation_retinue.threshold_continuations[1].ordered_retinue_ids = continuation_retinue.threshold_continuations[0].ordered_retinue_ids
+	rows.append(["continuation Retinue", continuation_retinue])
+
+	var slice_retinue := _childless_slice_ledger()
+	assert_true(ReportLedgerValidator.validate(slice_retinue).ok, "slice Retinue baseline validates")
+	assert_false(is_same(slice_retinue.slices[0].ordered_retinue_ids, slice_retinue.slices[1].ordered_retinue_ids), "slice Retinue containers are independently allocated")
+	slice_retinue.slices[1].ordered_retinue_ids = slice_retinue.slices[0].ordered_retinue_ids
+	rows.append(["slice Retinue", slice_retinue])
+
+	var slice_to_continuation_retinue := _childless_slice_ledger()
+	assert_true(ReportLedgerValidator.validate(slice_to_continuation_retinue).ok, "slice-to-continuation Retinue baseline validates")
+	assert_false(is_same(slice_to_continuation_retinue.slices[0].ordered_retinue_ids, slice_to_continuation_retinue.threshold_continuations[0].ordered_retinue_ids), "slice and continuation Retinue containers are independently allocated")
+	slice_to_continuation_retinue.threshold_continuations[0].ordered_retinue_ids = slice_to_continuation_retinue.slices[0].ordered_retinue_ids
+	rows.append(["slice-to-continuation Retinue", slice_to_continuation_retinue])
+
+	var continuation_channels := ReportLedger.create_empty(0)
+	continuation_channels.threshold_continuations = [_continuation(&"A", &"OVERDUE", 1, false, &""), _continuation(&"B", &"OVERDUE", 1, false, &"")]
+	assert_true(ReportLedgerValidator.validate(continuation_channels).ok, "empty continuation channels baseline validates")
+	assert_false(is_same(continuation_channels.threshold_continuations[0].channels, continuation_channels.threshold_continuations[1].channels), "empty continuation channel containers are independently allocated")
+	continuation_channels.threshold_continuations[1].channels = continuation_channels.threshold_continuations[0].channels
+	rows.append(["empty continuation channels", continuation_channels])
+
+	var slice_channels := _childless_slice_ledger()
+	assert_true(ReportLedgerValidator.validate(slice_channels).ok, "empty slice channels baseline validates")
+	assert_false(is_same(slice_channels.slices[0].channels, slice_channels.slices[1].channels), "empty slice channel containers are independently allocated")
+	slice_channels.slices[1].channels = slice_channels.slices[0].channels
+	rows.append(["empty slice channels", slice_channels])
+
+	var record_slices := _two_record_ledger()
+	assert_true(ReportLedgerValidator.validate(record_slices).ok, "empty retained record slices baseline validates")
+	assert_false(is_same(record_slices.retained_records[0].slices, record_slices.retained_records[1].slices), "empty retained record slice containers are independently allocated")
+	record_slices.retained_records[1].slices = record_slices.retained_records[0].slices
+	rows.append(["empty retained record slices", record_slices])
+
+	var live_to_retained_slices := _retained_live_childless_slice_ledger()
+	live_to_retained_slices.retained_records[0].slices.clear()
+	live_to_retained_slices.slices.clear()
+	assert_true(ReportLedgerValidator.validate(live_to_retained_slices).ok, "empty live-to-retained slices baseline validates")
+	assert_false(is_same(live_to_retained_slices.retained_records[0].slices, live_to_retained_slices.slices), "empty live and retained slice containers are independently allocated")
+	live_to_retained_slices.slices = live_to_retained_slices.retained_records[0].slices
+	rows.append(["empty live-to-retained slices", live_to_retained_slices])
+
+	var record_events := _two_record_ledger()
+	assert_true(ReportLedgerValidator.validate(record_events).ok, "empty retained record events baseline validates")
+	assert_false(is_same(record_events.retained_records[0].settlement_events, record_events.retained_records[1].settlement_events), "empty retained record event containers are independently allocated")
+	record_events.retained_records[1].settlement_events = record_events.retained_records[0].settlement_events
+	rows.append(["empty retained record events", record_events])
+
+	var live_to_retained_events := _retained_live_childless_slice_ledger()
+	assert_true(ReportLedgerValidator.validate(live_to_retained_events).ok, "empty live-to-retained events baseline validates")
+	assert_false(is_same(live_to_retained_events.retained_records[0].settlement_events, live_to_retained_events.settlement_events), "empty live and retained event containers are independently allocated")
+	live_to_retained_events.settlement_events = live_to_retained_events.retained_records[0].settlement_events
+	rows.append(["empty live-to-retained events", live_to_retained_events])
+
+	for row in rows:
+		var failure := ReportLedgerValidator.validate(row[1])
+		assert_false(failure.ok, "%s reuse rejects" % row[0])
+		assert_eq(failure.code, ReportLedgerValidator.FAILURE, "%s reports the identity failure code" % row[0])
+		assert_eq(failure.details, "Ledger-owned mutable report node is reused.", "%s reports the identity failure details" % row[0])
+	var ledger_clone_source := _retained_live_childless_slice_ledger()
+	var ledger_clone := ledger_clone_source.deep_clone()
+	assert_false(is_same(ledger_clone.slices, ledger_clone_source.slices), "ledger clone detaches live slices")
+	assert_false(is_same(ledger_clone.settlement_events, ledger_clone_source.settlement_events), "ledger clone detaches live events")
+	assert_false(is_same(ledger_clone.retained_records, ledger_clone_source.retained_records), "ledger clone detaches retained records")
+	assert_false(is_same(ledger_clone.threshold_continuations, ledger_clone_source.threshold_continuations), "ledger clone detaches continuations")
+	var record_clone_source := _record(1, 0, 10)
+	var record_clone := record_clone_source.deep_clone()
+	assert_false(is_same(record_clone.slices, record_clone_source.slices), "record clone detaches slices")
+	assert_false(is_same(record_clone.settlement_events, record_clone_source.settlement_events), "record clone detaches events")
+	var slice_clone_source := _slice(&"T", 0, 10)
+	var slice_clone := slice_clone_source.deep_clone()
+	assert_false(is_same(slice_clone.ordered_retinue_ids, slice_clone_source.ordered_retinue_ids), "slice clone detaches Retinue IDs")
+	assert_false(is_same(slice_clone.channels, slice_clone_source.channels), "slice clone detaches channels")
+	var continuation_clone_source := _continuation(&"T", &"OVERDUE", 1, false, &"")
+	var continuation_clone := continuation_clone_source.deep_clone()
+	assert_false(is_same(continuation_clone.ordered_retinue_ids, continuation_clone_source.ordered_retinue_ids), "continuation clone detaches Retinue IDs")
+	assert_false(is_same(continuation_clone.channels, continuation_clone_source.channels), "continuation clone detaches channels")
+
 func _continuation_ledger(lifecycle: StringName, backlog: int, settled: bool) -> ReportLedger:
 	var ledger := ReportLedger.create_empty(0)
 	ledger.threshold_continuations.append(_continuation(&"T", lifecycle, backlog, settled))

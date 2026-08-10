@@ -169,11 +169,11 @@ try {
             Log 'No pre-existing .godot directory was present.'
         }
         $ps = (Get-Command powershell.exe -ErrorAction Stop).Source; $wrapper = Join-Path $Root 'tools\test\run_gut.ps1'
-        Run 'full' $ps @('-NoProfile','-ExecutionPolicy','Bypass','-File',$wrapper,'-GodotBin',$Godot) { param($out) Exact $out 207 207 5752 }
+        Run 'full' $ps @('-NoProfile','-ExecutionPolicy','Bypass','-File',$wrapper,'-GodotBin',$Godot) { param($out) Exact $out 208 208 5807 }
         $suite = @('tests/unit/m04e2r1/test_report_ledger.gd','tests/unit/m04e2r1/test_report_ledger_ingestion.gd','tests/unit/m04e2r1/test_report_ledger_interval_matrix.gd','tests/integration/m04e2r1/test_report_ledger_persistence_exclusion.gd','tests/unit/m04e2r2/test_report_ledger_r2_state.gd','tests/unit/m04e2r2/test_report_ledger_snapshot.gd','tests/unit/m04e2r2/test_report_ledger_reads.gd','tests/integration/m04e2r2/test_report_ledger_rollover_ingestion.gd','tests/integration/m04e2r2/test_report_ledger_persistence_exclusion.gd')
         $env:M04E2R2_OWNER_WRAPPER = $wrapper; $env:M04E2R2_OWNER_GODOT = $Godot
         $focus = '& $env:M04E2R2_OWNER_WRAPPER -GodotBin $env:M04E2R2_OWNER_GODOT -GutArgs @(' + (($suite | ForEach-Object { "'-gtest=res://$_'" }) -join ',') + ')'
-        Run 'focused' $ps @('-NoProfile','-ExecutionPolicy','Bypass','-Command',$focus) { param($out) Exact $out 29 29 2920 }
+        Run 'focused' $ps @('-NoProfile','-ExecutionPolicy','Bypass','-Command',$focus) { param($out) Exact $out 30 30 2975 }
         Run 'import' $Godot @('--headless','--path',$Root,'--import') $null
         Run 'trace' $Godot @('--headless','--path',$Root,'-s','res://tools/test/m04e2r2/m04e2r2_report_history_trace.gd') { param($out) Trace $out }
         Run 'smoke' $Godot @('--headless','--path',$Root,'--quit-after','5') $null
@@ -194,7 +194,7 @@ finally {
         $script:Stage.audit = 'PASS'; Log 'Artifact audit: PASS'
     } catch { Fail "artifact audit: $($_.Exception.Message)"; Log 'Artifact audit: FAIL' }
     $pass = $script:Failures -eq 0 -and @($script:Stage.Values | Where-Object { $_ -ne 'PASS' }).Count -eq 0
-    Log "UTC end: $([DateTime]::UtcNow.ToString('O'))"; Log "Full GUT: Tests 207; Passing tests 207; Assertions/Asserts 5752 ($($script:Stage.full))"; Log "Focused R1/R2: Tests 29; Passing tests 29; Assertions/Asserts 2920 ($($script:Stage.focused))"; Log "Import result: $($script:Stage.import)"; Log "Trace-marker result: $($script:Stage.trace)"; Log "Main-scene smoke result: $($script:Stage.smoke)"; Log "Diff-check result: $($script:Stage.diff)"; Log "Cleanup result: $($script:Stage.cleanup)"; Log "Cleanup-absence result: $($script:Stage.absence)"; Log "Artifact-audit result: $($script:Stage.audit)"; Log "Automated result: $(if ($pass) {'PASS'} else {'FAIL'})"; Log "Failed step count: $script:Failures"; Log 'Pending interactive checks: None'; Log "Retained log path: $script:LogPath"; Write-Host "RETAINED OWNER LOG: $script:LogPath"
+    Log "UTC end: $([DateTime]::UtcNow.ToString('O'))"; Log "Full GUT: Tests 208; Passing tests 208; Assertions/Asserts 5807 ($($script:Stage.full))"; Log "Focused R1/R2: Tests 30; Passing tests 30; Assertions/Asserts 2975 ($($script:Stage.focused))"; Log "Import result: $($script:Stage.import)"; Log "Trace-marker result: $($script:Stage.trace)"; Log "Main-scene smoke result: $($script:Stage.smoke)"; Log "Diff-check result: $($script:Stage.diff)"; Log "Cleanup result: $($script:Stage.cleanup)"; Log "Cleanup-absence result: $($script:Stage.absence)"; Log "Artifact-audit result: $($script:Stage.audit)"; Log "Automated result: $(if ($pass) {'PASS'} else {'FAIL'})"; Log "Failed step count: $script:Failures"; Log 'Pending interactive checks: None'; Log "Retained log path: $script:LogPath"; Write-Host "RETAINED OWNER LOG: $script:LogPath"
     if (-not $pass) { exit 1 }
 }
 exit 0
