@@ -687,7 +687,6 @@ Current R2 evidence under the owner-approved packet (rollover/snapshot; bounded 
 
 - snapshots and detached reads;
 - report history and retention;
-- report-open or report-selection lifecycle remains deferred;
 - report-open, report-selection, acknowledgement, archive, clear/delete, and partial-clear behavior are deferred report-lifecycle/presentation work requiring a later owner-approved packet.
 
 Deferred P1 evidence (non-executable until a later owner-approved packet):
@@ -2201,7 +2200,7 @@ The convergence assessment follows the G0 policy: after two substantial correcti
 
 R1 validates the caller-owned, non-persisted ledger only: factory/clone/validator grammar; wrapper precedence and interval matrix; normalized source/channel/Settlement continuity; one-shot/chunked equality; transactionality and overflow; and schema-v3 persistence exclusion. Its completed PR #34 package owns the exact 32-path packet, R1 tests, R1 trace, and R1 owner runner. M04E2P1 and M04E2B remain deferred.
 
-### 33. M04E2R2 rollover/history validation package
+## M04E2R2 rollover/history validation package
 
 R2 owns the exact 37-path packet, focused R1+R2 suite, R2 trace, R2 owner runner, and PR #35 evidence. It covers only the approved R2 behavior listed above; report-lifecycle/presentation work remains deferred pending a later owner-approved packet.
 
