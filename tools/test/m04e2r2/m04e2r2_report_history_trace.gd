@@ -31,12 +31,14 @@ func _init() -> void:
 	if not _check(history.ok and history.records.size() == 8 and history.records[0].record_sequence == 3 and live.ok and live.window.record_sequence == 0 and _empty_record(live.window), "reads"): return
 
 	var settled := _settled_baseline(true)
+	if settled == null: return
 	var settled_before := settled.deep_clone()
 	var duplicate_event := SimulationThresholdSettledEvent.new(100, 0, &"T", 2, 0, 0, &"OVERDUE", &"SETTLED")
 	var duplicate := ReportLedgerIngestor.ingest_committed_run(settled, _active_run(90, 100, 1, 0, 1, 2, 1, 2, 0, 0, [duplicate_event]))
 	if not _check(duplicate.outcome == ReportLedgerIngestResult.REJECTED and duplicate.error_code == ReportLedgerIngestor.ERR_SLICE and duplicate.candidate_ledger == null and settled.value_equals(settled_before), "settlement"): return
 
 	var continuity_source := _normal_baseline(false)
+	if continuity_source == null: return
 	var continuity_before := continuity_source.deep_clone()
 	var discontinuity := ReportLedgerIngestor.ingest_committed_run(continuity_source, _active_run(10, 20, 1, 1, 99, 100, 1, 2, 0, 0))
 	if not _check(discontinuity.outcome == ReportLedgerIngestResult.REJECTED and discontinuity.error_code == ReportLedgerIngestor.ERR_CHANNEL and discontinuity.candidate_ledger == null and continuity_source.value_equals(continuity_before), "continuity"): return
@@ -71,23 +73,78 @@ func _init() -> void:
 func _normal_baseline(pruned: bool) -> ReportLedger:
 	var source := ReportLedger.create_empty(0)
 	var first := ReportLedgerIngestor.ingest_committed_run(source, _active_run(0, 10, 2, 1, 0, 1, 0, 1, 0, 0))
-	var rolled := ReportLedgerSnapshotter.rollover(first.candidate_ledger, 10).candidate_ledger
-	return _prune(rolled) if pruned else rolled
+	if first == null:
+		_fail("continuity")
+		return null
+	if first.outcome != ReportLedgerIngestResult.APPLIED:
+		_fail("continuity")
+		return null
+	if first.candidate_ledger == null:
+		_fail("continuity")
+		return null
+	var rollover := ReportLedgerSnapshotter.rollover(first.candidate_ledger, 10)
+	if rollover == null:
+		_fail("continuity")
+		return null
+	if rollover.outcome != ReportLedgerSnapshotResult.APPLIED:
+		_fail("continuity")
+		return null
+	if rollover.candidate_ledger == null:
+		_fail("continuity")
+		return null
+	return _prune(rollover.candidate_ledger, "continuity") if pruned else rollover.candidate_ledger
 
 func _settled_baseline(pruned: bool) -> ReportLedger:
 	var source := ReportLedger.create_empty(0)
 	var event := SimulationThresholdSettledEvent.new(10, 0, &"T", 2, 0, 0, &"OVERDUE", &"SETTLED")
 	var first := ReportLedgerIngestor.ingest_committed_run(source, _active_run(0, 10, 1, 0, 0, 1, 0, 1, 0, 0, [event]))
-	var rolled := ReportLedgerSnapshotter.rollover(first.candidate_ledger, 10).candidate_ledger
-	return _prune(rolled) if pruned else rolled
+	if first == null:
+		_fail("settlement")
+		return null
+	if first.outcome != ReportLedgerIngestResult.APPLIED:
+		_fail("settlement")
+		return null
+	if first.candidate_ledger == null:
+		_fail("settlement")
+		return null
+	var rollover := ReportLedgerSnapshotter.rollover(first.candidate_ledger, 10)
+	if rollover == null:
+		_fail("settlement")
+		return null
+	if rollover.outcome != ReportLedgerSnapshotResult.APPLIED:
+		_fail("settlement")
+		return null
+	if rollover.candidate_ledger == null:
+		_fail("settlement")
+		return null
+	return _prune(rollover.candidate_ledger, "settlement") if pruned else rollover.candidate_ledger
 
-func _prune(source: ReportLedger) -> ReportLedger:
+func _prune(source: ReportLedger, marker: String) -> ReportLedger:
+	if source == null:
+		_fail(marker)
+		return null
 	var current := source
 	for finish in range(source.ingested_through_simulation_msec + 10, source.ingested_through_simulation_msec + 90, 10):
 		var ingested := ReportLedgerIngestor.ingest_committed_run(current, _timeline_run(finish - 10, finish))
-		if ingested.outcome != ReportLedgerIngestResult.APPLIED: return null
+		if ingested == null:
+			_fail(marker)
+			return null
+		if ingested.outcome != ReportLedgerIngestResult.APPLIED:
+			_fail(marker)
+			return null
+		if ingested.candidate_ledger == null:
+			_fail(marker)
+			return null
 		var rolled := ReportLedgerSnapshotter.rollover(ingested.candidate_ledger, finish)
-		if rolled.outcome != ReportLedgerSnapshotResult.APPLIED: return null
+		if rolled == null:
+			_fail(marker)
+			return null
+		if rolled.outcome != ReportLedgerSnapshotResult.APPLIED:
+			_fail(marker)
+			return null
+		if rolled.candidate_ledger == null:
+			_fail(marker)
+			return null
 		current = rolled.candidate_ledger
 	return current
 
