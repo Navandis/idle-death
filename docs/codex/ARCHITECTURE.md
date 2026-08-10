@@ -113,7 +113,7 @@ The approved production bridge for the prototype is the pinned GodotSteam 4.20 G
 
 ## 5. Three data bands
 
-### Current M04E2 report architecture (`DEC-0046`)
+### Current M04E2 report architecture (`DEC-0046`, `DEC-0047`)
 
 M04E2R1 owns a caller-retained, non-persisted `ReportLedger` aggregate and a stateless ingestion boundary from finalized committed run facts. It is not a `GameSession`, `GameState`, application, persistence, or global owner. The ingestor returns a validated detached candidate only for an exact-new committed interval; R2 owns snapshots/reads, P1 owns durable `GameState` and schema-v4 integration, and B owns atomic simulation/report coordination.
 
@@ -1750,19 +1750,19 @@ Accepted `DEC-0043` supersedes the implementation packaging in `DEC-0042` while 
 
 Accepted `DEC-0045` records PR #23 as a closed-unmerged architecture stop and supersedes the former A2/A3/A4 route below. Current merged `GameState` has no authoritative report ledger and schema version 3 remains current. PRs #17, #18, and #23 are forensic/regression evidence only, never production-code sources.
 
-## Current M04E2 report architecture (`DEC-0045`, `DEC-0046`)
+## Current M04E2 report architecture (`DEC-0045`, `DEC-0046`, `DEC-0047`)
 
 ```text
 M04E2T1 -> M04E2T2 -> M04E2R1 -> M04E2R2 -> M04E2P1 -> M04E2B
 ```
 
-`DEC-0045` superseded the former A2/A3/A4 route. `DEC-0046` is Accepted, and the owner-approved M04E2R1 Slice Packet v0.3 is in implementation through PR #34. Verification is Partial: R1 is not merged or fully passed, and exact-head Windows owner verification remains pending. R2, P1, and B remain deferred.
+`DEC-0045`, `DEC-0046`, and `DEC-0047` are Accepted. M04E2R1 is Merged/Passed through PR #34. M04E2R2 is in progress through PR #35 under `DEC-0047` and its owner-approved v0.3 packet, with Partial verification; exact-head Windows owner verification remains pending. P1 and B remain deferred.
 
 R1 proves one normalized ledger in memory before persistence. The ledger is explicitly caller-owned and non-persisted: every operation receives the ledger explicitly or a private candidate derived from it. Before P1, no application object, `GameSession`, service member, autoload, singleton, or hidden global retains canonical mutable ledger state. The owner-approved packet and [M04E2R1 planning memo](M04E2R1_PLANNING.md) define the exact R1 fields, API, ownership matrix, interval behavior, and test oracle. `DEC-0046` defines the current runtime boundary. This architecture still does not pre-approve `ReportService` or any other application/service owner.
 
 R1 stores the irreducible source facts and necessary transition cursors or identities specified by that approved stored-versus-derived contract; it derives redundant totals, counts, windows, summaries, and other display views. One runtime validator owns implemented report-ledger semantic meaning. Future P1 wire validation, mapping, and reconstruction remain deferred to P1's own approved packet.
 
-P1 alone may later put the proven ledger under `GameState` as sole durable ownership and introduce schema version 4. B alone may later coordinate atomic simulation/report work. R2, P1, and B require their own owner-approved packets; this section does not define their APIs or implementation details.
+P1 alone may later put the proven ledger under `GameState` as sole durable ownership and introduce schema version 4. B alone may later coordinate atomic simulation/report work. R2 is in progress under its owner-approved v0.3 packet; P1 and B require their own future owner-approved packets and remain deferred. This section does not define their APIs or implementation details.
 
 The following was the active sequence before `DEC-0045` and is retained only as historical evidence:
 
