@@ -16,7 +16,12 @@ $script:LogPath = $null
 $script:TempRoot = $null
 $script:Backup = $null
 $script:Fingerprint = @()
-$script:GodotState = 'NotStarted'
+$script:PreparationState = 'PreparationNotStarted'
+$script:BackupState = 'NotCreated'
+$script:OriginalRemovedForFreshState = $false
+$script:RestorationVerified = $false
+$script:RecoveryBackupRetained = $false
+$script:CleanWorktree = $false
 $script:StatusBaseline = ''
 $script:IgnoredBaseline = @()
 $script:ArtifactBaseline = @()
@@ -71,19 +76,48 @@ function Run([string]$Name, [string]$Exe, [string[]]$Args, [scriptblock]$Validat
     if ($ok -and $Validator) { try { $ok = & $Validator (Lines $output) } catch { $ok = $false; Log "VALIDATOR ${Name}: $($_.Exception.Message)" } }
     if ($ok) { $script:Stage[$Name] = 'PASS'; Log "PASS $Name" } else { Fail "$Name (native exit $code)" }
 }
+function Retain-RecoveryBackup([string]$Reason) {
+    if ($script:Backup -and (Test-Path -LiteralPath $script:Backup)) {
+        $script:RecoveryBackupRetained = $true
+        $script:BackupState = 'RecoveryBackupRetainedAfterFailure'
+        Log "RECOVERY BACKUP RETAINED: $script:Backup"
+        Log "RECOVERY ROOT RETAINED: $script:TempRoot"
+        Log "RECOVERY REASON: $Reason"
+    }
+}
 function Cleanup {
     try {
         $godot = Join-Path $Root '.godot'
-        if ($script:GodotState -eq 'NotStarted') { Log 'Cleanup cache action: fresh-state preparation did not begin; pre-existing state was not altered.' }
-        elseif ($script:GodotState -eq 'Absent') { if (Test-Path $godot) { Remove-Item $godot -Recurse -Force }; if (Test-Path $godot) { throw 'Generated .godot remains.' } }
-        elseif ($script:GodotState -eq 'BackedUp') {
-            if (Test-Path $godot) { Remove-Item $godot -Recurse -Force }
-            Copy-Item $script:Backup $godot -Recurse -Force
-            if ((Lines (Fingerprint $godot)) -ne (Lines $script:Fingerprint)) { throw '.godot restoration fingerprint mismatch.' }
-            Remove-Item $script:Backup -Recurse -Force; $script:Backup = $null
+        if ($script:PreparationState -eq 'PreparationNotStarted') {
+            Log 'Cleanup cache action: fresh-state preparation did not begin; pre-existing state was not altered.'
+        } elseif ($script:PreparationState -eq 'OriginalAbsent') {
+            if (Test-Path -LiteralPath $godot) { Remove-Item -LiteralPath $godot -Recurse -Force }
+            if (Test-Path -LiteralPath $godot) { throw 'Generated .godot remains.' }
+        } elseif ($script:BackupState -eq 'VerifiedIndependentBackupCreated' -or $script:BackupState -eq 'RecoveryBackupRetainedAfterFailure') {
+            $currentMatchesOriginal = (Test-Path -LiteralPath $godot) -and ((Lines (Fingerprint $godot)) -eq (Lines $script:Fingerprint))
+            if (-not $currentMatchesOriginal) {
+                if (Test-Path -LiteralPath $godot) { Remove-Item -LiteralPath $godot -Recurse -Force }
+                if (Test-Path -LiteralPath $godot) { throw 'Unable to remove incomplete fresh .godot state before recovery.' }
+                Copy-Item -LiteralPath $script:Backup -Destination $godot -Recurse -Force
+                if ((Lines (Fingerprint $godot)) -ne (Lines $script:Fingerprint)) { throw '.godot restoration fingerprint mismatch.' }
+            }
+            $script:RestorationVerified = $true
+            Log 'Pre-existing .godot restoration verified exactly.'
+            if ($script:Failures -gt 0) {
+                Retain-RecoveryBackup 'Preparation or package execution failed after an independent backup was verified.'
+                throw 'Verified recovery backup retained after a preparation or package execution failure.'
+            }
+            Remove-Item -LiteralPath $script:Backup -Recurse -Force
+            if (Test-Path -LiteralPath $script:Backup) { throw 'Verified .godot backup remains after successful restoration.' }
+            $script:Backup = $null
+            $script:BackupState = 'RemovedAfterVerifiedRestoration'
         }
         Log 'Cleanup result: PASS'; $script:Stage.cleanup = 'PASS'
-    } catch { Fail "cleanup: $($_.Exception.Message)"; Log 'Cleanup result: FAIL' }
+    } catch {
+        Retain-RecoveryBackup $_.Exception.Message
+        Fail "cleanup: $($_.Exception.Message)"
+        Log 'Cleanup result: FAIL'
+    }
 }
 
 New-Item -ItemType Directory -Force -Path $Logs | Out-Null
@@ -96,19 +130,44 @@ try {
     $script:IgnoredBaseline = @(git -C $Root ls-files --others --ignored --exclude-standard | Where-Object { $_ -ne $relativeLog } | Sort-Object)
     $script:ArtifactBaseline = @(Artifacts)
     Log 'Milestone or slice: M04E2R2'; Log "UTC start: $([DateTime]::UtcNow.ToString('O'))"; Log "Repository root: $Root"; Log "Requested SHA: $ExpectedHead"; Log "Detected SHA: $ActualHead"; Log 'Exact-head validation: PASS'; Log "Windows version: $([Environment]::OSVersion.VersionString)"; Log "PowerShell version: $($PSVersionTable.PSVersion)"
+    if ($script:StatusBaseline -ne '') {
+        Fail 'clean-worktree: ordinary tracked worktree must be clean before package execution.'
+        Log "Clean-worktree result: FAIL`n$($script:StatusBaseline)"
+    } else {
+        $script:CleanWorktree = $true
+        Log 'Clean-worktree result: PASS'
+    }
     $Godot = $null
-    try {
-        $Godot = Get-Godot; Log "Godot executable: $Godot"
-        if (-not (Test-Path $Godot)) { throw "Godot executable does not exist: $Godot" }
-        $versionOutput = @(& $Godot --version 2>&1); $versionExit = $LASTEXITCODE; $version = $versionOutput -join [Environment]::NewLine
-        Log "COMMAND godot-version: $Godot --version"; Log "NATIVE EXIT godot-version: $versionExit"; foreach ($line in $versionOutput) { Log "OUTPUT godot-version: $($line.ToString())" }
-        if ($versionExit -ne 0 -or $version -notmatch '^4\.7(\.|-|$)') { Log 'FAIL godot-version'; throw "Godot 4.7.x is required; detected: $version" }
-        Log 'PASS godot-version'; Log "Godot version: $version"
-    } catch { Log "Godot executable: $Godot"; Log 'Godot version: UNAVAILABLE'; Fail "godot-resolution: $($_.Exception.Message)"; $Godot = $null }
-    if ($Godot) {
+    if ($script:CleanWorktree) {
+        try {
+            $Godot = Get-Godot; Log "Godot executable: $Godot"
+            if (-not (Test-Path $Godot)) { throw "Godot executable does not exist: $Godot" }
+            $versionOutput = @(& $Godot --version 2>&1); $versionExit = $LASTEXITCODE; $version = $versionOutput -join [Environment]::NewLine
+            Log "COMMAND godot-version: $Godot --version"; Log "NATIVE EXIT godot-version: $versionExit"; foreach ($line in $versionOutput) { Log "OUTPUT godot-version: $($line.ToString())" }
+            if ($versionExit -ne 0 -or $version -notmatch '^4\.7(\.|-|$)') { Log 'FAIL godot-version'; throw "Godot 4.7.x is required; detected: $version" }
+            Log 'PASS godot-version'; Log "Godot version: $version"
+        } catch { Log "Godot executable: $Godot"; Log 'Godot version: UNAVAILABLE'; Fail "godot-resolution: $($_.Exception.Message)"; $Godot = $null }
+    }
+    if ($Godot -and $script:CleanWorktree) {
         $script:TempRoot = Join-Path ([IO.Path]::GetTempPath()) ('m04e2r2-owner-' + [guid]::NewGuid().ToString('N')); New-Item -ItemType Directory -Force -Path $script:TempRoot | Out-Null
         $cache = Join-Path $Root '.godot'
-        if (Test-Path $cache) { $script:Fingerprint = @(Fingerprint $cache); $script:Backup = Join-Path $script:TempRoot 'original-godot'; Copy-Item $cache $script:Backup -Recurse -Force; if ((Lines (Fingerprint $script:Backup)) -ne (Lines $script:Fingerprint)) { throw 'Independent .godot backup fingerprint mismatch.' }; Remove-Item $cache -Recurse -Force; $script:GodotState = 'BackedUp'; Log 'Pre-existing .godot fingerprinted and independently backed up.' } else { $script:GodotState = 'Absent'; Log 'No pre-existing .godot directory was present.' }
+        $script:PreparationState = 'PreparationStarted'
+        if (Test-Path -LiteralPath $cache) {
+            $script:Fingerprint = @(Fingerprint $cache)
+            $script:Backup = Join-Path $script:TempRoot 'original-godot'
+            Copy-Item -LiteralPath $cache -Destination $script:Backup -Recurse -Force
+            if ((Lines (Fingerprint $script:Backup)) -ne (Lines $script:Fingerprint)) { throw 'Independent .godot backup fingerprint mismatch.' }
+            $script:BackupState = 'VerifiedIndependentBackupCreated'
+            Log 'Pre-existing .godot fingerprinted and independently backed up; verified independent backup created.'
+            Remove-Item -LiteralPath $cache -Recurse -Force
+            if (Test-Path -LiteralPath $cache) { throw 'Unable to remove pre-existing .godot directory for fresh-state preparation.' }
+            $script:OriginalRemovedForFreshState = $true
+            $script:PreparationState = 'OriginalRemovedForFreshState'
+            Log 'Pre-existing .godot removed for fresh-state preparation.'
+        } else {
+            $script:PreparationState = 'OriginalAbsent'
+            Log 'No pre-existing .godot directory was present.'
+        }
         $ps = (Get-Command powershell.exe -ErrorAction Stop).Source; $wrapper = Join-Path $Root 'tools\test\run_gut.ps1'
         Run 'full' $ps @('-NoProfile','-ExecutionPolicy','Bypass','-File',$wrapper,'-GodotBin',$Godot) { param($out) Exact $out 207 207 5752 }
         $suite = @('tests/unit/m04e2r1/test_report_ledger.gd','tests/unit/m04e2r1/test_report_ledger_ingestion.gd','tests/unit/m04e2r1/test_report_ledger_interval_matrix.gd','tests/integration/m04e2r1/test_report_ledger_persistence_exclusion.gd','tests/unit/m04e2r2/test_report_ledger_r2_state.gd','tests/unit/m04e2r2/test_report_ledger_snapshot.gd','tests/unit/m04e2r2/test_report_ledger_reads.gd','tests/integration/m04e2r2/test_report_ledger_rollover_ingestion.gd','tests/integration/m04e2r2/test_report_ledger_persistence_exclusion.gd')
@@ -119,15 +178,15 @@ try {
         Run 'trace' $Godot @('--headless','--path',$Root,'-s','res://tools/test/m04e2r2/m04e2r2_report_history_trace.gd') { param($out) Trace $out }
         Run 'smoke' $Godot @('--headless','--path',$Root,'--quit-after','5') $null
         Run 'diff' $git @('-C',$Root,'diff','--check') $null
-    } else { foreach ($name in @('full','focused','import','trace','smoke','diff')) { Log "STAGE ${name}: NOT RUN (Godot validation failed)"; Fail "$name (Godot validation failed)" } }
+    } elseif ($script:CleanWorktree) { foreach ($name in @('full','focused','import','trace','smoke','diff')) { Log "STAGE ${name}: NOT RUN (Godot validation failed)"; Fail "$name (Godot validation failed)" } } else { foreach ($name in @('full','focused','import','trace','smoke','diff')) { Log "STAGE ${name}: NOT RUN (clean-worktree validation failed)"; Fail "$name (clean-worktree validation failed)" } }
 } catch { Fail "verification setup: $($_.Exception.Message)" }
 finally {
     Cleanup
-    if ($script:TempRoot -and (Test-Path $script:TempRoot)) { try { Remove-Item $script:TempRoot -Recurse -Force } catch { Fail "temporary-root removal: $($_.Exception.Message)" } }
-    try { if ($script:TempRoot -and (Test-Path $script:TempRoot)) { throw 'Runner temporary root remains.' }; if ($script:Backup -and (Test-Path $script:Backup)) { throw 'Runner backup remains.' }; $script:Stage.absence = 'PASS'; Log 'Cleanup absence proof: PASS' } catch { Fail "cleanup absence proof: $($_.Exception.Message)"; Log 'Cleanup absence proof: FAIL' }
+    if ($script:TempRoot -and (Test-Path -LiteralPath $script:TempRoot) -and -not $script:RecoveryBackupRetained) { try { Remove-Item -LiteralPath $script:TempRoot -Recurse -Force } catch { Fail "temporary-root removal: $($_.Exception.Message)" } }
+    try { if ($script:TempRoot -and (Test-Path -LiteralPath $script:TempRoot)) { throw 'Runner temporary root remains.' }; if ($script:Backup -and (Test-Path -LiteralPath $script:Backup)) { throw 'Runner backup remains.' }; $script:Stage.absence = 'PASS'; Log 'Cleanup absence proof: PASS' } catch { Fail "cleanup absence proof: $($_.Exception.Message)"; Log 'Cleanup absence proof: FAIL' }
     try {
         $relativeLog = $script:LogPath.Substring($Root.Length).TrimStart('\')
-        if ((Lines @(git -C $Root status --porcelain=v1)) -ne $script:StatusBaseline) { throw 'Ordinary repository status differs from baseline.' }
+        if ((Lines @(git -C $Root status --porcelain=v1)) -ne '') { throw 'Ordinary repository status is not clean.' }
         if ((Lines @(git -C $Root ls-files --others --ignored --exclude-standard | Where-Object { $_ -ne $relativeLog } | Sort-Object)) -ne (Lines $script:IgnoredBaseline)) { throw 'Ignored artifacts differ outside retained log.' }
         if ((Lines (Artifacts)) -ne (Lines $script:ArtifactBaseline)) { throw 'Generated artifact remains.' }
         & git -C $Root check-ignore -q -- $relativeLog; if ($LASTEXITCODE -ne 0) { throw 'Retained owner log is not ignored.' }
