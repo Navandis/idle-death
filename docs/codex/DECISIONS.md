@@ -3478,7 +3478,7 @@ R1 adds no `GameState` ownership, service/global retention, schema transition, m
 
 ## 3. Current approval state
 
-- `DEC-0001` through `DEC-0040`, `DEC-0043` through `DEC-0046` are Accepted.
+- `DEC-0001` through `DEC-0040`, `DEC-0043` through `DEC-0047` are Accepted.
 - `DEC-0041` is Superseded. Current authority carries forward only the high-level report intent restated by `DEC-0045` and the maintained contracts: reports explain already-applied gains; finalized committed facts provide historical attribution; P1 owns schema-v4 persistence; R1 provides exactly-once/no-double-count safety and no mutation for inputs the G3 oracle classifies as rejected or malformed; and R2 owns snapshot and retention behavior. `DEC-0041`'s concrete interval classifications and outcomes are historical/regression evidence for G3, not binding R1 requirements, and may be reclassified by the owner-approved G3 interval-decision table and complete test oracle.
 - `DEC-0042` is Superseded by `DEC-0043`; its failed-branch record and report-slice lessons remain historical context.
 - M04A through M04D3, M04E1, M04E2T1, and M04E2T2 are implemented, verified, and merged.
@@ -3487,5 +3487,15 @@ R1 adds no `GameState` ownership, service/global retention, schema transition, m
 - `GATE-SINGLE-PROVENANCE-TRANSACTION` and `GATE-FINALIZED-RUN-FACTS` are satisfied. Their recorded owner scope exceptions apply only to their completed slices.
 - PR #17, PR #18, and PR #23 remain closed unmerged forensic references; M04E2A1 and M04E2A2 are superseded failed/rework attempts, while M04E2A3 and M04E2A4 are superseded, never-implemented, non-executable historical slices.
 - The active M04E2 sequence is M04E2T1 -> M04E2T2 -> M04E2R1 -> M04E2R2 -> M04E2P1 -> M04E2B.
-- M04E2R1 has an owner-approved v0.3 implementation packet and is in implementation on its named feature branch. `DEC-0045` supersedes the former A2/A3/A4 report gates.
+- M04E2R1 is Merged/Passed. M04E2R2 has an owner-approved v0.3 packet and is in implementation on its named feature branch. `DEC-0045` supersedes the former A2/A3/A4 report gates.
 - Future changes preserve decision IDs for wording clarifications and create a new decision when semantics, ownership, compatibility, implementation packaging, or security posture changes.
+
+## `DEC-0047` — Caller-owned report-window rollover, compact continuation state, bounded history, and detached reads
+
+**Status:** Accepted
+**Date:** 2026-08-09
+**Decision type:** M04E2R2 runtime report boundary
+
+R2 extends the existing caller-owned, non-persisted `ReportLedger` with deterministic rollover, eight retained complete window records, compact Threshold/channel continuation, and pure detached reads. Ingestion and rollover use private candidates; `ReportLedgerValidator` remains the sole runtime semantic validator. Rollover neither claims gains nor mutates gameplay, persistence, `GameState`, application ownership, or UI.
+
+Record sequences begin at one and are never reused. Retention removes only complete oldest records. Compact continuation is the sole cross-window endpoint authority after detailed records are pruned. P1 alone owns later persistence and schema v4; B alone owns atomic simulation/report coordination.
